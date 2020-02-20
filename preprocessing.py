@@ -32,7 +32,7 @@ class preprocessing:
     def dataset_parallel(self):
         if not os.path.exists(self.target):
             os.makedirs(self.target)
-        files_pdb = os.listdir(self.init)
+        files_pdb = os.listdir(self.init) #all pdb files in downloaded dataset folder
         files_pdb.sort()
         agents = 5 #number of processes
         chunksize = 5
