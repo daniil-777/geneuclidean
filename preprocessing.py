@@ -21,15 +21,14 @@ from multiprocessing import Pool
 
 class preprocessing:
     def __init__(self, init, target):
-        self.init = init
-        self.target = target
+        self.init = init #name of downloaded dataset
+        self.target = target #name of the our generated dataset
     
-
     def download_url(self):
         #Todo
         pass
-    #parallel data processing
     
+    #parallel data processing
     def dataset_parallel(self):
         if not os.path.exists(self.target):
             os.makedirs(self.target)
@@ -53,7 +52,6 @@ class preprocessing:
             # create folder with pdb in my folder
             if not os.path.exists(os.path.join(self.target, protein)):
                 os.makedirs(os.path.join(self.target, protein))
-            
             try:
                 # crystall = generateCrystalPacking(i) - why not?
                 crystall = Molecule(protein)
@@ -63,7 +61,6 @@ class preprocessing:
                         os.path.join(self.target, protein, protein + '_protein.pdb'))
             except RuntimeError:
                 self.copy_all_folder(protein, 'run_time_Molecule_new')
-
             try:
                 smallmol = SmallMol(os.path.join(self.init, protein, protein + '_ligand.mol2'), removeHs=False, fixHs=True,
                             force_reading=True)
