@@ -23,12 +23,13 @@ class preprocessing:
     def __init__(self, init, target):
         self.init = init
         self.target = target
-    #parallel data processing
+    
 
     def download_url(self):
         #Todo
         pass
-
+    #parallel data processing
+    
     def dataset_parallel(self):
         if not os.path.exists(self.target):
             os.makedirs(self.target)
