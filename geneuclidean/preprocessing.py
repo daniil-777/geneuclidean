@@ -1,19 +1,12 @@
-import moleculekit
 from moleculekit.molecule import Molecule
-from moleculekit.tools.atomtyper import prepareProteinForAtomtyping
-from moleculekit.smallmol.smallmollib import SmallMolLib
+from moleculekit.smallmol.smallmol import SmallMol
 from moleculekit.molecule import Molecule
-from rdkit import Chem
-import openbabel
 import os
-import requests
-import shutil
 from shutil import copyfile
 from distutils.dir_util import copy_tree
-from rdkit.Chem.rdmolfiles import SmilesWriter
-from multiprocessing import Pool
 
-class preprocessing:
+
+class Preprocessor:
     def __init__(self, init, target):
         self.init = init
         self.target = target
@@ -69,5 +62,5 @@ class preprocessing:
 
 if __name__ == "__main__":
     current_path = os.path.abspath(os.path.dirname(__file__))
-    process = preprocessing(os.path.join(current_path,'refined-set'), os.path.join(current_path, 'new_dataset'))
+    process = Preprocessor(os.path.join(current_path,'refined-set'), os.path.join(current_path, 'new_dataset'))
     process.dataset_parallel()
