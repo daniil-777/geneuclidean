@@ -33,7 +33,7 @@ class Preprocessor:
         # Todo
         pass
 
-    def dataset_parallel(self, agents, chunksize):
+    def _dataset_parallel(self, agents, chunksize):
         """ Creates new dataset with protein.pdb, crystal.pdb and ligand.smile
 
         Parameters
@@ -54,7 +54,7 @@ class Preprocessor:
         for i in ["1a4k"]:
             self.pdb_to_pocket(i)
 
-    def get_pockets_all_parallel(self, agents, chunksize):
+    def _get_pockets_all_parallel(self, agents, chunksize):
         """ Creates new dataset with pocket.pdb
 
         Parameters
@@ -82,7 +82,7 @@ class Preprocessor:
 
     # one protein processing
 
-    def refined_to_my_dataset(self, protein):
+    def _refined_to_my_dataset(self, protein):
         if protein[0].isdigit():  # just proteins
             # create folder with pdb in my folder
             if not os.path.exists(os.path.join(self.target, protein)):
@@ -217,14 +217,14 @@ class Preprocessor:
             sel="within '{0}' of name '{1}'".format(str(precision), name_lig),
         )
 
-    def get_ligand_center(self, path_ligand):
+    def _get_ligand_center(self, path_ligand):
         mol_ligand = Molecule(path_ligand)
         coor_lig = mol_ligand.coords
         center = np.mean(coor_lig, axis=0)
         center = center.reshape(1, -1)
         return center
 
-    def get_protein_coord(self, path_pocket):
+    def _get_protein_coord(self, path_pocket):
         mol_protein = Molecule(path_pocket)
         coord_protein = mol_protein.coords
         coord_protein = coord_protein[:, :, -1]
@@ -238,8 +238,8 @@ class Preprocessor:
             path_ligand = os.path.join("refined-set", id_pdb, id_pdb + "_ligand.mol2")
             path_protein = os.path.join("refined-set", id_pdb, id_pdb + "_protein.pdb")
 
-            center_ligand = self.get_ligand_center(path_ligand)
-            coord_protein = self.get_protein_coord(path_protein)
+            center_ligand = self._get_ligand_center(path_ligand)
+            coord_protein = self._get_protein_coord(path_protein)
 
             if self.regime == "manual":
                 self.pdb_protein_to_pocket(
@@ -269,5 +269,5 @@ if __name__ == "__main__":
         "mlkit",
     )
     # process.dataset_parallel(5,5)
-    process.get_pockets_all_parallel(5, 5)
+    process._get_pockets_all_parallel(5, 5)
     # process.test_protein()
