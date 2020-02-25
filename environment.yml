@@ -4,56 +4,15 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - blas=1.0=mkl
-  - bzip2=1.0.8=h1de35cc_0
-  - ca-certificates=2019.11.28=hecc5488_0
-  - cairo=1.16.0=h0ab9d94_1001
-  - certifi=2019.11.28=py36_0
-  - fontconfig=2.13.1=h1027ab8_1000
-  - freetype=2.9.1=hb4e5f40_0
-  - gettext=0.19.8.1=h15daf44_3
-  - glib=2.63.1=hd977a24_0
-  - icu=58.2=h4b95b61_1
-  - intel-openmp=2019.4=233
-  - jpeg=9b=he5867d9_2
-  - libboost=1.67.0=hebc422b_4
-  - libcxx=4.0.1=hcfea43d_1
-  - libcxxabi=4.0.1=hcfea43d_1
-  - libedit=3.1.20170329=hcfe32e1_1001
-  - libffi=3.2.1=h475c297_4
-  - libgfortran=3.0.1=h93005f0_2
-  - libiconv=1.15=hdd342a3_7
-  - libpng=1.6.37=ha441bb4_0
-  - libtiff=4.1.0=hcb84e12_0
-  - libxml2=2.9.9=hf6e021a_1
-  - mkl=2019.4=233
-  - mkl-service=2.3.0=py36hfbe908c_0
-  - mkl_fft=1.0.15=py36h5e564d8_0
-  - mkl_random=1.1.0=py36ha771720_0
-  - ncurses=6.1=h0a44026_1002
-  - numpy=1.18.1=py36h7241aed_0
-  - numpy-base=1.18.1=py36h6575580_1
-  - olefile=0.46=py_0
-  - openbabel=3.0.0=py36he289fc0_0
-  - openssl=1.1.1d=h0b31af3_0
-  - pcre=8.43=h0a44026_0
-  - pillow=7.0.0=py36h4655f20_0
-  - pip=20.0.2=py36_1
-  - pixman=0.38.0=h1de35cc_0
-  - py-boost=1.67.0=py36h6440ff4_4
-  - python=3.6.8=haf84260_0
-  - python-dateutil=2.8.1=py_0
-  - pytz=2019.3=py_0
-  - rdkit=2019.09.3.0=py36h65625ec_1
-  - readline=7.0=hc1231fa_4
-  - setuptools=45.2.0=py36_0
-  - six=1.14.0=py36_0
-  - sqlite=3.28.0=h9721f7c_0
-  - tk=8.6.8=ha441bb4_0
-  - wheel=0.34.2=py36_0
-  - xz=5.2.4=h1de35cc_4
-  - zlib=1.2.11=h1de35cc_3
-  - zstd=1.3.7=h5bba6e5_0
+  - libboost=1.67.0
+  - numpy=1.18.1
+  - openbabel=3.0.0
+  - pillow=7.0.0
+  - pip=20.0.2
+  - py-boost=1.67.0
+  - python=3.6.8
+  - rdkit=2019.09.3.0
+  - setuptools=45.2.0
   - pip:
     - chardet==3.0.4
     - decorator==4.4.1
