@@ -4,3 +4,7 @@ To get a new dataset download a refined version from this link: http://www.pdbbi
 Then run python preprocessing.py
 #description
 From pocket to ligand project
+
+# encoding
+
+To encode atoms using euclidean features run python encoding_euclidean.py
