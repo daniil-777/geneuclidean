@@ -36,7 +36,7 @@ class Encoding:
         self.label_protein = np.array([1.0])
         self.label_ligand = np.array([-1.0])
         self.features_complexes = []  # tensors of euclidean features
-        self.labels_complexes = []  # labels
+        self.affinities_complexes = []  # labels
 
     def _get_labels(self):
         """ creates labels for every complex according to the order of complexes in the folder .../refined-set
@@ -300,7 +300,7 @@ class Encoding:
     def main_process(self):
         """applies a procedure of pocket/ligand encoding for every complex id and generates labels
         """
-        self._get_labels()
+        self.affinities_complexes = self._get_labels()
         # test version
         for id in ["1a1e"]:
             # for id in self.files_pdb:
