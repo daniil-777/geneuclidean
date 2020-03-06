@@ -33,10 +33,10 @@ class Encoding:
         self.dict_atoms = dict_atoms
         self.set_atoms = []
         self.encoding = {}
-        self.label_protein = np.array([1.0])
-        self.label_ligand = np.array([-1.0])
+        self.label_protein = np.array([1.0]) #identification of pocket
+        self.label_ligand = np.array([-1.0])  # identification of ligand
         self.features_complexes = []  # tensors of euclidean features
-        self.affinities_complexes = []  # labels
+        self.affinities_complexes = []  # targets
 
     def _get_labels(self):
         """ creates labels for every complex according to the order of complexes in the folder .../refined-set
