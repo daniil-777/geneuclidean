@@ -33,8 +33,8 @@ class Encoding:
         self.dict_atoms = dict_atoms
         self.set_atoms = []
         self.encoding = {}
-        self.label_protein = np.array([5.0])
-        self.label_ligand = np.array([1.0])
+        self.label_protein = np.array([1.0])
+        self.label_ligand = np.array([-1.0])
         self.features_complexes = []  # tensors of euclidean features
         self.labels_complexes = []  # labels
 
@@ -217,6 +217,14 @@ class Encoding:
         ----------
         id   : str
               id of a complex
+
+        Returns
+        -------
+        tensor : torch.tensor [1,n,23]
+            The tensor of all n atoms' features:
+            1 | 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 - pocket
+            -1 | 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 - ligand
+
         """
         elem_pocket, elem_ligand = self._get_elems(id)
         coord_pocket, coord_ligand = self._get_coord(id)

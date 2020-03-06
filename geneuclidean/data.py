@@ -1,5 +1,8 @@
 import numpy as np
 
+# dictionary of unique atoms in PDBBINDING database of pockets/ligands
+# {atom: hot_vecctor}
+
 dict_atoms = {
     "C": np.array(
         [

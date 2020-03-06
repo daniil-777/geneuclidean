@@ -5,6 +5,9 @@ Then run python preprocessing.py
 #description
 From pocket to ligand project
 
+# environment 
+
+To activate environment run conda activate my-rdkit-env
 # encoding
 
 To encode atoms using euclidean features run python encoding_euclidean.py
