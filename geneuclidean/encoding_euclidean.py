@@ -1,5 +1,4 @@
 import os
-from distutils.dir_util import copy_tree
 from functools import partial
 
 import numpy as np
@@ -13,11 +12,10 @@ from e3nn.util.plot import plot_sh_signal
 from moleculekit.molecule import Molecule
 from moleculekit.smallmol.smallmol import SmallMol
 
-
 # import dictionary of atoms' types and hot encoders
 from data import dict_atoms
 
-# number_atoms = 22
+# number_atoms_unique = 22
 
 
 class Encoding:
