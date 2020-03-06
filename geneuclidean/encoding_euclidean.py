@@ -310,9 +310,10 @@ class Encoding:
 
 
 if __name__ == "__main__":
+    current_path = os.path.realpath(os.path.dirname(__file__))
     encoding = Encoding(
-        "/Users/daniil/ETH/research_drugs/geneuclidean/geneuclidean/new_dataset/",
-        "/Users/daniil/ETH/research_drugs/geneuclidean/geneuclidean/refined-set/",
+        os.path.join(current_path, "new_dataset"),
+        os.path.join(current_path, "refined-set"),
     )
     # if you want to get dict of atoms beforehand
     # encoding._get_dict_atoms()
