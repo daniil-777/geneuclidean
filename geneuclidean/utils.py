@@ -52,6 +52,13 @@ class Utils:
         return path_pocket, path_ligand
 
     def _get_elems(self, protein_id):
+        """ gives np.array of elements for a pocket and a ligand in one complex
+
+        Parameters
+        ----------
+        protein_id   : str
+                      id of a complex
+        """
         path_pocket, path_ligand = self._get_path(protein_id)
         mol_pocket = Molecule(path_pocket)
         mol_ligand = Molecule(path_ligand)
@@ -64,6 +71,14 @@ class Utils:
         return mol_pocket.coords, mol_ligand.coords
 
     def hot_encoding(self, unique_elements):
+        """ updates a dictionary of {atom: hotencoder}
+
+        Parameters
+        ----------
+        unique_elements : list
+              The list of unique atoms in pocket/ligand
+
+        """
         for elem in unique_elements:
             if elem not in self.set_atoms:
 
