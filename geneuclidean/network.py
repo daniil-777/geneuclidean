@@ -20,7 +20,7 @@ from network_utils import Pdb_Dataset
 
 
 class Net(nn.Module):
-    def __init__(self, features, geometry):
+    def __init__(self):
         super(Net, self).__init__()
         self.RadialModel = partial(
             CosineBasisModel,
@@ -30,19 +30,19 @@ class Net(nn.Module):
             L=1,
             act=torch.relu,
         )
-        self.features = features
-        self.geometry = geometry
+        # self.features = features
+        # self.geometry = geometry
 
         self.Rs_in = [(23, 0)]  # one scalar
         # in range(1) to narrow space of Rs_out
         self.Rs_out = [(1, l) for l in range(1)]
-        self.fc1 = nn.Linear(features_new.shape[0], 30)
+        self.fc1 = nn.Linear(150, 30) #need to clarify 150 or not
         self.fc2 = nn.Linear(30, 10)
         self.fc3 = nn.Linear(10, 1)  # prediction of Pkdb in regression
         self.convol = self.Convolution(self.K, self.Rs_in, self.Rs_out)
 
-    def forward(self, x):
-        features_new = self.convol(self.features, self.geometry)
+    def forward(self, x, features, geometry):
+        features_new = self.convol(features, geometry)
         # x = ...(features_new)
         x = F.relu(self.fc1(features_new))
         x = F.relu(self.fc2(x))
@@ -55,7 +55,8 @@ if __name__ == "main":
     path_pdb = os.path.join(current_path, "new_dataset")
     path_ligand = os.path.join(current_path, "refined-set")
     dataset_pdb = Pdb_Dataset(path_pdb, path_ligand)
-
+    
+    net = Net()
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
@@ -79,7 +80,7 @@ if __name__ == "main":
     #         optimizer.zero_grad()
 
     #         # forward + backward + optimize
-    #         outputs = net(inputs)
+    #         outputs = net(inputs, inputs['features'], inputs['geometry'])
     #         loss = criterion(outputs, labels)
     #         loss.backward()
     #         optimizer.step()
