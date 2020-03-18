@@ -22,6 +22,8 @@ from network_utils import Pdb_Dataset
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
+        # Radial model:  R -> R^d
+        # Projection on cos^2 basis functions followed by a fully connected network
         self.RadialModel = partial(
             CosineBasisModel,
             max_radius=3.0,
@@ -33,13 +35,16 @@ class Net(nn.Module):
         # self.features = features
         # self.geometry = geometry
 
+        # kernel: composed on a radial part that contains the learned parameters
+        #  and an angular part given by the spherical hamonics and the Clebsch-Gordan coefficients
+        self.K = partial(Kernel, RadialModel= self.RadialModel)
         self.Rs_in = [(23, 0)]  # one scalar
         # in range(1) to narrow space of Rs_out
         self.Rs_out = [(1, l) for l in range(1)]
         self.fc1 = nn.Linear(150, 30) #need to clarify 150 or not
         self.fc2 = nn.Linear(30, 10)
         self.fc3 = nn.Linear(10, 1)  # prediction of Pkdb in regression
-        self.convol = self.Convolution(self.K, self.Rs_in, self.Rs_out)
+        self.convol = Convolution(self.K, self.Rs_in, self.Rs_out)
 
     def forward(self, x, features, geometry):
         features_new = self.convol(features, geometry)
