@@ -3,12 +3,6 @@ from functools import partial
 
 import numpy as np
 import torch
-from e3nn import SO3
-from e3nn.kernel import Kernel
-from e3nn.non_linearities import GatedBlock
-from e3nn.point.operations import Convolution
-from e3nn.radial import CosineBasisModel
-from e3nn.util.plot import plot_sh_signal
 from moleculekit.molecule import Molecule
 from moleculekit.smallmol.smallmol import SmallMol
 from torch.utils.data import DataLoader, Dataset
@@ -39,9 +33,9 @@ class Pdb_Dataset(Dataset):
     def __len__(self):
         return len(self.files_pdb)
 
-    def __getitem__(self, idx):
-        all_features = self._get_features_complex(id)
-        all_geometry = self._get_geometry_complex(id)
+    def __getitem__(self, idx: str):
+        all_features = self._get_features_complex(idx)
+        all_geometry = self._get_geometry_complex(idx)
 
         item = {
             "pdb_id": idx,
@@ -176,7 +170,7 @@ class Pdb_Dataset(Dataset):
         features_all = features_pocket_part + features_ligand_part
         # return torch.cat(features_ligand_part, features_pocket_part)
         return (
-            torch.tensor(features_all, dtype=torch.float64)
+            torch.tensor(features_all, dtype=torch.float32)
             .type("torch.FloatTensor")
             .unsqueeze(0)
         )
