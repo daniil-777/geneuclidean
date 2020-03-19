@@ -18,10 +18,12 @@ from torch.utils.data import DataLoader, Dataset
 
 from network_utils import Pdb_Dataset
 
+LEN_PADDING = 286
 
-class Net(nn.Module):
+
+class EuclideanNet(nn.Module):
     def __init__(self):
-        super(Net, self).__init__()
+        super(EuclideanNet, self).__init__()
         # Radial model:  R -> R^d
         # Projection on cos^2 basis functions followed by a fully connected network
         self.RadialModel = partial(
@@ -37,62 +39,24 @@ class Net(nn.Module):
 
         # kernel: composed on a radial part that contains the learned parameters
         #  and an angular part given by the spherical hamonics and the Clebsch-Gordan coefficients
-        self.K = partial(Kernel, RadialModel= self.RadialModel)
+        self.K = partial(Kernel, RadialModel=self.RadialModel)
         self.Rs_in = [(23, 0)]  # one scalar
         # in range(1) to narrow space of Rs_out
         self.Rs_out = [(1, l) for l in range(1)]
-        self.fc1 = nn.Linear(150, 30) #need to clarify 150 or not
+        self.fc1 = nn.Linear(LEN_PADDING, 30)  # need to clarify 150 or not
         self.fc2 = nn.Linear(30, 10)
         self.fc3 = nn.Linear(10, 1)  # prediction of Pkdb in regression
         self.convol = Convolution(self.K, self.Rs_in, self.Rs_out)
 
     def forward(self, x, features, geometry):
-        features_new = self.convol(features, geometry)
+        features_new = self.convol(features, geometry).squeeze(2)
+        length_padding = 286 - features_new.shape[1]
+        # padding till the shape of the biggest feature size - 286
+        result_feature = F.pad(
+            input=features_new, pad=(0, length_padding, 0, 0), mode="constant", value=0
+        )
         # x = ...(features_new)
         x = F.relu(self.fc1(features_new))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
         return x
-
-
-if __name__ == "main":
-    current_path = os.path.realpath(os.path.dirname(__file__))
-    path_pdb = os.path.join(current_path, "new_dataset")
-    path_ligand = os.path.join(current_path, "refined-set")
-    dataset_pdb = Pdb_Dataset(path_pdb, path_ligand)
-    
-    net = Net()
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-
-    # trainset - ?
-    # testset - ?
-
-    # trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
-    #                                           shuffle=True, num_workers=2)
-
-    # testloader = torch.utils.data.DataLoader(testset, batch_size=4,
-    #                                          shuffle=False, num_workers=2)
-
-    # for epoch in range(2):  # loop over the dataset multiple times
-
-    #     running_loss = 0.0
-    #     for i, data in enumerate(trainloader, 0):
-    #         # get the inputs; data is a list of [inputs, labels]
-    #         inputs, labels = data
-
-    #         # zero the parameter gradients
-    #         optimizer.zero_grad()
-
-    #         # forward + backward + optimize
-    #         outputs = net(inputs, inputs['features'], inputs['geometry'])
-    #         loss = criterion(outputs, labels)
-    #         loss.backward()
-    #         optimizer.step()
-
-    #         # print statistics
-    #         running_loss += loss.item()
-    #         if i % 2000 == 1999:    # print every 2000 mini-batches
-    #             print('[%d, %5d] loss: %.3f' %
-    #                 (epoch + 1, i + 1, running_loss / 2000))
-    #             running_loss = 0.0
