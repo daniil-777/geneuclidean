@@ -1,9 +1,6 @@
-import os
-import numpy as np
 import itertools as IT
 import json
 import os
-import pandas as pd
 import pickle
 import time
 from distutils.dir_util import copy_tree
@@ -14,6 +11,7 @@ from shutil import copyfile
 import _pickle as pickle
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import scipy.spatial.distance as dist
 import torch
 from e3nn import SO3
@@ -32,14 +30,110 @@ number_atoms = 22
 
 
 class Utils:
-    def __init__(self, path_pocket: str, path_ligand: str):
-        self.init_pocket = path_pocket
-        self.init_ligand = path_ligand
+    # def __init__(self, path_pocket: str, path_ligand: str):
+    def __init__(self, path_root):
+        self.init_pocket = path_root + "/new_dataset/"
+        self.init_ligand = path_root + "/refined-set/"
+        self.init_test_data = path_root + "/CASF/PDBbind_core_set_v2007.2.lst"
+
+        # self.init_pocket = path_pocket
+        # self.init_ligand = path_ligand
         self.files_pdb = os.listdir(self.init_pocket)
         self.files_pdb.sort()
+
         self.set_atoms = []
         self.encoding_hot = {}
         self.encoding_simple = {}
+
+    def _get_data(self):
+        """ splits a list "array_indexes" into "num_folders" chunks
+        returns a list of PDB ids (list of str)
+
+        returns list of indexes and list of pdb-names of all complexes
+        """
+        list_indexes = [i for i in range(len(self.files_pdb))]
+        return list_indexes, self.files_pdb
+
+    def _get_split(self, array_indexes, num_folders):
+        """ splits a list "array_indexes" into "num_folders" chunks
+
+        Parameters
+        ----------
+        array_indexes array of indexes  : list of int indexes 
+        num_folders : int number of folders
+        """
+        num_folders += 1
+        avg = len(array_indexes) / float(num_folders)
+        out = []
+        last = 0.0
+        while last < len(array_indexes):
+            out.append(array_indexes[int(last) : int(last + avg)])
+            last += avg
+        return out
+
+    # split train : test as 80 : 20
+    def _get_train_test_data(self, array_indexes):
+        """ gives a list of indexes for a train and a test data' id from refined set in propotion 80 : 20
+
+        Parameters
+        ----------
+        array_indexes array of indexes  : list
+        """
+
+        len_train_data = int(0.8 * len(array_indexes))
+        indexes_train_data = array_indexes[0:len_train_data]
+        indexes_test_data = array_indexes[len_train_data:]
+        return indexes_train_data, indexes_test_data
+
+    def _get_train_data(self):
+        """ gives a list of first 3880 complexes' id from refined set
+
+        Parameters
+        ----------
+        """
+        print(len(self.files_pdb))
+        array_train_id = self.files_pdb[0:3880]  # array of str ids
+        array_train_indexes = np.arange(0, 3881, 1)  # array of numbers-indexes
+        array_train_indexes = [i for i in range(3880)]
+        return array_train_indexes
+
+    # "special" train and test getters with the use of CASF dataset
+    def _get_test_data(self):
+        """ gives a list of complexes' id from CASF dataser
+
+        Parameters
+        ----------
+        """
+        array_test_id = self.files_pdb[3880:4852]  # array of str ids
+        array_test_indexes = np.arange(3881, 4853, 1)  # array of numbers-indexes
+        array_test_indexes = [i for i in range(3880, 4854)]
+        return array_test_indexes
+
+    def _get_train_data_special(self):
+        files_pdb = os.listdir(self.init_pocket)
+        print(len(files_pdb))
+
+        array_test_id = self._get_test_data()
+        array_train_id = [
+            id for id in files_pdb if id not in array_test_id
+        ]  # array of str id
+        print(len(array_train_id))
+        return array_train_id
+
+    def _get_test_data_special(self):
+        """ gives a list of complexes' id from CASF dataser
+
+        Parameters
+        ----------
+        """
+        file = open(self.init_test_data, "r")
+
+        lines = file.readlines()
+        array_test_id = [
+            line.split(" ")[0] for line in lines if line[0].isdigit()
+        ]  # array of str id
+        file.close()
+        return array_test_id
 
     def _get_path(self, protein_id):
 
@@ -83,8 +177,7 @@ class Utils:
             if elem not in self.set_atoms:
 
                 # if we want 0000100000
-                self.encoding_hot[elem] = np.eye(
-                    number_atoms)[len(self.set_atoms), :]
+                self.encoding_hot[elem] = np.eye(number_atoms)[len(self.set_atoms), :]
                 # if we want 5
                 self.encoding_simple[elem] = len(self.set_atoms)
                 self.set_atoms.append(elem)
@@ -102,15 +195,13 @@ class Utils:
             elem_pocket, elem_ligand = self._get_elems(id)
             # print(elem_ligand)
             coord_pocket, coord_ligand = self._get_coord(id)
-            self.complex_compile(elem_pocket, elem_ligand,
-                                 coord_pocket, coord_ligand)
+            self.complex_compile(elem_pocket, elem_ligand, coord_pocket, coord_ligand)
         print(len(self.set_atoms))
         with open("encoding_hot.txt", "w") as f:
             print(self.encoding_hot, file=f)
 
         with open("encoding_simple.txt", "w") as f:
             print(self.encoding_simple, file=f)
-
 
     def get_labels(self):
         """ creates labels for every complex according to the order of complexes in the folder .../refined-set
@@ -122,8 +213,7 @@ class Utils:
 
             """
         file = open(
-            os.path.join(self.init_ligand, 
-                        "index/INDEX_refined_data.2019"), "r"
+            os.path.join(self.init_ligand, "index/INDEX_refined_data.2019"), "r"
         )
         lines = file.readlines()
         array_id = [line.split()[0] for line in lines if line[0].isdigit()]
@@ -132,13 +222,13 @@ class Utils:
         dict_id_pkd = dict(zip(array_id, array_pkd))
         labels = np.asarray([dict_id_pkd[id] for id in self.files_pdb])
         id_all = np.asarray(self.files_pdb)
-        with open ("labels.csv", "w") as f:
+        with open("labels.csv", "w") as f:
             # f = open(".csv", "w")
             # f.write("{},{}\n".format("Name1", "Name2"))
             for x in zip(id_all, labels):
                 f.write("{},{}\n".format(x[0], x[1]))
             f.close()
-        print(labels[self.files_pdb.index('1a69')])
+        print(labels[self.files_pdb.index("1a69")])
         # print(self.files_pdb)
         # print(self.files_pdb.index('1a69'))
         # print(id_all)
@@ -154,23 +244,18 @@ if __name__ == "__main__":
     current_path = os.path.realpath(os.path.dirname(__file__))
     path_to_pdb_protein = os.path.join(current_path, "new_dataset/")
     path_to_pdb_ligand = os.path.join(current_path, "refined-set/")
-    utils = Utils(
-        path_to_pdb_protein,
-        path_to_pdb_ligand
-    )
-    utils.get_labels()
-    path_labels = os.path.join(current_path, "labels.csv")
-    # labels = np.load(os.path.join(current_path, "labels.txt"))
-    # labels = np.loadtxt(path_labels, delimiter='\n', unpack=True)
-    file = open(path_labels, 'r')
-    labels = [line.split(',')[1][:-1] for line in file.readlines()]
-    file.close()
-    df = pd.read_csv(path_labels)
-    df_temp = df.iloc[:, 1].tolist()
+    utils = Utils(current_path)
+    utils._get_train_data()
+    # utils.get_labels()
+    # path_labels = os.path.join(current_path, "labels.csv")
+    # # labels = np.load(os.path.join(current_path, "labels.txt"))
+    # # labels = np.loadtxt(path_labels, delimiter='\n', unpack=True)
+    # file = open(path_labels, 'r')
+    # labels = [line.split(',')[1][:-1] for line in file.readlines()]
+    # file.close()
+    # df = pd.read_csv(path_labels)
+    # df_temp = df.iloc[:, 1].tolist()
     # print(df_temp)
     # print(labels)
-    
-    # utils.main_process()
-    
 
- 
+    # utils.main_process()
