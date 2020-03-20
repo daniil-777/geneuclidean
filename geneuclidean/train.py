@@ -84,7 +84,8 @@ if __name__ == "__main__":
     # get indexes of all complexes and "nick names"
     data_ids, data_names = utils._get_data()
     split_pdbids = {}
-
+    print(DATA_PATH)
+    featuriser = Pdb_Dataset(DATA_PATH)
     for mode in EVAL_MODES:
         split_pdbids.setdefault(mode, [])
         # chunks of splitted data
@@ -106,8 +107,11 @@ if __name__ == "__main__":
 
             #############################################################
             # does not work ???
-            feat_train = Pdb_Dataset(*train_data)
-            feat_test = Pdb_Dataset(*test_data)
+            # feat_train = Pdb_Dataset(*train_data)
+            # feat_test = Pdb_Dataset(*test_data)
+            # print(train_data)
+            feat_train = [featuriser[data] for data in train_data]
+            feat_test = [featuriser[data] for data in test_data]
             #############################################################
 
             loader_train = DataLoader(

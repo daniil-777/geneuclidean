@@ -7,7 +7,7 @@ from moleculekit.molecule import Molecule
 from moleculekit.smallmol.smallmol import SmallMol
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
-
+import torch.nn.functional as F
 # import dictionary of atoms' types and hot encoders
 from data import dict_atoms
 
@@ -17,10 +17,18 @@ from data import dict_atoms
 class Pdb_Dataset(Dataset):
     """PdB binding dataset"""
 
-    def __init__(self, path_pocket: str, path_ligand: str):
-        self.labels = self.read_labels(path_pocket + "labels.csv")
-        self.init_pocket = path_pocket
-        self.init_ligand = path_ligand
+    # def __init__(self, path_pocket: str, path_ligand: str):
+
+    def __init__(self, path_root: str):
+        # self.labels = self.read_labels(path_pocket + "labels.csv")
+        # self.init_pocket = path_pocket
+        # self.init_ligand = path_ligand
+        print(path_root)
+        self.init_pocket = path_root + "/new_dataset/"
+        self.init_ligand = path_root + "/refined-set/"
+        self.labels = self.read_labels(path_root + "/data/labels.csv")
+
+
         self.files_pdb = os.listdir(self.init_pocket)
         self.files_pdb.sort()
         self.dict_atoms = dict_atoms
@@ -186,8 +194,11 @@ class Pdb_Dataset(Dataset):
             .type("torch.FloatTensor")
             .unsqueeze(0)
         )
+        length_padding = 286 - tensor_all_features.shape[1]
+        result = F.pad(input=tensor_all_features, pad=(0, 0, 0, length_padding),
+                       mode='constant', value=0)
 
-        return tensor_all_features
+        return result
 
     def _get_geometry_complex(self, id: str):
         """creates a tensor of all geometries (coordinates) in complex (pocket AND ligand)
@@ -208,12 +219,15 @@ class Pdb_Dataset(Dataset):
         tensor_all_atoms_coords = (
             torch.from_numpy(all_atoms_coords).squeeze().unsqueeze(0)
         )
-        return tensor_all_atoms_coords
+        length_padding = 286 - tensor_all_atoms_coords.shape[1]
+        result = F.pad(input=tensor_all_atoms_coords, pad=(0, 0, 0, length_padding),
+                       mode='constant', value=0)
+        return result
 
     def read_labels(self, path):
         # labels = np.loadtxt(path, delimiter='\n', unpack=True)
         file = open(path, "r")
-        labels = [line.split(",")[1][:-1] for line in file.readlines()]
+        labels = [float(line.split(",")[1][:-1]) for line in file.readlines()]
         # labels = np.asarray(labels)
         file.close()
         return labels

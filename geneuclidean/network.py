@@ -48,7 +48,7 @@ class EuclideanNet(nn.Module):
         self.fc3 = nn.Linear(10, 1)  # prediction of Pkdb in regression
         self.convol = Convolution(self.K, self.Rs_in, self.Rs_out)
 
-    def forward(self, x, features, geometry):
+    def forward(self, features, geometry):
         features_new = self.convol(features, geometry).squeeze(2)
         length_padding = 286 - features_new.shape[1]
         # padding till the shape of the biggest feature size - 286
