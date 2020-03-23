@@ -49,14 +49,18 @@ class EuclideanNet(nn.Module):
         self.convol = Convolution(self.K, self.Rs_in, self.Rs_out)
 
     def forward(self, features, geometry):
-        features_new = self.convol(features, geometry).squeeze(2)
-        length_padding = 286 - features_new.shape[1]
-        # padding till the shape of the biggest feature size - 286
-        result_feature = F.pad(
-            input=features_new, pad=(0, length_padding, 0, 0), mode="constant", value=0
-        )
-        # x = ...(features_new)
-        x = F.relu(self.fc1(features_new))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
+        """
+        outputs a concatenation of fully connected layers encodings
+        """
+        final_batch_features = [] #here we put outputs for every batch
+        for feature_, geometry_ in zip(features, geometry):
+            feature_one = feature_.squeeze(1)
+            geometry_one = geometry_.squeeze(1)
+            features_new = self.convol(feature_one, geometry_one)
+            x = features_new.squeeze()
+            x = F.relu(self.fc1(x))
+            x = F.relu(self.fc2(x))
+            x = F.relu(self.fc3(x))
+            x = x.view(x.shape[0], -1)
+            final_batch_features.append(x) 
+        return torch.cat(final_batch_features).squeeze(1)

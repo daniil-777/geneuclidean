@@ -257,5 +257,5 @@ class Loss(nn.Module):
         self.loss_rmsd_pkd = nn.MSELoss()
 
     def forward(self, out1, pkd_mask):
-        loss_rmsd_pkd = self.loss_rmsd_pkd(out1, pkd_mask)
+        loss_rmsd_pkd = self.loss_rmsd_pkd(out1.double(), pkd_mask).double()
         return loss_rmsd_pkd

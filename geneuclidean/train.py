@@ -33,6 +33,7 @@ def training_loop(loader, model, loss_cl, opt):
     Training loop of `model` using data from `loader` and
     loss functions from `loss_cl` using optimizer `opt`.
     """
+
     model = model.train()
     progress = tqdm(loader)
 
@@ -48,7 +49,10 @@ def training_loop(loader, model, loss_cl, opt):
         out1 = model(features, geometry)
         loss_rmsd_pkd = loss_cl(
             out1, target_pkd
-        )  # I output in forward of NET just a feature x of one particluar complex
+        ).float()
+        print("type loss_rmsd ")
+        print(type(loss_rmsd_pkd))
+        print(type(loss_rmsd_pkd))  # I output in forward of NET just a feature x of one particluar complex
 
         loss_rmsd_pkd.backward()
         opt.step()
@@ -122,7 +126,7 @@ if __name__ == "__main__":
                 feat_test, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, shuffle=False
             )
 
-            model = EuclideanNet().to(DEVICE)
+            model = EuclideanNet().to(DEVICE).float()
             loss_cl = Loss()
             opt = Adam(model.parameters())
             scheduler = ExponentialLR(opt, gamma=0.95)
