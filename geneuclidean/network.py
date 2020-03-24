@@ -18,8 +18,6 @@ from torch.utils.data import DataLoader, Dataset
 
 from network_utils import Pdb_Dataset
 
-LEN_PADDING = 286
-
 
 class EuclideanNet(nn.Module):
     def __init__(self):
@@ -52,7 +50,7 @@ class EuclideanNet(nn.Module):
         """
         outputs a concatenation of fully connected layers encodings
         """
-        final_batch_features = [] #here we put outputs for every batch
+        final_batch_features = []  # here we put outputs for every batch
         for feature_, geometry_ in zip(features, geometry):
             feature_one = feature_.squeeze(1)
             geometry_one = geometry_.squeeze(1)
@@ -62,5 +60,5 @@ class EuclideanNet(nn.Module):
             x = F.relu(self.fc2(x))
             x = F.relu(self.fc3(x))
             x = x.view(x.shape[0], -1)
-            final_batch_features.append(x) 
+            final_batch_features.append(x)
         return torch.cat(final_batch_features).squeeze(1)

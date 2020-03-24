@@ -8,10 +8,12 @@ from moleculekit.smallmol.smallmol import SmallMol
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 import torch.nn.functional as F
+
 # import dictionary of atoms' types and hot encoders
 from data import dict_atoms
 
 # number_atoms_unique = 22
+LEN_PADDING = 286
 
 
 class Pdb_Dataset(Dataset):
@@ -27,7 +29,6 @@ class Pdb_Dataset(Dataset):
         self.init_pocket = path_root + "/new_dataset/"
         self.init_ligand = path_root + "/refined-set/"
         self.labels = self.read_labels(path_root + "/data/labels.csv")
-
 
         self.files_pdb = os.listdir(self.init_pocket)
         self.files_pdb.sort()
@@ -194,9 +195,13 @@ class Pdb_Dataset(Dataset):
             .type("torch.FloatTensor")
             .unsqueeze(0)
         )
-        length_padding = 286 - tensor_all_features.shape[1]
-        result = F.pad(input=tensor_all_features, pad=(0, 0, 0, length_padding),
-                       mode='constant', value=0)
+        length_padding = LEN_PADDING - tensor_all_features.shape[1]
+        result = F.pad(
+            input=tensor_all_features,
+            pad=(0, 0, 0, length_padding),
+            mode="constant",
+            value=0,
+        )
 
         return result
 
@@ -219,9 +224,13 @@ class Pdb_Dataset(Dataset):
         tensor_all_atoms_coords = (
             torch.from_numpy(all_atoms_coords).squeeze().unsqueeze(0)
         )
-        length_padding = 286 - tensor_all_atoms_coords.shape[1]
-        result = F.pad(input=tensor_all_atoms_coords, pad=(0, 0, 0, length_padding),
-                       mode='constant', value=0)
+        length_padding = LEN_PADDING - tensor_all_atoms_coords.shape[1]
+        result = F.pad(
+            input=tensor_all_atoms_coords,
+            pad=(0, 0, 0, length_padding),
+            mode="constant",
+            value=0,
+        )
         return result
 
     def read_labels(self, path):

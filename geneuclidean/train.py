@@ -47,12 +47,12 @@ def training_loop(loader, model, loss_cl, opt):
         opt.zero_grad()
 
         out1 = model(features, geometry)
-        loss_rmsd_pkd = loss_cl(
-            out1, target_pkd
-        ).float()
+        loss_rmsd_pkd = loss_cl(out1, target_pkd).float()
         print("type loss_rmsd ")
         print(type(loss_rmsd_pkd))
-        print(type(loss_rmsd_pkd))  # I output in forward of NET just a feature x of one particluar complex
+        print(
+            type(loss_rmsd_pkd)
+        )  # I output in forward of NET just a feature x of one particluar complex
 
         loss_rmsd_pkd.backward()
         opt.step()
