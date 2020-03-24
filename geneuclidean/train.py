@@ -7,6 +7,7 @@ import torch
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ExponentialLR
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from network import EuclideanNet
@@ -27,8 +28,10 @@ EVAL_MODES = ["normal"]
 
 utils = Utils(DATA_PATH)
 
+writer = SummaryWriter("runs/fashion_mnist_experiment_1")
 
-def training_loop(loader, model, loss_cl, opt):
+
+def training_loop(loader, model, loss_cl, opt, epoch, split_no):
     """
     Training loop of `model` using data from `loader` and
     loss functions from `loss_cl` using optimizer `opt`.
@@ -48,11 +51,12 @@ def training_loop(loader, model, loss_cl, opt):
 
         out1 = model(features, geometry)
         loss_rmsd_pkd = loss_cl(out1, target_pkd).float()
-        print("type loss_rmsd ")
-        print(type(loss_rmsd_pkd))
-        print(
-            type(loss_rmsd_pkd)
-        )  # I output in forward of NET just a feature x of one particluar complex
+
+        name = "training_loss_" + str(split_no + 1)
+
+        writer.add_scalar(name, loss_rmsd_pkd.item(), epoch)
+
+        # I output in forward of NET just a feature x of one particluar complex
 
         loss_rmsd_pkd.backward()
         opt.step()
@@ -62,7 +66,7 @@ def training_loop(loader, model, loss_cl, opt):
         )
 
 
-def eval_loop(loader, model):
+def eval_loop(loader, model, epoch, split_no):
     """
     Evaluation loop using `model` and data from `loader`.
     """
@@ -77,11 +81,20 @@ def eval_loop(loader, model):
             features = features.to(DEVICE)
             geometry = geometry.to(DEVICE)
 
-            out1 = model(geometry, features)
+            out1 = model(features, geometry)
             target_pkd_all.append(target_pkd)
             pkd_pred.append(out1.cpu())
 
-    return torch.FloatTensor(target_pkd_all), torch.FloatTensor(pkd_pred)
+            loss_rmsd_pkd = loss_cl(out1, target_pkd).float()
+            progress.set_postfix(
+                {"loss_rmsd_pkd": loss_rmsd_pkd.item(),}
+            )
+
+            name = "test_loss_" + str(split_no + 1)
+
+            writer.add_scalar(name, loss_rmsd_pkd.item(), epoch)
+
+    return torch.cat(target_pkd_all), torch.cat(pkd_pred)
 
 
 if __name__ == "__main__":
@@ -134,11 +147,12 @@ if __name__ == "__main__":
             print("Training model...")
             for i in range(N_EPOCHS):
                 print("Epoch {}/{}...".format(i + 1, N_EPOCHS))
-                training_loop(loader_train, model, loss_cl, opt)
+                epoch = i + 1
+                training_loop(loader_train, model, loss_cl, opt, epoch, split_no)
                 scheduler.step()
 
             print("Evaluating model...")
-            target_pkd_all, pkd_pred = eval_loop(loader_test, model)
+            target_pkd_all, pkd_pred = eval_loop(loader_test, model, epoch, split_no)
 
             os.makedirs(RES_PATH, exist_ok=True)
 
