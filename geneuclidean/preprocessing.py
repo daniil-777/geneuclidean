@@ -3,6 +3,7 @@ import os
 import pickle
 import time
 from distutils.dir_util import copy_tree
+from shutil import copyfile
 from multiprocessing import Pool
 from shutil import copyfile
 
@@ -13,27 +14,82 @@ from moleculekit.smallmol.smallmol import SmallMol
 from openbabel import openbabel
 from scipy import spatial as spatial
 
+# from e3nn import e3nn
 
 class Preprocessor:
     """
-    Class for preprocessing
+    Class for preprocessing refined dataset or core dataset CASF
     """
 
-    def __init__(self, init: str, target: str, presision: int, regime: str):
+    def __init__(self, init: str, target: str, presision: int, regime: str, flag: str):
         self.init = init
         self.target = target
-        self.files_pdb = os.listdir(self.init)
-        self.files_pdb.sort()
+        self.flag = flag  #refined with 4800 or core datasets with 200 complexes
+        # self.files_pdb = os.listdir(self.init)
+        # self.files_pdb = self.get_files_pdb
         self.precision = presision
         self.regime = regime
+        
 
     # parallel data processing
+    def get_files_pdb(self):
+        """ Creates a list of pdb_id from pdbbind dataset (refined or core)
+        """
+        if(self.flag == "core"):
+            files_proteins = os.listdir("CASF/protein/pdb")
+            files = [file[0:4] for file in files_proteins]
+            return files
+        elif(self.flag =="refined"):
+            files = os.listdir(self.init)
+            # files = files.sort()
+            return sorted(files)
+        else:
+            raise ValueError("flag must be refined or core")
+
+
+    def _get_path_protein_init(self, pdb_id: str):
+        """ Creates a path to initial protein.pdb depending on the type of a dataset (refined or core)
+
+        Parameters
+        ----------
+        pdb_id : str
+        """
+        if(self.flag == 'core'):
+            path_pdb = os.path.join(
+                "CASF/protein/pdb/", pdb_id + "_protein.pdb")
+            return path_pdb
+        elif(self.flag == 'refined'):
+            path_pdb = os.path.join(
+                self.init, pdb_id, pdb_id + "_protein.pdb")
+            return path_pdb
+        else:
+            raise ValueError("flag must be refined or core")
+
+    def _get_path_ligand_init(self, pdb_id: str):
+        """ Creates a path to initial ligand.mol2 depending on the type of a dataset (refined or core)
+
+        Parameters
+        ----------
+        pdb_id : str
+        """
+        if(self.flag == 'core'):
+            path_pdb = os.path.join(
+                # "CASF/ligand/docking/decoy_mol2/", pdb_id + "_ligand.mol2")
+            "CASF/ligand/ranking_scoring/crystal_mol2/", pdb_id + "_ligand.mol2")
+            return path_pdb
+        elif(self.flag == 'refined'):
+            path_pdb = os.path.join(
+                "refined-set", pdb_id, pdb_id + "_ligand.mol2")
+            return path_pdb
+        else:
+            raise ValueError("flag must be refined or core")
+    
 
     def download_url(self):
         # Todo
         pass
 
-    def _dataset_parallel(self, agents, chunksize):
+    def dataset_parallel(self, agents, chunksize):
         """ Creates new dataset with protein.pdb, crystal.pdb and ligand.smile
 
         Parameters
@@ -43,12 +99,18 @@ class Preprocessor:
         chunksize : int
                 Number of items in one process
         """
+        files_pdb = self.get_files_pdb()
+        print(files_pdb)
         if not os.path.exists(self.target):
             os.makedirs(self.target)
         # files_pdb = os.listdir(self.init)
         # files_pdb.sort()
-        with Pool(processes=agents) as pool:
-            pool.map(self.refined_to_my_dataset, self.files_pdb, chunksize)
+        for prot in files_pdb:
+            self.refined_to_my_dataset(prot)
+            self.pdb_to_pocket(prot)
+        #bags with parallel version 
+        # with Pool(processes=agents) as pool:
+        #     pool.map(self.refined_to_my_dataset, files_pdb, chunksize)
 
     def test_protein(self):
         for i in ["1a4k"]:
@@ -64,11 +126,15 @@ class Preprocessor:
         chunksize : int
                 Number of items in one process
         """
-        with Pool(processes=agents) as pool:
-            pool.map(self.pdb_to_pocket, self.files_pdb, chunksize)
+        files_pdb = self.get_files_pdb()
+
+        for prot in files_pdb:
+            self.pdb_to_pocket(prot)
+        # with Pool(processes=agents) as pool:
+        #     pool.map(self.pdb_to_pocket, self.files_pdb, chunksize)
 
     #
-    def copy_all_folder(self, protein, name_folder_destination):
+    def copy_all_folder(self, pdb_id: str, name_folder_destination):
         path_to_exceptions = os.path.join(
             os.path.abspath(os.getcwd()), name_folder_destination
         )
@@ -76,37 +142,42 @@ class Preprocessor:
         """
         if not os.path.exists(path_to_exceptions):
             os.makedirs(path_to_exceptions)
-        copy_tree(
-            os.path.join(self.init, protein), os.path.join(path_to_exceptions, protein)
+        init_path_protein = self._get_path_protein_init(pdb_id)
+        copyfile(
+            init_path_protein, os.path.join(
+                path_to_exceptions, pdb_id)
         )
 
     # one protein processing
 
-    def _refined_to_my_dataset(self, protein):
-        if protein[0].isdigit():  # just proteins
+    def refined_to_my_dataset(self, pdb_id: str):
+        if pdb_id[0].isdigit():  # just proteins
             # create folder with pdb in my folder
-            if not os.path.exists(os.path.join(self.target, protein)):
-                os.makedirs(os.path.join(self.target, protein))
+            if not os.path.exists(os.path.join(self.target, pdb_id)):
+                os.makedirs(os.path.join(self.target, pdb_id))
 
             try:
                 # crystall = generateCrystalPacking(i) - why not?
-                crystall = Molecule(protein)
-
+                crystall = Molecule(pdb_id)
+                
                 crystall.filter("protein")
                 crystall.write(
-                    os.path.join(self.target, protein, protein + "_crystall.pdb"),
+                    os.path.join(self.target, pdb_id,
+                                 pdb_id + "_crystall.pdb"),
                     type="pdb",
                 )
+                init_path_protein = self._get_path_protein_init(pdb_id)
                 copyfile(
-                    os.path.join(self.init, protein, protein + "_protein.pdb"),
-                    os.path.join(self.target, protein, protein + "_protein.pdb"),
+                    init_path_protein,
+                    os.path.join(self.target, pdb_id,
+                                 pdb_id + "_protein.pdb"),
                 )
             except RuntimeError:
-                self.copy_all_folder(protein, "run_time_Molecule_new")
+                self.copy_all_folder(pdb_id, "run_time_Molecule_new")
 
             try:
                 smallmol = SmallMol(
-                    os.path.join(self.init, protein, protein + "_ligand.mol2"),
+                    self._get_path_ligand_init(pdb_id),
                     removeHs=False,
                     fixHs=True,
                     force_reading=True,
@@ -114,11 +185,12 @@ class Preprocessor:
 
                 sm = smallmol.toSMILES()
                 with open(
-                    os.path.join(self.target, protein, protein + "_ligand.smi"), "w"
+                    os.path.join(self.target, pdb_id,
+                                 pdb_id + "_ligand.smi"), "w"
                 ) as txt:
                     txt.write(sm)
             except ValueError:
-                self.copy_all_folder(protein, "exception_smiles_new")
+                self.copy_all_folder(pdb_id, "exception_smiles_new")
 
     def using_cdist(self, points1, points2, cutoff):
         indices = np.where(dist.cdist(points1, points2) <= cutoff)[0]
@@ -191,10 +263,14 @@ class Preprocessor:
         precision : int
             Radius of atoms selections wrp center of ligand
         """
-        path_protein_source = os.path.join(
-            "refined-set", id_pdb, id_pdb + "_protein.pdb"
-        )
+
+        
+       
+        path_protein_source = self._get_path_protein_init(id_pdb)
+        if not os.path.exists(os.path.join(self.target, id_pdb)):
+            os.makedirs(os.path.join(self.target, id_pdb))
         path_pocket = os.path.join(self.target, id_pdb, id_pdb + "_pocket.pdb")
+        
         print(path_pocket)
         mol_protein = Molecule(path_protein_source)
         mol_protein.write(
@@ -235,9 +311,9 @@ class Preprocessor:
         Creates pocket.pdb files for every protein. Has three regimes
         """
         if id_pdb[0].isdigit():
-            path_ligand = os.path.join("refined-set", id_pdb, id_pdb + "_ligand.mol2")
-            path_protein = os.path.join("refined-set", id_pdb, id_pdb + "_protein.pdb")
-
+            path_ligand = self._get_path_ligand_init(id_pdb)
+            path_protein = self._get_path_protein_init(id_pdb)
+        
             center_ligand = self._get_ligand_center(path_ligand)
             coord_protein = self._get_protein_coord(path_protein)
 
@@ -264,9 +340,9 @@ if __name__ == "__main__":
     current_path = os.path.realpath(os.path.dirname(__file__))
     process = Preprocessor(
         os.path.join(current_path, "refined-set"),
-        os.path.join(current_path, "new_dataset"),
+        os.path.join(current_path, "core_processed_dataset"),
         8,
-        "mlkit",
+        "mlkit", "core",
     )
     # process.dataset_parallel(5,5)
     process._get_pockets_all_parallel(5, 5)

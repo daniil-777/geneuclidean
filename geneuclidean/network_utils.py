@@ -28,10 +28,18 @@ class Pdb_Dataset(Dataset):
         print(path_root)
         self.init_pocket = path_root + "/new_dataset/"
         self.init_ligand = path_root + "/refined-set/"
+        # self.init_core_ligand = path_root + "/CASF/ligand/docking/decoy_mol2/"
+        self.init_core_ligand = path_root + "/CASF/ligand/ranking_scoring/crystal_mol2/"
+        self.target_casf = path_root + "/core_processed_dataset/"
         self.labels = self.read_labels(path_root + "/data/labels.csv")
-
+        
+        self.labels_all = self._get_labels_refined_core(
+            path_root + "/data/labels.csv", path_root + "/data/labels_core.csv")
         self.files_pdb = os.listdir(self.init_pocket)
         self.files_pdb.sort()
+        self.len_files = len(self.files_pdb)
+        self.files_core = os.listdir(self.target_casf)
+
         self.dict_atoms = dict_atoms
         self.set_atoms = []
         self.encoding = {}
@@ -40,14 +48,17 @@ class Pdb_Dataset(Dataset):
         self.features_complexes = []  # tensors of euclidean features
         self.affinities_complexes = []  # targets
 
+
     def __len__(self):
         return len(self.files_pdb)
 
+
     def __getitem__(self, idx: int):
-        idx_str = self.index_int_to_str(idx)
-        all_features = self._get_features_complex(idx_str)
-        all_geometry = self._get_geometry_complex(idx_str)
-        target_pkd = np.asarray(self.labels[self.files_pdb.index(idx_str)])
+        # idx_str = self.index_int_to_str(idx)
+        all_features = self._get_features_complex(idx)
+        all_geometry = self._get_geometry_complex(idx)
+        # target_pkd = np.asarray(self.labels[self.files_pdb.index(idx)])
+        target_pkd = np.asarray(self.labels_all[idx])
         return idx, all_features, all_geometry, torch.from_numpy(target_pkd)
         # item = {
         #     "pdb_id": idx,
@@ -57,19 +68,28 @@ class Pdb_Dataset(Dataset):
         # }
         # return item
 
-    def _get_path(self, protein_id: str):
+    def _get_path(self, protein_id: int):
         """ get a full path to pocket/ligand
 
         """
-        path_pocket = os.path.join(
-            self.init_pocket, protein_id, protein_id + "_pocket.pdb"
-        )
-        path_ligand = os.path.join(
-            self.init_ligand, protein_id, protein_id + "_ligand.mol2"
-        )
+        if (protein_id >= self.len_files):
+            new_id = protein_id-self.len_files
+            protein_name = self.files_core[new_id]
+            path_pocket = os.path.join(
+                self.target_casf, protein_name, protein_name + "_pocket.pdb")
+            path_ligand=os.path.join(
+                self.init_core_ligand,  protein_name + "_ligand.mol2")
+        else:
+            protein_name = self.files_pdb[protein_id]
+            path_pocket = os.path.join(
+                self.init_pocket, protein_name, protein_name + "_pocket.pdb"
+            )
+            path_ligand = os.path.join(
+                self.init_ligand, protein_name, protein_name + "_ligand.mol2"
+            )
         return path_pocket, path_ligand
 
-    def _get_elems(self, protein_id: str):
+    def _get_elems(self, protein_id: int):
         """ gives np.array of elements for a pocket and a ligand in one complex
 
         Parameters
@@ -82,7 +102,7 @@ class Pdb_Dataset(Dataset):
         mol_ligand = Molecule(path_ligand)
         return mol_pocket.element, mol_ligand.element
 
-    def _get_coord(self, protein_id: str):
+    def _get_coord(self, protein_id: int):
         """ gives np.array of coordinates for a pocket and a ligand in one complex
 
         Parameters
@@ -107,7 +127,11 @@ class Pdb_Dataset(Dataset):
         ----------
         index   : int position of the pdb in he common list
         """
-        name_pdb_id = self.files_pdb[index]
+        if index > 5000:
+            num = index - 5000
+            name_pdb_id = self.files_core[index]
+        else:
+            name_pdb_id = self.files_pdb[index]
         return name_pdb_id
 
     def atom_to_vector(self, elem: str):
@@ -169,7 +193,7 @@ class Pdb_Dataset(Dataset):
         # features = torch.cat(list_features_tensors, dim=-1)
         return list_features_tensors
 
-    def _get_features_complex(self, id: str):
+    def _get_features_complex(self, id: int):
         """creates a tensor of all features in complex (pocket AND ligand)
 
         Parameters
@@ -205,7 +229,7 @@ class Pdb_Dataset(Dataset):
 
         return result
 
-    def _get_geometry_complex(self, id: str):
+    def _get_geometry_complex(self, id: int):
         """creates a tensor of all geometries (coordinates) in complex (pocket AND ligand)
 
         Parameters
@@ -233,7 +257,7 @@ class Pdb_Dataset(Dataset):
         )
         return result
 
-    def read_labels(self, path):
+    def read_labels(self, path: str):
         # labels = np.loadtxt(path, delimiter='\n', unpack=True)
         file = open(path, "r")
         labels = [float(line.split(",")[1][:-1]) for line in file.readlines()]
@@ -241,7 +265,30 @@ class Pdb_Dataset(Dataset):
         file.close()
         return labels
 
-    def _get_coord(self, protein_id: str):
+    def _get_labels_refined_core(self, path_refined: str, path_core: str):
+        """ gives list of labels of refined and core datasets
+
+        Parameters
+        ----------
+        path_refined   : str
+                      path to the refined pdbbind dataset
+        path_core      : str
+                      path to the core pdbbind (CASF) dataset
+        """
+        file_lb_refined = open(path_refined, "r")
+        labels_refined = [float(line.split(",")[1][:-1])
+                          for line in file_lb_refined.readlines()]
+        # labels = np.asarray(labels)
+        file_lb_refined.close()
+        file_lb_core = open(path_core, "r")
+        labels_core = [float(line.split(",")[1][:-1])
+                       for line in file_lb_core.readlines()]
+        # labels = np.asarray(labels)
+        file_lb_core.close()
+        return labels_refined + labels_core
+
+
+    def _get_coord(self, protein_id: int):
         """ gives np.array of coordinates for a pocket and a ligand in one complex
 
         Parameters

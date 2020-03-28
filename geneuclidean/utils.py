@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 import scipy.spatial.distance as dist
 import torch
-from e3nn import SO3
+# from e3nn import SO3
 from e3nn.kernel import Kernel
 from e3nn.non_linearities import GatedBlock
 from e3nn.non_linearities.rescaled_act import sigmoid, swish
@@ -34,27 +34,82 @@ class Utils:
     def __init__(self, path_root):
         self.init_pocket = path_root + "/new_dataset/"
         self.init_ligand = path_root + "/refined-set/"
+        self.target_casf = path_root + "/core_processed_dataset"
         self.init_test_data = path_root + "/CASF/PDBbind_core_set_v2007.2.lst"
 
         # self.init_pocket = path_pocket
         # self.init_ligand = path_ligand
         self.files_pdb = os.listdir(self.init_pocket)
         self.files_pdb.sort()
-
+        self.files_core = os.listdir(self.target_casf)
         self.set_atoms = []
         self.encoding_hot = {}
         self.encoding_simple = {}
 
-    def _get_data(self):
-        """ splits a list "array_indexes" into "num_folders" chunks
-        returns a list of PDB ids (list of str)
+    def _get_names_refined_core(self):
+        return self.files_pdb + self.files_core
+    
+    def _get_core_train_test(self):
+        """ returns 1) indexes of pdb in refined for exception core dataset for training
+            and indexes from the core dataset for the test, 2) all labels 3) all names
+        """
+
+        id_core_return = [self.files_pdb.index(file) for file in self.files_pdb if file in self.files_core]
+
+        # id_core_return = list(map(lambda x: x+id_refined[-1], id_core))
+        id_refined_return = [self.files_pdb.index(
+            file) for file in self.files_pdb if file not in self.files_core]
+        all_pdb_names = self.files_pdb + self.files_core
+        # labels_all = np.concatenate(labels_refined, labels_core)
+        return id_refined_return, id_core_return
+
+
+    def _get_core_train_test_casf(self):
+        """ returns 1) indexes of pdb in refined for exception core dataset for training
+            and indexes from the core dataset for the test, 2) all labels 3) all names
+        """
+        id_refined, name_refined = self._get_refined_data()
+        id_core, name_core = self._get_core_data()
+        id_core_return = [id + len(self.files_pdb) for id in id_core]
+        # id_core_return = list(map(lambda x: x+id_refined[-1], id_core))
+        # id_refined_return = [id for id in id_refined if id not in id_core]
+        id_refined_return = [self.files_pdb.index(
+            file) for file in self.files_pdb if file not in self.files_core]
+        all_pdb_names = self.files_pdb + self.files_core
+        # labels_all = np.concatenate(labels_refined, labels_core)
+        return id_refined_return, id_core_return
+
+
+    def _get_dataset_preparation(self):
+        """ returns indexes of pdb in refined for exception core dataset for training
+            and indexes from the core dataset for the test
+        """
+        id_pdb_without_core = [self.files_pdb.index(file) for file in self.files_pdb if file not in self.files_core]
+        id_pdb_core = [5000 + i for i in range(len(self.files_core))]
+        print(len(id_pdb_without_core))
+        print(id_pdb_core)
+        return id_pdb_without_core, id_pdb_core
+
+    def _get_core_data(self):
+        """ 
+        returns a list of PDB ids (list of ints) and list of pdb names (list of str)
+
+        returns list of indexes and list of pdb-names of all complexes
+        """
+        list_indexes = [i for i in range(len(self.files_core))]
+        return list_indexes, self.files_core
+
+
+    def _get_refined_data(self):
+        """ 
+        returns a list of PDB ids (list of ints) and list of pdb names (list of str)
 
         returns list of indexes and list of pdb-names of all complexes
         """
         list_indexes = [i for i in range(len(self.files_pdb))]
         return list_indexes, self.files_pdb
 
-    def _get_split(self, array_indexes, num_folders):
+    def _get_split(self, array_indexes, num_folds):
         """ splits a list "array_indexes" into "num_folders" chunks
 
         Parameters
@@ -62,8 +117,8 @@ class Utils:
         array_indexes array of indexes  : list of int indexes 
         num_folders : int number of folders
         """
-        num_folders += 1
-        avg = len(array_indexes) / float(num_folders)
+        num_folds += 1
+        avg = len(array_indexes) / float(num_folds)
         out = []
         last = 0.0
         while last < len(array_indexes):
@@ -202,9 +257,58 @@ class Utils:
 
         with open("encoding_simple.txt", "w") as f:
             print(self.encoding_simple, file=f)
+    def _get_id_labels(self, path: str):
+        """ read labels and id of complexes from the file
 
-    def get_labels(self):
-        """ creates labels for every complex according to the order of complexes in the folder .../refined-set
+                Returns
+                -------
+                labels : list
+                    The list of complexes' labels - affinity -logKd/Ki
+
+        """
+        file = open(
+            os.path.join(self.init_ligand,
+                         path), "r"
+        )
+        lines = file.readlines()
+        array_id = [line.split()[0] for line in lines if line[0].isdigit()]
+        array_pkd = [line.split()[3] for line in lines if line[0].isdigit()]
+        # since the order of index document and complexes in folder differ we adjust the order here
+        dict_id_pkd = dict(zip(array_id, array_pkd))
+        labels = np.asarray([dict_id_pkd[id] for id in self.files_pdb])
+        id_all = np.asarray(self.files_pdb)
+        file.close()
+        return id_all, labels
+
+
+    def write_core_labels(self):
+        """ writes id - labels for every complex in the CASF dataset 
+
+                Returns
+                -------
+                labels : list
+                    The list of complexes' labels - affinity -logKd/Ki
+
+            """
+        file_core = open(
+            self.init_test_data, "r"
+        ) 
+        lines = file_core.readlines()
+
+        array_id = [line.split()[0] for line in lines if line[0].isdigit()]
+        array_pkd = [line.split()[3] for line in lines if line[0].isdigit()]
+        labels = np.asarray(array_pkd)
+        id = np.asarray(array_id)
+        with open("labels_core.csv", "w") as f:
+            # f = open(".csv", "w")
+            # f.write("{},{}\n".format("Name1", "Name2"))
+            for x in zip(id, labels):
+                f.write("{},{}\n".format(x[0], x[1]))
+            f.close()
+
+
+    def write_labels(self):
+        """ writes labels for every complex according to the order of complexes in the folder .../refined-set
 
                 Returns
                 -------
@@ -222,6 +326,7 @@ class Utils:
         dict_id_pkd = dict(zip(array_id, array_pkd))
         labels = np.asarray([dict_id_pkd[id] for id in self.files_pdb])
         id_all = np.asarray(self.files_pdb)
+
         with open("labels.csv", "w") as f:
             # f = open(".csv", "w")
             # f.write("{},{}\n".format("Name1", "Name2"))
@@ -245,8 +350,9 @@ if __name__ == "__main__":
     path_to_pdb_protein = os.path.join(current_path, "new_dataset/")
     path_to_pdb_ligand = os.path.join(current_path, "refined-set/")
     utils = Utils(current_path)
-    utils._get_train_data()
-    # utils.get_labels()
+    # utils._get_train_data()
+    # utils.write_core_labels()
+    utils._get_dataset_preparation()
     # path_labels = os.path.join(current_path, "labels.csv")
     # # labels = np.load(os.path.join(current_path, "labels.txt"))
     # # labels = np.loadtxt(path_labels, delimiter='\n', unpack=True)

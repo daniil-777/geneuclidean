@@ -19,7 +19,7 @@ NUM_WORKERS = int(multiprocessing.cpu_count() / 2)
 
 DATA_PATH = os.path.realpath(os.path.dirname(__file__))
 
-RES_PATH = os.path.join(DATA_PATH, "results")
+RES_PATH = os.path.join(DATA_PATH, "results_core")
 
 N_EPOCHS = 200
 N_SPLITS = 5
@@ -28,7 +28,7 @@ EVAL_MODES = ["normal"]
 
 utils = Utils(DATA_PATH)
 
-writer = SummaryWriter("runs_all/pdbbind_all_experiment_1")
+writer = SummaryWriter("runs_all_core/pdbbind_all_experiment_152")
 
 
 def training_loop(loader, model, loss_cl, opt, epoch):
@@ -51,8 +51,8 @@ def training_loop(loader, model, loss_cl, opt, epoch):
 
         out1 = model(features, geometry)
         loss_rmsd_pkd = loss_cl(out1, target_pkd).float()
-        name = "training_loss" + str(epoch)
-        writer.add_scalar(name, loss_rmsd_pkd.item(), epoch)
+     
+        writer.add_scalar("training_loss", loss_rmsd_pkd.item(), epoch)
 
         # ...log a Matplotlib Figure showing the model's predictions on a
         # random mini-batch
@@ -109,7 +109,12 @@ def eval_loop(loader, model, epoch):
 
 if __name__ == "__main__":
     # get indexes of all complexes and "nick names"
-    data_ids, data_names = utils._get_data()
+    data_ids, data_names = utils._get_refined_data()
+    # print("furst data names")
+    # print(data_names)
+    data_names = utils._get_names_refined_core()
+    # print("second data names")
+    # print(data_names)
     split_pdbids = {}
     print(DATA_PATH)
     featuriser = Pdb_Dataset(DATA_PATH)
@@ -117,7 +122,15 @@ if __name__ == "__main__":
         split_pdbids.setdefault(mode, [])
 
         # get indices of train and test data
-        train_data, test_data = utils._get_train_test_data(data_ids)
+        # train_data, test_data = utils._get_train_test_data(data_ids)
+        # train_data, test_data = utils._get_dataset_preparation()
+        train_data, test_data = utils._get_core_train_test()
+        # print(train_data)
+        # print(len(train_data))
+        # print("---------")
+        # print(test_data)
+        # print(len(test_data))
+        train_data = train_data[1:100]
         pdbids = [
             data_names[t] for t in test_data
         ]  # names of pdb corresponding to test data indexes
@@ -161,11 +174,11 @@ if __name__ == "__main__":
 
         # Save results for later evaluation
         np.save(
-            os.path.join(RES_PATH, "target_pkd_all_{}_{}.npy".format(mode, split_no)),
+            os.path.join(RES_PATH, "target_pkd_all_{}.npy".format(mode)),
             arr=target_pkd_all.numpy(),
         )
         np.save(
-            os.path.join(RES_PATH, "pkd_pred_{}_{}.npy".format(mode, split_no)),
+            os.path.join(RES_PATH, "pkd_pred_{}.npy".format(mode)),
             arr=pkd_pred.numpy(),
         )
 
