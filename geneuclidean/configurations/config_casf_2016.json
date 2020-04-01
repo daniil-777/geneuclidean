@@ -1,0 +1,21 @@
+{
+    "train_dataset_params": {
+        "dataset_name": "e3nn",
+        "splitting": "casf"
+    },
+
+    "output_parameters": {
+        "path_tesnorboard_output": "results/split_casf_2016_1/tensorboard/tensorboard_manual_2016",
+        "path_losses_output": "results/split_casf_2016_1/losses_predictions/losses_data_2016_1",
+        "result_path": "results/split_casf_2016_1/pkd_predictions",
+        "name_plot" : "casf_2016"
+    },
+
+    "model_params": {
+        "model_name": "e3nn",
+        "N_EPOCHS": 200,
+        "batch_size": 32,
+        "n_splits": 5
+    }
+
+}

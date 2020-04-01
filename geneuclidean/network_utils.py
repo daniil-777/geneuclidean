@@ -26,15 +26,19 @@ class Pdb_Dataset(Dataset):
         # self.init_pocket = path_pocket
         # self.init_ligand = path_ligand
         print(path_root)
-        self.init_pocket = path_root + "/new_dataset/"
-        self.init_ligand = path_root + "/refined-set/"
+        self.init_pocket = path_root + "/data/new_dataset/"
+        self.init_ligand = path_root + "/data/refined-set/"
         # self.init_core_ligand = path_root + "/CASF/ligand/docking/decoy_mol2/"
-        self.init_core_ligand = path_root + "/CASF/ligand/ranking_scoring/crystal_mol2/"
-        self.target_casf = path_root + "/core_processed_dataset/"
-        self.labels = self.read_labels(path_root + "/data/labels.csv")
-        
+        # self.init_core_ligand = path_root + "/CASF/ligand/ranking_scoring/crystal_mol2/"
+        self.init_core_ligand = path_root + "/data/CASF-2016/coreset/"
+        self.target_casf = path_root + "/data/core2016_processed_dataset/"
+
+        self.labels = self.read_labels(path_root + "/data/labels/labels.csv")
+
         self.labels_all = self._get_labels_refined_core(
-            path_root + "/data/labels.csv", path_root + "/data/labels_core.csv")
+            path_root + "/data/labels/labels.csv",
+            path_root + "/data/labels/labels_core2016.csv",
+        )
         self.files_pdb = os.listdir(self.init_pocket)
         self.files_pdb.sort()
         self.len_files = len(self.files_pdb)
@@ -48,10 +52,8 @@ class Pdb_Dataset(Dataset):
         self.features_complexes = []  # tensors of euclidean features
         self.affinities_complexes = []  # targets
 
-
     def __len__(self):
         return len(self.files_pdb)
-
 
     def __getitem__(self, idx: int):
         # idx_str = self.index_int_to_str(idx)
@@ -72,13 +74,17 @@ class Pdb_Dataset(Dataset):
         """ get a full path to pocket/ligand
 
         """
-        if (protein_id >= self.len_files):
-            new_id = protein_id-self.len_files
+        if protein_id >= self.len_files:
+            new_id = protein_id - self.len_files
             protein_name = self.files_core[new_id]
             path_pocket = os.path.join(
-                self.target_casf, protein_name, protein_name + "_pocket.pdb")
-            path_ligand=os.path.join(
-                self.init_core_ligand,  protein_name + "_ligand.mol2")
+                self.target_casf, protein_name, protein_name + "_pocket.pdb"
+            )
+            # path_ligand=os.path.join(
+            #     self.init_core_ligand,  protein_name + "_ligand.mol2")
+            path_ligand = os.path.join(
+                self.target_casf, protein_name, protein_name + "_ligand.mol2"
+            )
         else:
             protein_name = self.files_pdb[protein_id]
             path_pocket = os.path.join(
@@ -98,8 +104,14 @@ class Pdb_Dataset(Dataset):
                       id of a complex
         """
         path_pocket, path_ligand = self._get_path(protein_id)
-        mol_pocket = Molecule(path_pocket)
-        mol_ligand = Molecule(path_ligand)
+        try:
+            mol_pocket = Molecule(path_pocket)
+            mol_ligand = Molecule(path_ligand)
+        except FileNotFoundError:
+            print(protein_id, "   exception")
+            path_pocket, path_ligand = self._get_path(2)
+            mol_pocket = Molecule(path_pocket)
+            mol_ligand = Molecule(path_ligand)
         return mol_pocket.element, mol_ligand.element
 
     def _get_coord(self, protein_id: int):
@@ -276,17 +288,18 @@ class Pdb_Dataset(Dataset):
                       path to the core pdbbind (CASF) dataset
         """
         file_lb_refined = open(path_refined, "r")
-        labels_refined = [float(line.split(",")[1][:-1])
-                          for line in file_lb_refined.readlines()]
+        labels_refined = [
+            float(line.split(",")[1][:-1]) for line in file_lb_refined.readlines()
+        ]
         # labels = np.asarray(labels)
         file_lb_refined.close()
         file_lb_core = open(path_core, "r")
-        labels_core = [float(line.split(",")[1][:-1])
-                       for line in file_lb_core.readlines()]
+        labels_core = [
+            float(line.split(",")[1][:-1]) for line in file_lb_core.readlines()
+        ]
         # labels = np.asarray(labels)
         file_lb_core.close()
         return labels_refined + labels_core
-
 
     def _get_coord(self, protein_id: int):
         """ gives np.array of coordinates for a pocket and a ligand in one complex

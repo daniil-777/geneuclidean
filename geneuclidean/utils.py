@@ -32,10 +32,12 @@ number_atoms = 22
 class Utils:
     # def __init__(self, path_pocket: str, path_ligand: str):
     def __init__(self, path_root):
-        self.init_pocket = path_root + "/new_dataset/"
-        self.init_ligand = path_root + "/refined-set/"
-        self.target_casf = path_root + "/core_processed_dataset"
-        self.init_test_data = path_root + "/CASF/PDBbind_core_set_v2007.2.lst"
+        self.init_pocket = path_root + "/data/new_dataset/"
+        self.init_ligand = path_root + "/data/refined-set/"
+        # self.target_casf = path_root + "/core_processed_dataset"
+        self.target_casf = path_root + "/data/core2016_processed_dataset"
+        # self.init_test_data = path_root + "/CASF/PDBbind_core_set_v2007.2.lst"
+        self.init_test_data = path_root + "/data/CASF-2016/power_scoring/CoreSet.dat"
 
         # self.init_pocket = path_pocket
         # self.init_ligand = path_ligand
@@ -45,6 +47,57 @@ class Utils:
         self.set_atoms = []
         self.encoding_hot = {}
         self.encoding_simple = {}
+
+    def _get_labels_refined_core(self, path_refined: str, path_core: str):
+        """ gives list of labels of refined and core datasets
+
+        Parameters
+        ----------
+        path_refined   : str
+                      path to the refined pdbbind dataset
+        path_core      : str
+                      path to the core pdbbind (CASF) dataset
+        """
+        file_lb_refined = open(path_refined, "r")
+        labels_refined = [float(line.split(",")[1][:-1])
+                          for line in file_lb_refined.readlines()]
+        # labels = np.asarray(labels)
+        file_lb_refined.close()
+        file_lb_core = open(path_core, "r")
+        labels_core = [float(line.split(",")[1][:-1])
+                       for line in file_lb_core.readlines()]
+        # labels = np.asarray(labels)
+        file_lb_core.close()
+        return labels_refined + labels_core
+    
+    def plot_statistics(self, path, name):
+        target_y = np.load(path + "/target_pkd_all_train.npy")
+        predicted_y = np.load(path + "/pkd_pred_train_1.npy")
+
+        corr, _ = pearsonr(target_y, predicted_y)
+
+        print('target_y: mean=%.3f stdv=%.3f' % (mean(target_y), std(target_y)))
+        print('predicted_y: mean=%.3f stdv=%.3f' %
+            (mean(predicted_y), std(predicted_y)))
+        # plot
+        print('Pearsons correlation: %.3f' % corr)
+        pyplot.scatter(target_y, predicted_y, label="predicted pkd & target")
+        plt.xlabel("target_y")
+        plt.ylabel("predicted_y")
+        plt.legend(loc='upper left')
+        plt.title("Pearson correlation={}".format(str(corr)[0:6]))
+        plt.savefig(name, dpi=150)
+
+    def parse_configuration(self, config_file):
+        """Loads config file if a string was passed
+            and returns the input if a dictionary was passed.
+        """
+        print(config_file)
+        with open(config_file) as json_file:
+            return json.load(json_file)
+        
+       
+
 
     def _get_names_refined_core(self):
         return self.files_pdb + self.files_core
@@ -299,7 +352,7 @@ class Utils:
         array_pkd = [line.split()[3] for line in lines if line[0].isdigit()]
         labels = np.asarray(array_pkd)
         id = np.asarray(array_id)
-        with open("labels_core.csv", "w") as f:
+        with open("data/labels_core2016.csv", "w") as f:
             # f = open(".csv", "w")
             # f.write("{},{}\n".format("Name1", "Name2"))
             for x in zip(id, labels):
@@ -346,13 +399,18 @@ class Utils:
 
 
 if __name__ == "__main__":
+    path_root = os.path.realpath(os.path.dirname(__file__))
     current_path = os.path.realpath(os.path.dirname(__file__))
     path_to_pdb_protein = os.path.join(current_path, "new_dataset/")
     path_to_pdb_ligand = os.path.join(current_path, "refined-set/")
     utils = Utils(current_path)
     # utils._get_train_data()
-    # utils.write_core_labels()
-    utils._get_dataset_preparation()
+    utils.write_core_labels()
+    # labels_all = utils._get_labels_refined_core(
+    #     path_root + "/data/labels.csv", path_root + "/data/labels_core2016.csv")
+    # train, test = utils._get_core_train_test_casf()
+    # print(labels_all[test[-1]])
+    # utils._get_dataset_preparation()
     # path_labels = os.path.join(current_path, "labels.csv")
     # # labels = np.load(os.path.join(current_path, "labels.txt"))
     # # labels = np.loadtxt(path_labels, delimiter='\n', unpack=True)
