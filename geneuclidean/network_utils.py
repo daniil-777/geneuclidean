@@ -3,11 +3,11 @@ from functools import partial
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from moleculekit.molecule import Molecule
 from moleculekit.smallmol.smallmol import SmallMol
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
-import torch.nn.functional as F
 
 # import dictionary of atoms' types and hot encoders
 from data import dict_atoms
@@ -23,27 +23,29 @@ class Pdb_Dataset(Dataset):
 
     def __init__(self, path_root: str):
         # self.labels = self.read_labels(path_pocket + "labels.csv")
-        # self.init_pocket = path_pocket
-        # self.init_ligand = path_ligand
-        print(path_root)
-        self.init_pocket = path_root + "/data/new_dataset/"
-        self.init_ligand = path_root + "/data/refined-set/"
+        # self.init_refined = path_pocket
+        # self.init_refined = path_ligand
+        # print(path_root)
+        self.init_refined = path_root + "/data/new_refined/"
         # self.init_core_ligand = path_root + "/CASF/ligand/docking/decoy_mol2/"
         # self.init_core_ligand = path_root + "/CASF/ligand/ranking_scoring/crystal_mol2/"
-        self.init_core_ligand = path_root + "/data/CASF-2016/coreset/"
-        self.target_casf = path_root + "/data/core2016_processed_dataset/"
+        self.init_casf = path_root + "/data/new_core_2016/"
 
         self.labels = self.read_labels(path_root + "/data/labels/labels.csv")
 
         self.labels_all = self._get_labels_refined_core(
-            path_root + "/data/labels/labels.csv",
-            path_root + "/data/labels/labels_core2016.csv",
+            path_root + "/data/labels/new_labels_core_2016.csv",
+            path_root + "/data/labels/new_labels_refined.csv",
         )
-        self.files_pdb = os.listdir(self.init_pocket)
-        self.files_pdb.sort()
-        self.len_files = len(self.files_pdb)
-        self.files_core = os.listdir(self.target_casf)
-
+        ##################refined files###################
+        self.files_refined = os.listdir(self.init_refined)
+        self.files_refined.sort()
+        ##################################################
+        self.len_files = len(self.files_refined)
+        ###################core files#####################
+        self.files_core = os.listdir(self.init_casf)
+        self.files_core.sort()
+        ##################################################
         self.dict_atoms = dict_atoms
         self.set_atoms = []
         self.encoding = {}
@@ -53,20 +55,23 @@ class Pdb_Dataset(Dataset):
         self.affinities_complexes = []  # targets
 
     def __len__(self):
-        return len(self.files_pdb)
+        return len(self.files_refined)
 
     def __getitem__(self, idx: int):
         # idx_str = self.index_int_to_str(idx)
         all_features = self._get_features_complex(idx)
         all_geometry = self._get_geometry_complex(idx)
-        # target_pkd = np.asarray(self.labels[self.files_pdb.index(idx)])
+        # target_pkd = np.asarray(self.labels[self.files_refined.index(idx)])
         target_pkd = np.asarray(self.labels_all[idx])
+        # print("first label")
+        # print(self.labels_all[4852])
+
         return idx, all_features, all_geometry, torch.from_numpy(target_pkd)
         # item = {
         #     "pdb_id": idx,
         #     "feature": all_features,
         #     "geometry": all_geometry,
-        #     "target": self.labels[self.files_pdb.index(idx_str)],
+        #     "target": self.labels[self.files_refined.index(idx_str)],
         # }
         # return item
 
@@ -77,21 +82,23 @@ class Pdb_Dataset(Dataset):
         if protein_id >= self.len_files:
             new_id = protein_id - self.len_files
             protein_name = self.files_core[new_id]
+            # print("casf", protein_name)
+
             path_pocket = os.path.join(
-                self.target_casf, protein_name, protein_name + "_pocket.pdb"
+                self.init_casf, protein_name, protein_name + "_pocket.pdb"
             )
             # path_ligand=os.path.join(
             #     self.init_core_ligand,  protein_name + "_ligand.mol2")
             path_ligand = os.path.join(
-                self.target_casf, protein_name, protein_name + "_ligand.mol2"
+                self.init_casf, protein_name, protein_name + "_ligand.mol2"
             )
         else:
-            protein_name = self.files_pdb[protein_id]
+            protein_name = self.files_refined[protein_id]
             path_pocket = os.path.join(
-                self.init_pocket, protein_name, protein_name + "_pocket.pdb"
+                self.init_refined, protein_name, protein_name + "_pocket.pdb"
             )
             path_ligand = os.path.join(
-                self.init_ligand, protein_name, protein_name + "_ligand.mol2"
+                self.init_refined, protein_name, protein_name + "_ligand.mol2"
             )
         return path_pocket, path_ligand
 
@@ -108,7 +115,7 @@ class Pdb_Dataset(Dataset):
             mol_pocket = Molecule(path_pocket)
             mol_ligand = Molecule(path_ligand)
         except FileNotFoundError:
-            print(protein_id, "   exception")
+            # print(protein_id, "   exception")
             path_pocket, path_ligand = self._get_path(2)
             mol_pocket = Molecule(path_pocket)
             mol_ligand = Molecule(path_ligand)
@@ -143,7 +150,7 @@ class Pdb_Dataset(Dataset):
             num = index - 5000
             name_pdb_id = self.files_core[index]
         else:
-            name_pdb_id = self.files_pdb[index]
+            name_pdb_id = self.files_refined[index]
         return name_pdb_id
 
     def atom_to_vector(self, elem: str):
@@ -299,6 +306,7 @@ class Pdb_Dataset(Dataset):
         ]
         # labels = np.asarray(labels)
         file_lb_core.close()
+
         return labels_refined + labels_core
 
     def _get_coord(self, protein_id: int):
@@ -315,6 +323,30 @@ class Pdb_Dataset(Dataset):
         mol_ligand = Molecule(path_ligand)
         return mol_pocket.coords, mol_ligand.coords
 
+    def _get_length_padding(self, flag_dataset: str):
+        """allows to get maximum length of a feature vector for the refined or core sets
+        Parameters
+        ----------
+        flag_dataset   : str
+                      type of dataset - "refined" or "core"
+        Returns
+        -------
+        max_length     : int
+                      maximum length of a feature vector to pad to 
+        """
+        if flag_dataset == "refined":
+            list_indexes = [i for i in range(len(self.files_refined))]
+        elif flag_dataset == "core":
+            list_indexes = [285 + i for i in range(len(self.files_refined))]
+        else:
+            raise ValueError
+        max_length = 0
+        for id in list_indexes:
+            _, length = self._get_features_complex(id)
+            if length > max_length:
+                max_length = length
+        # print(max_length)
+
 
 class Loss(nn.Module):
     """
@@ -328,3 +360,9 @@ class Loss(nn.Module):
     def forward(self, out1, pkd_mask):
         loss_rmsd_pkd = self.loss_rmsd_pkd(out1.double(), pkd_mask).double()
         return loss_rmsd_pkd
+
+
+if __name__ == "__main__":
+    DATA_PATH = os.path.realpath(os.path.dirname(__file__))
+    featuriser = Pdb_Dataset(DATA_PATH)
+    featuriser._get_length_padding("core")

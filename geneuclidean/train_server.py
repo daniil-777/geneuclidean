@@ -3,6 +3,7 @@ import os
 import pickle
 
 import numpy as np
+from numpy import savetxt
 import torch
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ExponentialLR
@@ -37,6 +38,7 @@ NUM_WORKERS = int(multiprocessing.cpu_count() / 2)
 
 
 N_EPOCHS = configuration["model_params"]["N_EPOCHS"]
+print(N_EPOCHS)
 N_SPLITS = configuration["model_params"]["n_splits"]
 BATCH_SIZE = configuration["model_params"]["batch_size"]
 EVAL_MODES = ["normal"]
@@ -44,11 +46,16 @@ RES_PATH = os.path.join(DATA_PATH, configuration["output_parameters"]["result_pa
 
 PATH_LOSS = configuration["output_parameters"]["path_losses_output"]
 
+PATH_PLOTS = configuration["output_parameters"]["output_plots"]
 # create folders for results if not exist
 if not os.path.exists(PATH_LOSS):
     os.makedirs(PATH_LOSS)
 if not os.path.exists(RES_PATH):
     os.makedirs(RES_PATH)
+
+if not os.path.exists(PATH_PLOTS):
+    os.makedirs(PATH_PLOTS)
+
 
 writer = SummaryWriter(configuration["output_parameters"]["path_tesnorboard_output"])
 
@@ -74,6 +81,7 @@ def training_loop(loader, model, loss_cl, opt, epoch):
 
         out1 = model(features, geometry)
         pkd_pred.append(out1.cpu())
+        # print(out1.cpu())
         loss_rmsd_pkd = loss_cl(out1, target_pkd).float()
 
         writer.add_scalar("training_loss", loss_rmsd_pkd.item(), epoch)
@@ -139,12 +147,18 @@ if __name__ == "__main__":
         # train_data, test_data = utils._get_dataset_preparation()
         if configuration["train_dataset_params"]["splitting"] == "casf":
             train_data, test_data = utils._get_core_train_test_casf()
+            # print("train data casf", train_data)
+            # print(len(train_data))
+            # print("------------")
+            # # print(test_data)
+            # print(len(test_data))
         else:
             # train and test from refined set (4850 pdb)
             train_data, test_data = utils._get_train_test_data(data_ids)
+            print("train data", train_data)
 
-        # train_data = train_data[1:3]
-        # test_data = test_data[1:3]
+        train_data = train_data[1:10]
+        test_data = test_data[1:20]
 
         pdbids = [
             data_names[t] for t in test_data
@@ -176,27 +190,45 @@ if __name__ == "__main__":
             target_pkd_all, pkd_pred, loss = training_loop(
                 loader_train, model, loss_cl, opt, epoch
             )
+            print("pkd_pred", pkd_pred)
             losses_to_write.append(loss)
-            np.save(
-                os.path.join(RES_PATH, "target_pkd_all_train.npy"),
-                arr=target_pkd_all.detach().cpu().clone().numpy(),
-            )
-            np.save(
-                os.path.join(RES_PATH, "pkd_pred_train_{}.npy".format(str(i))),
-                arr=pkd_pred.detach().cpu().clone().numpy(),
-            )
+
+            if i == N_EPOCHS - 1:
+                # for local debugging
+                # savetxt(
+                #     os.path.join(
+                #         RES_PATH, "pkd_pred_train_{}.csv".format(str(i))),
+                #     pkd_pred.detach().cpu().clone().numpy(),
+                # )
+
+                np.save(
+                    os.path.join(RES_PATH, "pkd_pred_train_{}.npy".format(str(i))),
+                    arr=pkd_pred.detach().cpu().clone().numpy(),
+                )
             scheduler.step()
         losses_to_write = np.asarray(losses_to_write, dtype=np.float32)
+        # save losses for the train
         np.savetxt(
             os.path.join(PATH_LOSS, "losses_train_2016.out"),
             losses_to_write,
             delimiter=",",
         )
+        # save true values of training target
+        savetxt(
+            os.path.join(RES_PATH, "target_pkd_all_train.csv"),
+            target_pkd_all.detach().cpu().clone().numpy(),
+        )
+
+        np.save(
+            os.path.join(RES_PATH, "target_pkd_all_train"),
+            arr=target_pkd_all.detach().cpu().clone().numpy(),
+        )
 
         print("Evaluating model...")
-        target_pkd_all, pkd_pred, loss_test_to_write = eval_loop(
+        target_pkd_all_test, pkd_pred_test, loss_test_to_write = eval_loop(
             loader_test, model, epoch
         )
+        print("pkd_pred", pkd_pred_test)
         loss_test_to_write = np.asarray(loss_test_to_write, dtype=np.float32)
         loss_test_to_write = np.asarray([loss_test_to_write])
         np.savetxt(
@@ -208,17 +240,46 @@ if __name__ == "__main__":
         os.makedirs(RES_PATH, exist_ok=True)
 
         # Save results for later evaluation
+
+        # for local debugging
+        # savetxt(
+        #     os.path.join(RES_PATH, "target_pkd_all_test.csv"),
+        #     target_pkd_all_test.detach().cpu().clone().numpy(),
+        # )
+
+        # savetxt(
+        #     os.path.join(RES_PATH, "pkd_pred_test.csv"),
+        #     pkd_pred_test.detach().cpu().clone().numpy(),
+        # )
+
         np.save(
-            os.path.join(RES_PATH, "target_pkd_all_test.npy"),
-            arr=target_pkd_all.detach().cpu().clone().numpy(),
+            os.path.join(RES_PATH, "target_pkd_all_test"),
+            arr=target_pkd_all_test.detach().cpu().clone().numpy(),
         )
         np.save(
-            os.path.join(RES_PATH, "pkd_pred_test.npy"),
-            arr=pkd_pred.detach().cpu().clone().numpy(),
+            os.path.join(RES_PATH, "pkd_pred_test"),
+            arr=pkd_pred_test.detach().cpu().clone().numpy(),
         )
 
     with open(os.path.join(RES_PATH, "split_pdbids.pt"), "wb") as handle:
         pickle.dump(split_pdbids, handle)
 
-    # utils.plot_statistics(
-    #     RES_PATH, configuration['output_parameters']['name_plot'])
+    utils.plot_statistics(
+        RES_PATH,
+        PATH_PLOTS,
+        N_EPOCHS,
+        configuration["output_parameters"]["name_plot"],
+        "train",
+    )
+
+    utils.plot_statistics(
+        RES_PATH,
+        PATH_PLOTS,
+        N_EPOCHS,
+        configuration["output_parameters"]["name_plot"],
+        "test",
+    )
+
+    utils.plot_losses(
+        PATH_LOSS, PATH_PLOTS, N_EPOCHS, configuration["output_parameters"]["name_plot"]
+    )
