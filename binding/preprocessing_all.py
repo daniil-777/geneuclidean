@@ -245,7 +245,8 @@ class Preprocessor:
         mol_protein = Molecule(path_protein_source)
         mol_protein.write(
             path_pocket,
-            sel="(name C or name H or name O or name N or name S) and sqr(x-'{0}')+sqr(y-'{1}')+sqr(z-'{2}') <= sqr('{3}')".format(
+            # sel="(name C or name H or name O or name N or name S) and sqr(x-'{0}')+sqr(y-'{1}')+sqr(z-'{2}') <= sqr('{3}')".format(
+            sel="sqr(x-'{0}')+sqr(y-'{1}')+sqr(z-'{2}') <= sqr('{3}')".format(
                 str(center_lig[0][0]),
                 str(center_lig[0][1]),
                 str(center_lig[0][2]),
@@ -292,7 +293,7 @@ if __name__ == "__main__":
     # current_path = '/Users/daniil/ETH/research_drugs/'
     process = Preprocessor(
         os.path.join(current_path, "data/refined-set"),
-        os.path.join(current_path, "data/refined_26.05"),
+        os.path.join(current_path, "data/new_refined"),
            8,
         "mlkit",
         "refined",
@@ -300,7 +301,7 @@ if __name__ == "__main__":
   
     process_core = Preprocessor(
         os.path.join(current_path, "data/CASF-2016/coreset"),
-        os.path.join(current_path, "data/core_26.05"),
+        os.path.join(current_path, "data/new_core_2016"),
         8,
         "mlkit",
         "core2016",
