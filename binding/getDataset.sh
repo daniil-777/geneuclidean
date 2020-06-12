@@ -1,5 +1,4 @@
-echo "Retrieving PDBbind refined dataset . . . "
-wget http://www.pdbbind.org.cn/download/pdbbind_v2019_refined.tar.gz
+
 
 if ! [ -d data ]
 then 
@@ -7,8 +6,11 @@ then
 fi
 
 cd data
+
+echo "Retrieving PDBbind refined dataset . . . "
+wget http://www.pdbbind.org.cn/download/pdbbind_v2019_refined.tar.gz
 echo "Extracting refined files . . . "
-unzip pdbbind_v2019_refined.tar.gz -d refined-set
+tar -xvf pdbbind_v2019_refined.tar.gz 
 
 rm pdbbind_v2019_refined.tar.gz
 
@@ -17,6 +19,6 @@ wget http://www.pdbbind-cn.org/download/CASF-2016.tar.gz
 
 
 echo "Extracting casf files . . . "
-unzip CASF-2016.tar.gz -d CASF-2016
+tar -xvf CASF-2016.tar.gz -d CASF-2016
 
 rm CASF-2016.tar.gz
