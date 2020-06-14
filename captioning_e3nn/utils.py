@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import scipy.spatial.distance as dist
 import torch
+
 # import pyplot
 # from e3nn import SO3
 from e3nn.kernel import Kernel
@@ -39,15 +40,16 @@ class Utils:
 
         self.path_root = config["preprocessing"]["path_root"]
         self.init_refined = self.path_root + "/data/new_refined/"
-       
-        
+
         # self.init_refined = path_root + "/data/refined_26.05/"
         # self.init_refined = path_root + "/data/refined_26.05/"
         # self.init_casf = path_root + "/core_processed_dataset"
         self.init_casf = self.path_root + "/data/new_core_2016"
         # self.init_casf = path_root + "/data/core_26.05"
         # self.init_test_data = path_root + "/CASF/PDBbind_core_set_v2007.2.lst"
-        self.core_labels_data = self.path_root + "/data/CASF-2016/power_scoring/CoreSet.dat"
+        self.core_labels_data = (
+            self.path_root + "/data/CASF-2016/power_scoring/CoreSet.dat"
+        )
         self.refined_labels_data = (
             self.path_root + "/data/refined-set/index/INDEX_refined_data.2019"
         )
@@ -100,7 +102,14 @@ class Utils:
         plt.clf()
 
     def plot_statistics(
-        self, path: str, path_dest: str, n_epoches: int, name: str, flag: str, loss_train, loss_test
+        self,
+        path: str,
+        path_dest: str,
+        n_epoches: int,
+        name: str,
+        flag: str,
+        loss_train,
+        loss_test,
     ):
         """plots the pred versus target pkd with Pearson correlation"
 
@@ -127,10 +136,43 @@ class Utils:
         plt.xlabel("target_y")
         plt.ylabel("predicted_y")
         plt.legend(loc="upper left")
-        plt.title(name + " " + flag +
-                  " Pearson correlation= " + r"$\bf{" + str(corr)[0:6]+ "}$" + "\n"+" Loss train " + r"$\bf{" + str(loss_train)[0:6] + "}$" + " Loss test " + r"$\bf{" + str(loss_test)[0:6] + "}$" + 
-                  "\n" + "target_y: mean=" + r"$\bf{" + str(mean(target))[0:6] + "}$" + ",stdv=" + r"$\bf{" + str(std(target))[0:6] + "}$" +
-                  "\n" + "predicted_y: mean=" + r"$\bf{" + str(mean(predict))[0:6] + "}$" + ",stdv=" + r"$\bf{" + str(std(predict))[0:6] + "}$", fontsize=7)
+        plt.title(
+            name
+            + " "
+            + flag
+            + " Pearson correlation= "
+            + r"$\bf{"
+            + str(corr)[0:6]
+            + "}$"
+            + "\n"
+            + " Loss train "
+            + r"$\bf{"
+            + str(loss_train)[0:6]
+            + "}$"
+            + " Loss test "
+            + r"$\bf{"
+            + str(loss_test)[0:6]
+            + "}$"
+            + "\n"
+            + "target_y: mean="
+            + r"$\bf{"
+            + str(mean(target))[0:6]
+            + "}$"
+            + ",stdv="
+            + r"$\bf{"
+            + str(std(target))[0:6]
+            + "}$"
+            + "\n"
+            + "predicted_y: mean="
+            + r"$\bf{"
+            + str(mean(predict))[0:6]
+            + "}$"
+            + ",stdv="
+            + r"$\bf{"
+            + str(std(predict))[0:6]
+            + "}$",
+            fontsize=7,
+        )
         plt.savefig(path_dest + name + "_" + flag, dpi=150)
         plt.clf()
 
@@ -192,7 +234,9 @@ class Utils:
         id_refined_return = [
             i for i in list_indexes if self.files_refined[i] not in self.files_core
         ]
-        id_core_return = [i for i in list_indexes if self.files_refined[i]  in self.files_core]
+        id_core_return = [
+            i for i in list_indexes if self.files_refined[i] in self.files_core
+        ]
         # len_ref = len(self.files_refined)
         # len_core = len(self.files_core)
         # id_core_return = [i for i in range(len_ref, len_ref + len_core)]
