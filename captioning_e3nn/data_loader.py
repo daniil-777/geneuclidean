@@ -9,6 +9,7 @@ from moleculekit.smallmol.smallmol import SmallMol
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 from matplotlib import pyplot as plt
+
 # import dictionary of atoms' types and hot encoders
 from dictionaries import dict_atoms_simple, dict_atoms_hot, atom_most_common
 
@@ -19,11 +20,10 @@ LEN_PADDING = 286
 class Pdb_Dataset(Dataset):
     """PdB binding dataset"""
 
-
     def __init__(self, config, vocab):
-        '''uses config file which is given as arg in "python train_server.py"
-        '''
-        
+        """uses config file which is given as arg in "python train_server.py"
+        """
+
         self.path_root = config["preprocessing"]["path_root"]
         self.init_refined = self.path_root + "/data/new_refined/"
         # self.init_refined = path_root + "/data/refined_26.05/"
@@ -56,44 +56,43 @@ class Pdb_Dataset(Dataset):
         self.affinities_complexes = []  # targets
         self.common_atoms = ["C", "H", "O", "N", "S"]
         # self.type_filtering = "filtered"
-        self.type_filtering = config["preprocessing"]["selection"] #"filtered"
+        self.type_filtering = config["preprocessing"]["selection"]  # "filtered"
         print("filtering", self.type_filtering)
 
     def __len__(self):
         #!!!!!!!!!!!!!!!!
-        return 12 #len(self.files_refined) #+ len(self.files_core)
+        return 12  # len(self.files_refined) #+ len(self.files_core)
 
-    def __getitem__(self, idx: int):    
+    def __getitem__(self, idx: int):
         vocab = self.vocab
         all_features = self._get_features_complex(idx)
-        
+
         all_geometry = self._get_geometry_complex(idx)
         # print("shape all geom", all_geometry.shape)
         caption_raw = self._get_caption(idx)
         tokens = [token for token in caption_raw]
         caption = []
-        caption.append(vocab('<start>'))
+        caption.append(vocab("<start>"))
         # print("caption of start", vocab('<start>'))
         caption.extend([vocab(token) for token in tokens])
-        caption.append(vocab('<end>'))
+        caption.append(vocab("<end>"))
         target = torch.Tensor(caption)
 
         return all_features, all_geometry, target
-    
 
     def _get_caption(self, id):
-        '''get caption as a row of a smile by id
-        '''
-        
+        """get caption as a row of a smile by id
+        """
+
         protein_name = self.files_refined[id]
         # print("current protein", protein_name)
         path_to_smile = os.path.join(
-            self.init_refined, protein_name, protein_name + "_ligand.smi")
-        with open(path_to_smile, 'r') as file:
+            self.init_refined, protein_name, protein_name + "_ligand.smi"
+        )
+        with open(path_to_smile, "r") as file:
             caption = file.read()
         return caption
 
-        
     # def get_caption(self, idx: int):
     #     protein_name = self.files_refined[protein_id]
     #     path_ligand_caption = os.path.join(
@@ -101,8 +100,6 @@ class Pdb_Dataset(Dataset):
     #         )
     #     ligand_caption = loadtxt(path_ligand_caption, delimiter=",", unpack=False)
     #     return ligand_caption
-        
-    
 
     def _get_path(self, protein_id: int):
         """ get a full path to pocket/ligand
@@ -113,7 +110,7 @@ class Pdb_Dataset(Dataset):
         path_pocket = os.path.join(
             self.init_refined, protein_name, protein_name + "_pocket.pdb"
         )
-      
+
         return path_pocket
 
     def _get_elems(self, protein_id: int, type_filtering: str):
@@ -128,10 +125,14 @@ class Pdb_Dataset(Dataset):
         try:
             mol_pocket = Molecule(path_pocket)
             # mol_ligand = Molecule(path_ligand)
-            if(type_filtering == "filtered"):
-                mol_pocket_element = [elem for elem in mol_pocket.element if elem in ["C", "H", "N", "O", "S"]]
+            if type_filtering == "filtered":
+                mol_pocket_element = [
+                    elem
+                    for elem in mol_pocket.element
+                    if elem in ["C", "H", "N", "O", "S"]
+                ]
                 # mol_ligand_element = [elem for elem in mol_ligand.element if elem in ["C", "H", "N", "O", "S"]]
-            elif(type_filtering == "all"):
+            elif type_filtering == "all":
                 mol_pocket_element = mol_pocket.element
                 # mol_ligand_element = mol_ligand.element
 
@@ -141,13 +142,10 @@ class Pdb_Dataset(Dataset):
             path_pocket = self._get_path(2)
             mol_pocket = Molecule(path_pocket)
             mol_pocket_element = mol_pocket.element
-            
+
             # print("mol_ligand_element", mol_ligand.element)
-        
+
         return mol_pocket_element
-
-
-
 
     def atom_to_vector(self, elem: str):
         """ creates a hot vector of an atom
@@ -177,21 +175,23 @@ class Pdb_Dataset(Dataset):
         elem   : str atom element
         """
         hot_vector_atom = self.atom_to_vector(elem)
-        
+
         if type_atom == "pocket":
             if type_filtering == "filtered":
-                feature_vector_atom =  self.dict_words[elem]
+                feature_vector_atom = self.dict_words[elem]
                 feature_vector_atom = np.array([feature_vector_atom])
             elif type_filtering == "all":
-                feature_vector_atom = np.concatenate((self.label_protein, hot_vector_atom))
+                feature_vector_atom = np.concatenate(
+                    (self.label_protein, hot_vector_atom)
+                )
                 feature_vector_atom = np.array([hot_vector_atom])
 
             # print("feat_atom", feature_vector_atom)
             # feature_vector_atom = np.concatenate((self.label_protein, hot_vector_atom))
             # feature_vector_atom = np.array([hot_vector_atom])
-            
+
             # print("feat vector", feature_vector_atom)
-        
+
             # print("feat_atom_lig", feature_vector_atom)
             # print("feature_lig", feature_vector_atom)
             # print("feat vector", feature_vector_atom)
@@ -203,7 +203,9 @@ class Pdb_Dataset(Dataset):
         return feature_vector_atom
         # return hot_vector_atom
 
-    def _get_features_unit(self, elements: np.array, type_atom: str, type_filtering: str):
+    def _get_features_unit(
+        self, elements: np.array, type_atom: str, type_filtering: str
+    ):
         """creates a union of tensors-features of an atoms' array at particlular biological unit: pocket/ligand 
 
         Parameters
@@ -221,7 +223,9 @@ class Pdb_Dataset(Dataset):
 
         list_features_tensors = []
         for elem in elements:
-            tensor_feature = self._get_feature_vector_atom(elem, type_atom, type_filtering)
+            tensor_feature = self._get_feature_vector_atom(
+                elem, type_atom, type_filtering
+            )
             list_features_tensors.append(tensor_feature)
         # features = torch.cat(list_features_tensors, dim=-1)
         return list_features_tensors
@@ -269,19 +273,20 @@ class Pdb_Dataset(Dataset):
         """
         elem_pocket = self._get_elems(id, self.type_filtering)
         # coord_pocket, coord_ligand = self._get_coord(id)
-        features_pocket_part = self._get_features_unit(elem_pocket, "pocket", self.type_filtering)
+        features_pocket_part = self._get_features_unit(
+            elem_pocket, "pocket", self.type_filtering
+        )
         # features_ligand_part = self._get_features_unit(elem_ligand, "ligand", self.type_filtering)
         # features_all = features_pocket_part + features_ligand_part
-        tensor_all_features = (
-            torch.tensor(features_pocket_part, dtype=torch.long)
-            .unsqueeze(0)
-        )
+        tensor_all_features = torch.tensor(
+            features_pocket_part, dtype=torch.long
+        ).unsqueeze(0)
         length_padding = LEN_PADDING - tensor_all_features.shape[1]
         result = F.pad(
             input=tensor_all_features,
             pad=(0, 0, 0, length_padding),
             mode="constant",
-            value=5
+            value=5,
         )
         # print("feature shape")
         # print(result.shape)
@@ -305,7 +310,7 @@ class Pdb_Dataset(Dataset):
             The tensor of coords-tensors
         """
         coords_pocket = self._get_coord(id, self.type_filtering)
-        
+
         list_geom_tensors = []
         all_atoms_coords = np.asarray(coords_pocket)
         tensor_all_atoms_coords = (
@@ -325,10 +330,6 @@ class Pdb_Dataset(Dataset):
         # return result, tensor_all_atoms_coords.shape[1]
         # return tensor_all_atoms_coords
 
- 
-
- 
-
     def _get_coord(self, protein_id: int, type_filtering: str):
         """ gives np.array of coordinates for a pocket and a ligand in one complex
 
@@ -342,22 +343,26 @@ class Pdb_Dataset(Dataset):
         mol_pocket = Molecule(path_pocket)
         # print("protein coords", mol_pocket.coords)
 
-        if (type_filtering == "all"):
+        if type_filtering == "all":
             coords_pocket = mol_pocket.coords
-          
-        elif (type_filtering == "filtered"):
-            prot_idxs = [idx for idx, elem in enumerate(mol_pocket.element) if elem in self.common_atoms]
-            coords_pocket = [element for i, element in enumerate(mol_pocket.coords) if i in prot_idxs]
+
+        elif type_filtering == "filtered":
+            prot_idxs = [
+                idx
+                for idx, elem in enumerate(mol_pocket.element)
+                if elem in self.common_atoms
+            ]
+            coords_pocket = [
+                element for i, element in enumerate(mol_pocket.coords) if i in prot_idxs
+            ]
 
             # lig_idxs = [idx for idx, elem in enumerate(mol_ligand.element) if elem in self.common_atoms]
             # coords_ligand = [element for i, element in enumerate(mol_ligand.coords) if i in lig_idxs]
-        
 
         # lig_idxs = [idx for idx, elem in enumerate(mol_ligand.element) if elem in ["C", "H", "N", "O", "S"]]
         # lig_coords = [element for i, element in enumerate(mol_ligand.coords) if i in lig_idxs]
         # return mol_pocket.coords, mol_ligand.coords
         return coords_pocket
-
 
 
 def collate_fn(data):
@@ -385,40 +390,40 @@ def collate_fn(data):
     geometry = torch.stack(geometry, 0)
     # Merge images (from tuple of 3D tensor to 4D tensor).
 
-
     # Merge captions (from tuple of 1D tensor to 2D tensor).
     lengths = [len(cap) for cap in captions]
-    #we padd smaller targets till the max length with zeros. Therefore firstly create zero tensor
+    # we padd smaller targets till the max length with zeros. Therefore firstly create zero tensor
     targets = torch.zeros(len(captions), max(lengths)).long()
     for i, cap in enumerate(captions):
         end = lengths[i]
-        targets[i, :end] = cap[:end]       
+        targets[i, :end] = cap[:end]
     return features, geometry, targets, lengths
 
-    
 
 def get_loader(config, vocab, batch_size, shuffle, num_workers):
     """Returns torch.utils.data.DataLoader for custom coco dataset."""
     # Pdb caption dataset
-    pdb_dataset = Pdb_Dataset(config = config, vocab = vocab)
-    
+    pdb_dataset = Pdb_Dataset(config=config, vocab=vocab)
+
     # Data loader for PDB refined dataset
     # This will return (features, geometry, captions, lengths) for each iteration.
     # features: a tensor of shape (batch_size, n_atoms, hidden_dim (1))
     # geometry: a tensor of shape (batch_size, n_atoms, 3)
     # captions: a tensor of shape (batch_size, padded_length).
     # lengths: a list indicating valid length for each caption. length is (batch_size).
-    data_loader = torch.utils.data.DataLoader(dataset=pdb_dataset, 
-                                              batch_size=batch_size,
-                                              shuffle=shuffle,
-                                              num_workers=num_workers,
-                                              collate_fn=collate_fn)
+    data_loader = torch.utils.data.DataLoader(
+        dataset=pdb_dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=num_workers,
+        collate_fn=collate_fn,
+    )
     return data_loader
 
 
 if __name__ == "__main__":
     # DATA_PATH = os.path.realpath(os.path.dirname(__file__))
-    DATA_PATH = '/Volumes/Ubuntu'
+    DATA_PATH = "/Volumes/Ubuntu"
     featuriser = Pdb_Dataset(DATA_PATH)
     lengthes = featuriser._get_length_padding("refined")
     # plt.title("Hist of features length")
