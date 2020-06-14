@@ -3,7 +3,6 @@ import os
 import pickle
 import time
 from distutils.dir_util import copy_tree
-from shutil import copyfile
 from multiprocessing import Pool
 from shutil import copyfile
 
@@ -82,8 +81,6 @@ class Preprocessor:
         else:
             raise ValueError("flag must be refined or core")
 
-
-
     def dataset_all(self):
         """ Creates new dataset with protein.pdb, crystal.pdb and ligand.smile
 
@@ -105,8 +102,9 @@ class Preprocessor:
 
         # for prot in ['1r9l', '5tef', '6ce6', '2aoc', '2aod', '3fzy', '6msy', '4oct', '4gq4', '4ql1', '5kh3', '6ced', '2aog', '4o61', '5ttw', '5epl']:
         # for prot in ['1a1e']:
-            
-            # self.pdb_to_pocket(prot)
+
+        # self.pdb_to_pocket(prot)
+
     def test_protein(self):
         for i in ["1a4k"]:
             self.pdb_to_pocket(i)
@@ -152,11 +150,9 @@ class Preprocessor:
                 # crystall = generateCrystalPacking(i) - why not?
                 crystall = Molecule(pdb_id)
 
-                
                 crystall.filter("protein")
                 crystall.write(
-                    os.path.join(self.target, pdb_id,
-                                 pdb_id + "_crystall.pdb"),
+                    os.path.join(self.target, pdb_id, pdb_id + "_crystall.pdb"),
                     type="pdb",
                 )
                 # init_path_protein = self._get_path_protein_init(pdb_id)
@@ -164,11 +160,13 @@ class Preprocessor:
                 ligand = Molecule(init_path_ligand)
                 # ligand = Molecule(init_path_ligand)
                 # ligand = ligand.toMolecule()
-                target_path_ligand = os.path.join(self.target, pdb_id, pdb_id + "_ligand.pdb")
+                target_path_ligand = os.path.join(
+                    self.target, pdb_id, pdb_id + "_ligand.pdb"
+                )
 
                 # ligand.filter("name C or name H or name O or name N or name S")
 
-                #attempt to select atoms in ligand
+                # attempt to select atoms in ligand
                 # ligand.write(
                 # target_path_ligand,
                 # sel="name C or name H or name O or name N or name S", type="mol2")
@@ -179,7 +177,7 @@ class Preprocessor:
                 #     os.path.join(self.target, pdb_id,
                 #                  pdb_id + "_protein.pdb"),
                 # )
-                #copy ligand mol2 
+                # copy ligand mol2
                 copyfile(
                     init_path_ligand,
                     os.path.join(self.target, pdb_id, pdb_id + "_ligand.mol2"),
@@ -197,27 +195,25 @@ class Preprocessor:
                 )
                 # smallmol.filter("ligand")
                 sm = smallmol.toSMILES()
-                #copy ligand smi
+                # copy ligand smi
                 with open(
-                    os.path.join(self.target, pdb_id,
-                                 pdb_id + "_ligand.smi"), "w"
+                    os.path.join(self.target, pdb_id, pdb_id + "_ligand.smi"), "w"
                 ) as txt:
                     txt.write(sm)
-                #copy mol2
+                # copy mol2
                 init_path_ligand = self._get_path_ligand_init(pdb_id)
                 copyfile(
                     init_path_ligand,
                     os.path.join(self.target, pdb_id, pdb_id + "_ligand.mol2"),
                 )
 
-                #creating pocket.pdb
+                # creating pocket.pdb
                 self.pdb_to_pocket(pdb_id)
-                
+
             except ValueError:
                 self.copy_all_folder(pdb_id, "exception_core_2016")
-                #delete this unlucky file
+                # delete this unlucky file
                 shutil.rmtree(os.path.join(self.target, pdb_id))
-           
 
     def mlkit_write_selected_atoms_to_pocket(
         self, id_pdb: str, center_lig: np.array, precision: int
@@ -239,8 +235,6 @@ class Preprocessor:
             os.makedirs(os.path.join(self.target, id_pdb))
         path_pocket = os.path.join(self.target, id_pdb, id_pdb + "_pocket.pdb")
 
-
-
         print(path_pocket)
         mol_protein = Molecule(path_protein_source)
         mol_protein.write(
@@ -254,7 +248,6 @@ class Preprocessor:
             ),
             type="pdb",
         )
-
 
     def _get_ligand_center(self, path_ligand):
         mol_ligand = Molecule(path_ligand)
@@ -279,13 +272,12 @@ class Preprocessor:
 
             center_ligand = self._get_ligand_center(path_ligand)
             coord_protein = self._get_protein_coord(path_protein)
-            
+
             print("start doing protein, '{0}'".format(id_pdb))
             self.mlkit_write_selected_atoms_to_pocket(
                 id_pdb, center_ligand, self.precision
             )
             print("end doing protein, '{0}'".format(id_pdb))
-
 
 
 if __name__ == "__main__":
@@ -294,11 +286,11 @@ if __name__ == "__main__":
     process = Preprocessor(
         os.path.join(current_path, "data/refined-set"),
         os.path.join(current_path, "data/new_refined"),
-           8,
+        8,
         "mlkit",
         "refined",
     )
-  
+
     process_core = Preprocessor(
         os.path.join(current_path, "data/CASF-2016/coreset"),
         os.path.join(current_path, "data/new_core_2016"),
@@ -306,6 +298,7 @@ if __name__ == "__main__":
         "mlkit",
         "core2016",
     )
+    process.dataset_all()
     process_core.dataset_all()
     # process._get_pockets_all_parallel(5, 5)
     # process.test_protein()

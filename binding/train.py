@@ -1,23 +1,25 @@
+import argparse
+import json
 import multiprocessing
 import os
 import pickle
-import json
+import sys
+
 import numpy as np
-from numpy import savetxt
 import torch
+from numpy import savetxt
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ExponentialLR
 from torch.utils.data import DataLoader
 # from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+
 # from network import EuclideanNet, SE3Net
 from ACNE3 import se3ACN
 # from network1 import EuclideanNet, SE3Net
 # from network_utils import Loss, Pdb_Dataset
-from dataset import Loss, Pdb_Dataset
+from data_loader import Loss, Pdb_Dataset
 from utils import Utils
-import argparse
-import sys
 
 # parser = argparse.ArgumentParser()
 # parser.add_argument("path_config", help="display a path to the config file",
@@ -35,7 +37,7 @@ print(args)
 
 
 with open(args) as json_file:
-    config =  json.load(json_file)
+    config = json.load(json_file)
 
 # config = utils.parse_configuration(args)
 
@@ -68,7 +70,7 @@ if not os.path.exists(PATH_LOSS):
 if not os.path.exists(PKD_PATH):
     os.makedirs(PKD_PATH)
 
-if not os.path.exists(PATH_PLOTS):  
+if not os.path.exists(PATH_PLOTS):
     os.makedirs(PATH_PLOTS)
 
 
@@ -135,7 +137,7 @@ def eval_loop(loader, model, epoch):
 
             loss_rmsd_pkd = loss_cl(out1, target_pkd).float()
             # progress.set_postfix(
-                # {"loss_rmsd_pkd": loss_rmsd_pkd.item(),}
+            # {"loss_rmsd_pkd": loss_rmsd_pkd.item(),}
             # )
             # writer.add_scalar("test_loss", loss_rmsd_pkd.item(), epoch)
             all_rmsd.append(loss_rmsd_pkd.item())
@@ -195,21 +197,20 @@ if __name__ == "__main__":
 
         # model = EuclideanNet(
         #     config["model_params"]["input_channels"]).to(DEVICE).float()
-        if(config["model_params"]["network"] == "Euclidean_atoms"):
-            model = EuclideanNet().to(DEVICE).float() #how on the main page of e3nn github
-        elif(config["model_params"]["network"] == "tetris"):
+        if config["model_params"]["network"] == "Euclidean_atoms":
+            model = (
+                EuclideanNet().to(DEVICE).float()
+            )  # how on the main page of e3nn github
+        elif config["model_params"]["network"] == "tetris":
             print("tetris!!!")
             # model = SE3Net(config["model_params"]["representations"]).to(DEVICE).float()
-            model = SE3Net(config["model_params"]["representations"]).to(
-                DEVICE).float()
-        elif(config["model_params"]["network"] == "kenneth"):
+            model = SE3Net(config["model_params"]["representations"]).to(DEVICE).float()
+        elif config["model_params"]["network"] == "kenneth":
             print("kenneth!!!")
             model = se3ACN().to(DEVICE).double()
-            
 
         loss_cl = Loss()
-        opt = Adam(model.parameters(),
-                   lr=config["model_params"]["learning_rate"])
+        opt = Adam(model.parameters(), lr=config["model_params"]["learning_rate"])
         scheduler = ExponentialLR(opt, gamma=0.95)
 
         print("Training model...")
@@ -313,7 +314,6 @@ if __name__ == "__main__":
         "test",
         losses_to_write_train[-1],
         loss_test_to_write[0],
-
     )
 
     utils.plot_losses(
