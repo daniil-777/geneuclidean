@@ -1,8 +1,8 @@
-import pickle
 import argparse
 import json
-import sys
 import os
+import pickle
+import sys
 from collections import Counter
 
 MAX_Length = 245

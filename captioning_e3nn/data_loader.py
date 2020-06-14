@@ -4,14 +4,14 @@ from functools import partial
 import numpy as np
 import torch
 import torch.nn.functional as F
+from matplotlib import pyplot as plt
 from moleculekit.molecule import Molecule
 from moleculekit.smallmol.smallmol import SmallMol
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
-from matplotlib import pyplot as plt
 
 # import dictionary of atoms' types and hot encoders
-from dictionaries import dict_atoms_simple, dict_atoms_hot, atom_most_common
+from dictionaries import atom_most_common, dict_atoms_hot, dict_atoms_simple
 
 # number_atoms_unique = 22
 LEN_PADDING = 286

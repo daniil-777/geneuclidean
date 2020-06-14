@@ -1,10 +1,16 @@
-import torch
-from torch import nn
-import torchvision
-import torch.nn.functional as F
-import torch.nn as nn
 from functools import partial
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torchvision
+from torch import nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
+
+from se3cnn.non_linearities.rescaled_act import Softplus
+from se3cnn.point.kernel import Kernel
+from se3cnn.point.operations import NeighborsConvolution
+from se3cnn.point.radial import CosineBasisModel
 
 # from e3nn.rsh import spherical_harmonics_xyz
 # from e3nn.non_linearities.rescaled_act import Softplus
@@ -12,10 +18,6 @@ from torch.nn.utils.rnn import pack_padded_sequence
 # from e3nn.radial import CosineBasisModel
 # from e3nn.kernel import Kernel
 
-from se3cnn.non_linearities.rescaled_act import Softplus
-from se3cnn.point.operations import NeighborsConvolution
-from se3cnn.point.kernel import Kernel
-from se3cnn.point.radial import CosineBasisModel
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MAX_Length = 245

@@ -1,16 +1,18 @@
-import torch
+import argparse
+import json
+import os
+import pickle
+import sys
+
 import matplotlib.pyplot as plt
 import numpy as np
-import argparse
-import pickle
-import os
-import json
-import sys
-from torchvision import transforms
-from build_vocab import Vocabulary
-from models import Encoder_se3ACN, DecoderRNN, MyDecoderWithAttention
+import torch
 from PIL import Image
+from torchvision import transforms
+
+from build_vocab import Vocabulary
 from dataset import Pdb_Dataset
+from models import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
 from utils import Utils
 
 # Device configuration
