@@ -1,0 +1,75 @@
+{
+    "train_dataset_params": {
+        "dataset_name": "e3nn",
+        "splitting": "casf"
+    },
+    "output_parameters": {
+        "savedir": "/Volumes/Ubuntu/data/logs/",
+        "path_results": "results/casf/tetris_middle_2/",
+        "path_tesnorboard_output": "results/split_casf_2016_15.04_10_-6/tensorboard/tensorboard_manual_2016",
+        "path_losses_output": "losses_predictions/losses_data_2016_1",
+        "pkd_path": "pkd_predictions",
+        "name_plot": "casf_tetris_middle_2",
+        "output_plots": "results/plots/"
+    },
+    "model_params": {
+        "model_name": "e3nn",
+        "num_epochs": 1,
+        "batch_size": 4,
+        "n_splits": 5,
+        "num_workers": 2,
+        "learning_rate": 0.001,
+        "input_channels": 22,
+        "feature_type": "with_labels",
+        "representations": "[(23,), (2, 2), (4, 4), (10,)]",
+        "network": "kenneth"
+    },
+    "encoder_params":{
+        "nclouds": 2,
+        "natoms": 286,
+        "neighborradius": 3,
+        "nffl": 1,
+        "ffl1size": 512,
+        "num_embeddings": 11,
+        "emb_dim": 4,
+        "cloudord": 1,
+        "nradial": 3,
+        "nbasis": 3
+
+    },
+
+    "decoder_params": {
+        "embed_size": 512,
+        "hidden_size": 512,
+        "num_layers": 1
+
+    },
+
+    "attention_parameters": {
+        "attention_dim": 128,
+        "emb_dim": 128,
+        "decoder_dim": 128,
+        "dropout": 0.5
+    },
+
+    "preprocessing": {
+        "path_proteins": "/Volumes/Ubuntu/data/new_refined/",
+        "vocab_path": "/Volumes/Ubuntu/data/vocab.pkl",
+        "path_root": "/Volumes/Ubuntu",
+        "path_refined": "/Volumes/Ubuntu/data/new_refined",
+        "selection": "filtered"
+    },
+
+    "training_params": {
+        "image_dir": "/Volumes/Ubuntu/data/new_refined",
+        "caption_path": "/Volumes/Ubuntu/data/new_refined",
+        "model_path": "/Volumes/Ubuntu/data/models",
+        "log_step": 10,
+        "save_step": 1,
+        "encoder_path": "/Volumes/Ubuntu/data/models/encoder-1-3.ckpt",
+        "decoder_path": "/Volumes/Ubuntu/data/models/decoder-1-3.ckpt"
+    },
+    "sampling_params": {
+        "sample_id": 15
+    }
+}
