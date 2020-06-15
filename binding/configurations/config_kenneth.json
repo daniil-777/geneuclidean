@@ -19,8 +19,8 @@
 
     "model_params": {
         "model_name": "e3nn",
-        "N_EPOCHS": 3,
-        "batch_size": 4,
+        "N_EPOCHS": 200,
+        "batch_size": 10,
         "n_splits": 5,
         "learning_rate": 0.001,
         "input_channels": 22,

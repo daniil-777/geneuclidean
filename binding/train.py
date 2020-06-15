@@ -14,7 +14,7 @@ from tqdm import tqdm
 from ACNE3 import se3ACN
 # from network1 import EuclideanNet, SE3Net
 # from network_utils import Loss, Pdb_Dataset
-from dataset import Loss, Pdb_Dataset
+from data_loader import Loss, Pdb_Dataset
 from utils import Utils
 import argparse
 import sys
@@ -174,8 +174,8 @@ if __name__ == "__main__":
             train_data, test_data = utils._get_train_test_data(data_ids)
             print("train data", train_data)
 
-        train_data = train_data[1:5]
-        test_data = test_data[1:5]
+        # train_data = train_data[1:5]
+        # test_data = test_data[1:5]
         print("test_data", test_data)
         pdbids = [
             data_names[t] for t in test_data

@@ -102,7 +102,7 @@ class se3ACN(nn.Module):
 
         # Final output activation layer
         self.outputlayer = nn.Linear(ff_in_shape, 1)
-        self.act = nn.Sigmoid()  # y is scaled between 0 and 1, better than ReLu of tanh for U0
+        self.act = nn.functional.relu  # y is scaled between 0 and 1, better than ReLu of tanh for U0
 
     def forward(self, xyz, Z):
         # print("xyz input shape", xyz.shape)
