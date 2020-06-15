@@ -88,19 +88,19 @@ def main():
 
     # Build the models
     encoder = Encoder_se3ACN().to(device).double()
-    # decoder = DecoderRNN(embed_size, hidden_size, len(vocab), num_layers).to(device).double()
-    decoder = (
-        MyDecoderWithAttention(
-            attention_dim=attention_dim,
-            embed_dim=emb_dim,
-            decoder_dim=decoder_dim,
-            vocab_size=len(vocab),
-            encoder_dim=encoder_dim,
-            dropout=dropout,
-        )
-        .to(device)
-        .double()
-    )
+    decoder = DecoderRNN(embed_size, hidden_size, len(vocab), num_layers).to(device).double()
+    # decoder = (
+    #     MyDecoderWithAttention(
+    #         attention_dim=attention_dim,
+    #         embed_dim=emb_dim,
+    #         decoder_dim=decoder_dim,
+    #         vocab_size=len(vocab),
+    #         encoder_dim=encoder_dim,
+    #         dropout=dropout,
+    #     )
+    #     .to(device)
+    #     .double()
+    # )
 
     # Loss and optimizer
     criterion = nn.CrossEntropyLoss()
@@ -126,8 +126,8 @@ def main():
             # print("targets", targets)
             # Forward, backward and optimize
             feature = encoder(geometry, features)
-            lengths = torch.tensor(lengths).view(-1, 1)
-            print("shape lengthes", lengths.shape)
+            # lengths = torch.tensor(lengths).view(-1, 1) uncomment for attention!!!
+            # print("shape lengthes", lengths.shape)
             outputs = decoder(feature, captions, lengths)
             # print("outputs", outputs)
             loss = criterion(outputs, targets)

@@ -174,7 +174,7 @@ class Encoder_se3ACN(nn.Module):
             torch.cat(feature_list, dim=2).to(torch.double).to(self.device)
         )  # shape [batch, n_atoms, cloud_dim * nclouds]
 
-        print("features before pooling", features.shape)  # shape [batch, ]
+        # print("features before pooling", features.shape)  # shape [batch, ]
         # Pooling: Sum/Average/pool2D
         if "sum" in self.feature_collation:
             features = features.sum(1)
@@ -196,7 +196,7 @@ class Encoder_se3ACN(nn.Module):
             features = F.softplus(
                 op(features)
             )  # shape [batch, ffl1size] running_mean should contain 1 elements not 512!!!
-            print("shape features with op", features.shape)
+            # print("shape features with op", features.shape)
         # result = self.act(self.outputlayer(features)).squeeze(1)
         # print("result shape", result.shape)
         # features = self.layer_to_atoms(features) # if we want to mimic the image captioning with the number of pixels
@@ -221,23 +221,23 @@ class DecoderRNN(nn.Module):
 
     def forward(self, features, captions, lengths):
         """Decodes shapes feature vectors and generates SMILES."""
-        print("captions shape initial", captions.shape)
+        # print("captions shape initial", captions.shape)
         embeddings = self.embed(
             captions
         )  # shape [batch_size, padded_length, embed_size]
-        print("shape emb", embeddings.shape)
-        print("features emb", features.shape)
+        # print("shape emb", embeddings.shape)
+        # print("features emb", features.shape)
         embeddings = torch.cat(
             (features.unsqueeze(1), embeddings), 1
         )  # shape [batch_size, padded_length + 1, embed_size]
-        print("shape embeddings", embeddings.shape)
+        # print("shape embeddings", embeddings.shape)
         packed = pack_padded_sequence(
             embeddings, lengths, batch_first=True
         )  # shape [packed_length, embed_size]
-        print("packed shape", packed.data.shape)
+        # print("packed shape", packed.data.shape)
         hiddens, _ = self.lstm(packed)
         outputs = self.linear(hiddens[0])  # shape [packed_length, vocab_size]
-        print("shape outputs", outputs.shape)
+        # print("shape outputs", outputs.shape)
         return outputs
 
     def sample(self, features, states=None):
@@ -268,7 +268,7 @@ class My_attention(nn.Module):
         :param decoder_dim: size of decoder's RNN
         :param attention_dim: size of the attention network
         """
-        super(Attention, self).__init__()
+        super(My_attention, self).__init__()
         self.encoder_att = nn.Linear(
             encoder_dim, attention_dim
         )  # linear layer to transform encoded pocket
@@ -339,7 +339,7 @@ class MyDecoderWithAttention(nn.Module):
         self.vocab_size = vocab_size
         self.dropout = dropout
 
-        self.attention = Attention(
+        self.attention = My_attention(
             encoder_dim, decoder_dim, attention_dim
         )  # attention network
 
@@ -397,7 +397,7 @@ class MyDecoderWithAttention(nn.Module):
         """
         # mean_encoder_out = encoder_out.mean(dim=1)
         mean_encoder_out = encoder_out
-        print("shape mean enc out", mean_encoder_out.shape)
+        # print("shape mean enc out", mean_encoder_out.shape)
         h = self.init_h(mean_encoder_out)  # (batch_size, decoder_dim)
         c = self.init_c(mean_encoder_out)
         return h, c
