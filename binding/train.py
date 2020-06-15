@@ -176,7 +176,7 @@ if __name__ == "__main__":
 
         # train_data = train_data[1:5]
         # test_data = test_data[1:5]
-        print("test_data", test_data)
+        # print("test_data", test_data)
         pdbids = [
             data_names[t] for t in test_data
         ]  # names of pdb corresponding to test data indexes
