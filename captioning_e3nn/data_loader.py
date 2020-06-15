@@ -61,7 +61,7 @@ class Pdb_Dataset(Dataset):
 
     def __len__(self):
         #!!!!!!!!!!!!!!!!
-        return 12  # len(self.files_refined) #+ len(self.files_core)
+        return len(self.files_refined) #+ len(self.files_core)
 
     def __getitem__(self, idx: int):
         vocab = self.vocab
