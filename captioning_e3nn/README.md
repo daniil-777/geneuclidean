@@ -1,8 +1,12 @@
 # Captioning
 The goal of this project is to generate smiles for ligands using pocket information.
-Pocket is encoded using Euclidean Neural Networks. Then features are given to Lstm to generate smiles. 
+Pocket is encoded using Euclidean Neural Networks. Then features are given to Lstm to generate smiles. This is similar to the image captioning task. There are two implemeted options: decoder without and with attention.
+# Models
+Model without attention. Every LSTM gets a previous hidden state and embedded caption.
+![](images/model_without_attention.png)
 
-
+Model with attention. Every LSTM gets a previous hidden state and embedded caption with attention-weighted-feature vector. On the illustration white parts of the image mean weighted features whee the Decoder should pay attention to generate the next word
+![](images/model_attention_grey.png)
 ## Usage 
 
 #### Install additional libraries
@@ -41,6 +45,8 @@ cd geneuclidean/binding
 ```bash
 python train.py configuration/config.json  
 ```
+
+Configuration file is in configs/ folder. You may specify the path to the inputs and results, parameters of encoder and decoder, parameters of training (batch size, number of epoches). 
 
 #### 5. Sampling
 
