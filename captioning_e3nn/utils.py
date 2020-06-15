@@ -16,12 +16,12 @@ import scipy.spatial.distance as dist
 import torch
 # import pyplot
 # from e3nn import SO3
-from e3nn.kernel import Kernel
-from e3nn.non_linearities import GatedBlock
-from e3nn.non_linearities.rescaled_act import sigmoid, swish
-from e3nn.point.operations import Convolution
-from e3nn.radial import CosineBasisModel
-from e3nn.util.plot import plot_sh_signal
+# from e3nn.kernel import Kernel
+# from e3nn.non_linearities import GatedBlock
+# from e3nn.non_linearities.rescaled_act import sigmoid, swish
+# from e3nn.point.operations import Convolution
+# from e3nn.radial import CosineBasisModel
+# from e3nn.util.plot import plot_sh_signal
 from matplotlib import pyplot as plt
 from moleculekit.molecule import Molecule
 from moleculekit.smallmol.smallmol import SmallMol
