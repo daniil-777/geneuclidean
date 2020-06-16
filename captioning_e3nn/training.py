@@ -122,6 +122,7 @@ def main():
             # features = torch.tensor(features)
             # print("type features", type(features))
             geometry = geometry.to(device)
+            captions = captions.to(device)
             targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
             # print("targets", targets)
             # Forward, backward and optimize
