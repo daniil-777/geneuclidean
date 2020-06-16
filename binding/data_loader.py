@@ -1,6 +1,7 @@
 import os
 from functools import partial
 
+import pickle
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -31,15 +32,17 @@ class Pdb_Dataset(Dataset):
         self.init_casf = self.path_root + "/data/new_core_2016/"
         # self.init_casf = path_root + "/data/core_26.05/"
         self.labels = self.read_labels(self.path_root + "/data/labels/labels.csv")
-
+        self.path_voc = self.path_root + "/data/vocab_labels_refined.pkl"
+        self.labels_voc = self._get_labels_dict(self.path_voc)
         self.labels_all = self._get_labels_refined_core(
             self.path_root + "/data/labels/new_labels_refined.csv",
             self.path_root + "/data/labels/new_labels_core_2016.csv",
         )
+        print("length labels", len(self.labels_all))
         ##################refined files###################
         self.files_refined = os.listdir(self.init_refined)
         self.files_refined.sort()
-        self.files_refined.remove(".DS_Store")
+        # self.files_refined.remove(".DS_Store")
         ##################################################
         self.len_files = len(self.files_refined)
         ###################core files#####################
@@ -71,13 +74,14 @@ class Pdb_Dataset(Dataset):
         all_geometry = self._get_geometry_complex(idx)
         # print("shape all geom", all_geometry.shape)
 
-        target_pkd = np.asarray(self.labels_all[idx])
+        # target_pkd = np.asarray(self.labels_all[idx])
+        target_pkd = np.asarray(float(self.labels_voc[self.files_refined[idx]]))
     
-        
-    
-
         return idx, all_features, all_geometry,  torch.from_numpy(target_pkd)
     
+    def get_label(self, idx:int):
+        name_protein = self.files_refined[idex]
+        # label = 
     
     def get_caption(self, idx: int):
         protein_name = self.files_refined[protein_id]
@@ -341,6 +345,11 @@ class Pdb_Dataset(Dataset):
         # labels = np.asarray(labels)
         file.close()
         return labels
+    
+    def _get_labels_dict(self, vocab_path):
+        with open(vocab_path, "rb") as f:
+            vocab = pickle.load(f)
+        return vocab
 
     def _get_labels_refined_core(self, path_refined: str, path_core: str):
         """ gives list of labels of refined and core datasets
@@ -352,10 +361,13 @@ class Pdb_Dataset(Dataset):
         path_core      : str
                       path to the core pdbbind (CASF) dataset
         """
+
+        
         file_lb_refined = open(path_refined, "r")
         labels_refined = [
             float(line.split(",")[1][:-1]) for line in file_lb_refined.readlines()
         ]
+        proteins = [line for line in file_lb_refined.readlines()]
         # labels = np.asarray(labels)
         file_lb_refined.close()
         file_lb_core = open(path_core, "r")
@@ -364,7 +376,8 @@ class Pdb_Dataset(Dataset):
         ]
         # labels = np.asarray(labels)
         file_lb_core.close()
-
+        # print("labels",labels_refined)
+        print("proteins !!!",proteins)
         return labels_refined #attention!!
 
     def _get_coord(self, protein_id: int, type_filtering: str):
