@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
 from torchvision import transforms
-
+from torch.utils.tensorboard import SummaryWriter
 from build_vocab import Vocabulary
 from data_loader import get_loader
 from models import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
@@ -22,6 +22,8 @@ print(args)
 # ags = "configs/tetris_simple.json"
 # DATA_PATH = os.path.realpath(os.path.dirname(__file__))
 # DATA_PATH = '/Volumes/Ubuntu'
+
+
 
 
 with open(args) as json_file:
@@ -41,12 +43,12 @@ caption_path = configuration["training_params"]["caption_path"]
 log_step = configuration["training_params"]["log_step"]
 save_step = configuration["training_params"]["save_step"]
 model_path = configuration["training_params"]["model_path"]
+
 # decoder params
 embed_size = configuration["decoder_params"]["embed_size"]
 hidden_size = configuration["decoder_params"]["hidden_size"]
 num_layers = configuration["decoder_params"]["num_layers"]
 vocab_path = configuration["preprocessing"]["vocab_path"]
-savedir = configuration["output_parameters"]["savedir"]
 
 # attention param
 attention_dim = configuration["attention_parameters"]["attention_dim"]
@@ -54,11 +56,18 @@ emb_dim = configuration["attention_parameters"]["emb_dim"]
 decoder_dim = configuration["attention_parameters"]["decoder_dim"]
 encoder_dim = configuration["encoder_params"]["ffl1size"]
 dropout = configuration["attention_parameters"]["dropout"]
+
+#output files
+savedir = configuration["output_parameters"]["savedir"]
+tesnorboard_path = savedir
+
+
 # Device configuration
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 log_file = open(os.path.join(savedir, "log.txt"), "w")
-
+log_file_tensor = open(os.path.join(savedir, "log_tensor.txt"), "w")
+writer = SummaryWriter(tesnorboard_path)
 
 def main():
     # Create model directory
@@ -136,7 +145,9 @@ def main():
             encoder.zero_grad()
             loss.backward()
             caption_optimizer.step()
-
+            writer.add_scalar("training_loss", loss.item(), epoch)
+            log_file_tensor.write(loss.item() + "\n")
+            log_file_tensor.flush()
             # Print log info
             if i % log_step == 0:
                 result = "Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Perplexity: {:5.4f}".format(
