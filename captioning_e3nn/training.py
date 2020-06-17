@@ -146,7 +146,7 @@ def main():
             loss.backward()
             caption_optimizer.step()
             writer.add_scalar("training_loss", loss.item(), epoch)
-            log_file_tensor.write(loss.item() + "\n")
+            log_file_tensor.write(str(loss.item()) + "\n")
             log_file_tensor.flush()
             # Print log info
             if i % log_step == 0:
