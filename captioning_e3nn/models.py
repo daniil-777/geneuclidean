@@ -1,12 +1,12 @@
 from functools import partial
-
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 from torch import nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
-
+from torch.autograd import Variable
 from se3cnn.non_linearities.rescaled_act import Softplus
 from se3cnn.point.kernel import Kernel
 from se3cnn.point.operations import NeighborsConvolution
@@ -31,14 +31,14 @@ class Encoder_se3ACN(nn.Module):
     def __init__(
         self,
         device=DEVICE,
-        nclouds=2,
+        nclouds=3, #1-3
         natoms=286,
-        cloud_dim=4,
+        cloud_dim=4, # 4-96 !
         neighborradius=3,
         nffl=1,
         ffl1size=512,
         num_embeddings=6,
-        emb_dim=4,
+        emb_dim=8, #12-not so important
         cloudord=1,
         nradial=3,
         nbasis=3,
@@ -154,27 +154,29 @@ class Encoder_se3ACN(nn.Module):
         features = features.squeeze(2)
         feature_list = []
         for _, op in enumerate(self.clouds):
-            xyz = xyz.to(torch.double)
-            features = features.to(torch.double)  # shape [batch, num_atoms, cloud_dim]
+            # xyz = xyz.to(torch.double)
+            # features = features.to(torch.double)  # shape [batch, num_atoms, cloud_dim]
             # print("xyz shape!!", xyz.shape)
             # print("xyz", xyz)
             # print("features shape!!", features.shape)
             # print("features", features)
 
-            # print("feature shape!!", features.shape)
-            features_e3nn = op(features, xyz)  # features from e3nn operation
+            # print("\nfeature shape!!", features.shape)
+            # print("before kernel")
+            features = op(features, xyz)  # features from e3nn operation
             # self.res = nn.Linear(in_shape, in_shape)
             # features_linear = F.relu(self.res(features)) #features from linear layer operation
             # add all received features to common list
-            feature_list.append(features_e3nn)
+            feature_list.append(features)
             # feature_list.append(features_linear)
 
         # Concatenate features from clouds
+
         features = (
             torch.cat(feature_list, dim=2).to(torch.double).to(self.device)
         )  # shape [batch, n_atoms, cloud_dim * nclouds]
 
-        # print("features before pooling", features.shape)  # shape [batch, ]
+        # print("\nfeatures before pooling", features.shape)  # shape [batch, ]
         # Pooling: Sum/Average/pool2D
         if "sum" in self.feature_collation:
             features = features.sum(1)
@@ -255,6 +257,55 @@ class DecoderRNN(nn.Module):
             inputs = inputs.unsqueeze(1)
         sampled_ids = torch.stack(sampled_ids, 1)
         return sampled_ids
+
+
+    def sample_prob(self, features, states=None):
+        """Samples SMILES tockens for given shape features (probalistic picking)."""
+        sampled_ids = []
+        inputs = features.unsqueeze(1)
+        for i in range(self.max_seg_length):  # maximum sampling length
+            hiddens, states = self.lstm(inputs, states)
+            outputs = self.linear(hiddens.squeeze(1))
+            # print("outputs shape,", outputs.shape)
+            if i == 0:
+                predicted = outputs.max(1)[1]
+            else:
+                probs = F.softmax(outputs, dim=1)
+
+                # Probabilistic sample tokens
+                if probs.is_cuda:
+                    probs_np = probs.data.cpu().numpy()
+                else:
+                    probs_np = probs.data.numpy()
+                    # print("shape probs_np", probs_np.shape)
+
+                rand_num = np.random.rand(probs_np.shape[0])
+                # print("shape rand_num", rand_num.shape)
+                iter_sum = np.zeros((probs_np.shape[0],))
+                tokens = np.zeros(probs_np.shape[0], dtype=np.int)
+
+                for i in range(probs_np.shape[1]):
+                    c_element = probs_np[:, i]
+                    iter_sum += c_element
+                    valid_token = rand_num < iter_sum
+                    update_indecies = np.logical_and(valid_token,
+                                                     np.logical_not(tokens.astype(np.bool)))
+                    tokens[update_indecies] = i
+
+                # put back on the GPU.
+                if probs.is_cuda:
+                    predicted = Variable(torch.LongTensor(tokens.astype(np.int)).cuda())
+                else:
+                    predicted = Variable(torch.LongTensor(tokens.astype(np.int)))
+            # print("shape predicted", predicted.shape)
+            sampled_ids.append(predicted)
+            inputs = self.embed(predicted)
+            inputs = inputs.unsqueeze(1)
+        # print("shape sampled_ids", len(sampled_ids))
+        sampled_ids = torch.stack(sampled_ids, 1)
+        return sampled_ids
+
+
 
 
 class My_attention(nn.Module):
