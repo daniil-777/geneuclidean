@@ -86,16 +86,19 @@ tesnorboard_path = savedir
 # Device configuration
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-test_idx_file = open(os.path.join(savedir, "test_idx.txt"), "w")
-log_file = open(os.path.join(savedir, "log.txt"), "w")
-log_file_tensor = open(os.path.join(savedir, "log_tensor.txt"), "w")
-writer = SummaryWriter(tesnorboard_path)
-
 if not os.path.exists(savedir):
     os.makedirs(savedir)
 
 if not os.path.exists(model_path):
     os.makedirs(model_path)
+
+    
+test_idx_file = open(os.path.join(savedir, "test_idx.txt"), "w")
+log_file = open(os.path.join(savedir, "log.txt"), "w")
+log_file_tensor = open(os.path.join(savedir, "log_tensor.txt"), "w")
+writer = SummaryWriter(tesnorboard_path)
+
+
 
 # Load vocabulary wrapper
 with open(vocab_path, "rb") as f:
