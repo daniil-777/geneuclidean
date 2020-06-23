@@ -119,7 +119,7 @@ class se3ACN(nn.Module):
         xyz = xyz.to(torch.double)
         features = features_emb.to(torch.double)
         features = features.squeeze(2)
-        print("features before op", features.shape)
+        # print("features before op", features.shape)
         feature_list = []
         for _, op in enumerate(self.clouds):
             # print("xyz shape!!", xyz.shape)
