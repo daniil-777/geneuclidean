@@ -20,7 +20,7 @@ class se3ACN(nn.Module):
     """
     Architecture of molecular ACN model using se3 equivariant functions.
     """
-    def __init__(self, device=DEVICE, nclouds=2, natoms=286, cloud_dim=4, neighborradius=3,
+    def __init__(self, device=DEVICE, nclouds=2, natoms=286, cloud_dim=8, neighborradius=3,
                  nffl=1, ffl1size=512, num_embeddings = 11, emb_dim=4, cloudord=1, nradial=3, nbasis=3, Z=True):
         #emb_dim=4 - experimentals
         super(se3ACN, self).__init__()
@@ -119,15 +119,16 @@ class se3ACN(nn.Module):
         xyz = xyz.to(torch.double)
         features = features_emb.to(torch.double)
         features = features.squeeze(2)
+        print("features before op", features.shape)
         feature_list = []
         for _, op in enumerate(self.clouds):
             # print("xyz shape!!", xyz.shape)
             # print("feature shape!!", features.shape)
-            features_e3nn = op(features, xyz) #features from e3nn operation
+            features = op(features, xyz) #features from e3nn operation
             #self.res = nn.Linear(in_shape, in_shape) 
             # features_linear = F.relu(self.res(features)) #features from linear layer operation
             #add all received features to common list
-            feature_list.append(features_e3nn)
+            feature_list.append(features)
             # feature_list.append(features_linear)
 
         
@@ -146,7 +147,7 @@ class se3ACN(nn.Module):
         # print("features_final_shape squeeze", features.shape)
         for _, op in enumerate(self.collate):
             # features = F.leaky_relu(op(features))
-            # print("op_features", op(features).shape)
+            print("op_features", op(features).shape)
             features = F.softplus(op(features)) #running_mean should contain 1 elements not 512!!!
         # print("shape features flat out", features.shape)
         result = self.act(self.outputlayer(features)).squeeze(1)
