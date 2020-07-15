@@ -10,7 +10,7 @@ cd data
 echo "Retrieving PDBbind refined dataset . . . "
 wget http://www.pdbbind.org.cn/download/pdbbind_v2019_refined.tar.gz
 echo "Extracting refined files . . . "
-tar -xvf pdbbind_v2019_refined.tar.gz 
+tar -xvf pdbbind_v2019_refined.tar.gz -d refined-det
 
 rm pdbbind_v2019_refined.tar.gz
 
