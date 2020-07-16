@@ -4,12 +4,23 @@ then
    mkdir data
 fi
 
-cd data
+
+if ! [ -d data/refined-set ]
+then 
+   mkdir data/refined-set
+fi
+
+if ! [ -d data/CASF-2016]
+then 
+   mkdir data/CASF-2016
+fi
 
 echo "Retrieving PDBbind refined dataset . . . "
 wget http://www.pdbbind.org.cn/download/pdbbind_v2019_refined.tar.gz
 echo "Extracting refined files . . . "
-tar -xvf pdbbind_v2019_refined.tar.gz -d refined-det
+
+tar -C data/refined-set -zxvf pdbbind_v2019_refined.tar.gz
+
 
 rm pdbbind_v2019_refined.tar.gz
 
@@ -18,6 +29,6 @@ wget http://www.pdbbind-cn.org/download/CASF-2016.tar.gz
 
 
 echo "Extracting casf files . . . "
-tar -xvf CASF-2016.tar.gz -d CASF-2016
+tar -C data/CASF-2016 -zxvf pdbbind_v2019_refined.tar.gz
 
 rm CASF-2016.tar.gz
