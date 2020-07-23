@@ -213,7 +213,7 @@ if __name__ == "__main__":
 
         caption_params = list(decoder.parameters()) + list(encoder.parameters())
         caption_optimizer = torch.optim.Adam(caption_params, lr=learning_rate)
-        scheduler = ExponentialLR(opt, gamma=0.95)
+        scheduler = ExponentialLR(caption_optimizer, gamma=0.95)
         # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(caption_optimizer, 'min')
         for epoch in range(num_epochs):
             train_loop(loader_train, encoder, decoder, caption_optimizer, split_no, epoch, total_step)
