@@ -5,6 +5,7 @@ from numpy import savetxt
 import torch
 
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import ExponentialLR
 # from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
@@ -24,7 +25,6 @@ import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
 from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
-from torch.optim import ReduceLR
 from build_vocab import Vocabulary
 from data_loader import get_loader, Pdb_Dataset, collate_fn
 from models import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
@@ -105,7 +105,7 @@ writer = SummaryWriter(tesnorboard_path)
 with open(vocab_path, "rb") as f:
     vocab = pickle.load(f)
 
-def train_loop(loader, encoder, decoder, scheduler, split_no, epoch, total_step):
+def train_loop(loader, encoder, decoder, caption_optimizer, split_no, epoch, total_step):
 
     for i, (features, geometry, captions, lengths) in enumerate(loader):
         
@@ -126,12 +126,12 @@ def train_loop(loader, encoder, decoder, scheduler, split_no, epoch, total_step)
         outputs = decoder(feature, captions, lengths)
         # print("outputs", outputs)
         loss = criterion(outputs, targets)
-        scheduler.step(loss)
+        # scheduler.step(loss)
         
         decoder.zero_grad()
         encoder.zero_grad()
         loss.backward()
-        # caption_optimizer.step()  #!!! figure out whether we should leave that 
+        caption_optimizer.step()  #!!! figure out whether we should leave that 
 
         name = "training_loss_" + str(split_no + 1)
         writer.add_scalar(name, loss.item(), epoch)
@@ -189,7 +189,7 @@ if __name__ == "__main__":
         test_data = data_ids[test_id]
         with open(os.path.join(savedir, 'test_idx_' + str(split_no)), 'wb') as fp:
             pickle.dump(test_data, fp)
-     
+        
         test_idx.append(test_data)
         test_idx_file.write(str(test_data) + "\n")
         test_idx_file.flush()
@@ -211,9 +211,11 @@ if __name__ == "__main__":
 
         caption_params = list(decoder.parameters()) + list(encoder.parameters())
         caption_optimizer = torch.optim.Adam(caption_params, lr=learning_rate)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(caption_optimizer, 'min')
+        scheduler = ExponentialLR(opt, gamma=0.95)
+        # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(caption_optimizer, 'min')
         for epoch in range(num_epochs):
-            train_loop(loader_train, encoder, decoder, scheduler, split_no, epoch, total_step)
+            train_loop(loader_train, encoder, decoder, caption_optimizer, split_no, epoch, total_step)
+            scheduler.step()
     
 
 
