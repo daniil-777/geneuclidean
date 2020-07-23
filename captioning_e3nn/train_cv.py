@@ -118,6 +118,8 @@ def train_loop(loader, encoder, decoder, caption_optimizer, split_no, epoch, tot
         geometry = geometry.to(device)
         captions = captions.to(device)
         targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
+
+        caption_optimizer.zero_grad()
         # print("targets", targets)
         # Forward, backward and optimize
         feature = encoder(geometry, features)
