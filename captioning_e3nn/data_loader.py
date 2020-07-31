@@ -6,7 +6,7 @@ import torch
 import torch.nn.functional as F
 from matplotlib import pyplot as plt
 from moleculekit.molecule import Molecule
-from moleculekit.smallmol.smallmol import SmallMol
+# from moleculekit.smallmol.smallmol import SmallMol
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
@@ -50,7 +50,7 @@ class Pdb_Dataset(Dataset):
         self.dict_words = atom_most_common
         self.set_atoms = []
         self.encoding = {}
-        self.label_protein = np.array([5.0])  # identification of pocket
+        self.label_protein = np.array([5.0])  # identification of pocketd
         self.label_ligand = np.array([-5.0])  # identification of ligand
         self.features_complexes = []  # tensors of euclidean features
         self.affinities_complexes = []  # targets
@@ -61,7 +61,8 @@ class Pdb_Dataset(Dataset):
 
     def __len__(self):
         #!!!!!!!!!!!!!!!!
-        return len(self.files_refined) #+ len(self.files_core)
+        return 20
+        # return len(self.files_refined) -1 # from the lab:
 
     def __getitem__(self, idx: int):
         vocab = self.vocab
@@ -79,7 +80,11 @@ class Pdb_Dataset(Dataset):
         target = torch.Tensor(caption)
 
         return all_features, all_geometry, target
-
+    
+    def _get_name_protein(self, idx: int):
+        name_protein = self.files_refined[idx]
+        return name_protein
+        
     def _get_caption(self, id):
         """get caption as a row of a smile by id
         """

@@ -24,7 +24,7 @@ import torch
 # from e3nn.util.plot import plot_sh_signal
 from matplotlib import pyplot as plt
 from moleculekit.molecule import Molecule
-from moleculekit.smallmol.smallmol import SmallMol
+# from moleculekit.smallmol.smallmol import SmallMol
 from numpy import mean, std
 from openbabel import openbabel
 from scipy import spatial as spatial
@@ -228,6 +228,7 @@ class Utils:
         #     for file in self.files_refined
         #     if file in self.files_core
         # ]
+        
         list_indexes = [i for i in range(len(self.files_refined))]
         print("len ref", len(self.files_core))
         id_refined_return = [
