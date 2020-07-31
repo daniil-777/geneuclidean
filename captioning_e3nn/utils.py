@@ -26,7 +26,7 @@ from matplotlib import pyplot as plt
 from moleculekit.molecule import Molecule
 # from moleculekit.smallmol.smallmol import SmallMol
 from numpy import mean, std
-from openbabel import openbabel
+# from openbabel import openbabel
 from scipy import spatial as spatial
 from scipy.stats import pearsonr
 
