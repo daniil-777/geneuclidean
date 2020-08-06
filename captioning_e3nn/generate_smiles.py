@@ -159,14 +159,6 @@ def smiles_all_txt():
 def generate_smiles(id, id_fold, number_smiles, encoder_path, decoder_path):
     #original + gen smiles
     smiles = []
-    save_dir_smiles = configuration["sampling_params"]["save_dir_smiles"]
-    #create a folder where we will write generated smiles
-    if not os.path.exists(save_dir_smiles):
-        os.makedirs(save_dir_smiles)
-    protein_name =  dataset._get_name_protein(id)
-    #create a file for statistics for individual protein 
-    if not os.path.exists(os.path.join(save_dir_smiles, str(id_fold), protein_name)):
-        os.makedirs(os.path.join(save_dir_smiles, str(id_fold), protein_name))
     
     print("current protein ", protein_name)
     #path of the real smile
@@ -175,9 +167,8 @@ def generate_smiles(id, id_fold, number_smiles, encoder_path, decoder_path):
         )
     
     #file to write all generated smiles for a given protein
-    
     #create a file where we will write generated smiles
-    file_smiles = open(os.path.join(save_dir_smiles, str(id_fold), protein_name, protein_name + ".txt"), "w")
+    # file_smiles = open(os.path.join(save_dir_smiles, str(id_fold), protein_name, protein_name + ".txt"), "w")
 
     with open(init_path_smile) as fp: 
         initial_smile = fp.readlines()[0] #write a true initial smile
@@ -313,3 +304,12 @@ def main():
 if __name__ == "__main__":
     main()
 
+
+
+#create a folder where we will write generated smiles
+# if not os.path.exists(save_dir_smiles):
+#     os.makedirs(save_dir_smiles)
+# protein_name =  dataset._get_name_protein(id)
+# #create a file for statistics for individual protein 
+# if not os.path.exists(os.path.join(save_dir_smiles, str(id_fold), protein_name)):
+#     os.makedirs(os.path.join(save_dir_smiles, str(id_fold), protein_name))
