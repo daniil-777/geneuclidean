@@ -31,14 +31,14 @@ class Encoder_se3ACN(nn.Module):
     def __init__(
         self,
         device=DEVICE,
-        nclouds=3, #1-3
+        nclouds=2, #1-3
         natoms=286,
-        cloud_dim=4, # 4-96 !
+        cloud_dim=8, # 4-96 !
         neighborradius=3,
         nffl=1,
         ffl1size=512,
         num_embeddings=6,
-        emb_dim=8, #12-not so important
+        emb_dim=4, #12-not so important
         cloudord=1,
         nradial=3,
         nbasis=3,
@@ -163,22 +163,27 @@ class Encoder_se3ACN(nn.Module):
 
             # print("\nfeature shape!!", features.shape)
             # print("before kernel")
-            features = op(features, xyz)  # features from e3nn operation
+            
+            features = op(features, xyz)
+            # features = op(features, xyz)  # features from e3nn operation
             # self.res = nn.Linear(in_shape, in_shape)
             # features_linear = F.relu(self.res(features)) #features from linear layer operation
             # add all received features to common list
             feature_list.append(features)
+            # feature_list.append(features)
             # feature_list.append(features_linear)
 
         # Concatenate features from clouds
 
         features = (
             torch.cat(feature_list, dim=2).to(torch.double).to(self.device)
-        )  # shape [batch, n_atoms, cloud_dim * nclouds]
+        )  # shape [batch, n_atoms, cloud_dim * nclouds] 
+        #!! maybe use transformer, you have n_atoms with N features. You may define H "heads"
+        # and then do Q, K, V as described in the article: https://arxiv.org/pdf/2004.08692.pdf
 
         # print("\nfeatures before pooling", features.shape)  # shape [batch, ]
         # Pooling: Sum/Average/pool2D
-        if "sum" in self.feature_collation:
+        if "sum" in self.feature_collation: #here attention!
             features = features.sum(1)
         elif "pool" in self.feature_collation:
             features = F.lp_pool2d(
@@ -283,7 +288,7 @@ class DecoderRNN(nn.Module):
                 # print("shape rand_num", rand_num.shape)
                 iter_sum = np.zeros((probs_np.shape[0],))
                 tokens = np.zeros(probs_np.shape[0], dtype=np.int)
-
+            
                 for i in range(probs_np.shape[1]):
                     c_element = probs_np[:, i]
                     iter_sum += c_element
@@ -389,7 +394,7 @@ class MyDecoderWithAttention(nn.Module):
         self.decoder_dim = decoder_dim
         self.vocab_size = vocab_size
         self.dropout = dropout
-
+        self.max_seg_length = MAX_Length
         self.attention = My_attention(
             encoder_dim, decoder_dim, attention_dim
         )  # attention network
@@ -530,37 +535,37 @@ class MyDecoderWithAttention(nn.Module):
         )  #!!! shape [padded_length, voc] do that like with simple version
         return scores.data  # , encoded_captions, decode_lengths, alphas, sort_ind
 
-    def sample(self, features, vocab, states=None):
+    def sample(self, features, vocab, states=None, device=DEVICE):
         """Samples SMILES tockens for given  features (Greedy search).
         """
         k = 1
         k_prev_words = torch.LongTensor([[vocab.word2idx["<start>"]]] * k).to(device)
-        h, c = decoder.init_hidden_state(features)
+        h, c = self.init_hidden_state(features)
 
         sampled_ids = []
         inputs = features.unsqueeze(1)
         for i in range(self.max_seg_length):
-            embeddings = decoder.embedding(k_prev_words).squeeze(
+            embeddings = self.embedding(k_prev_words).squeeze(
                 1
             )  # (s, embed_dim)  ?why should we alos use it???
 
-            awe, alpha = decoder.attention(
+            awe, alpha = self.attention(
                 features, h
             )  # (s, encoder_dim), (s, num_pixels) - we give to Attention the same features
 
-            alpha = alpha.view(
-                -1, enc_image_size, enc_image_size
-            )  # (s, enc_image_size, enc_image_size)
+            # alpha = alpha.view(
+            #     -1, enc_image_size, enc_image_size
+            # )  # (s, enc_image_size, enc_image_size)
 
-            gate = decoder.sigmoid(decoder.f_beta(h))  # gating scalar, (s, encoder_dim)
+            gate = self.sigmoid(self.f_beta(h))  # gating scalar, (s, encoder_dim)
             awe = gate * awe
             # s is a batch_size_t since we do not have a batch of images, we have just one image
             # and we want to find several words.
-            h, c = decoder.decode_step(
+            h, c = self.decode_step(
                 torch.cat([embeddings, awe], dim=1), (h, c)
             )  # (s, decoder_dim)
 
-            scores = decoder.fc(h)  # (s, vocab_size)
+            scores = self.fc(h)  # (s, vocab_size)
             predicted = scores.max(1)[1]  # check that
             k_prev_words = (
                 predicted  # now we have predicted word and give it to the next lastm
