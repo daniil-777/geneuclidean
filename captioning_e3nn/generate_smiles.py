@@ -159,7 +159,7 @@ def smiles_all_txt():
 def generate_smiles(id, id_fold, number_smiles, encoder_path, decoder_path):
     #original + gen smiles
     smiles = []
-    
+    protein_name =  dataset._get_name_protein(id)
     print("current protein ", protein_name)
     #path of the real smile
     init_path_smile =  os.path.join(
