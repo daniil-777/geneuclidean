@@ -1,0 +1,83 @@
+{
+    "train_dataset_params": {
+        "dataset_name": "e3nn",
+        "splitting": "casf"
+    },
+    "output_parameters": {
+        "savedir": "../data/logs/",
+        "path_results": "results/casf/tetris_middle_2/",
+        "path_tesnorboard_output": "results/split_casf_2016_15.04_10_-6/tensorboard/tensorboard_manual_2016",
+        "path_losses_output": "losses_predictions/losses_data_2016_1",
+        "pkd_path": "pkd_predictions",
+        "name_plot": "casf_tetris_middle_2",
+        "output_plots": "results/plots/"
+    },
+    "model_params": {
+        "model_name": "e3nn",
+        "num_epochs": 100,
+        "batch_size": 4,
+        "n_splits": 5,
+        "num_workers": 2,
+        "learning_rate": 0.001,
+        "input_channels": 22,
+        "feature_type": "with_labels",
+        "representations": "[(23,), (2, 2), (4, 4), (10,)]",
+        "network": "kenneth"
+    },
+    "encoder_params":{
+        "nclouds": 2,
+        "cloud_dim": 8,
+        "natoms": 286,
+        "neighborradius": 3,
+        "nffl": 1,
+        "ffl1size": 512,
+        "num_embeddings": 11,
+        "emb_dim": 4,
+        "cloudord": 1,
+        "nradial": 3,
+        "nbasis": 3
+
+    },
+
+    "decoder_params": {
+        "embed_size": 512,
+        "hidden_size": 512,
+        "num_layers": 1
+
+    },
+
+    "attention_parameters": {
+        "attention_dim": 128,
+        "emb_dim": 128,
+        "decoder_dim": 128,
+        "dropout": 0.5
+    },
+
+    "preprocessing": {
+        "path_proteins": "../data/new_refined/",
+        "vocab_path": "../data/vocab.pkl",
+        "path_root": "..",
+        "path_refined": "../data/new_refined",
+        "selection": "filtered"
+    },
+
+    "training_params": {
+        "image_dir": "../data/new_refined",
+        "caption_path": "../data/new_refined",
+        "model_path": "../data/models",
+        "log_step": 10,
+        "save_step": 100,
+        "encoder_path": "../data/models/encoder-0-99-900.ckpt",
+        "decoder_path": "../data/models/decoder-0-99-900.ckpt"
+    },
+    "sampling_params": {
+        "sample_id": 15,
+        "save_dir_smiles": "/home/daniil/results/captioning_results/24_07/statistics",
+        "number_smiles": 50,
+        "time_waiting": 3600,
+        "type_fold": "random",
+        "id_fold": 0,
+        "folds": "/home/daniil/results/captioning_results/24_07/logs/test_idx_0",
+        "file_stat": "0_fold_stat.csv"
+    }
+}
