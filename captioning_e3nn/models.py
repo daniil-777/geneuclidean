@@ -31,7 +31,7 @@ class Encoder_se3ACN(nn.Module):
     def __init__(
         self,
         device=DEVICE,
-        nclouds=2, #1-3
+        nclouds=3, #1-3
         natoms=286,
         cloud_dim=8, # 4-96 !
         neighborradius=3,
