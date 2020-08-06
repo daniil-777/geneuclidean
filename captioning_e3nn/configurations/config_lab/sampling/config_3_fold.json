@@ -67,8 +67,8 @@
         "model_path": "../data/models",
         "log_step": 10,
         "save_step": 100,
-        "encoder_path": "../data/models/encoder-3-99-900.ckpt",
-        "decoder_path": "../data/models/decoder-3-99-900.ckpt"
+        "encoder_path": "/home/daniil/results/captioning_results/24_07/models/encoder-3-99-900.ckpt",
+        "decoder_path": "/home/daniil/results/captioning_results/24_07/models/decoder-3-99-900.ckpt"
     },
     "sampling_params": {
         "sample_id": 15,
