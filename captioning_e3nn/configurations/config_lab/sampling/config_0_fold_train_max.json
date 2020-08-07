@@ -74,7 +74,7 @@
         "sampling": "max",
         "sample_id": 15,
         "save_dir_smiles": "/home/daniil/results/captioning_results/24_07/statistics",
-        "number_smiles": 50,
+        "number_smiles": 1,
         "time_waiting": 3600,
         "type_fold": "random",
         "id_fold": 0,
