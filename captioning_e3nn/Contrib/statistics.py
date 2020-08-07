@@ -34,37 +34,42 @@ def similarity(smile_true, smiles_others):
 
 def analysis_to_csv(smiles,  name_protein, id_fold, type_fold):
  
-    true_smile = smiles[0]
+    orig_smile = smiles[0]
     gen_smiles = smiles[1:]
     length = len(gen_smiles)
 
     ####################################diagrams##################################
-    orig_logP = MolLogP(Chem.MolFromSmiles(true_smile))
-    orig_sa = sascorer.calculateScore(Chem.MolFromSmiles(true_smile))
-    orig_qed = qed(Chem.MolFromSmiles(true_smile))
-    orig_weight = ExactMolWt(Chem.MolFromSmiles(true_smile))
+    mol_orig = Chem.MolFromSmiles(orig_smile)
+    mols_gen = [Chem.MolFromSmiles(smile) for smile in gen_smiles]
 
-    mols = [Chem.MolFromSmiles(smile) for smile in gen_smiles]
 
-    gen_logP = [MolLogP(mol) for mol in mols]
-    gen_sa = [sascorer.calculateScore(mol) for mol in mols]
-    gen_qed = [qed(mol) for mol in mols]
-    gen_weight = [ExactMolWt(mol) for mol in mols]
+    orig_logP = MolLogP(mol_orig)
+    orig_sa = sascorer.calculateScore(mol_orig)
+    orig_qed = qed(mol_orig)
+    orig_weight = ExactMolWt(mol_orig)
+    orig_NP = processMols(mol_orig)
+    
 
+    gen_logP = [MolLogP(mol) for mol in mols_gen]
+    gen_sa = [sascorer.calculateScore(mol) for mol in mols_gen]
+    gen_qed = [qed(mol) for mol in mols_gen]
+    gen_weight = [ExactMolWt(mol) for mol in mols_gen]
+    gen_NP = processMols(mols_gen)
 
     # suppl = Chem.SmilesMolSupplier(file_smiles, smilesColumn=0, nameColumn=1, titleLine=False)
     # scores_NP = processMols(suppl) # 1: since first one is an initial smile
-    scores_NP = processMols(mols)
-    orig_NP = scores_NP[0]
-    gen_NP = scores_NP[1:]
+    # scores_NP = processMols(mols)
+    # scores_NP_orig = processMols(mols)
+    
+    
     print("scoresNP!!", scores_NP)
     #####################################similarity###############################
 
-    # sim_random = similarity(true_smile, smiles_all)
-    gen_sim = similarity(true_smile, gen_smiles)
+    # sim_random = similarity(orig_smile, smiles_all)
+    gen_sim = similarity(orig_smile, gen_smiles)
     # print("name_protein ", name_protein, "gen_logP ", gen_logP)
 
-    statistics = [length * [name_protein], length * [str(id_fold)], length * [type_fold], length * [true_smile], gen_smiles, gen_NP, gen_logP, gen_sa, gen_qed, gen_weight, gen_sim,
+    statistics = [length * [name_protein], length * [str(id_fold)], length * [type_fold], length * [orig_smile], gen_smiles, gen_NP, gen_logP, gen_sa, gen_qed, gen_weight, gen_sim,
                   length * [orig_NP], length * [orig_logP], length * [orig_sa], length * [orig_qed], length * [orig_weight]]
 
     return statistics
