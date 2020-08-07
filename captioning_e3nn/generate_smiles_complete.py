@@ -218,7 +218,7 @@ def generate_smiles(id, id_fold, number_smiles, encoder_path, decoder_path):
         feature = encoder(geometry_tensor, features_tensor)
         if (sampling == "probabilistic"):
             sampled_ids = decoder.sample_prob(feature)
-        elif ( samping == "max"):
+        elif ( sampling == "max"):
             sampled_ids = decoder.sample(feature)
  
         # sampled_ids = decoder.sample(feature)
@@ -313,7 +313,8 @@ def analysis_train_cluster():
                         number_smiles, encoder_path, decoder_path)
 
 def main():
-    analysis_cluster()
+    # analysis_cluster()
+    analysis_train_cluster()
     # analysis_all()
     # test_analysis_all()
 
