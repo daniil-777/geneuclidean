@@ -47,7 +47,7 @@ def analysis_to_csv(smiles,  name_protein, id_fold, type_fold):
     orig_sa = sascorer.calculateScore(mol_orig)
     orig_qed = qed(mol_orig)
     orig_weight = ExactMolWt(mol_orig)
-    orig_NP = processMols(mol_orig)
+    orig_NP = processMols([mol_orig])
     
 
     gen_logP = [MolLogP(mol) for mol in mols_gen]
