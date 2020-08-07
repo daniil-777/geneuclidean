@@ -34,8 +34,8 @@ def similarity(smile_true, smiles_others):
 
 def analysis_to_csv(smiles,  name_protein, id_fold, type_fold):
  
-    orig_smile = smiles[0]
-    gen_smiles = smiles[1:]
+    orig_smile = smiles[0] # original smile
+    gen_smiles = smiles[1:] #list of generated smiles
     length = len(gen_smiles)
 
     ####################################diagrams##################################
@@ -62,7 +62,7 @@ def analysis_to_csv(smiles,  name_protein, id_fold, type_fold):
     # scores_NP_orig = processMols(mols)
     
     
-    print("scoresNP!!", scores_NP)
+    # print("scoresNP!!", scores_NP)
     #####################################similarity###############################
 
     # sim_random = similarity(orig_smile, smiles_all)
