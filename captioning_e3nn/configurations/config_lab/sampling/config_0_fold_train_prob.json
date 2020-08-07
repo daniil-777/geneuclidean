@@ -79,6 +79,6 @@
         "type_fold": "random",
         "id_fold": 0,
         "folds": "/home/daniil/results/captioning_results/24_07/logs/test_idx_0",
-        "file_stat": "0_train_fold_stat.csv"
+        "file_stat": "0_train_fold_stat_prob.csv"
     }
 }
