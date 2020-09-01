@@ -356,6 +356,18 @@ def save_encodings_all():
     for id_protein in idx_train:
         generate_encodings(id_protein, encoder)
 
+def collect_all_encodings():
+    files_encodings =  os.listdir(save_dir_encodings)
+    all_encodings = []
+    for file_enc in files_encodings:
+        enc_from_torch = torch.load(file_enc, map_location=torch.device('cpu')) 
+        print(type(enc_from_torch))
+        all_encodings.append(enc_from_torch)
+    all_encodings = np.asarray(all_encodings)
+    np.savetxt(os.path.join(save_dir_encodings, 'all_encodings.out'), all_encodings, delimiter=',') 
+
+
+
 def main():
     # analysis_cluster()
     # analysis_train_cluster()
