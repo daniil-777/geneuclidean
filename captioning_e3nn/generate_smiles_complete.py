@@ -360,7 +360,8 @@ def collect_all_encodings():
     files_encodings =  os.listdir(save_dir_encodings)
     all_encodings = []
     for file_enc in files_encodings:
-        enc_from_torch = torch.load(file_enc, map_location=torch.device('cpu')) 
+        path_to_enc = os.path.join(save_dir_encodings, file_enc)
+        enc_from_torch = torch.load(path_to_enc, map_location=torch.device('cpu')) 
         print(type(enc_from_torch))
         all_encodings.append(enc_from_torch)
     all_encodings = np.asarray(all_encodings)
@@ -371,7 +372,8 @@ def collect_all_encodings():
 def main():
     # analysis_cluster()
     # analysis_train_cluster()
-    save_encodings_all()
+    # save_encodings_all()
+    collect_all_encodings()
     # analysis_all()
     # test_analysis_all()
 
