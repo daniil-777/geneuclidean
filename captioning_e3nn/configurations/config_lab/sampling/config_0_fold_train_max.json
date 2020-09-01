@@ -5,7 +5,7 @@
     },
     "output_parameters": {
         "savedir": "../data/logs/",
-        "savedir_enc": "../data/logs/encodings/",
+        "savedir_enc": "/home/daniil/results/captioning_results/24_07/encodings/",
         "path_results": "results/casf/tetris_middle_2/",
         "path_tesnorboard_output": "results/split_casf_2016_15.04_10_-6/tensorboard/tensorboard_manual_2016",
         "path_losses_output": "losses_predictions/losses_data_2016_1",
