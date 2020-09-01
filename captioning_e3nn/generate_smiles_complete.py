@@ -362,7 +362,7 @@ def collect_all_encodings():
     for file_enc in files_encodings:
         if(file_enc[0].isdigit()):
             path_to_enc = os.path.join(save_dir_encodings, file_enc)
-            enc_from_torch = torch.load(path_to_enc, map_location=torch.device('cpu')) 
+            enc_from_torch = torch.load(path_to_enc, map_location=torch.device('cpu')).view(-1).detach().numpy() 
             print(type(enc_from_torch))
             all_encodings.append(enc_from_torch.detach().numpy())
     all_encodings = np.asarray(all_encodings)
