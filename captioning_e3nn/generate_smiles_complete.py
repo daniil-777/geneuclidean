@@ -49,7 +49,7 @@ batch_size = configuration["model_params"]["batch_size"]
 learning_rate = configuration["model_params"]["learning_rate"]
 num_workers = configuration["model_params"]["num_workers"]
 save_dir_folds = configuration["output_parameters"]["savedir"]
-
+save_dir_encodings = configuration["output_parameters"]["savedir_enc"]
 
 #sampling params
 sampling = configuration["sampling_params"]["sampling"]
@@ -92,6 +92,9 @@ dropout = configuration["attention_parameters"]["dropout"]
 if not os.path.exists(save_dir_smiles):
     os.makedirs(save_dir_smiles)
 
+if not os.path.exists(save_dir_encodings):
+    os.makedirs(save_dir_encodings)
+
 file_long_proteins = open(os.path.join(save_dir_smiles, "exceptions_long.txt"), "w")
 file_all_stat = open(os.path.join(save_dir_smiles, "all_statistics.csv"), "w")
 
@@ -108,6 +111,24 @@ with open(vocab_path, "rb") as f:
 print("vocab", vocab)
 
 dataset = Pdb_Dataset(configuration, vocab)
+
+
+def generate_encodings(id, encoder):
+    #generate features of encoder and writes it to files
+    protein_name =  dataset._get_name_protein(id)
+    # encoder_protein_path = os.path.join(save_dir_encodings, protein_name)
+    # if not os.path.exists(encoder_protein_path):
+    #     os.makedirs(encoder_protein_path)
+    features, geometry = load_pocket(id)
+    features_tensor = features.to(device).unsqueeze(0)
+    geometry_tensor = geometry.to(device).unsqueeze(0)
+    # Generate a caption from the image
+
+    feature = encoder(geometry_tensor, features_tensor)
+
+    torch.save(feature, os.path.join(save_dir_encodings, protein_name + "_feature_encoding.pt"))
+
+
 
 
 
@@ -167,6 +188,10 @@ def generate_smiles(id, id_fold, number_smiles, encoder_path, decoder_path):
     init_path_smile =  os.path.join(
             caption_path, protein_name, protein_name + "_ligand.smi"
         )
+
+    encoder_protein_path = os.path.join(save_dir_folds, protein_name)
+    if not os.path.exists(encoder_protein_path):
+        os.makedirs(encoder_protein_path)
     
     #file to write all generated smiles for a given protein
     #create a file where we will write generated smiles
@@ -216,6 +241,10 @@ def generate_smiles(id, id_fold, number_smiles, encoder_path, decoder_path):
         # Generate a caption from the image
 
         feature = encoder(geometry_tensor, features_tensor)
+
+        # torch.save(feature, os.path.join(encoder_protein_path, "feature_encoder.pt"))
+
+
         if (sampling == "probabilistic"):
             sampled_ids = decoder.sample_prob(feature)
         elif ( sampling == "max"):
@@ -312,9 +341,25 @@ def analysis_train_cluster():
         generate_smiles(id_protein, id_fold, 
                         number_smiles, encoder_path, decoder_path)
 
+def save_encodings_all():
+    #writes encodings to .pt files
+    with (open(file_folds, "rb")) as openfile:
+        idx_proteins = pickle.load(openfile)
+    encoder = Encoder_se3ACN().eval()  # eval mode (batchnorm uses moving mean/variance)
+    encoder = encoder.to(device).double()  
+    # Load the trained model parameters
+    encoder.load_state_dict(torch.load(encoder_path, map_location=torch.device('cpu')))
+    files_refined = os.listdir(protein_dir)
+    idx_all = [i for i in range(len(files_refined) - 3)]
+    #take indx of proteins in the training set
+    idx_train =  np.setdiff1d(idx_all, idx_proteins)
+    for id_protein in idx_train:
+        generate_encodings(id_protein, encoder)
+
 def main():
     # analysis_cluster()
-    analysis_train_cluster()
+    # analysis_train_cluster()
+    save_encodings_all()
     # analysis_all()
     # test_analysis_all()
 
