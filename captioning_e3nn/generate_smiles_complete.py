@@ -360,10 +360,11 @@ def collect_all_encodings():
     files_encodings =  os.listdir(save_dir_encodings)
     all_encodings = []
     for file_enc in files_encodings:
-        path_to_enc = os.path.join(save_dir_encodings, file_enc)
-        enc_from_torch = torch.load(path_to_enc, map_location=torch.device('cpu')) 
-        print(type(enc_from_torch))
-        all_encodings.append(enc_from_torch.detach().numpy())
+        if(file_enc[0].isdigit()):
+            path_to_enc = os.path.join(save_dir_encodings, file_enc)
+            enc_from_torch = torch.load(path_to_enc, map_location=torch.device('cpu')) 
+            print(type(enc_from_torch))
+            all_encodings.append(enc_from_torch.detach().numpy())
     all_encodings = np.asarray(all_encodings)
     np.savetxt(os.path.join(save_dir_encodings, 'all_encodings.out'), all_encodings, delimiter=',') 
 
