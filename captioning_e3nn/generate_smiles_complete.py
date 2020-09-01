@@ -364,7 +364,7 @@ def collect_all_encodings():
             path_to_enc = os.path.join(save_dir_encodings, file_enc)
             enc_from_torch = torch.load(path_to_enc, map_location=torch.device('cpu')).view(-1).detach().numpy() 
             print(type(enc_from_torch))
-            all_encodings.append(enc_from_torch.detach().numpy())
+            all_encodings.append(enc_from_torch)
     all_encodings = np.asarray(all_encodings)
     np.savetxt(os.path.join(save_dir_encodings, 'all_encodings.csv'), all_encodings, delimiter=',') 
 
