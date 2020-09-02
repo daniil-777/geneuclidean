@@ -27,7 +27,7 @@ from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 from build_vocab import Vocabulary
 from data_loader import get_loader, Pdb_Dataset, collate_fn
-from models import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
+from models_new import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
 from utils import Utils
 
 
@@ -66,9 +66,13 @@ model_path = configuration["training_params"]["model_path"]
 #encoder params
 cloud_dim = configuration["encoder_params"]["cloud_dim"]
 emb_dim_encoder = configuration["encoder_params"]["emb_dim"]
+neighborradius = configuration["encoder_params"]["neighborradius"]
+cloudord = configuration["encoder_params"]["cloudord"]
+nclouds = configuration["encoder_params"]["nclouds"]
 # decoder params
 embed_size = configuration["decoder_params"]["embed_size"]
-hidden_size = configuration["decoder_params"]["hidden_size"]
+# hidden_size = configuration["decoder_params"]["hidden_size"]
+hidden_size = 2 * cloud_dim * (cloudord ** 2) * nclouds
 num_layers = configuration["decoder_params"]["num_layers"]
 vocab_path = configuration["preprocessing"]["vocab_path"]
 
@@ -108,8 +112,6 @@ with open(vocab_path, "rb") as f:
 def train_loop(loader, encoder, decoder, caption_optimizer, split_no, epoch, total_step):
 
     for i, (features, geometry, captions, lengths) in enumerate(loader):
-        
-
         # Set mini-batch dataset
         # features = torch.tensor(features)
         features = features.to(device)
@@ -205,7 +207,8 @@ if __name__ == "__main__":
 
         total_step = len(loader_train)
         print("total_step", total_step)
-        encoder = Encoder_se3ACN(cloud_dim = cloud_dim, emb_dim = emb_dim_encoder).to(device).double()
+        encoder = Encoder_se3ACN(cloud_dim = cloud_dim, emb_dim = emb_dim_encoder, neighborradius=neighborradius,
+                                cloudord= cloudord).to(device).double()
         decoder = DecoderRNN(embed_size, hidden_size, len(vocab), num_layers).to(device).double()
 
         criterion = nn.CrossEntropyLoss()
