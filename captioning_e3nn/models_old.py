@@ -391,7 +391,7 @@ class MyDecoderWithAttention(nn.Module):
         return scores.data #, encoded_captions, decode_lengths, alphas, sort_ind
 
     def sample(self, features, vocab, states=None):
-    """Samples SMILES tockens for given  features (Greedy search)."""
+        """Samples SMILES tockens for given  features (Greedy search)."""
         k = 1
         k_prev_words = torch.LongTensor([[vocab.word2idx['<start>']]] * k).to(device) 
         h, c = decoder.init_hidden_state(features)
