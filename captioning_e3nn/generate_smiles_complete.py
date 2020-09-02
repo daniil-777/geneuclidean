@@ -15,7 +15,8 @@ from torchvision import transforms
 from rdkit import Chem
 from build_vocab import Vocabulary
 from data_loader import Pdb_Dataset
-from models import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
+# from models import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
+from models_old import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
 from utils import Utils
 from Contrib.statistics import analysis_to_csv
 
@@ -353,7 +354,8 @@ def save_encodings_all():
     idx_all = [i for i in range(len(files_refined) - 3)]
     #take indx of proteins in the training set
     idx_train =  np.setdiff1d(idx_all, idx_proteins)
-    for id_protein in idx_train:
+    # for id_protein in idx_train:
+    for id_protein in idx_all:    
         generate_encodings(id_protein, encoder)
 
 def collect_all_encodings():
