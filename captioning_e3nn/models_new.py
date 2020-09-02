@@ -79,9 +79,6 @@ class Encoder_se3ACN(nn.Module):
         self.number_of_basis = nbasis
         self.neighbor_radius = neighborradius
         
-        self.e1 = nn.Linear(ffl1size, out_shape)
-        self.bn1 = nn.BatchNorm1d(ffl1size)
-
         self.RadialModel = partial(
             CosineBasisModel,
             max_radius=self.neighbor_radius,  # radius
@@ -123,17 +120,14 @@ class Encoder_se3ACN(nn.Module):
 
         # Cloud residuals
         in_shape = cloud_out
-        
         # passing molecular features after pooling through output layer
         self.e_out_1 = nn.Linear(cloud_out, 2 * cloud_out)
         self.bn_out_1 = nn.BatchNorm1d(2 * cloud_out)
         
-
         # Final output activation layer
-  
-        self.layer_to_atoms = nn.Linear(
-            ff_in_shape, natoms
-        )  # linear output layer from ff_in_shape hidden size to the number of atoms
+        # self.layer_to_atoms = nn.Linear(
+        #     ff_in_shape, natoms
+        # )  # linear output layer from ff_in_shape hidden size to the number of atoms
         self.act = (
             nn.Sigmoid()
         )  # y is scaled between 0 and 1, better than ReLu of tanh for U0
