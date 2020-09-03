@@ -209,7 +209,7 @@ if __name__ == "__main__":
         total_step = len(loader_train)
         print("total_step", total_step)
         encoder = Encoder_se3ACN(cloud_dim = cloud_dim, emb_dim = emb_dim_encoder, neighborradius=neighborradius,
-                                cloudord= cloudord).to(device).double()
+                                cloudord= cloudord, nclouds = nclouds).to(device).double()
         decoder = DecoderRNN(embed_size, hidden_size, len(vocab), num_layers).to(device).double()
 
         criterion = nn.CrossEntropyLoss()
