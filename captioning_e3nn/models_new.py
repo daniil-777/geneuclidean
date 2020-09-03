@@ -121,8 +121,11 @@ class Encoder_se3ACN(nn.Module):
         # Cloud residuals
         in_shape = cloud_out
         # passing molecular features after pooling through output layer
-        self.e_out_1 = nn.Linear(cloud_out, 2 * cloud_out)
-        self.bn_out_1 = nn.BatchNorm1d(2 * cloud_out)
+        self.e_out_1 = nn.Linear(cloud_out, cloud_out)
+        self.bn_out_1 = nn.BatchNorm1d(cloud_out)
+        
+        self.e_out_2 = nn.Linear(cloud_out, 2 * cloud_out)
+        self.bn_out_2 = nn.BatchNorm1d(2 * cloud_out)
         
         # Final output activation layer
         # self.layer_to_atoms = nn.Linear(
@@ -175,8 +178,8 @@ class Encoder_se3ACN(nn.Module):
             )
 
         features = features.squeeze(1)  # shape [batch, cloud_dim * (self.cloud_order ** 2) * nclouds]
-        # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
-        features = self.leakyrelu(self.bn_out_1(self.e_out_1(features)))
+        
+        features = self.leakyrelu(self.bn_out_1(self.e_out_1(features))) # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
         
         # for _, op in enumerate(self.collate):
         #     # features = F.leaky_relu(op(features))

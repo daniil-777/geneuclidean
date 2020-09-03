@@ -70,9 +70,9 @@ neighborradius = configuration["encoder_params"]["neighborradius"]
 cloudord = configuration["encoder_params"]["cloudord"]
 nclouds = configuration["encoder_params"]["nclouds"]
 # decoder params
-# embed_size = configuration["decoder_params"]["embed_size"]
-# hidden_size = configuration["decoder_params"]["hidden_size"]
-hidden_size = 2 * cloud_dim * (cloudord ** 2) * nclouds
+embed_size = configuration["decoder_params"]["embed_size"]
+hidden_size = configuration["decoder_params"]["hidden_size"]
+# hidden_size = 2 * cloud_dim * (cloudord ** 2) * nclouds
 embed_size = hidden_size
 num_layers = configuration["decoder_params"]["num_layers"]
 vocab_path = configuration["preprocessing"]["vocab_path"]
