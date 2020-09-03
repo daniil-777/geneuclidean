@@ -4,8 +4,8 @@
         "splitting": "casf"
     },
     "output_parameters": {
-        "savedir": "../results/captioning_results/03_09/3/logs/",
-        "savedir_enc": "/home/daniil/results/captioning_results/03_09/3/encodings/",
+        "savedir": "../results/captioning_results/03_09/4/logs/",
+        "savedir_enc": "/home/daniil/results/captioning_results/03_09/4/encodings/",
         "path_results": "results/casf/tetris_middle_2/",
         "pkd_path": "pkd_predictions",
         "name_plot": "casf_tetris_middle_2",
