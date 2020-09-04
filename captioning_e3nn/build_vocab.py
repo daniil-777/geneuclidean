@@ -21,7 +21,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('config', type=str, help='Path to config file.')
 
 args = parser.parse_args()
-cfg = config.load_config(args.config, 'configurations/local_test/default.yaml')
+cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
 
 class Vocabulary(object):
     """Simple vocabulary wrapper."""
