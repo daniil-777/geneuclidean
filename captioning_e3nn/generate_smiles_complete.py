@@ -71,6 +71,15 @@ log_step = configuration["training_params"]["log_step"]
 save_step = configuration["training_params"]["save_step"]
 encoder_path = configuration["training_params"]["encoder_path"]
 decoder_path = configuration["training_params"]["decoder_path"]
+
+# encoder params
+cloud_dim = configuration["encoder_params"]["cloud_dim"]
+emb_dim_encoder = configuration["encoder_params"]["emb_dim"]
+neighborradius = configuration["encoder_params"]["neighborradius"]
+cloudord = configuration["encoder_params"]["cloudord"]
+nclouds = configuration["encoder_params"]["nclouds"]
+
+
 # decoder params
 embed_size = configuration["decoder_params"]["embed_size"]
 hidden_size = configuration["decoder_params"]["hidden_size"]
@@ -346,7 +355,8 @@ def save_encodings_all():
     #writes encodings to .pt files
     with (open(file_folds, "rb")) as openfile:
         idx_proteins = pickle.load(openfile)
-    encoder = Encoder_se3ACN().eval()  # eval mode (batchnorm uses moving mean/variance)
+    encoder = Encoder_se3ACN(cloud_dim = cloud_dim, emb_dim = emb_dim_encoder, neighborradius=neighborradius,
+                                cloudord= cloudord, nclouds = nclouds).eval()  # eval mode (batchnorm uses moving mean/variance)
     encoder = encoder.to(device).double()  
     # Load the trained model parameters
     encoder.load_state_dict(torch.load(encoder_path, map_location=torch.device('cpu')))
