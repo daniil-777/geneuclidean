@@ -6,7 +6,7 @@ training_params:
 model:
   encoder: se3cnn
   encoder_kwargs:
-    nclouds: 5
+    nclouds: 3
     emb_dim: 10
     neighborradius: 2
     cloudord: 2
