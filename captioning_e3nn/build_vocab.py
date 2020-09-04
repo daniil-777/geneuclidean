@@ -4,15 +4,24 @@ import os
 import pickle
 import sys
 from collections import Counter
+import argparse
+import config
 
 MAX_Length = 245
 
-args = str(sys.argv[1])
-print(args)
+# args = str(sys.argv[1])
+# print(args)
 
-with open(args) as json_file:
-    config = json.load(json_file)
+# with open(args) as json_file:
+#     config = json.load(json_file)
+# Arguments
+parser = argparse.ArgumentParser(
+    description='Train a 3D reconstruction model.'
+)
+parser.add_argument('config', type=str, help='Path to config file.')
 
+args = parser.parse_args()
+cfg = config.load_config(args.config, 'configurations/local_test/default.yaml')
 
 class Vocabulary(object):
     """Simple vocabulary wrapper."""
@@ -38,7 +47,8 @@ class Vocabulary(object):
 
 
 def build_vocab(config):
-    dir_path = config["preprocessing"]["path_proteins"]
+    # dir_path = config["preprocessing"]["path_proteins"]
+    dir_path = cfg['preprocessing']['path_proteins']
     files_pr = os.listdir(dir_path)
     files_pr.remove(".DS_Store")
     max = 0

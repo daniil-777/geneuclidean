@@ -20,11 +20,11 @@ LEN_PADDING = 286
 class Pdb_Dataset(Dataset):
     """PdB binding dataset"""
 
-    def __init__(self, config, vocab):
-        """uses config file which is given as arg in "python train_server.py"
+    def __init__(self, cfg, vocab):
+        """uses cfg file which is given as arg in "python train_server.py"
         """
 
-        self.path_root = config["preprocessing"]["path_root"]
+        self.path_root = cfg['preprocessing']['path_root']
         self.init_refined = self.path_root + "/data/new_refined/"
         # self.init_refined = path_root + "/data/refined_26.05/"
         self.init_casf = self.path_root + "/data/new_core_2016/"
@@ -38,7 +38,7 @@ class Pdb_Dataset(Dataset):
         ##################refined files###################
         self.files_refined = os.listdir(self.init_refined)
         self.files_refined.sort()
-        # self.files_refined.remove(".DS_Store")
+        self.files_refined.remove(".DS_Store")
         ##################################################
         self.len_files = len(self.files_refined)
         ###################core files#####################
@@ -56,13 +56,13 @@ class Pdb_Dataset(Dataset):
         self.affinities_complexes = []  # targets
         self.common_atoms = ["C", "H", "O", "N", "S"]
         # self.type_filtering = "filtered"
-        self.type_filtering = config["preprocessing"]["selection"]  # "filtered"
+        self.type_filtering = cfg['preprocessing']['selection']  # "filtered"
         print("filtering", self.type_filtering)
 
     def __len__(self):
         #!!!!!!!!!!!!!!!!
-        # return 20
-        return len(self.files_refined) # from the lab:
+        return 20
+        # return len(self.files_refined) # from the lab:
 
     def __getitem__(self, idx: int):
         vocab = self.vocab
@@ -405,10 +405,10 @@ def collate_fn(data):
     return features, geometry, targets, lengths
 
 
-def get_loader(config, vocab, batch_size, shuffle, num_workers):
+def get_loader(cfg, vocab, batch_size, shuffle, num_workers):
     """Returns torch.utils.data.DataLoader for custom coco dataset."""
     # Pdb caption dataset
-    pdb_dataset = Pdb_Dataset(config=config, vocab=vocab)
+    pdb_dataset = Pdb_Dataset(cfg=cfig, vocab=vocab)
 
     # Data loader for PDB refined dataset
     # This will return (features, geometry, captions, lengths) for each iteration.
