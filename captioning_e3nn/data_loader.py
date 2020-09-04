@@ -38,7 +38,7 @@ class Pdb_Dataset(Dataset):
         ##################refined files###################
         self.files_refined = os.listdir(self.init_refined)
         self.files_refined.sort()
-        self.files_refined.remove(".DS_Store")
+        # self.files_refined.remove(".DS_Store")
         ##################################################
         self.len_files = len(self.files_refined)
         ###################core files#####################
@@ -61,8 +61,8 @@ class Pdb_Dataset(Dataset):
 
     def __len__(self):
         #!!!!!!!!!!!!!!!!
-        return 20
-        # return len(self.files_refined) # from the lab:
+        # return 20
+        return len(self.files_refined) # from the lab:
 
     def __getitem__(self, idx: int):
         vocab = self.vocab
