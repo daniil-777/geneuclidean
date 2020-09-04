@@ -185,6 +185,7 @@ class Encoder_se3ACN(nn.Module):
 
         
         features = self.leakyrelu(self.bn_out_1(self.e_out_1(features))) # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
+        features = self.leakyrelu(self.bn_out_2(self.e_out_2(features)))
         print("shape final features", features.shape)
         # for _, op in enumerate(self.collate):
         #     # features = F.leaky_relu(op(features))
