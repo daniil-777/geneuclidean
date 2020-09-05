@@ -99,7 +99,7 @@ with open(vocab_path, "rb") as f:
 
 print("vocab", vocab)
 
-dataset = Pdb_Dataset(configuration, vocab)
+dataset = Pdb_Dataset(cfg, vocab)
 
 
 def generate_encodings(id, encoder):
