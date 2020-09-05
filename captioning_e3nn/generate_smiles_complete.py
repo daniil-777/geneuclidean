@@ -25,8 +25,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 DATA_PATH = os.path.realpath(os.path.dirname(__file__))
 
-
-
 # Arguments
 parser = argparse.ArgumentParser(
     description='Train a 3D reconstruction model.'
@@ -36,7 +34,8 @@ parser.add_argument('config', type=str, help='Path to config file.')
 args = parser.parse_args()
 
 
-cfg = config.load_config(args.config, 'configurations/local_test/default.yaml')
+cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
+
 
 
 
