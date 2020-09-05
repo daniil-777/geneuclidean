@@ -5,6 +5,7 @@ import os
 import pickle
 import sys
 import time
+import config
 from shutil import copyfile
 import matplotlib.pyplot as plt
 import numpy as np
