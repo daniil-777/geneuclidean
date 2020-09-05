@@ -26,78 +26,57 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 DATA_PATH = os.path.realpath(os.path.dirname(__file__))
 
 
-args = str(sys.argv[1])
-# args = "configs/tetris_simple.json"
-print(args)
-# ags = "configs/tetris_simple.json"
-# DATA_PATH = os.path.realpath(os.path.dirname(__file__))
-DATA_PATH = "/Volumes/Ubuntu"
+
+# Arguments
+parser = argparse.ArgumentParser(
+    description='Train a 3D reconstruction model.'
+)
+parser.add_argument('config', type=str, help='Path to config file.')
+
+args = parser.parse_args()
 
 
-# utils = Utils(DATA_PATH)
-
-# config = utils.parse_configuration(args)
-
-with open(args) as json_file:
-    configuration = json.load(json_file)
+cfg = config.load_config(args.config, 'configurations/local_test/default.yaml')
 
 
-# configuration = utils.parse_configuration()
-
-# model params
-num_epochs = configuration["model_params"]["num_epochs"]
-batch_size = configuration["model_params"]["batch_size"]
-learning_rate = configuration["model_params"]["learning_rate"]
-num_workers = configuration["model_params"]["num_workers"]
-save_dir_folds = configuration["output_parameters"]["savedir"]
-save_dir_encodings = configuration["output_parameters"]["savedir_enc"]
 
 #sampling params
-sampling = configuration["sampling_params"]["sampling"]
-protein_dir = configuration["training_params"]["image_dir"]
-save_dir_smiles = configuration["sampling_params"]["save_dir_smiles"]
-number_smiles = configuration["sampling_params"]["number_smiles"]
-time_waiting = configuration["sampling_params"]["time_waiting"]
-type_fold = configuration["sampling_params"]["type_fold"]
-file_folds = configuration["sampling_params"]["folds"]
-name_file_stat = configuration["sampling_params"]["file_stat"]
-id_fold = configuration["sampling_params"]["id_fold"]
+sampling = cfg['sampling_params']['sampling']
+protein_dir = cfg["training_params"]["image_dir"]
+number_smiles = cfg["sampling_params"]["number_smiles"]
+time_waiting = cfg["sampling_params"]["time_waiting"]
+type_fold = cfg["sampling_params"]["type_fold"]
+file_folds = cfg["sampling_params"]["folds"]
+name_file_stat = cfg["sampling_params"]["file_stat"]
+id_fold = cfg["sampling_params"]["id_fold"]
 
+
+# model params
+num_epochs = cfg['model_params']['num_epochs']
+batch_size = cfg['model_params']['batch_size']
+learning_rate = cfg['model_params']['learning_rate']
+num_workers = cfg['model_params']['num_workers']
 
 # training params
-image_dir = configuration["training_params"]["image_dir"]
-caption_path = configuration["training_params"]["caption_path"]
-log_step = configuration["training_params"]["log_step"]
-save_step = configuration["training_params"]["save_step"]
-encoder_path = configuration["training_params"]["encoder_path"]
-decoder_path = configuration["training_params"]["decoder_path"]
+protein_dir = cfg['training_params']['image_dir']
+caption_path = cfg['training_params']['caption_path']
+log_step = cfg['training_params']['log_step']
+save_step = cfg['training_params']['save_step']
+vocab_path = cfg['preprocessing']['vocab_path']
 
-# encoder params
-cloud_dim = configuration["encoder_params"]["cloud_dim"]
-emb_dim_encoder = configuration["encoder_params"]["emb_dim"]
-neighborradius = configuration["encoder_params"]["neighborradius"]
-cloudord = configuration["encoder_params"]["cloudord"]
-nclouds = configuration["encoder_params"]["nclouds"]
+#output files
+savedir = cfg['output_parameters']['savedir']
+save_dir_smiles = os.path.join(savedir, "statistics")
+tesnorboard_path = savedir
 
+#encoder/decoder path
+encoder_path = os.path.join(savedir, "models", cfg['training_params']['encoder_path']) 
+decoder_path = os.path.join(savedir, "models", cfg['training_params']['decoder_path'])
 
-# decoder params
-embed_size = configuration["decoder_params"]["embed_size"]
-hidden_size = configuration["decoder_params"]["hidden_size"]
-num_layers = configuration["decoder_params"]["num_layers"]
-vocab_path = configuration["preprocessing"]["vocab_path"]
-sample_id = configuration["sampling_params"]["sample_id"]
-
-# attention param
-attention_dim = configuration["attention_parameters"]["attention_dim"]
-emb_dim = configuration["attention_parameters"]["emb_dim"]
-decoder_dim = configuration["attention_parameters"]["decoder_dim"]
-encoder_dim = configuration["encoder_params"]["ffl1size"]
-dropout = configuration["attention_parameters"]["dropout"]
+#sampling params
 
 
-
-
-
+encoder, decoder = config.get_model(cfg, device=device)
 
 if not os.path.exists(save_dir_smiles):
     os.makedirs(save_dir_smiles)
@@ -354,18 +333,19 @@ def analysis_train_cluster():
 def save_encodings_all():
     #writes encodings to .pt files
     with (open(file_folds, "rb")) as openfile:
-        idx_proteins = pickle.load(openfile)
-    encoder = Encoder_se3ACN(cloud_dim = cloud_dim, emb_dim = emb_dim_encoder, neighborradius=neighborradius,
-                                cloudord= cloudord, nclouds = nclouds).eval()  # eval mode (batchnorm uses moving mean/variance)
-    encoder = encoder.to(device).double()  
+        idx_proteins_test = pickle.load(openfile)
+    # encoder = Encoder_se3ACN(cloud_dim = cloud_dim, emb_dim = emb_dim_encoder, neighborradius=neighborradius,
+    #                             cloudord= cloudord, nclouds = nclouds).eval()  # eval mode (batchnorm uses moving mean/variance)
+    # encoder = encoder.to(device).double()
+     
     # Load the trained model parameters
     encoder.load_state_dict(torch.load(encoder_path, map_location=torch.device('cpu')))
     files_refined = os.listdir(protein_dir)
     idx_all = [i for i in range(len(files_refined) - 3)]
     #take indx of proteins in the training set
-    idx_train =  np.setdiff1d(idx_all, idx_proteins)
+    idx_train =  np.setdiff1d(idx_all, idx_proteins_test)
     # for id_protein in idx_train:
-    for id_protein in idx_all:    
+    for id_protein in idx_proteins_test:    
         generate_encodings(id_protein, encoder)
 
 def collect_all_encodings():
@@ -385,7 +365,7 @@ def collect_all_encodings():
 def main():
     # analysis_cluster()
     # analysis_train_cluster()
-    # save_encodings_all()
+    save_encodings_all()
     collect_all_encodings()
     # analysis_all()
     # test_analysis_all()
