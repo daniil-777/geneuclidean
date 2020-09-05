@@ -42,6 +42,6 @@ sampling_params:
   time_waiting: 25
   type_fold: O
   id_fold: 0
-  folds: ../results/captioning_results/cv/resnet_1/logs/test_idx_0
+  folds: ../results/captioning_results/cv/resnet_1/test_idx_0
   file_stat: 0_fold_stat.csv
 
