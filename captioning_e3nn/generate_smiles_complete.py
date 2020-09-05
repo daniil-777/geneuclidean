@@ -13,13 +13,13 @@ import pandas as pd
 import torch
 from PIL import Image
 from torchvision import transforms
-from rdkit import Chem
+# from rdkit import Chem
 from build_vocab import Vocabulary
 from data_loader import Pdb_Dataset
 # from models import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
 from models_old import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
-from utils import Utils
-from Contrib.statistics import analysis_to_csv
+# from utils import Utils
+# from Contrib.statistics import analysis_to_csv
 
 # Device configuration
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -70,8 +70,8 @@ save_dir_smiles = os.path.join(savedir, "statistics")
 tesnorboard_path = savedir
 
 #encoder/decoder path
-encoder_path = os.path.join(savedir, "models", cfg['training_params']['encoder_path']) 
-decoder_path = os.path.join(savedir, "models", cfg['training_params']['decoder_path'])
+encoder_path = os.path.join(savedir, "models", cfg['training_params']['encoder_name']) 
+decoder_path = os.path.join(savedir, "models", cfg['training_params']['decoder_name'])
 
 #sampling params
 
