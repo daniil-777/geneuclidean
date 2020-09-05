@@ -72,7 +72,7 @@ tesnorboard_path = savedir
 #encoder/decoder path
 encoder_path = os.path.join(savedir, "models", cfg['training_params']['encoder_name']) 
 decoder_path = os.path.join(savedir, "models", cfg['training_params']['decoder_name'])
-
+save_dir_encodings = os.path.join(savedir, "encodings")
 #sampling params
 
 
