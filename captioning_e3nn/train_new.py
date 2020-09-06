@@ -187,6 +187,8 @@ if __name__ == "__main__":
     kf = KFold(n_splits=5, shuffle=True, random_state=2)
     my_list = list(kf.split(data_ids))
     test_idx = []
+    # output memory usage
+    py3nvml.nvmlInit()
     for split_no in range(N_SPLITS):
         train_id, test_id = my_list[split_no]
         train_data = data_ids[train_id]
