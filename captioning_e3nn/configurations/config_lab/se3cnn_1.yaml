@@ -6,7 +6,7 @@ training_params:
 model:
   encoder: se3cnn
   encoder_kwargs:
-    nclouds: 3
+    nclouds: 5
     emb_dim: 10
     neighborradius: 2
     cloudord: 1
@@ -21,8 +21,8 @@ model:
   decoder: lstm
   decoder_kwargs:
     vocab_size: 32
-    embed_size: 120
-    hidden_size: 120
+    embed_size: 50
+    hidden_size: 50
     num_layers: 1
 
 
