@@ -9,7 +9,7 @@ model:
     nclouds: 3
     emb_dim: 10
     neighborradius: 2
-    cloudord: 2
+    cloudord: 1
     cloud_dim: 5
     natoms: 286
     nffl: 1
