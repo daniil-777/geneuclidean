@@ -13,6 +13,7 @@ from utils import Utils
 import argparse
 import sys
 import config
+from py3nvml import py3nvml
 
 import json
 import os
@@ -161,7 +162,14 @@ def train_loop(loader, encoder, decoder, caption_optimizer, split_no, epoch, tot
             )
     log_file_tensor.write("\n")
     log_file_tensor.flush()
-
+    #memory inf
+    handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
+    fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
+    mem = fb_mem_info.used >> 20
+    print('GPU memory usage: ', mem)
+    writer.add_scalar('val/gpu_memory', mem, epoch)
+        
+    
 
 
 
