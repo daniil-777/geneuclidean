@@ -135,6 +135,11 @@ def train_loop(loader, encoder, decoder, caption_optimizer, split_no, epoch, tot
         # writer.add_scalar("training_loss", loss.item(), epoch)
         log_file_tensor.write(str(loss.item()) + "\n")
         log_file_tensor.flush()
+        handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
+        fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
+        mem = fb_mem_info.used >> 20
+        print('GPU memory usage: ', mem)
+        writer.add_scalar('val/gpu_memory', mem, epoch)
         # Print log info
         if i % log_step == 0:
             result = "Split [{}], Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Perplexity: {:5.4f}".format(
@@ -163,11 +168,7 @@ def train_loop(loader, encoder, decoder, caption_optimizer, split_no, epoch, tot
     log_file_tensor.write("\n")
     log_file_tensor.flush()
     #memory inf
-    handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
-    fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
-    mem = fb_mem_info.used >> 20
-    print('GPU memory usage: ', mem)
-    writer.add_scalar('val/gpu_memory', mem, epoch)
+    
         
     
 
