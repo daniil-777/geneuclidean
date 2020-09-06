@@ -77,7 +77,10 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 Encoder, Decoder = config.get_model(cfg, device=device)
 
-
+nparameters_enc = sum(p.numel() for p in Encoder.parameters())
+nparameters_dec = sum(p.numel() for p in Decoder.parameters())
+print(Encoder)
+print('Total number of parameters: %d' % nparameters_enc + nparameters_dec)
 
 if not os.path.exists(log_path):
     os.makedirs(log_path)
