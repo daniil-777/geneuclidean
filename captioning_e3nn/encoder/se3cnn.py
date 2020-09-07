@@ -221,7 +221,7 @@ class Encoder_se3ACN_Fast(nn.Module):
         Z=True,
     ):
         # emb_dim=4 - experimentals
-        super(Encoder_se3ACN, self).__init__()
+        super(Encoder_se3ACN_Fast, self).__init__()
         self.num_embeddings = num_embeddings
         self.device = device
         self.natoms = natoms
