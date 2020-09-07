@@ -1,8 +1,8 @@
 training_params:
   log_step: 10
   save_step: 1
-  encoder_path: encoder-20-600.ckpt
-  decoder_path: decoder-20-600.ckpt
+  encoder_name: encoder-20-600.ckpt
+  decoder_name: decoder-20-600.ckpt
 model:
   encoder: se3cnn_geo_resnet
   encoder_kwargs:
