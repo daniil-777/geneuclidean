@@ -102,7 +102,8 @@ with open(vocab_path, "rb") as f:
     vocab = pickle.load(f)
 
 def train_loop(loader, encoder, decoder, caption_optimizer, split_no, epoch, total_step):
-
+    encoder.train()
+    decoder.train()
     for i, (features, geometry, captions, lengths) in enumerate(loader):
         # Set mini-batch dataset
         # features = torch.tensor(features)
