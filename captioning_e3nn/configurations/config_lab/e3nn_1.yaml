@@ -14,7 +14,7 @@ model:
     n_layers: 2
     beta: 5
     rad_model: gaussian
-    embed:
+    embed: 20
     l0: 20
     l1: 10
     L: 5
