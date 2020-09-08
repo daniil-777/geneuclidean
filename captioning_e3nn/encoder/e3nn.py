@@ -139,6 +139,7 @@ class Network(torch.nn.Module):
         features = F.lp_pool2d(features,norm_type=2,
                 kernel_size=(features.shape[1], 1),
                 ceil_mode=False,)
+        features = features.squeeze(1)
         print("feat final shape", features.shape)
         return features # shape ? 
 
