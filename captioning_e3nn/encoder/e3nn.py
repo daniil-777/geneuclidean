@@ -59,7 +59,7 @@ def constants(features, geometry, mask):
 
 
 class Network(torch.nn.Module):
-    def __init__(self, device, max_rad, num_basis, n_neurons, n_layers, beta, rad_model,
+    def __init__(self,  max_rad, num_basis, n_neurons, n_layers, beta, rad_model,
                  embed, l0, l1,  L, scalar_act_name, gate_act_name, avg_n_atoms):
         super().__init__()
         self.avg_n_atoms = avg_n_atoms #286
