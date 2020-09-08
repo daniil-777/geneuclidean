@@ -151,7 +151,7 @@ if __name__ == "__main__":
         for epoch in range(num_epochs):
             # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
             #if add masks everywhere call just train_loop
-            train_loop(loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
+            train_loop_mask(loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
     
 
             
