@@ -95,10 +95,10 @@ class Network(torch.nn.Module):
         self.layers += [make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])]
         self.leakyrelu = nn.LeakyReLU(0.2) # Relu
         self.e_out_1 = nn.Linear(mlp_h, mlp_h)
-        self.bn_out_1 = nn.BatchNorm1d(mlp_h)
+        self.bn_out_1 = nn.BatchNorm1d(avg_n_atoms)
 
         self.e_out_2 = nn.Linear(mlp_h, 2 * mlp_h)
-        self.bn_out_2 = nn.BatchNorm1d(2 * mlp_h)
+        self.bn_out_2 = nn.BatchNorm1d(avg_n_atoms)
 
     def forward(self, features, geometry, mask):
         features, _, mask, diff_geo, radii = constants(features, geometry, mask)
