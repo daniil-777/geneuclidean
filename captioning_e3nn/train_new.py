@@ -181,8 +181,8 @@ if __name__ == "__main__":
     featuriser = Pdb_Dataset(cfg, vocab=vocab)
     # data_ids, data_names = utils._get_refined_data()
     files_refined = os.listdir(protein_dir)
-    data_ids = np.array([i for i in range(len(files_refined) - 3)])
-    # data_ids = np.array([i for i in range(20)])
+    # data_ids = np.array([i for i in range(len(files_refined) - 3)])
+    data_ids = np.array([i for i in range(20)])
 
     #cross validation
     kf = KFold(n_splits=5, shuffle=True, random_state=2)

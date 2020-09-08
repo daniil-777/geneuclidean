@@ -57,12 +57,13 @@ class Pdb_Dataset(Dataset):
         self.common_atoms = ["C", "H", "O", "N", "S"]
         # self.type_filtering = "filtered"
         self.type_filtering = cfg['preprocessing']['selection']  # "filtered"
+        self.mask = cfg['preprocessing']['mask']
         print("filtering", self.type_filtering)
 
     def __len__(self):
         #!!!!!!!!!!!!!!!!
-        # return 20
-        return len(self.files_refined) # from the lab:
+        return 20
+        # return len(self.files_refined) # from the lab:
 
     def __getitem__(self, idx: int):
         vocab = self.vocab
@@ -78,8 +79,10 @@ class Pdb_Dataset(Dataset):
         caption.extend([vocab(token) for token in tokens])
         caption.append(vocab("<end>"))
         target = torch.Tensor(caption)
-
-        return all_features, all_geometry, target
+        if(self.mask == 'True'):
+            return all_features, all_geometry, mask, target
+        else:
+            return all_features, all_geometry, target
     
     def _get_name_protein(self, idx: int):
         name_protein = self.files_refined[idx]
@@ -293,11 +296,13 @@ class Pdb_Dataset(Dataset):
             mode="constant",
             value=5,
         )
+        mask_binary = torch.cat([tensor_all_features.shape[1],length_padding])
         # print("feature shape")
         # print(result.shape)
         # print(result)
         result = result.squeeze(0)
-        return result
+        
+        return result, mask_binary
         # return result, elem_pocket, elem_ligand
         # return tensor_all_features
 
