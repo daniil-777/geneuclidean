@@ -15,13 +15,16 @@ model:
     n_layers: 2
     beta: 5
     rad_model: gaussian
-    embed: 10
-    l0: 10
+    embed: 30
+    l0: 30
     l1: 5
-    L: 3
+    L: 2
     scalar_act_name:  sp
     gate_act_name: sigmoid
     avg_n_atoms: 286
+    mlp_h: 50
+    Out: 1
+    aggregation_mode: avg
 
   decoder: lstm
   decoder_kwargs:

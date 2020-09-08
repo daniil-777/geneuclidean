@@ -7,7 +7,7 @@ from e3nn.radial import CosineBasisModel, GaussianRadialModel, BesselRadialModel
 from e3nn.non_linearities import rescaled_act
 from e3nn.non_linearities.gated_block import GatedBlock
 from e3nn.rsh import spherical_harmonics_xyz
-
+from encoder.base import Aggregate
 
 CUSTOM_BACKWARD = True
 
@@ -60,12 +60,12 @@ def constants(features, geometry, mask):
 
 class Network(torch.nn.Module):
     def __init__(self,  max_rad, num_basis, n_neurons, n_layers, beta, rad_model,
-                 embed, l0, l1,  L, scalar_act_name, gate_act_name, avg_n_atoms):
+                 embed, l0, l1,  L, scalar_act_name, gate_act_name, avg_n_atoms, mlp_h, Out, aggregation_mode):
         super().__init__()
         self.avg_n_atoms = avg_n_atoms #286
         self.ssp = rescaled_act.ShiftedSoftplus(beta = beta)
         self.sp = rescaled_act.Softplus(beta=beta)
-
+        self.l0 = l0
         if(scalar_act_name == "sp"):
             scalar_act = self.sp
         
@@ -75,9 +75,14 @@ class Network(torch.nn.Module):
         Rs = [[(embed, 0)]]
         Rs_mid = [(mul, l) for l, mul in enumerate([l0, l1])]
         Rs += [Rs_mid] * L
+        Rs += [[(mlp_h, 0)]] * Out
         self.Rs = Rs
         self.device = DEVICE
-        qm9_max_z = 5
+        if aggregation_mode == "sum":
+            self.atom_pool =  Aggregate(axis=1, mean=False)
+        elif aggregation_mode == "avg":
+            self.atom_pool =  Aggregate(axis=1, mean=True)
+        qm9_max_z = 6
 
         kernel_conv = create_kernel_conv(max_rad, num_basis, n_neurons, n_layers, self.ssp, rad_model)
 
@@ -88,12 +93,18 @@ class Network(torch.nn.Module):
 
         self.layers = torch.nn.ModuleList([torch.nn.Embedding(qm9_max_z, embed, padding_idx=5)])
         self.layers += [make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])]
+        self.e_out_1 = nn.Linear(mlp_h, mlp_h)
+        self.bn_out_1 = nn.BatchNorm1d(mlp_h)
+
+        self.e_out_2 = nn.Linear(mlp_h, 2 * mlp_h)
+        self.bn_out_2 = nn.BatchNorm1d(2 * mlp_h)
 
     def forward(self, features, geometry, mask):
         features, _, mask, diff_geo, radii = constants(features, geometry, mask)
         embedding = self.layers[0]
         features =torch.tensor(features).to(self.device).long()
         features = embedding(features)
+        features = features.squeeze(2)
         set_of_l_filters = self.layers[1][0].set_of_l_filters
         y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
         for kc, act in self.layers[1:]:
@@ -111,7 +122,22 @@ class Network(torch.nn.Module):
             features = act(features)
             features = features * mask.unsqueeze(-1)
         print("features shape after enc", features.shape)
+        
+        # out_net = OutputMLPNetwork(kernel_conv=kernel_conv, previous_Rs = self.Rs[-1],
+        #                          l0 = self.l0, l1 = 0, L = 1, scalar_act=sp, gate_act=rescaled_act.sigmoid,
+        #                           mlp_h = 128, mlp_L = 1, avg_n_atoms = 286)
+        # features = out_net(features, geometry, mask)
+        features = self.leakyrelu(self.bn_out_1(self.e_out_1(features))) # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
+        features = self.leakyrelu(self.bn_out_2(self.e_out_2(features)))
+
+        # if self.atomref is not None:
+        #     features_z = self.atomref(atomic_numbers)
+        #     features = features_z + features
+        features = self.atom_pool(features, atom_mask)
+        print("feat final shape", features.shape)
         return features # shape ? 
+
+
 
 
 class ResNetwork(Network):
@@ -220,7 +246,7 @@ class OutputMLPNetwork(torch.nn.Module):
         Rs = [previous_Rs]
         Rs_mid = [(mul, l) for l, mul in enumerate([l0, l1, l2, l3])]
         Rs += [Rs_mid] * L
-        Rs += [[(mlp_h, 0)]]
+        
         self.Rs = Rs
 
         self.layers = torch.nn.ModuleList([make_gb_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])])
