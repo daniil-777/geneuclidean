@@ -90,6 +90,7 @@ class Network(torch.nn.Module):
     def forward(self, features, geometry, mask):
         features, _, mask, diff_geo, radii = constants(features, geometry, mask)
         embedding = self.layers[0]
+        features =torch.tensor(features).to(device).long()
         features = embedding(features)
         set_of_l_filters = self.layers[1][0].set_of_l_filters
         y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
