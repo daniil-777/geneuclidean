@@ -1,3 +1,7 @@
+from torch import nn as nn
+import torch
+
+
 class Aggregate(nn.Module):
     """Pooling layer based on sum or average with optional masking.
 
