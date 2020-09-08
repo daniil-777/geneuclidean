@@ -8,7 +8,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 criterion = nn.CrossEntropyLoss()
 
-def train_loop(loader, encoder, decoder, caption_optimizer, split_no, epoch, total_step):
+def train_loop(loader, encoder, decoder, caption_optimizer, split_no, epoch, total_step, writer):
     encoder.train()
     decoder.train()
     for i, (features, geometry, captions, lengths) in enumerate(loader):
