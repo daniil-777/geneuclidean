@@ -8,6 +8,7 @@ from e3nn.non_linearities import rescaled_act
 from e3nn.non_linearities.gated_block import GatedBlock
 from e3nn.rsh import spherical_harmonics_xyz
 from encoder.base import Aggregate
+import torch.nn.functional as F
 
 CUSTOM_BACKWARD = True
 
@@ -134,7 +135,10 @@ class Network(torch.nn.Module):
         # if self.atomref is not None:
         #     features_z = self.atomref(atomic_numbers)
         #     features = features_z + features
-        features = self.atom_pool(features, mask)
+        # features = self.atom_pool(features, mask)
+        features = F.lp_pool2d(features,norm_type=2,
+                kernel_size=(features.shape[1], 1),
+                ceil_mode=False,
         print("feat final shape", features.shape)
         return features # shape ? 
 
