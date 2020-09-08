@@ -6,6 +6,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+criterion = nn.CrossEntropyLoss()
 
 def train_loop(loader, encoder, decoder, caption_optimizer, split_no, epoch, total_step):
     encoder.train()
