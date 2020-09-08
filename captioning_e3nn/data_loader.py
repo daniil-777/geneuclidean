@@ -67,7 +67,7 @@ class Pdb_Dataset(Dataset):
 
     def __getitem__(self, idx: int):
         vocab = self.vocab
-        all_features = self._get_features_complex(idx)
+        all_features, masks = self._get_features_complex(idx)
 
         all_geometry = self._get_geometry_complex(idx)
         # print("shape all geom", all_geometry.shape)
@@ -79,10 +79,11 @@ class Pdb_Dataset(Dataset):
         caption.extend([vocab(token) for token in tokens])
         caption.append(vocab("<end>"))
         target = torch.Tensor(caption)
-        if(self.mask == 'True'):
-            return all_features, all_geometry, mask, target
-        else:
-            return all_features, all_geometry, target
+        return all_features, all_geometry, masks, target
+        # if(self.mask == 'True'):
+        #     return all_features, all_geometry, masks, target
+        # else:
+        #     return all_features, all_geometry, target
     
     def _get_name_protein(self, idx: int):
         name_protein = self.files_refined[idx]
