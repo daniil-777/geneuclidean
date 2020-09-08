@@ -3,7 +3,7 @@ import yaml
 from torchvision import transforms
 from encoder import encoder_dict
 from decoder import decoder_dict
-from captioning_e3nn import data_loader
+import data_loader
 from data_loader import collate_fn, collate_fn_masks
 
 # General config
