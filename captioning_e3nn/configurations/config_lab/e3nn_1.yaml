@@ -20,7 +20,7 @@ model:
     L: 5
     scalar_act_name:  sp
     gate_act_name: sigmoid
-    avg_n_atom: 286
+    avg_n_atoms: 286
 
   decoder: lstm
   decoder_kwargs:
