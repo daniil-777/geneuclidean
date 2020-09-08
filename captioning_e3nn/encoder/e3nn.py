@@ -51,8 +51,8 @@ def create_kernel_conv(cutoff, n_bases, n_neurons, n_layers, act, radial_model):
 def constants(features, geometry, mask):
     rb = geometry.unsqueeze(1)  # [batch, 1, b, xyz]
     ra = geometry.unsqueeze(2)  # [batch, a, 1, xyz]
-    diff_geo = (rb - ra).detach()
-    radii = diff_geo.norm(2, dim=-1).double().detach()
+    diff_geo = (rb - ra).double().detach()
+    radii = diff_geo.norm(2, dim=-1).detach()
     return features, geometry, mask, diff_geo, radii
 
 
