@@ -129,7 +129,7 @@ class Network(torch.nn.Module):
         #                          l0 = self.l0, l1 = 0, L = 1, scalar_act=sp, gate_act=rescaled_act.sigmoid,
         #                           mlp_h = 128, mlp_L = 1, avg_n_atoms = 286)
         # features = out_net(features, geometry, mask)
-        features = self.leakyrelu(self.bn_out_1(self.e_out_1(features))) # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
+        # features = self.leakyrelu(self.bn_out_1(self.e_out_1(features))) # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
         features = self.leakyrelu(self.bn_out_2(self.e_out_2(features)))
 
         # if self.atomref is not None:
