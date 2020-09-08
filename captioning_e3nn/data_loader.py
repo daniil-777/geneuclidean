@@ -411,13 +411,13 @@ def collate_fn(self, data):
     for i, cap in enumerate(captions):
         end = lengths[i]
         targets[i, :end] = cap[:end]
-    return features, geometry, masks, targets, lengths
+    return features, geometry, mask, targets, lengths
 
 
 def get_loader(cfg, vocab, batch_size, shuffle, num_workers):
     """Returns torch.utils.data.DataLoader for custom coco dataset."""
     # Pdb caption dataset
-    pdb_dataset = Pdb_Dataset(cfg=cfig, vocab=vocab)
+    pdb_dataset = Pdb_Dataset(cfg=cfg, vocab=vocab)
 
     # Data loader for PDB refined dataset
     # This will return (features, geometry, captions, lengths) for each iteration.
