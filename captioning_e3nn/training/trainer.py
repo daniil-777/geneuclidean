@@ -1,3 +1,11 @@
+import torch.nn as nn
+from torch.nn.utils.rnn import pack_padded_sequence
+from torchvision import transforms
+from torch.utils.tensorboard import SummaryWriter
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 def train_loop(loader, encoder, decoder, caption_optimizer, split_no, epoch, total_step):
     encoder.train()
     decoder.train()
