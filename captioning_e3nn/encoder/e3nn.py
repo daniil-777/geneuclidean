@@ -52,7 +52,7 @@ def constants(features, geometry, mask):
     rb = geometry.unsqueeze(1)  # [batch, 1, b, xyz]
     ra = geometry.unsqueeze(2)  # [batch, a, 1, xyz]
     diff_geo = (rb - ra).detach()
-    radii = diff_geo.norm(2, dim=-1).detach()
+    radii = diff_geo.norm(2, dim=-1).double().detach()
     return features, geometry, mask, diff_geo, radii
 
 
