@@ -6,7 +6,7 @@ training_params:
   encoder_path: encoder-20-600.ckpt
   decoder_path: decoder-20-600.ckpt
 model:
-  encoder: Network
+  encoder: network1
   encoder_kwargs:
     max_rad: 2
     num_basis: 50
