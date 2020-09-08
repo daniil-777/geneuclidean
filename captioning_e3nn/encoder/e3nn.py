@@ -93,6 +93,7 @@ class Network(torch.nn.Module):
 
         self.layers = torch.nn.ModuleList([torch.nn.Embedding(qm9_max_z, embed, padding_idx=5)])
         self.layers += [make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])]
+        self.leakyrelu = nn.LeakyReLU(0.2) # Relu
         self.e_out_1 = nn.Linear(mlp_h, mlp_h)
         self.bn_out_1 = nn.BatchNorm1d(mlp_h)
 
