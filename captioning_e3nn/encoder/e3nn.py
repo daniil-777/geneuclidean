@@ -77,7 +77,7 @@ class Network(torch.nn.Module):
         Rs += [Rs_mid] * L
         self.Rs = Rs
         self.device = DEVICE
-        qm9_max_z = 6
+        qm9_max_z = 5
 
         kernel_conv = create_kernel_conv(max_rad, num_basis, n_neurons, n_layers, self.ssp, rad_model)
 
