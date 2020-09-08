@@ -296,7 +296,7 @@ class Pdb_Dataset(Dataset):
             mode="constant",
             value=5,
         )
-        mask_binary = torch.cat([tensor_all_features.shape[1],length_padding])
+        mask_binary = torch.cat([torch.ones(tensor_all_features.shape[1]),torch.zeros(length_padding)])
         # print("feature shape")
         # print(result.shape)
         # print(result)
