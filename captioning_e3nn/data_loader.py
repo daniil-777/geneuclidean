@@ -421,6 +421,7 @@ def collate_fn_masks(data):
     features, geometry, masks, captions = zip(*data)
     features = torch.stack(features, 0)
     geometry = torch.stack(geometry, 0)
+    masks = torch.stack(masks, 0)
     # Merge images (from tuple of 3D tensor to 4D tensor).
     # Merge captions (from tuple of 1D tensor to 2D tensor).
     lengths = [len(cap) for cap in captions]
