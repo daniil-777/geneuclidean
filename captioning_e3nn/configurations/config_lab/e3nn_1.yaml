@@ -15,9 +15,8 @@ model:
     n_layers: 2
     beta: 5
     rad_model: gaussian
-    embed: 30
-    l0: 30
-    l1: 5
+    embed: 20
+    l0: 20
     L: 2
     scalar_act_name:  sp
     gate_act_name: sigmoid
