@@ -375,7 +375,7 @@ class Pdb_Dataset(Dataset):
         return coords_pocket
 
 
-def collate_fn(self, data):
+def collate_fn(data):
     """Creates mini-batch tensors from the list of tuples (image, caption).
     
     We should build custom collate_fn rather than using default collate_fn, 
@@ -396,8 +396,8 @@ def collate_fn(self, data):
     data.sort(key=lambda x: len(x[2]), reverse=True)
     if(self.mask == 'True'):
         features, geometry, masks, captions = zip(*data)
-    else:
-        features, geometry, captions = zip(*data)
+  
+    features, geometry, captions = zip(*data)
 
 
     features = torch.stack(features, 0)
@@ -412,6 +412,23 @@ def collate_fn(self, data):
         end = lengths[i]
         targets[i, :end] = cap[:end]
     return features, geometry, mask, targets, lengths
+
+
+def collate_fn_masks(data):
+    # Sort a data list by caption length (descending order).
+    data.sort(key=lambda x: len(x[3]), reverse=True)
+    features, geometry, masks, captions = zip(*data)
+    features = torch.stack(features, 0)
+    geometry = torch.stack(geometry, 0)
+    # Merge images (from tuple of 3D tensor to 4D tensor).
+    # Merge captions (from tuple of 1D tensor to 2D tensor).
+    lengths = [len(cap) for cap in captions]
+    # we padd smaller targets till the max length with zeros. Therefore firstly create zero tensor
+    targets = torch.zeros(len(captions), max(lengths)).long()
+    for i, cap in enumerate(captions):
+        end = lengths[i]
+        targets[i, :end] = cap[:end]
+    return features, geometry, masks, targets, lengths
 
 
 def get_loader(cfg, vocab, batch_size, shuffle, num_workers):

@@ -3,6 +3,8 @@ import yaml
 from torchvision import transforms
 from encoder import encoder_dict
 from decoder import decoder_dict
+from captioning_e3nn import data_loader
+from data_loader import collate_fn, collate_fn_masks
 
 # General config
 def load_config(path, default_path=None):
@@ -127,6 +129,31 @@ def get_trainer(model, optimizer, cfg, device, **kwargs):
     )
     return trainer
 
+def get_loader(cfg, feat_train, batch_size, num_workers):
+    if(cfg['preprocessing']['mask'] == True):
+        loader = DataLoader(feat_train, batch_size=batch_size,
+                                    shuffle=True,
+                                    num_workers=num_workers,
+                                    collate_fn=collate_fn_masks,)
+    else:
+        loader = DataLoader(feat_train, batch_size=batch_size,
+                                    shuffle=True,
+                                    num_workers=num_workers,
+                                    collate_fn=collate_fn,) 
+    return loader
+
+def get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step):
+    if(cfg['preprocessing']['mask'] == True):
+        train_loop_mask(loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
+    else:
+        train_loop(loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
+
+#maybe uncomment later
+# def get_collate_fn(cfg):
+#     if(cfg['preprocessing']['collate_fn'] == 'masks'):
+#         collate = data_loader.collate_fn()
+#     else:
+#         collate = data_loader.collate_fn_masks()
 
 def get_generator(model, cfg, device, **kwargs):
     r''' Returns the generator instance.

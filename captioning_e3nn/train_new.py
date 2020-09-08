@@ -129,11 +129,12 @@ if __name__ == "__main__":
         test_idx_file.flush()
 
         feat_train = [featuriser[data] for data in train_data]
-
-        loader_train = DataLoader(feat_train, batch_size=batch_size,
-                                    shuffle=True,
-                                    num_workers=num_workers,
-                                    collate_fn=collate_fn,)
+        
+        # loader_train = DataLoader(feat_train, batch_size=batch_size,
+        #                             shuffle=True,
+        #                             num_workers=num_workers,
+        #                             collate_fn=collate_fn,)
+        loader_train = config.get_loader(cfg, feat_train, batch_size, num_workers,)
 
         total_step = len(loader_train)
         print("total_step", total_step)
@@ -148,10 +149,10 @@ if __name__ == "__main__":
 
         # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(caption_optimizer, 'min')
         for epoch in range(num_epochs):
-            if(cfg['preprocessing']['mask'] == True):
-                train_loop_mask(loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
-            else:
-                train_loop(loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
+            config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
+            #if add masks everywhere call just train_loop
+            # train_loop(loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
+    
 
             
        
