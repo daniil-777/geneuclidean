@@ -13,6 +13,8 @@ CUSTOM_BACKWARD = True
 
 
 
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 def create_kernel_conv(cutoff, n_bases, n_neurons, n_layers, act, radial_model):
     if radial_model == "cosine":
@@ -57,7 +59,7 @@ def constants(features, geometry, mask):
 
 
 class Network(torch.nn.Module):
-    def __init__(self, max_rad, num_basis, n_neurons, n_layers, beta, rad_model,
+    def __init__(self, device, max_rad, num_basis, n_neurons, n_layers, beta, rad_model,
                  embed, l0, l1,  L, scalar_act_name, gate_act_name, avg_n_atoms):
         super().__init__()
         self.avg_n_atoms = avg_n_atoms #286
@@ -74,7 +76,7 @@ class Network(torch.nn.Module):
         Rs_mid = [(mul, l) for l, mul in enumerate([l0, l1])]
         Rs += [Rs_mid] * L
         self.Rs = Rs
-
+        self.device = DEVICE
         qm9_max_z = 6
 
         kernel_conv = create_kernel_conv(max_rad, num_basis, n_neurons, n_layers, self.ssp, rad_model)
@@ -90,7 +92,7 @@ class Network(torch.nn.Module):
     def forward(self, features, geometry, mask):
         features, _, mask, diff_geo, radii = constants(features, geometry, mask)
         embedding = self.layers[0]
-        features =torch.tensor(features).to(device).long()
+        features =torch.tensor(features).to(self.device).long()
         features = embedding(features)
         set_of_l_filters = self.layers[1][0].set_of_l_filters
         y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
