@@ -62,7 +62,7 @@ class Network(torch.nn.Module):
         super().__init__()
         self.avg_n_atoms = avg_n_atoms #286
         self.ssp = rescaled_act.ShiftedSoftplus(beta = beta)
-        self.sp = rescaled_act.Softplus(beta=args.beta)
+        self.sp = rescaled_act.Softplus(beta=beta)
 
         if(scalar_act_name == "sp"):
             scalar_act = self.sp
