@@ -134,7 +134,7 @@ class Network(torch.nn.Module):
         # if self.atomref is not None:
         #     features_z = self.atomref(atomic_numbers)
         #     features = features_z + features
-        features = self.atom_pool(features, atom_mask)
+        features = self.atom_pool(features, mask)
         print("feat final shape", features.shape)
         return features # shape ? 
 
