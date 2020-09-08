@@ -13,10 +13,6 @@ CUSTOM_BACKWARD = True
 
 
 
-ssp = rescaled_act.ShiftedSoftplus(beta=args.beta)
-sp = rescaled_act.Softplus(beta=args.beta)
-
-
 
 def create_kernel_conv(cutoff, n_bases, n_neurons, n_layers, act, radial_model):
     if radial_model == "cosine":
@@ -61,13 +57,15 @@ def constants(features, geometry, mask):
 
 
 class Network(torch.nn.Module):
-    def __init__(self, max_rad, num_basis, n_neurons, n_layers, act, rad_model,
+    def __init__(self, max_rad, num_basis, n_neurons, n_layers, beta, act, rad_model,
                  embed, l0, l1,  L, scalar_act_name, gate_act_name, avg_n_atoms):
         super().__init__()
         self.avg_n_atoms = avg_n_atoms #286
-    
+        self.ssp = rescaled_act.ShiftedSoftplus(beta = beta)
+        self.sp = rescaled_act.Softplus(beta=args.beta)
+
         if(scalar_act_name == "sp"):
-            scalar_act = sp
+            scalar_act = self.sp
         
         if(gate_act_name == "sigmoid"):
             gate_act = rescaled_act.sigmoid
@@ -78,8 +76,8 @@ class Network(torch.nn.Module):
         self.Rs = Rs
 
         qm9_max_z = 6
-        ssp = rescaled_act.ShiftedSoftplus(beta=beta)
-        kernel_conv = create_kernel_conv(max_rad, num_basis, n_neurons, n_layers, ssp, rad_model)
+
+        kernel_conv = create_kernel_conv(max_rad, num_basis, n_neurons, n_layers, self.ssp, rad_model)
 
         def make_layer(Rs_in, Rs_out):
             act = GatedBlock(Rs_out, scalar_act, gate_act)
