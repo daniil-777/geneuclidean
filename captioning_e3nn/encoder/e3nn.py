@@ -86,7 +86,7 @@ class Network(torch.nn.Module):
             kc = kernel_conv(Rs_in, act.Rs_in)
             return torch.nn.ModuleList([kc, act])
 
-        self.layers = torch.nn.ModuleList([torch.nn.Embedding(qm9_max_z, embed, padding_idx=0)])
+        self.layers = torch.nn.ModuleList([torch.nn.Embedding(qm9_max_z, embed, padding_idx=5)])
         self.layers += [make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])]
 
     def forward(self, features, geometry, mask):
