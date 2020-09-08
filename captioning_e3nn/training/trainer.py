@@ -23,7 +23,7 @@ def train_loop(loader, encoder, decoder, caption_optimizer, split_no, epoch, tot
         caption_optimizer.zero_grad()
         # print("targets", targets)
         # Forward, backward and optimize
-        feature = encoder(features, geometry)
+        feature = encoder(geometry, features)
         
         # lengths = torch.tensor(lengths).view(-1, 1) uncomment for attention!!!
         # print("shape lengthes", lengths.shape)
@@ -90,7 +90,7 @@ def train_loop_mask(loader, encoder, decoder, caption_optimizer, split_no, epoch
         
         caption_optimizer.zero_grad()
         # Forward, backward and optimize
-        feature = encoder(geometry, features, masks)
+        feature = encoder(features, geometry, masks)
         outputs = decoder(feature, captions, lengths)
 
         loss = criterion(outputs, targets)
