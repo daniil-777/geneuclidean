@@ -375,7 +375,7 @@ class Pdb_Dataset(Dataset):
         return coords_pocket
 
 
-def collate_fn(data):
+def collate_fn(self, data):
     """Creates mini-batch tensors from the list of tuples (image, caption).
     
     We should build custom collate_fn rather than using default collate_fn, 
@@ -395,7 +395,7 @@ def collate_fn(data):
     # Sort a data list by caption length (descending order).
     data.sort(key=lambda x: len(x[2]), reverse=True)
     if(self.mask == 'True'):
-        features, geometry, mask, captions = zip(*data)
+        features, geometry, masks, captions = zip(*data)
     else:
         features, geometry, captions = zip(*data)
 
@@ -411,7 +411,7 @@ def collate_fn(data):
     for i, cap in enumerate(captions):
         end = lengths[i]
         targets[i, :end] = cap[:end]
-    return features, geometry, mask, targets, lengths
+    return features, geometry, masks, targets, lengths
 
 
 def get_loader(cfg, vocab, batch_size, shuffle, num_workers):
