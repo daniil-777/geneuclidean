@@ -29,7 +29,7 @@ from torch.utils.tensorboard import SummaryWriter
 from build_vocab import Vocabulary
 from data_loader import get_loader, Pdb_Dataset, collate_fn
 from models_new import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
-from captioning_e3nn.training.trainer import train_loop, train_loop_mask
+from training.trainer import train_loop, train_loop_mask
 # from utils import Utils
 
 
