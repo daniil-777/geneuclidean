@@ -1,5 +1,6 @@
 preprocessing:
   mask: True
+  collate_fn: masks
 training_params:
   log_step: 10
   save_step: 1
@@ -10,14 +11,14 @@ model:
   encoder_kwargs:
     max_rad: 2
     num_basis: 50
-    n_neurons: 128
+    n_neurons: 100
     n_layers: 2
     beta: 5
     rad_model: gaussian
-    embed: 20
-    l0: 20
-    l1: 10
-    L: 5
+    embed: 10
+    l0: 10
+    l1: 5
+    L: 3
     scalar_act_name:  sp
     gate_act_name: sigmoid
     avg_n_atoms: 286
@@ -35,7 +36,7 @@ model_params:
   num_epochs: 1
   batch_size: 4
   n_splits: 5
-  num_workers: 2
+  num_workers: 1
   learning_rate: 0.001
   input_channels: 22
   feature_type: with_labels
