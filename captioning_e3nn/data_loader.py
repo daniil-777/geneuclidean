@@ -394,7 +394,11 @@ def collate_fn(data):
     """
     # Sort a data list by caption length (descending order).
     data.sort(key=lambda x: len(x[2]), reverse=True)
-    features, geometry, captions = zip(*data)
+    if(self.mask == 'True'):
+        features, geometry, mask, captions = zip(*data)
+    else:
+        features, geometry, captions = zip(*data)
+
 
     features = torch.stack(features, 0)
     geometry = torch.stack(geometry, 0)
@@ -407,7 +411,7 @@ def collate_fn(data):
     for i, cap in enumerate(captions):
         end = lengths[i]
         targets[i, :end] = cap[:end]
-    return features, geometry, targets, lengths
+    return features, geometry, mask, targets, lengths
 
 
 def get_loader(cfg, vocab, batch_size, shuffle, num_workers):
