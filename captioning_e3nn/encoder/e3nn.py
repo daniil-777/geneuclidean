@@ -1,7 +1,7 @@
 from functools import partial
 
 import torch
-
+from torch import nn as nn
 from e3nn.point.kernelconv import KernelConv
 from e3nn.radial import CosineBasisModel, GaussianRadialModel, BesselRadialModel
 from e3nn.non_linearities import rescaled_act
