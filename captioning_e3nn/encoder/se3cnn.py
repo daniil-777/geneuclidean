@@ -139,7 +139,7 @@ class Encoder_se3ACN(nn.Module):
             nn.Sigmoid()
         )  # y is scaled between 0 and 1, better than ReLu of tanh for U0
 
-    def forward(self, features, xyz):
+    def forward(self, features, xyz, mask):
         # print("xyz input shape", xyz.shape)
         # print("Z input shape", Z.shape)
         # xyz -
@@ -312,7 +312,7 @@ class Encoder_se3ACN_Fast(nn.Module):
             nn.Sigmoid()
         )  # y is scaled between 0 and 1, better than ReLu of tanh for U0
 
-    def forward(self, features, xyz):
+    def forward(self, features, xyz, mask):
         # print("xyz input shape", xyz.shape)
         # print("Z input shape", Z.shape)
         # xyz -
