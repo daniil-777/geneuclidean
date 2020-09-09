@@ -77,9 +77,9 @@ class Trainer():
         for i, (features, geometry, masks, captions, lengths) in enumerate(loader):
             # Set mini-batch dataset
 
-            features = features.to(device)
-            geometry = geometry.to(device)
-            captions = captions.to(device)
+            features = features.to(self.device)
+            geometry = geometry.to(self.device)
+            captions = captions.to(self.device)
             targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
             
             caption_optimizer.zero_grad()
