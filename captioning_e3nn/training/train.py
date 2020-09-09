@@ -163,9 +163,9 @@ class Trainer():
 
             feat_train = [featuriser[data] for data in train_data]
             
-            loader_train = DataLoader(feat_train, batch_size=batch_size,
+            loader_train = DataLoader(feat_train, batch_size=self.batch_size,
                                         shuffle=True,
-                                        num_workers=num_workers,
+                                        num_workers=self.num_workers,
                                         collate_fn=collate_fn_masks,)
             # loader_train = config.get_loader(cfg, feat_train, batch_size, num_workers,)
 
