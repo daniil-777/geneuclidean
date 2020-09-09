@@ -153,7 +153,7 @@ class Encoder_se3ACN(nn.Module):
         features = features.to(torch.double)
         features = features.squeeze(2)
         feature_list = []
-        feature_list.append(features)
+        # feature_list.append(features)
         for _, op in enumerate(self.clouds):            
             features = op(features, xyz)
             feature_list.append(features)
@@ -327,9 +327,8 @@ class Encoder_se3ACN_Fast(nn.Module):
         features = features.to(torch.double)
         features = features.squeeze(2)
         for _, op in enumerate(self.clouds):            
-            new_features = op(new_features, xyz)
-            
-        features = features + new_features
+            new_features = op(features, xyz)
+            features = features + new_features
 
         # Concatenate features from clouds
 
