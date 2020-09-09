@@ -140,12 +140,12 @@ class Trainer():
 
         featuriser = Pdb_Dataset(self.cfg, vocab=self.vocab)
         # data_ids, data_names = utils._get_refined_data()
-        files_refined = os.listdir(protein_dir)
+        files_refined = os.listdir(self.protein_dir)
         # data_ids = np.array([i for i in range(len(files_refined) - 3)])
         data_ids = np.array([i for i in range(20)])
 
         #cross validation
-        kf = KFold(n_splits=n_splits, shuffle=True, random_state=2)
+        kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=2)
         my_list = list(kf.split(data_ids))
         test_idx = []
         # output memory usage
@@ -154,7 +154,7 @@ class Trainer():
             train_id, test_id = my_list[split_no]
             train_data = data_ids[train_id]
             test_data = data_ids[test_id]
-            with open(os.path.join(savedir, 'test_idx_' + str(split_no)), 'wb') as fp:
+            with open(os.path.join(self.savedir, 'test_idx_' + str(split_no)), 'wb') as fp:
                 pickle.dump(test_data, fp)
             
             test_idx.append(test_data)
