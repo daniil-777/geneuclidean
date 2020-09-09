@@ -10,7 +10,7 @@ from e3nn.rsh import spherical_harmonics_xyz
 from encoder.base import Aggregate
 import torch.nn.functional as F
 
-CUSTOM_BACKWARD = True
+CUSTOM_BACKWARD = False
 
 
 

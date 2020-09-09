@@ -78,7 +78,7 @@ def train_loop(loader, encoder, decoder, caption_optimizer, split_no, epoch, tot
     log_file_tensor.flush()
 
 
-def train_loop_mask(loader, encoder, decoder, caption_optimizer, split_no, epoch, total_step, writer):
+def train_loop_mask(loader, encoder, decoder, caption_optimizer, split_no, epoch, total_step, writer, log_file, log_file_tensor):
     encoder.train()
     decoder.train()
     for i, (features, geometry, masks, captions, lengths) in enumerate(loader):
