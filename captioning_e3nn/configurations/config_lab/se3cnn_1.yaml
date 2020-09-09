@@ -3,18 +3,18 @@ preprocessing:
   collate_fn: masks
 training_params:
   log_step: 10
-  save_step: 1
+  save_step: 10
   encoder_name: encoder-20-600.ckpt
   decoder_name: decoder-20-600.ckpt
   n_splits: 5
 model:
   encoder: se3cnn
   encoder_kwargs:
-    nclouds: 5
+    nclouds: 3
     emb_dim: 10
     neighborradius: 2
     cloudord: 1
-    cloud_dim: 5
+    cloud_dim: 20
     natoms: 286
     nffl: 1
     ffl1size: 512
@@ -25,14 +25,14 @@ model:
   decoder: lstm
   decoder_kwargs:
     vocab_size: 32
-    embed_size: 50
-    hidden_size: 50
+    embed_size: 120
+    hidden_size: 120
     num_layers: 1
 
 
 model_params: 
   model_name: "e3nn"
-  num_epochs: 1
+  num_epochs: 100
   batch_size: 4
   n_splits: 5
   num_workers: 2
