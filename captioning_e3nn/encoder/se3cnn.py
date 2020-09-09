@@ -153,6 +153,7 @@ class Encoder_se3ACN(nn.Module):
         features = features.to(torch.double)
         features = features.squeeze(2)
         feature_list = []
+        feature_list.append(features)
         for _, op in enumerate(self.clouds):            
             features = op(features, xyz)
             feature_list.append(features)
