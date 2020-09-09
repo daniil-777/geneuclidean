@@ -150,7 +150,7 @@ class Trainer():
         test_idx = []
         # output memory usage
         py3nvml.nvmlInit()
-        for split_no in range(n_splits):
+        for split_no in range(self.n_splits):
             train_id, test_id = my_list[split_no]
             train_data = data_ids[train_id]
             test_data = data_ids[test_id]
