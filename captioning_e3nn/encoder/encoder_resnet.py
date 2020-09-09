@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision
+# import torchvision
 from torch import nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.autograd import Variable
@@ -143,18 +143,18 @@ class Encoder_Resnet_after_se3ACN(nn.Module):
 
         self.resnet_block = ResnetPointnet(cloud_out, self.lat_out)
 
-    def forward(self, xyz, Z):
+    def forward(self, features, xyz, masks):
         # print("xyz input shape", xyz.shape)
         # print("Z input shape", Z.shape)
         # xyz -
         # Z -
         if self.Z:
-            features_emb = self.emb(Z).to(self.device)
+            features = self.emb(features).to(self.device)
         else:
-            features_emb = Z.to(self.device)
+            features = features.to(self.device)
 
         xyz = xyz.to(torch.double)
-        features = features_emb.to(torch.double)
+        features = features.to(torch.double)
         features = features.squeeze(2)
         feature_list = []
         for _, op in enumerate(self.clouds):            
@@ -311,18 +311,18 @@ class Encoder_Resnet_feat_geom_se3ACN(nn.Module):
 
         self.resnet_block = ResnetPointnet(self.emb_dim + 3, self.lat_out)
 
-    def forward(self, xyz, Z):
+    def forward(self, features, xyz, masks):
         # print("xyz input shape", xyz.shape)
         # print("Z input shape", Z.shape)
         # xyz -
         # Z -
         if self.Z:
-            features_emb = self.emb(Z).to(self.device)
+            features = self.emb(features).to(self.device)
         else:
-            features_emb = Z.to(self.device)
+            features = features.to(self.device)
 
         xyz = xyz.to(torch.double)
-        features = features_emb.to(torch.double)
+        features = features.to(torch.double)
         features = features.squeeze(2)
 
         features_all = torch.cat([xyz, features], dim=2)
@@ -482,18 +482,18 @@ class Encoder_Resnet_geom_se3ACN(nn.Module):
 
         self.resnet_block = ResnetPointnet(3, self.lat_out)
 
-    def forward(self, xyz, Z):
+    def forward(self, features, xyz, masks):
         # print("xyz input shape", xyz.shape)
         # print("Z input shape", Z.shape)
         # xyz -
         # Z -
         if self.Z:
-            features_emb = self.emb(Z).to(self.device)
+            features = self.emb(features).to(self.device)
         else:
-            features_emb = Z.to(self.device)
+            features = features.to(self.device)
 
         xyz = xyz.to(torch.double)
-        features = features_emb.to(torch.double)
+        features = features.to(torch.double)
         features = features.squeeze(2)
 
         geom_resnet = self.resnet_block(xyz)
@@ -580,18 +580,18 @@ class Encoder_Resnet(nn.Module):
 
         self.resnet_block = ResnetPointnet(self.emb_dim + 3, self.lat_out)
 
-    def forward(self, xyz, Z):
+    def forward(self, features, xyz, masks):
         # print("xyz input shape", xyz.shape)
         # print("Z input shape", Z.shape)
         # xyz -
         # Z -
         if self.Z:
-            features_emb = self.emb(Z).to(self.device)
+            features = self.emb(features).to(self.device)
         else:
-            features_emb = Z.to(self.device)
+            features = features.to(self.device)
 
         xyz = xyz.to(torch.double)
-        features = features_emb.to(torch.double)
+        features = features.to(torch.double)
         features = features.squeeze(2)
         features_all = torch.cat([xyz, features], dim=2)
         print("shape feat before resnet", features_all.shape)
