@@ -87,10 +87,10 @@ class Network(torch.nn.Module):
         self.RadialModel = partial(
             CosineBasisModel,
             max_radius=max_rad,
-            number_of_basis=n_bases,
+            number_of_basis=num_basis,
             h=n_neurons,
             L=n_layers,
-            act=act
+            act=self.ssp
         )
 
         # kernel_conv = create_kernel_conv(max_rad, num_basis, n_neurons, n_layers, self.ssp, rad_model)
