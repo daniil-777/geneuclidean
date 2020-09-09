@@ -71,7 +71,7 @@ class Trainer():
         with open(self.vocab_path, "rb") as f:
             self.vocab = pickle.load(f)
 
-    def train_loop_mask(self, loader, encoder, decoder, caption_optimizer, split_no, epoch):
+    def train_loop_mask(self, loader, encoder, decoder, caption_optimizer, split_no, epoch, total_step):
         encoder.train()
         decoder.train()
         for i, (features, geometry, masks, captions, lengths) in enumerate(loader):
