@@ -35,6 +35,7 @@ from models_new import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
 class Trainer():
     def __init__(self, cfg):
         # model params
+        self.cfg = cfg
         self.num_epochs = cfg['model_params']['num_epochs']
         self.batch_size = cfg['model_params']['batch_size']
         self.learning_rate = cfg['model_params']['learning_rate']
@@ -70,7 +71,7 @@ class Trainer():
         with open(self.vocab_path, "rb") as f:
             vocab = pickle.load(f)
 
-    def train_loop(self,loader, encoder, decoder, caption_optimizer, split_no, epoch):
+    def train_loop_mask(self, loader, encoder, decoder, caption_optimizer, split_no, epoch):
         encoder.train()
         decoder.train()
         for i, (features, geometry, masks, captions, lengths) in enumerate(loader):
@@ -137,7 +138,7 @@ class Trainer():
         # get indexes of all complexes and "nick names"
         # Load vocabulary wrapper
 
-        featuriser = Pdb_Dataset(cfg, vocab=vocab)
+        featuriser = Pdb_Dataset(self.cfg, vocab=vocab)
         # data_ids, data_names = utils._get_refined_data()
         files_refined = os.listdir(protein_dir)
         # data_ids = np.array([i for i in range(len(files_refined) - 3)])
@@ -183,7 +184,7 @@ class Trainer():
             for epoch in range(num_epochs):
                 # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
                 #if add masks everywhere call just train_loop
-                train_loop_mask(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step, writer, log_file, log_file_tensor)
+                self.train_loop_mask(loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step, writer, log_file, log_file_tensor)
 
 
 
