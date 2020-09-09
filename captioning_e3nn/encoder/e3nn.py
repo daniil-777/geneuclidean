@@ -123,8 +123,9 @@ class Network(torch.nn.Module):
             if kc.set_of_l_filters != set_of_l_filters:
                 set_of_l_filters = kc.set_of_l_filters
                 y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
+            features = features.div(self.avg_n_atoms ** 0.5)
             features = kc(
-                features.div(self.avg_n_atoms ** 0.5),
+                features,
                 diff_geo,
                 mask,
                 y=y,
