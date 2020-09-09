@@ -3,6 +3,7 @@ training_params:
   save_step: 1
   encoder_name: encoder-20-600.ckpt
   decoder_name: decoder-20-600.ckpt
+  n_splits: 5
 model:
   encoder: se3cnn
   encoder_kwargs:
