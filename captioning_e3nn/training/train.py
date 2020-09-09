@@ -50,24 +50,24 @@ class Trainer():
 
         #output files
         self.savedir = cfg['output_parameters']['savedir']
-        self.tesnorboard_path = savedir
-        self.model_path = os.path.join(savedir, "models")
-        self.log_path = os.path.join(savedir, "logs")
+        self.tesnorboard_path = self.savedir
+        self.model_path = os.path.join(self.savedir, "models")
+        self.log_path = os.path.join(self.savedir, "logs")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         #log files 
-        self.test_idx_file = open(os.path.join(log_path, "test_idx.txt"), "w")
-        self.log_file = open(os.path.join(log_path, "log.txt"), "w")
-        self.log_file_tensor = open(os.path.join(log_path, "log_tensor.txt"), "w")
-        self.writer = SummaryWriter(tesnorboard_path)
+        self.test_idx_file = open(os.path.join(self.log_path, "test_idx.txt"), "w")
+        self.log_file = open(os.path.join(self.log_path, "log.txt"), "w")
+        self.log_file_tensor = open(os.path.join(self.log_path, "log_tensor.txt"), "w")
+        self.writer = SummaryWriter(self.tesnorboard_path)
         self.Encoder, self.Decoder = config.get_model(cfg, device=device)
 
         #print all params
-        nparameters_enc = sum(p.numel() for p in Encoder.parameters())
-        nparameters_dec = sum(p.numel() for p in Decoder.parameters())
+        nparameters_enc = sum(p.numel() for p in self.Encoder.parameters())
+        nparameters_dec = sum(p.numel() for p in self.Decoder.parameters())
         print('Total number of parameters: %d' % (nparameters_enc + nparameters_dec))
 
-        with open(vocab_path, "rb") as f:
+        with open(self.vocab_path, "rb") as f:
             vocab = pickle.load(f)
 
     def train_loop(self,loader, encoder, decoder, caption_optimizer, split_no, epoch):
@@ -95,24 +95,24 @@ class Trainer():
             caption_optimizer.step()  #!!! figure out whether we should leave that 
 
             name = "training_loss_" + str(split_no + 1)
-            writer.add_scalar(name, loss.item(), epoch)
+            self.writer.add_scalar(name, loss.item(), epoch)
 
             # writer.add_scalar("training_loss", loss.item(), epoch)
-            log_file_tensor.write(str(loss.item()) + "\n")
-            log_file_tensor.flush()
+            self.log_file_tensor.write(str(loss.item()) + "\n")
+            self.log_file_tensor.flush()
             handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
             fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
             mem = fb_mem_info.used >> 20
             print('GPU memory usage: ', mem)
-            writer.add_scalar('val/gpu_memory', mem, epoch)
+            self.writer.add_scalar('val/gpu_memory', mem, epoch)
             # Print log info
             if i % log_step == 0:
                 result = "Split [{}], Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Perplexity: {:5.4f}".format(
                     split_no, epoch, num_epochs, i, total_step, loss.item(), np.exp(loss.item())
                 )
                 print(result)
-                log_file.write(result + "\n")
-                log_file.flush()
+                self.log_file.write(result + "\n")
+                self.log_file.flush()
 
             # loss is a real crossentropy loss
             #
@@ -130,8 +130,8 @@ class Trainer():
                         model_path, "encoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
                     ),
                 )
-        log_file_tensor.write("\n")
-        log_file_tensor.flush()
+        self.log_file_tensor.write("\n")
+        self.log_file_tensor.flush()
 
     def train_epochs(self):
         # get indexes of all complexes and "nick names"
@@ -157,8 +157,8 @@ class Trainer():
                 pickle.dump(test_data, fp)
             
             test_idx.append(test_data)
-            test_idx_file.write(str(test_data) + "\n")
-            test_idx_file.flush()
+            self.test_idx_file.write(str(test_data) + "\n")
+            self.test_idx_file.flush()
 
             feat_train = [featuriser[data] for data in train_data]
             
