@@ -51,12 +51,12 @@ def create_kernel_conv(cutoff, n_bases, n_neurons, n_layers, act, radial_model):
     return K
 
 
-def constants(features, geometry, mask):
+def constants(geometry, mask):
     rb = geometry.unsqueeze(1)  # [batch, 1, b, xyz]
     ra = geometry.unsqueeze(2)  # [batch, a, 1, xyz]
     diff_geo = (rb - ra).double().detach()
     radii = diff_geo.norm(2, dim=-1).detach()
-    return features, geometry, mask, diff_geo, radii
+    return mask, diff_geo, radii
 
 
 class Network(torch.nn.Module):
@@ -102,9 +102,9 @@ class Network(torch.nn.Module):
         self.bn_out_2 = nn.BatchNorm1d(avg_n_atoms)
 
     def forward(self, features, geometry, mask):
-        features, _, mask, diff_geo, radii = constants(features, geometry, mask)
+        mask, diff_geo, radii = constants(features, geometry, mask)
         embedding = self.layers[0]
-        features =torch.tensor(features).to(self.device).long()
+        features = torch.tensor(features).to(self.device).long()
         features = embedding(features)
         features = features.squeeze(2)
         set_of_l_filters = self.layers[1][0].set_of_l_filters
