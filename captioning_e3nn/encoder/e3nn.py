@@ -115,7 +115,7 @@ class Network(torch.nn.Module):
         mask, diff_geo, radii = constants(geometry, mask)
         embedding = self.layers[0]
         features = torch.tensor(features).to(self.device).long()
-        features = embedding(features)
+        features = embedding(features).to(self.device)
         features = features.squeeze(2)
         set_of_l_filters = self.layers[1][0].set_of_l_filters
         y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
@@ -123,7 +123,7 @@ class Network(torch.nn.Module):
             if kc.set_of_l_filters != set_of_l_filters:
                 set_of_l_filters = kc.set_of_l_filters
                 y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
-            features = features.div(self.avg_n_atoms ** 0.5)
+            features = features.div(self.avg_n_atoms ** 0.5).to(self.device)
             features = kc(
                 features,
                 diff_geo,
@@ -164,7 +164,7 @@ class ResNetwork(Network):
     def forward(self, features, geometry, mask):
         features, _, mask, diff_geo, radii = constants(features, geometry, mask)
         embedding = self.layers[0]
-        features = embedding(features)
+        features = embedding(features).to(self.device)
         set_of_l_filters = self.layers[1][0].set_of_l_filters
         y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
         kc, act = self.layers[1]
