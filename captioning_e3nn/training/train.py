@@ -70,6 +70,7 @@ class Trainer():
 
         with open(self.vocab_path, "rb") as f:
             self.vocab = pickle.load(f)
+        self.criterion = nn.CrossEntropyLoss()
 
     def train_loop_mask(self, loader, encoder, decoder, caption_optimizer, split_no, epoch, total_step):
         encoder.train()
@@ -86,8 +87,8 @@ class Trainer():
             # Forward, backward and optimize
             feature = encoder(features, geometry, masks)
             outputs = decoder(feature, captions, lengths)
-
-            loss = criterion(outputs, targets)
+            
+            loss = self.criterion(outputs, targets)
             # scheduler.step(loss)
             
             decoder.zero_grad()
@@ -174,7 +175,6 @@ class Trainer():
             encoder = self.Encoder
             decoder = self.Decoder
 
-            criterion = nn.CrossEntropyLoss()
             # params_encoder = filter(lambda p: p.requires_grad, encoder.parameters())
 
             caption_params = list(decoder.parameters()) + list(encoder.parameters())
