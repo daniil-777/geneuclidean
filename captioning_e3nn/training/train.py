@@ -60,7 +60,7 @@ class Trainer():
         self.log_file = open(os.path.join(self.log_path, "log.txt"), "w")
         self.log_file_tensor = open(os.path.join(self.log_path, "log_tensor.txt"), "w")
         self.writer = SummaryWriter(self.tesnorboard_path)
-        self.Encoder, self.Decoder = config.get_model(cfg, device=device)
+        self.Encoder, self.Decoder = config.get_model(cfg, device=self.device)
 
         #print all params
         nparameters_enc = sum(p.numel() for p in self.Encoder.parameters())
