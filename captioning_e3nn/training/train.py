@@ -108,7 +108,7 @@ class Trainer():
             print('GPU memory usage: ', mem)
             self.writer.add_scalar('val/gpu_memory', mem, epoch)
             # Print log info
-            if i % log_step == 0:
+            if i % self.log_step == 0:
                 result = "Split [{}], Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Perplexity: {:5.4f}".format(
                     split_no, epoch, num_epochs, i, total_step, loss.item(), np.exp(loss.item())
                 )
@@ -119,7 +119,7 @@ class Trainer():
             # loss is a real crossentropy loss
             #
             # Save the model checkpoints
-            if (i + 1) % save_step == 0:
+            if (i + 1) % self.save_step == 0:
                 torch.save(
                     decoder.state_dict(),
                     os.path.join(
