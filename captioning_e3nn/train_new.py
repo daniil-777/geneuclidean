@@ -46,6 +46,7 @@ def main():
 
     cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
     trainer = Trainer(cfg)
+    trainer.train_epochs()
 
 if __name__ == "__main__":
     main()
