@@ -86,7 +86,7 @@ class Network(torch.nn.Module):
         qm9_max_z = 6
         self.RadialModel = partial(
             CosineBasisModel,
-            max_radius=cutoff,
+            max_radius=max_rad,
             number_of_basis=n_bases,
             h=n_neurons,
             L=n_layers,
