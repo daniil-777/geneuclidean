@@ -69,7 +69,7 @@ class Trainer():
         print('Total number of parameters: %d' % (nparameters_enc + nparameters_dec))
 
         with open(self.vocab_path, "rb") as f:
-            vocab = pickle.load(f)
+            self.vocab = pickle.load(f)
 
     def train_loop_mask(self, loader, encoder, decoder, caption_optimizer, split_no, epoch):
         encoder.train()
@@ -138,7 +138,7 @@ class Trainer():
         # get indexes of all complexes and "nick names"
         # Load vocabulary wrapper
 
-        featuriser = Pdb_Dataset(self.cfg, vocab=vocab)
+        featuriser = Pdb_Dataset(self.cfg, vocab=self.vocab)
         # data_ids, data_names = utils._get_refined_data()
         files_refined = os.listdir(protein_dir)
         # data_ids = np.array([i for i in range(len(files_refined) - 3)])
