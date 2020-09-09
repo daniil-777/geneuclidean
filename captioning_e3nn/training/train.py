@@ -181,7 +181,7 @@ class Trainer():
             caption_optimizer = torch.optim.Adam(caption_params, lr = self.learning_rate)
 
             # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(caption_optimizer, 'min')
-            for epoch in range(num_epochs):
+            for epoch in range(self.num_epochs):
                 # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
                 #if add masks everywhere call just train_loop
                 self.train_loop_mask(loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step, writer, log_file, log_file_tensor)
