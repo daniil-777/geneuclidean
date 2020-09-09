@@ -33,7 +33,7 @@ from models_new import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
 
 
 class Trainer():
-    def __init__(cfg):
+    def __init__(self, cfg):
         # model params
         self.num_epochs = cfg['model_params']['num_epochs']
         self.batch_size = cfg['model_params']['batch_size']
