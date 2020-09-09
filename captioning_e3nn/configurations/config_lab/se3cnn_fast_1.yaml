@@ -1,3 +1,6 @@
+preprocessing:
+  mask: True
+  collate_fn: masks
 training_params:
   log_step: 10
   save_step: 1
