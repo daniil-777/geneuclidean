@@ -139,15 +139,15 @@ class Encoder_se3ACN(nn.Module):
             nn.Sigmoid()
         )  # y is scaled between 0 and 1, better than ReLu of tanh for U0
 
-    def forward(self, xyz, Z):
+    def forward(self, features, xyz):
         # print("xyz input shape", xyz.shape)
         # print("Z input shape", Z.shape)
         # xyz -
         # Z -
         if self.Z:
-            features = self.emb(Z).to(self.device)
+            features = self.emb(features).to(self.device)
         else:
-            features = Z.to(self.device)
+            features = features.to(self.device)
 
         xyz = xyz.to(torch.double)
         features = features.to(torch.double)
@@ -312,15 +312,15 @@ class Encoder_se3ACN_Fast(nn.Module):
             nn.Sigmoid()
         )  # y is scaled between 0 and 1, better than ReLu of tanh for U0
 
-    def forward(self, xyz, Z):
+    def forward(self, features, xyz):
         # print("xyz input shape", xyz.shape)
         # print("Z input shape", Z.shape)
         # xyz -
         # Z -
         if self.Z:
-            features = self.emb(Z).to(self.device)
+            features = self.emb(features).to(self.device)
         else:
-            features = Z.to(self.device)
+            features = features.to(self.device)
 
         xyz = xyz.to(torch.double)
         features = features.to(torch.double)
