@@ -100,7 +100,8 @@ class Network(torch.nn.Module):
 
         self.e_out_2 = nn.Linear(mlp_h, 2 * mlp_h)
         self.bn_out_2 = nn.BatchNorm1d(avg_n_atoms)
-
+        torch.autograd.set_detect_anomaly(True) 
+        
     def forward(self, features, geometry, mask):
         mask, diff_geo, radii = constants(geometry, mask)
         embedding = self.layers[0]
