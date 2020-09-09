@@ -110,7 +110,7 @@ class Trainer():
             # Print log info
             if i % self.log_step == 0:
                 result = "Split [{}], Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Perplexity: {:5.4f}".format(
-                    split_no, epoch, num_epochs, i, total_step, loss.item(), np.exp(loss.item())
+                    split_no, epoch, self.num_epochs, i, total_step, loss.item(), np.exp(loss.item())
                 )
                 print(result)
                 self.log_file.write(result + "\n")
