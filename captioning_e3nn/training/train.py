@@ -123,13 +123,13 @@ class Trainer():
                 torch.save(
                     decoder.state_dict(),
                     os.path.join(
-                        model_path, "decoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
+                        self.model_path, "decoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
                     ),
                 )
                 torch.save(
                     encoder.state_dict(),
                     os.path.join(
-                        model_path, "encoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
+                        self.model_path, "encoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
                     ),
                 )
         self.log_file_tensor.write("\n")
