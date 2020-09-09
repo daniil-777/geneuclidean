@@ -55,7 +55,11 @@ class Trainer():
         self.model_path = os.path.join(self.savedir, "models")
         self.log_path = os.path.join(self.savedir, "logs")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
+        if not os.path.exists(log_path):
+            os.makedirs(log_path)
+
+        if not os.path.exists(model_path):
+            os.makedirs(model_path)
         #log files 
         self.test_idx_file = open(os.path.join(self.log_path, "test_idx.txt"), "w")
         self.log_file = open(os.path.join(self.log_path, "log.txt"), "w")
