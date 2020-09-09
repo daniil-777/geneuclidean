@@ -102,7 +102,7 @@ class Network(torch.nn.Module):
         self.bn_out_2 = nn.BatchNorm1d(avg_n_atoms)
 
     def forward(self, features, geometry, mask):
-        mask, diff_geo, radii = constants(features, geometry, mask)
+        mask, diff_geo, radii = constants(geometry, mask)
         embedding = self.layers[0]
         features = torch.tensor(features).to(self.device).long()
         features = embedding(features)
