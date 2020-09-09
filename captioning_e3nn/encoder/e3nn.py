@@ -84,12 +84,21 @@ class Network(torch.nn.Module):
         elif aggregation_mode == "avg":
             self.atom_pool =  Aggregate(axis=1, mean=True)
         qm9_max_z = 6
+        self.RadialModel = partial(
+            CosineBasisModel,
+            max_radius=cutoff,
+            number_of_basis=n_bases,
+            h=n_neurons,
+            L=n_layers,
+            act=act
+        )
 
-        kernel_conv = create_kernel_conv(max_rad, num_basis, n_neurons, n_layers, self.ssp, rad_model)
+        # kernel_conv = create_kernel_conv(max_rad, num_basis, n_neurons, n_layers, self.ssp, rad_model)
+        self.kernel_conv = partial(KernelConv, RadialModel=self.RadialModel)
 
         def make_layer(Rs_in, Rs_out):
             act = GatedBlock(Rs_out, scalar_act, gate_act)
-            kc = kernel_conv(Rs_in, act.Rs_in)
+            kc = self.kernel_conv(Rs_in, act.Rs_in)
             return torch.nn.ModuleList([kc, act])
 
         self.layers = torch.nn.ModuleList([torch.nn.Embedding(qm9_max_z, embed, padding_idx=5)])
@@ -101,7 +110,7 @@ class Network(torch.nn.Module):
         self.e_out_2 = nn.Linear(mlp_h, 2 * mlp_h)
         self.bn_out_2 = nn.BatchNorm1d(avg_n_atoms)
         torch.autograd.set_detect_anomaly(True) 
-        
+
     def forward(self, features, geometry, mask):
         mask, diff_geo, radii = constants(geometry, mask)
         embedding = self.layers[0]
