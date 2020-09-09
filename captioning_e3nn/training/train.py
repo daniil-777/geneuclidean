@@ -184,7 +184,7 @@ class Trainer():
             for epoch in range(self.num_epochs):
                 # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
                 #if add masks everywhere call just train_loop
-                self.train_loop_mask(loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step, writer, log_file, log_file_tensor)
+                self.train_loop_mask(loader_train, encoder, decoder, caption_optimizer, split_no, epoch, total_step)
 
 
 
