@@ -178,7 +178,7 @@ class Trainer():
             # params_encoder = filter(lambda p: p.requires_grad, encoder.parameters())
 
             caption_params = list(decoder.parameters()) + list(encoder.parameters())
-            caption_optimizer = torch.optim.Adam(caption_params, lr=learning_rate)
+            caption_optimizer = torch.optim.Adam(caption_params, lr = self.learning_rate)
 
             # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(caption_optimizer, 'min')
             for epoch in range(num_epochs):
