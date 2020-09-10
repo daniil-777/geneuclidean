@@ -190,9 +190,9 @@ class Sampler():
             stat_protein.append(amount_val_smiles * [sampling])
             # print("shape all_stat", all_stat.shape)
             # file_statistics.write(str(list(map(list, zip(*stat_protein)))) + "\n")
-            wr = csv.writer(file_statistics)
+            wr = csv.writer(self.file_statistics)
             wr.writerows(list(map(list, zip(*stat_protein))))
-            file_statistics.flush()
+            self.file_statistics.flush()
             
 
     def analysis_all():
