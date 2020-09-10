@@ -12,7 +12,7 @@ dependencies:
   - numpy-base=1.18.1
   - openbabel=3.0.0
   - pillow=7.0.0
-  - python=3.6.8
+  - python=3.7
   - pytorch=1.4.0
   - rdkit=2019.09.3.0
   - torchvision=0.5.0
