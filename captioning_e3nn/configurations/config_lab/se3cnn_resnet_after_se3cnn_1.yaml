@@ -10,7 +10,7 @@ training_params:
 model:
   encoder: se3cnn_resnet_after_se3cnn
   encoder_kwargs:
-    lat_out: 256
+    lat_out: 100
     nclouds: 3
     emb_dim: 10
     neighborradius: 2
@@ -26,8 +26,8 @@ model:
   decoder: lstm
   decoder_kwargs:
     vocab_size: 32
-    embed_size: 256
-    hidden_size: 256
+    embed_size: 100
+    hidden_size: 100
     num_layers: 1
 
 

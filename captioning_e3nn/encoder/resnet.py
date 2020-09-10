@@ -3,7 +3,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision
 from torch import nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.autograd import Variable
@@ -104,7 +103,7 @@ class ResnetPointnet(nn.Module):
         pooled = self.pool(net, dim=1, keepdim=True).expand(net.size())
         net = torch.cat([net, pooled], dim=2)
         net = self.block_3(net)
-        pooled = self.pool(net, dim=1, keepdim=True).expand(net.size())
-        net = torch.cat([net, pooled], dim=2)
+        # pooled = self.pool(net, dim=1, keepdim=True).expand(net.size())
+        # net = torch.cat([net, pooled], dim=2)
         net = self.block_4(net) # batch_size x T x hidden_dim (T: number of sampled input points)
         return net
