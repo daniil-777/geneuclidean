@@ -237,7 +237,6 @@ class Sampler():
         files_refined = os.listdir(self.protein_dir)
         idx_all = [i for i in range(len(files_refined) - 3)]
         #take indx of proteins in the training set
-        idx_train =  
         if (self.sampling_data == "train"):
             idx_to_generate = np.setdiff1d(idx_all, idx_proteins)
         else:
