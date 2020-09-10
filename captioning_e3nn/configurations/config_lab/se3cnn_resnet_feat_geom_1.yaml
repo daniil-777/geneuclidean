@@ -11,7 +11,7 @@ model:
   encoder: se3cnn_geo_feat_resnet
   encoder_kwargs:
     lat_out: 100
-    nclouds: 3
+    nclouds: 1
     emb_dim: 10
     neighborradius: 2
     cloudord: 1
