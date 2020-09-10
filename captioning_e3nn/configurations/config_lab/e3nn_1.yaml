@@ -59,4 +59,4 @@ sampling_params:
   id_fold: 0
   folds: ../results/captioning_results/e3nn_1/logs/test_idx_0
   file_stat: 0_fold_stat.csv
-
+  sampling_data: test

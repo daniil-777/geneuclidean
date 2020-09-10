@@ -1,3 +1,6 @@
+preprocessing:
+  mask: True
+  collate_fn: masks
 training_params:
   log_step: 10
   save_step: 10
@@ -44,4 +47,5 @@ sampling_params:
   id_fold: 0
   folds: ../results/captioning_results/cv/resnet_1/test_idx_0
   file_stat: 0_fold_stat.csv
+  sampling_data: test
 

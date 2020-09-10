@@ -56,4 +56,5 @@ sampling_params:
   id_fold: 0
   folds: ../results/captioning_results/cv/se3cnn_geo_feat_resnet_1/test_idx_0
   file_stat: 0_fold_stat.csv
+  sampling_data: test
 
