@@ -105,5 +105,5 @@ class ResnetPointnet(nn.Module):
         net = self.block_3(net)
         # pooled = self.pool(net, dim=1, keepdim=True).expand(net.size())
         # net = torch.cat([net, pooled], dim=2)
-        net = self.block_4(net) # batch_size x T x hidden_dim (T: number of sampled input points)
+        # net = self.block_4(net) # batch_size x T x hidden_dim (T: number of sampled input points)
         return net
