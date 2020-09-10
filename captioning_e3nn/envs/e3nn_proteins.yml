@@ -24,7 +24,6 @@ dependencies:
     - decorator==4.4.1
     - e3nn==0.0.0
     - idna==2.9
-    - lie-learn==0.0.0
     - llvmlite==0.31.0
     - moleculekit==0.2.6
     - networkx==2.4
