@@ -11,11 +11,11 @@ model:
   encoder: se3cnn_geo_feat_resnet
   encoder_kwargs:
     lat_out: 100
-    nclouds: 2
+    nclouds: 3
     emb_dim: 10
     neighborradius: 2
-    cloudord: 2
-    cloud_dim: 5
+    cloudord: 1
+    cloud_dim: 10
     natoms: 286
     nffl: 1
     ffl1size: 512
@@ -26,8 +26,8 @@ model:
   decoder: lstm
   decoder_kwargs:
     vocab_size: 32
-    embed_size: 140
-    hidden_size: 140
+    embed_size: 130
+    hidden_size: 130
     num_layers: 1
 
 
