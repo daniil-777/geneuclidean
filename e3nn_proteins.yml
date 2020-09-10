@@ -19,6 +19,7 @@ dependencies:
   - wheel=0.34.2
   - pip:
     - appdirs==1.4.3
+    - py3nvml==0.2.6
     - chardet==3.0.4
     - decorator==4.4.1
     - e3nn==0.0.0
