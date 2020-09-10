@@ -26,8 +26,8 @@ model:
   decoder: lstm
   decoder_kwargs:
     vocab_size: 32
-    embed_size: 130
-    hidden_size: 130
+    embed_size: 110
+    hidden_size: 110
     num_layers: 1
 
 
