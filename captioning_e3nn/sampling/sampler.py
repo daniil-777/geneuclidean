@@ -149,6 +149,7 @@ class Sampler():
 
     def generate_smiles(self, id):
         #original + gen smiles
+        print("current id - ", id)
         smiles = []
         protein_name =  self.dataset._get_name_protein(id)
         print("current protein ", protein_name)
