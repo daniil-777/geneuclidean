@@ -12,7 +12,7 @@ from torch.optim.lr_scheduler import ExponentialLR
 import argparse
 import sys
 import config
-
+from rdkit import Chem
 import json
 import os
 import pickle
