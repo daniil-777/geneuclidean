@@ -4,8 +4,8 @@ preprocessing:
 training_params:
   log_step: 10
   save_step: 10
-  encoder_name: encoder-0-98-900.ckpt
-  decoder_name: decoder-0-98-900.ckpt
+  encoder_name: encoder-0-99-900.ckpt
+  decoder_name: decoder-0-99-900.ckpt
   n_splits: 5
 model:
   encoder: network1
