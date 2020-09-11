@@ -1,5 +1,6 @@
 import os
 import yaml
+import torch
 # from torchvision import transforms
 from encoder import encoder_dict
 from decoder import decoder_dict
