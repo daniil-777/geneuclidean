@@ -94,7 +94,8 @@ class Sampler():
         geometry = self.dataset._get_geometry_complex(id_protein)
         features = features.to(self.device).unsqueeze(0)
         geometry = geometry.to(self.device).unsqueeze(0)
-        return features, geometry
+        masks = masks.to(self.device).unsqueeze(0)
+        return features, geometry, masks
 
 
     def generate_encodings(self, id):
@@ -168,9 +169,9 @@ class Sampler():
             # Build models
             # Load the trained model parameters            
             # # Prepare features and geometry from pocket
-            features, geometry = self.load_pocket(id)
+            features, geometry, masks = self.load_pocket(id)
             # Generate a caption from the image
-            feature = self.encoder(features, geometry)
+            feature = self.encoder(features, geometry, masks)
 
             if (sampling == "probabilistic"):
                 sampled_ids = decoder.sample_prob(feature)
