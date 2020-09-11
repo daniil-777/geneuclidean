@@ -1,4 +1,4 @@
-name: my-rdkit-env
+name: e3nn_sampling
 channels:
   - rdkit
   - pytorch
@@ -26,15 +26,12 @@ dependencies:
     - chardet==3.0.4
     - decorator==4.4.1
     - e3nn==0.0.0
-    - idna==2.9
     - llvmlite==0.31.0
     - moleculekit==0.2.6
     - networkx==2.4
     - numba==0.48.0
     - pandas
-    - requests==2.23.0
     - tqdm==4.42.1
-    - unicode==2.7
     - urllib3==1.25.8
 
 
