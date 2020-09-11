@@ -56,12 +56,12 @@ class Sampler():
         self.vocab_path = cfg['preprocessing']['vocab_path']
         #output files
         self.savedir = cfg['output_parameters']['savedir']
-        self.save_dir_smiles = os.path.join(savedir, "statistics")
-        self.tesnorboard_path = savedir
+        self.save_dir_smiles = os.path.join(self.savedir, "statistics")
+        self.tesnorboard_path = self.savedir
         #encoder/decoder path
-        self.encoder_path = os.path.join(savedir, "models", cfg['training_params']['encoder_name']) 
-        self.decoder_path = os.path.join(savedir, "models", cfg['training_params']['decoder_name'])
-        self.save_dir_encodings = os.path.join(savedir, "encodings")
+        self.encoder_path = os.path.join(self.savedir, "models", cfg['training_params']['encoder_name']) 
+        self.decoder_path = os.path.join(self.savedir, "models", cfg['training_params']['decoder_name'])
+        self.save_dir_encodings = os.path.join(self.savedir, "encodings")
         #sampling params
 
         if not os.path.exists(self.save_dir_smiles):
