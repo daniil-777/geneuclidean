@@ -81,7 +81,7 @@ class Sampler():
             self.vocab = pickle.load(f)
 
         self.dataset = Pdb_Dataset(cfg, self.vocab)
-        self.encoder, self.decoder = config.eval_model_captioning(cfg, device = self.device)
+        self.encoder, self.decoder = config.eval_model_captioning(cfg, self.encoder_path, self.decoder_path, device = self.device)
 
 
     def load_pocket(self, id_protein, transform=None):
@@ -93,7 +93,7 @@ class Sampler():
         return features, geometry
 
 
-    def generate_encodings(self, id, encoder):
+    def generate_encodings(self, id):
         #generate features of encoder and writes it to files
         protein_name =  self.dataset._get_name_protein(id)
         features, geometry = self.load_pocket(id)
@@ -162,13 +162,11 @@ class Sampler():
                 break
             iter += 1
             # Build models
-            # Load the trained model parameters
-            encoder, decoder = config.eval_model_captioning(cgf, self.encoder_path, self.decoder_path)
-            
+            # Load the trained model parameters            
             # # Prepare features and geometry from pocket
             features, geometry = self.load_pocket(id)
             # Generate a caption from the image
-            feature = encoder(features, geometry)
+            feature = self.encoder(features, geometry)
 
             if (sampling == "probabilistic"):
                 sampled_ids = decoder.sample_prob(feature)
@@ -205,8 +203,7 @@ class Sampler():
             with (open(file_idx, "rb")) as openfile:
                 idx_proteins = pickle.load(openfile)
             for id_protein in idx_proteins:
-                generate_smiles(id_protein, id_fold, 
-                                self.number_smiles, encoder_path, decoder_path)
+                self.generate_smiles(id_protein)
             
     
     def test_analysis_all():
@@ -219,7 +216,7 @@ class Sampler():
             file_freq = open(os.path.join(save_dir_smiles, str(id_fold), str(id_fold) + "_freq.txt"), "w")
             idx_proteins = idx_array[id_fold]
             for id_protein in idx_proteins:
-                generate_smiles(id_protein, id_fold, self.number_smiles, all_stat)
+                self.generate_smiles(id_protein)
 
 
         # all_stat = np.array(all_stat)
@@ -251,14 +248,13 @@ class Sampler():
         with (open(self.file_folds, "rb")) as openfile:
             idx_proteins_test = pickle.load(openfile)
         # Load the trained model parameters
-        encoder, decoder = config.eval_model_captioning(cgf, self.encoder_path, self.decoder_path)
         files_refined = os.listdir(self.protein_dir)
         idx_all = [i for i in range(len(files_refined) - 3)]
         #take indx of proteins in the training set
         idx_train =  np.setdiff1d(idx_all, idx_proteins_test)
         # for id_protein in idx_train:
         for id_protein in idx_proteins_test:    
-            self.generate_encodings(id_protein, encoder)
+            self.generate_encodings(id_protein)
 
     def collect_all_encodings(self):
         r''' Writes all saved features to 1 file
