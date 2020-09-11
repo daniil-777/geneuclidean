@@ -43,6 +43,8 @@ class Sampler():
         self.sampling_data = cfg['sampling_params']['sampling_data']
         self.protein_dir = cfg["training_params"]["image_dir"]
         self.number_smiles = cfg["sampling_params"]["number_smiles"]
+        if (self.sampling == "max"):
+            self.number_smiles = 1
         self.time_waiting = cfg["sampling_params"]["time_waiting"]
         self.type_fold = cfg["sampling_params"]["type_fold"]
         self.file_folds = cfg["sampling_params"]["folds"]
