@@ -179,9 +179,9 @@ class Sampler():
             feature = self.encoder(features, geometry, masks)
 
             if (self.sampling == "probabilistic"):
-                sampled_ids = decoder.sample_prob(feature)
+                sampled_ids = self.decoder.sample_prob(feature)
             elif (self.sampling == "max"):
-                sampled_ids = decoder.sample(feature)
+                sampled_ids = self.decoder.sample(feature)
     
             sampled_ids = (
                 sampled_ids[0].cpu().numpy()
