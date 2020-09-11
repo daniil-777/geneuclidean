@@ -15,7 +15,6 @@ dependencies:
   - pytorch=1.5.1
   - rdkit=2019.09.3.0
   - torchvision==0.6.1
-  -
   - pip:
     - torch-scatter
     - torch-sparse
