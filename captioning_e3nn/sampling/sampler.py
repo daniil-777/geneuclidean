@@ -45,7 +45,7 @@ class Sampler():
         self.time_waiting = cfg["sampling_params"]["time_waiting"]
         self.type_fold = cfg["sampling_params"]["type_fold"]
         self.file_folds = cfg["sampling_params"]["folds"]
-        self.file_folds = os.path.join()
+        # self.file_folds = os.path.join()
         self.name_file_stat = cfg["sampling_params"]["file_stat"]
         self.id_fold = cfg["sampling_params"]["id_fold"]
         # model params
