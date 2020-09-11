@@ -113,7 +113,7 @@ def get_model_captioning(cfg, device=None, **kwargs):
 
 
 def eval_model_captioning(cfg, encoder_path, decoder_path, device=None, **kwargs):
-     r''' Returns the evaluated model for encoder and decoder
+    r''' Returns the evaluated model for encoder and decoder
 
     Args:
         cfg (yaml object): the config file
