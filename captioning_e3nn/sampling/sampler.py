@@ -64,6 +64,7 @@ class Sampler():
         self.savedir = cfg['output_parameters']['savedir']
         self.save_dir_smiles = os.path.join(self.savedir, "statistics")
         self.tesnorboard_path = self.savedir
+        self.log_path = os.path.join(self.savedir, "logs")
         self.idx_file = os.path.join(self.log_path, "idxs")
         self.file_folds = os.path.join(self.idx_file, "test_dix_" + str(idx_fold))
         #encoder/decoder path
