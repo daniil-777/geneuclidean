@@ -15,6 +15,7 @@ import config
 from rdkit import Chem
 import json
 import os
+import csv
 import pickle
 import time 
 import matplotlib.pyplot as plt
