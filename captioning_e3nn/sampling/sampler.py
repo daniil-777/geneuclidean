@@ -187,7 +187,7 @@ class Sampler():
                 sampled_ids[0].cpu().numpy()
             )  # (1, max_seq_length) -> (max_seq_length)
             # Convert word_ids to words
-            idx =  printing_smiles(sampled_ids, smiles)
+            idx =  self.printing_smiles(sampled_ids, smiles)
             amount_val_smiles += idx
         
         if (amount_val_smiles > 0):
