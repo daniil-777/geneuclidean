@@ -195,7 +195,7 @@ class Sampler():
             stat_protein = analysis_to_csv(smiles,  protein_name, self.id_fold, self.type_fold) #get the list of lists of statistics
             # stat_protein = np.transpose(np.vstack((stat_protein, np.asarray(amount_val_smiles * [amount_val_smiles /iter]))))
             stat_protein.append(amount_val_smiles * [amount_val_smiles /iter])
-            stat_protein.append(amount_val_smiles * [sampling])
+            stat_protein.append(amount_val_smiles * [self.sampling])
             # print("shape all_stat", all_stat.shape)
             # file_statistics.write(str(list(map(list, zip(*stat_protein)))) + "\n")
             wr = csv.writer(self.file_statistics)
