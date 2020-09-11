@@ -87,7 +87,7 @@ def get_trainer(model, optimizer, cfg, device):
 
 
 def get_model_captioning(cfg, device=None, **kwargs):
-    r''' Returns the model instance.
+    r''' Returns the model for encoder and decoder
 
     Args:
         cfg (yaml object): the config file
@@ -111,6 +111,39 @@ def get_model_captioning(cfg, device=None, **kwargs):
     # model = model.to(device)
     return encoder, decoder
 
+
+def eval_model_captioning(cfg, encoder_path, decoder_path, device=None, **kwargs):
+     r''' Returns the evaluated model for encoder and decoder
+
+    Args:
+        cfg (yaml object): the config file
+        encoder_path: the path of saved encoder model
+        decoder_path: the path of saved decoder model
+        device (PyTorch device): the PyTorch device
+    '''
+    decoder = cfg['model']['decoder']
+    encoder = cfg['model']['encoder']
+    
+    decoder_kwargs = cfg['model']['decoder_kwargs']
+    encoder_kwargs = cfg['model']['encoder_kwargs']
+
+
+    encoder = encoder_dict[encoder](
+        **encoder_kwargs
+    ).to(device).double()
+  
+
+    decoder = decoder_dict[decoder](
+       **decoder_kwargs
+    ).to(device).double()
+    
+    # Load the trained model parameters
+    encoder.load_state_dict(torch.load(encoder_path, map_location=torch.device('cpu')))
+    decoder.load_state_dict(torch.load(decoder_path, map_location=torch.device('cpu')))
+    encoder.eval()
+    decoder.eval()
+    return encoder, decoder
+   
 
 def get_trainer(model, optimizer, cfg, device, **kwargs):
     r''' Returns the trainer instance.
