@@ -17,6 +17,9 @@ import json
 import os
 import pickle
 import time 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 from sklearn.model_selection import KFold
 import numpy as np
@@ -156,7 +159,7 @@ class Sampler():
         while (amount_val_smiles < self.number_smiles):
             end = time.time()
             print("time elapsed", end - start)
-            if((end - start) > time_waiting):
+            if((end - start) > self.time_waiting):
                 #stop generating if we wait for too long till 50 ligands
                 self.file_long_proteins.write(protein_name + "\n") #write a protein with long time of generating
                 self.file_long_proteins.flush()
