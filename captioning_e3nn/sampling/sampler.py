@@ -77,7 +77,7 @@ class Sampler():
         self.file_statistics.write("name,fold,type_fold, orig_smile, gen_smile, gen_NP, gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity, orig_NP, orig_logP, orig_sa, orig_qed, orig_weight, frequency, sampling" + "\n")
         self.file_statistics.flush()
 
-        with open(vocab_path, "rb") as f:
+        with open(self.vocab_path, "rb") as f:
             self.vocab = pickle.load(f)
 
         self.dataset = Pdb_Dataset(cfg, self.vocab)
