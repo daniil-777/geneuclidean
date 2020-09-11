@@ -15,10 +15,10 @@ dependencies:
   - rdkit=2019.09.3.0
   - torchvision==0.6.1
   - pip:
-    - torch-scatter==latest+cu101
-    - torch-sparse==latest+cu101
-    - torch-cluster==latest+cu101
-    - torch-spline-conv==latest+cu101
+    - torch-scatter==latest+cu101 -f https://pytorch-geometric.com/whl/torch-1.5.0.html
+    - torch-sparse==latest+cu101 -f https://pytorch-geometric.com/whl/torch-1.5.0.html
+    - torch-cluster==latest+cu101 -f https://pytorch-geometric.com/whl/torch-1.5.0.html
+    - torch-spline-conv==latest+cu101 -f https://pytorch-geometric.com/whl/torch-1.5.0.html
     - torch-geometric
     - appdirs==1.4.3
     - Pyyaml
