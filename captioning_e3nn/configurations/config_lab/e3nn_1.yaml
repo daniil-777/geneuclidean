@@ -59,4 +59,5 @@ sampling_params:
   id_fold: 0
   folds: ../results/captioning_results/e3nn_1/logs/idx/test_idx_0
   file_stat: 0_fold_stat.csv
-  sampling_data: test
+  sampling_data: train
+  name_all_stat: all_stat_train.csv
