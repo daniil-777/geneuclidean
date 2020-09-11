@@ -11,13 +11,13 @@ dependencies:
   - openbabel=3.0.0
   - pillow=7.0.0
   - python=3.7
-  - pytorch=1.6.0
+  - pytorch=1.5.1
   - rdkit=2019.09.3.0
-  - torchvision
-  - torch-scatter
-  - torch-sparse
-  - torch-cluster
-  - torch-spline-conv
+  - torchvision==0.6.1
+  - torch-scatter==latest+cu101
+  - torch-sparse==latest+cu101
+  - torch-cluster==latest+cu101
+  - torch-spline-conv==latest+cu101
   - torch-geometric
   - pip:
     - appdirs==1.4.3
