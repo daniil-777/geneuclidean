@@ -66,7 +66,7 @@ class Sampler():
         self.tesnorboard_path = self.savedir
         self.log_path = os.path.join(self.savedir, "logs")
         self.idx_file = os.path.join(self.log_path, "idxs")
-        self.file_folds = os.path.join(self.idx_file, "test_dix_" + str(idx_fold))
+        self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(idx_fold))
         #encoder/decoder path
         self.encoder_path = os.path.join(self.savedir, "models", cfg['training_params']['encoder_name']) 
         self.decoder_path = os.path.join(self.savedir, "models", cfg['training_params']['decoder_name'])
