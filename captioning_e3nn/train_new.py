@@ -1,7 +1,9 @@
 
 import argparse
 import config
-from training.train import Trainer
+
+from train.train import *
+# from training.train import Trainer
 # from utils import Utils
 
 
