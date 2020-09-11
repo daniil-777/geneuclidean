@@ -36,8 +36,8 @@ class Sampler():
     def __init__(self, cfg):
         # model params
         #sampling params
-        # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.device = torch.device("cpu")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # self.device = torch.device("cpu")
         self.sampling = cfg['sampling_params']['sampling']
         self.sampling_data = cfg['sampling_params']['sampling_data']
         self.protein_dir = cfg["training_params"]["image_dir"]
