@@ -48,7 +48,7 @@ def main():
     args = parser.parse_args()
 
     cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
-    sampler = Sampler(cfg)
+    sampler = Sampler(cfg, 0)
     sampler.analysis_cluster()
 
 if __name__ == "__main__":

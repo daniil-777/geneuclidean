@@ -29,7 +29,7 @@ from torch.utils.tensorboard import SummaryWriter
 from build_vocab import Vocabulary
 from data_loader import get_loader, Pdb_Dataset, collate_fn, collate_fn_masks
 from models_new import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
-
+from sampling.sampler import Sampler
 
 
 class Trainer():
@@ -54,14 +54,16 @@ class Trainer():
         self.tesnorboard_path = self.savedir
         self.model_path = os.path.join(self.savedir, "models")
         self.log_path = os.path.join(self.savedir, "logs")
+        self.idx_file = os.path.join(self.log_path, "idxs")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         if not os.path.exists(self.log_path):
             os.makedirs(self.log_path)
-
+        if not os.path.exists(self.idx_file):
+            os.makedirs(self.idx_file)
         if not os.path.exists(self.model_path):
             os.makedirs(self.model_path)
         #log files 
-        self.test_idx_file = open(os.path.join(self.log_path, "test_idx.txt"), "w")
+        self.test_idx_file = open(os.path.join(self.idx_file, "test_idx.txt"), "w")
         self.log_file = open(os.path.join(self.log_path, "log.txt"), "w")
         self.log_file_tensor = open(os.path.join(self.log_path, "log_tensor.txt"), "w")
         self.writer = SummaryWriter(self.tesnorboard_path)
@@ -160,7 +162,7 @@ class Trainer():
             train_id, test_id = my_list[split_no]
             train_data = data_ids[train_id]
             test_data = data_ids[test_id]
-            with open(os.path.join(self.savedir, 'test_idx_' + str(split_no)), 'wb') as fp:
+            with open(os.path.join(self.idx_file, 'test_idx_' + str(split_no)), 'wb') as fp:
                 pickle.dump(test_data, fp)
             
             test_idx.append(test_data)
@@ -190,6 +192,9 @@ class Trainer():
                 # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
                 #if add masks everywhere call just train_loop
                 self.train_loop_mask(loader_train, encoder, decoder, caption_optimizer, split_no, epoch, total_step)
+            #run sampling for the test indxs
+            sampler = Sampler(cfg, split_no)
+            sampler.analysis_cluster()
 
 
 

@@ -33,7 +33,7 @@ from Contrib.statistics import analysis_to_csv
 
 
 class Sampler():
-    def __init__(self, cfg):
+    def __init__(self, cfg, idx_fold):
         # model params
         #sampling params
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -45,6 +45,7 @@ class Sampler():
         self.time_waiting = cfg["sampling_params"]["time_waiting"]
         self.type_fold = cfg["sampling_params"]["type_fold"]
         self.file_folds = cfg["sampling_params"]["folds"]
+        self.file_folds = os.path.join()
         self.name_file_stat = cfg["sampling_params"]["file_stat"]
         self.id_fold = cfg["sampling_params"]["id_fold"]
         # model params
@@ -63,12 +64,14 @@ class Sampler():
         self.savedir = cfg['output_parameters']['savedir']
         self.save_dir_smiles = os.path.join(self.savedir, "statistics")
         self.tesnorboard_path = self.savedir
+        self.idx_file = os.path.join(self.log_path, "idxs")
+        self.file_folds = os.path.join(self.idx_file, "test_dix_" + str(idx_fold))
         #encoder/decoder path
         self.encoder_path = os.path.join(self.savedir, "models", cfg['training_params']['encoder_name']) 
         self.decoder_path = os.path.join(self.savedir, "models", cfg['training_params']['decoder_name'])
         self.save_dir_encodings = os.path.join(self.savedir, "encodings")
         #sampling params
-
+        
         if not os.path.exists(self.save_dir_smiles):
             os.makedirs(self.save_dir_smiles)
 
@@ -174,9 +177,9 @@ class Sampler():
             # Generate a caption from the image
             feature = self.encoder(features, geometry, masks)
 
-            if (sampling == "probabilistic"):
+            if (self.sampling == "probabilistic"):
                 sampled_ids = decoder.sample_prob(feature)
-            elif ( sampling == "max"):
+            elif (self.sampling == "max"):
                 sampled_ids = decoder.sample(feature)
     
             sampled_ids = (
