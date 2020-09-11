@@ -14,12 +14,12 @@ dependencies:
   - pytorch=1.6.0
   - rdkit=2019.09.3.0
   - torchvision
+  - torch-scatter
+  - torch-sparse
+  - torch-cluster
+  - torch-spline-conv
+  - torch-geometric
   - pip:
-    - torch-scatter
-    - torch-sparse
-    - torch-cluster
-    - torch-spline-conv
-    - torch-geometric
     - appdirs==1.4.3
     - Pyyaml
     - py3nvml==0.2.6
