@@ -10,7 +10,7 @@ training_params:
 model:
   encoder: se3cnn_resnet_after_se3cnn
   encoder_kwargs:
-    lat_out: 100
+    lat_out: 60
     nclouds: 2
     emb_dim: 10
     neighborradius: 2
