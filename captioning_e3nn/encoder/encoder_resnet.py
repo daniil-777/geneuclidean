@@ -11,7 +11,7 @@ from se3cnn.non_linearities.rescaled_act import Softplus
 from se3cnn.point.kernel import Kernel
 from se3cnn.point.operations import NeighborsConvolution
 from se3cnn.point.radial import CosineBasisModel
-from encoder.resnet import ResnetPointnet, ResnetPointnet_4 ResnetBlockFC
+from encoder.resnet import ResnetPointnet, ResnetPointnet_4, ResnetBlockFC
 # from e3nn.rsh import spherical_harmonics_xyz
 # from e3nn.non_linearities.rescaled_act import Softplus
 # from e3nn.point.operations import NeighborsConvolution
