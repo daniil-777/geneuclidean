@@ -10,7 +10,7 @@ training_params:
 model:
   encoder: se3cnn_geo_feat_resnet
   encoder_kwargs:
-    lat_out: 100
+    lat_out: 110
     nclouds: 1
     emb_dim: 10
     neighborradius: 2
@@ -26,8 +26,8 @@ model:
   decoder: lstm
   decoder_kwargs:
     vocab_size: 32
-    embed_size: 100
-    hidden_size: 100
+    embed_size: 110
+    hidden_size: 110
     num_layers: 1
 
 
