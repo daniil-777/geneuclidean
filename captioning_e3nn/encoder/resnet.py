@@ -107,3 +107,54 @@ class ResnetPointnet(nn.Module):
         # net = torch.cat([net, pooled], dim=2)
         # net = self.block_4(net) # batch_size x T x hidden_dim (T: number of sampled input points)
         return net
+
+
+class ResnetPointnet_4(nn.Module):
+   #  PointNet-based encoder network with ResNet blocks.
+
+   # Args:
+   #     c_dim (int): dimension of latent code c
+   #     dim (int): input points dimension
+   #     hidden_dim (int): hidden dimension of the network
+   #     n_channels (int): number of planes for projection
+    
+
+    def __init__(self, dim=None, hidden_dim=None):
+        super().__init__()
+        self.dim = dim
+        self.hidden_dim = hidden_dim   
+        
+        # For grid features
+        self.fc_pos = nn.Linear(dim, 2*hidden_dim)
+        self.block_0 = ResnetBlockFC(2*hidden_dim, hidden_dim)
+        self.block_1 = ResnetBlockFC(2*hidden_dim, hidden_dim)
+        self.block_2 = ResnetBlockFC(2*hidden_dim, hidden_dim)
+        self.block_3 = ResnetBlockFC(2*hidden_dim, hidden_dim)
+        self.block_4 = ResnetBlockFC(2*hidden_dim, hidden_dim)
+    
+        # Activation & pooling
+        self.actvn = nn.ReLU()
+        self.pool = maxpool
+        
+        is_cuda = torch.cuda.is_available()
+        self.device = torch.device("cuda" if is_cuda else "cpu")
+
+    def forward(self, p):
+        batch_size, T, D = p.size()
+        print("D", D)
+        # Grid features
+        net = self.fc_pos(p)
+        net = self.block_0(net)
+        pooled = self.pool(net, dim=1, keepdim=True).expand(net.size())
+        net = torch.cat([net, pooled], dim=2)
+        net = self.block_1(net)
+        pooled = self.pool(net, dim=1, keepdim=True).expand(net.size())
+        net = torch.cat([net, pooled], dim=2)
+        net = self.block_2(net)
+        pooled = self.pool(net, dim=1, keepdim=True).expand(net.size())
+        net = torch.cat([net, pooled], dim=2)
+        net = self.block_3(net)
+        pooled = self.pool(net, dim=1, keepdim=True).expand(net.size())
+        net = torch.cat([net, pooled], dim=2)
+        net = self.block_4(net) # batch_size x T x hidden_dim (T: number of sampled input points)
+        return net

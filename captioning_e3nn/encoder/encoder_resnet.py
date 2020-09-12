@@ -11,7 +11,7 @@ from se3cnn.non_linearities.rescaled_act import Softplus
 from se3cnn.point.kernel import Kernel
 from se3cnn.point.operations import NeighborsConvolution
 from se3cnn.point.radial import CosineBasisModel
-from encoder.resnet import ResnetPointnet, ResnetBlockFC
+from encoder.resnet import ResnetPointnet, ResnetPointnet_4 ResnetBlockFC
 # from e3nn.rsh import spherical_harmonics_xyz
 # from e3nn.non_linearities.rescaled_act import Softplus
 # from e3nn.point.operations import NeighborsConvolution
@@ -141,7 +141,7 @@ class Encoder_Resnet_after_se3ACN(nn.Module):
             nn.Sigmoid()
         )  # y is scaled between 0 and 1, better than ReLu of tanh for U0
 
-        self.resnet_block = ResnetPointnet(cloud_out, self.lat_out)
+        self.resnet_block = ResnetPointnet_4(cloud_out, self.lat_out)
 
     def forward(self, features, xyz, masks):
         # print("xyz input shape", xyz.shape)
