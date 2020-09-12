@@ -14,7 +14,7 @@ model:
     emb_dim: 10
     neighborradius: 2
     cloudord: 1
-    cloud_dim: 20
+    cloud_dim: 10
     natoms: 286
     nffl: 1
     ffl1size: 512
@@ -25,8 +25,8 @@ model:
   decoder: lstm
   decoder_kwargs:
     vocab_size: 32
-    embed_size: 120
-    hidden_size: 120
+    embed_size: 60
+    hidden_size: 60
     num_layers: 1
 
 

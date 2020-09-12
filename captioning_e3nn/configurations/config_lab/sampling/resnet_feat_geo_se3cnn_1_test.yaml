@@ -44,7 +44,7 @@ model_params:
 
 
 output_parameters: 
-  savedir: ../results/captioning_results/cv/se3cnn_geo_feat_resnet_1
+  savedir: ../results/captioning_results/se3cnn_geo_feat_resnet_1
 
 
 sampling_params: 
@@ -54,7 +54,7 @@ sampling_params:
   time_waiting: 25
   type_fold: O
   id_fold: 0
-  folds: ../results/captioning_results/cv/se3cnn_geo_feat_resnet_1/test_idx_0
+  folds: ../results/captioning_results/se3cnn_geo_feat_resnet_1/test_idx_0
   file_stat: 0_fold_stat.csv
   sampling_data: test
   name_all_stat: all_stat_test_resnet_feat_geo_se3cnn_1.csv
