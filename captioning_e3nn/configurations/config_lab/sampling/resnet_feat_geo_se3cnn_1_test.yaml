@@ -10,7 +10,7 @@ training_params:
 model:
   encoder: se3cnn_geo_feat_resnet
   encoder_kwargs:
-    lat_out: 100
+    lat_out: 110
     nclouds: 1
     emb_dim: 10
     neighborradius: 2

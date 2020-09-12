@@ -10,11 +10,11 @@ training_params:
 model:
   encoder: se3cnn
   encoder_kwargs:
-    nclouds: 3
+    nclouds: 2
     emb_dim: 10
     neighborradius: 2
     cloudord: 1
-    cloud_dim: 10
+    cloud_dim: 15
     natoms: 286
     nffl: 1
     ffl1size: 512

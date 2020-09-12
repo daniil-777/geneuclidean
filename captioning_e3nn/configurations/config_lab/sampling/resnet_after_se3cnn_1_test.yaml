@@ -11,7 +11,7 @@ model:
   encoder: se3cnn_resnet_after_se3cnn
   encoder_kwargs:
     lat_out: 100
-    nclouds: 1
+    nclouds: 2
     emb_dim: 10
     neighborradius: 2
     cloudord: 1
@@ -26,8 +26,8 @@ model:
   decoder: lstm
   decoder_kwargs:
     vocab_size: 32
-    embed_size: 100
-    hidden_size: 100
+    embed_size: 60
+    hidden_size: 60
     num_layers: 1
 
 
