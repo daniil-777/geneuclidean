@@ -260,7 +260,6 @@ class Sampler():
 
 
     def analysis_cluster(self):
-        file_folds = os.path.join(self.idx_file, "test_idx_" + str(idx_fold))
         # encoder, decoder = self._get_model_path(idx_fold)
         with (open(self.file_folds, "rb")) as openfile:
             idx_proteins = pickle.load(openfile)
