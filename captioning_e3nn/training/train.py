@@ -168,7 +168,7 @@ class Trainer():
         test_idx = []
         # output memory usage
         # py3nvml.nvmlInit()
-        sampler = Sampler(self.cfg, self.file_statistics)
+        
         for split_no in range(self.n_splits):
             train_id, test_id = my_list[split_no]
             train_data = data_ids[train_id]
@@ -204,8 +204,8 @@ class Trainer():
                 #if add masks everywhere call just train_loop
                 self.train_loop_mask(loader_train, encoder, decoder, caption_optimizer, split_no, epoch, total_step)
             #run sampling for the test indxs
-                
-            sampler.analysis_cluster(split_no)
+            sampler = Sampler(self.cfg, split_no, self.file_statistics)  
+            sampler.analysis_cluster()
 
 
 

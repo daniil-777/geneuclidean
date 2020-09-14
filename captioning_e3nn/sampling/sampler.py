@@ -34,10 +34,10 @@ from Contrib.statistics import analysis_to_csv, analysis_to_csv_test
 
 
 class Sampler():
-    def __init__(self, cfg, file_statistics):
+    def __init__(self, cfg, idx_fold, file_statistics):
         # model params
         #sampling params
-        
+        self.idx_fold = idx_fold
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # self.device = torch.device("cpu")
         self.sampling = cfg['sampling_params']['sampling']
@@ -71,8 +71,8 @@ class Sampler():
         self.idx_file = os.path.join(self.log_path, "idxs")
         
         #encoder/decoder path
-        # self.encoder_path = os.path.join(self.savedir, "models", cfg['training_params']['encoder_name']) 
-        # self.decoder_path = os.path.join(self.savedir, "models", cfg['training_params']['decoder_name'])
+        self.encoder_path = os.path.join(self.savedir, "models", cfg['training_params']['encoder_name']) 
+        self.decoder_path = os.path.join(self.savedir, "models", cfg['training_params']['decoder_name'])
         self.save_dir_encodings = os.path.join(self.savedir, "encodings")
         #sampling params
         
@@ -97,6 +97,11 @@ class Sampler():
         self.dataset = Pdb_Dataset(cfg, self.vocab)
         self.encoder_path, self.decoder_path = self._get_model_path()
         self.encoder, self.decoder = config.eval_model_captioning(cfg, self.encoder_path, self.decoder_path, device = self.device)
+    
+    def _get_models(self, idx_fold):
+        encoder_path, decoder_path = self._get_model_path(idx_fold)
+        encoder, decoder = config.eval_model_captioning(cfg, encoder_path, decoder_path, device = self.device)
+        return encoder, decoder
 
     def _get_model_path(self):
         encoder_name = "encoder-" + str(self.idx_fold) + "-1-2.ckpt"
@@ -159,7 +164,7 @@ class Sampler():
                 file_all_smiles.write(initial_smile + "\n")
                 file_all_smiles.flush()
 
-    def generate_smiles(self, id, idx_fold):
+    def generate_smiles(self, id):
         #original + gen smiles
         print("current id - ", id)
         smiles = []
@@ -190,6 +195,7 @@ class Sampler():
             # Load the trained model parameters            
             # # Prepare features and geometry from pocket
             features, geometry, masks = self.load_pocket(id)
+
             # Generate a caption from the image
             feature = self.encoder(features, geometry, masks)
 
@@ -253,9 +259,10 @@ class Sampler():
 
 
 
-    def analysis_cluster(self, idx_fold):
+    def analysis_cluster(self):
         file_folds = os.path.join(self.idx_file, "test_idx_" + str(idx_fold))
-        with (open(file_folds, "rb")) as openfile:
+        # encoder, decoder = self._get_model_path(idx_fold)
+        with (open(self.file_folds, "rb")) as openfile:
             idx_proteins = pickle.load(openfile)
         files_refined = os.listdir(self.protein_dir)
         idx_all = [i for i in range(len(files_refined) - 3)]
@@ -265,7 +272,7 @@ class Sampler():
         else:
             idx_to_generate = idx_proteins
         for id_protein in idx_to_generate:
-            self.generate_smiles(id_protein, idx_fold)
+            self.generate_smiles(id_protein)
 
     def save_encodings_all(self):
         r'''For every protein id in rain/test generates feature and saves it
