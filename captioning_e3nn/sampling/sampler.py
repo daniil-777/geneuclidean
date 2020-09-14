@@ -42,6 +42,9 @@ class Sampler():
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # self.device = torch.device("cpu")
         self.sampling = cfg['sampling_params']['sampling']
+        self.model_encoder =  cfg['model']['encoder']
+        print(self.model_encoder)
+        self.model_decoder =  cfg['model']['decoder']
         self.sampling_data = cfg['sampling_params']['sampling_data']
         self.protein_dir = cfg["training_params"]["image_dir"]
         self.number_smiles = cfg["sampling_params"]["number_smiles"]
@@ -240,8 +243,8 @@ class Sampler():
             # stat_protein = np.transpose(np.vstack((stat_protein, np.asarray(amount_val_smiles * [amount_val_smiles /iter]))))
             stat_protein.append(amount_val_smiles * [amount_val_smiles /iter])
             stat_protein.append(amount_val_smiles * [self.sampling])
-            stat_protein.append(amount_val_smiles * [str(self.cfg['model']['encoder'])])
-            stat_protein.append(amount_val_smiles * [str(self.cfg['model']['decoder'])])
+            stat_protein.append(amount_val_smiles * [self.model_encoder])
+            stat_protein.append(amount_val_smiles * [self.model_decoder])
             # print("shape all_stat", all_stat.shape)
             # file_statistics.write(str(list(map(list, zip(*stat_protein)))) + "\n")
             wr = csv.writer(self.file_statistics)
