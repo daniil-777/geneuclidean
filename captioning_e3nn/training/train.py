@@ -48,6 +48,7 @@ class Trainer():
         self.save_step = cfg['training_params']['save_step']
         self.vocab_path = cfg['preprocessing']['vocab_path']
         self.n_splits = cfg['training_params']['n_splits']
+        self.loss_best = np.inf
 
         #output files
         self.savedir = cfg['output_parameters']['savedir']
@@ -73,6 +74,9 @@ class Trainer():
         self.writer = SummaryWriter(self.tesnorboard_path)
         
         self.Encoder, self.Decoder = config.get_model(cfg, device=self.device)
+        self.log_file.write(self.Encoder)
+        self.log_file.write(self.Decoder)
+        # print(model)
         self.name_file_stat = cfg["sampling_params"]["name_all_stat"]
         self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "w")
         #the file of the whole stat
@@ -143,6 +147,23 @@ class Trainer():
                     )
                 self.decoder_name =  os.path.join(
                         self.model_path, "decoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
+                    )
+                torch.save(
+                    encoder.state_dict(),
+                    self.encoder_name,
+                )
+                torch.save(
+                    decoder.state_dict(),
+                    self.decoder_name,
+                )
+            if (self.loss_best - loss > 0):
+                print("The best loss -", loss)
+                self.log_file.write("The best loss - " + str(loss) + "\n")
+                self.encoder_name =  os.path.join(
+                        self.model_path, "encoder-{}-{}-{}_best.ckpt".format(split_no, epoch + 1, i + 1)
+                    )
+                self.decoder_name =  os.path.join(
+                        self.model_path, "decoder-{}-{}-{}_best.ckpt".format(split_no, epoch + 1, i + 1)
                     )
                 torch.save(
                     encoder.state_dict(),
