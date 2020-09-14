@@ -47,9 +47,9 @@ def main():
     parser.add_argument('config', type=str, help='Path to config file.')
     args = parser.parse_args()
     
-    savedir =  cfg['output_parameters']['savedir']
 
     cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
+    savedir =  cfg['output_parameters']['savedir']
     encoder_path = os.path.join(savedir, "models", cfg['training_params']['encoder_name']) 
     decoder_path = os.path.join(savedir, "models", cfg['training_params']['decoder_name']) 
     sampler = Sampler(cfg)
