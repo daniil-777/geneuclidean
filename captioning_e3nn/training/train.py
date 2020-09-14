@@ -76,10 +76,12 @@ class Trainer():
         
         self.Encoder, self.Decoder = config.get_model(cfg, device=self.device)
         self.input = config.get_shape_input(self.cfg)
-        print(summary(self.Encoder + self.Decoder, self.input))
+        print(summary(self.Encoder, self.input))
+        print(summary(self.Decoder))
         with open(os.path.join(self.log_path, "model.txt"), 'w') as f:
             sys.stdout = f # Change the standard output to the file we created.
-            print(summary(self.Encoder + self.Decoder, self.input))
+            print(summary(self.Encoder, self.input))
+            print(summary(self.Decoder))
             sys.stdout = self.original_stdout
            
         # print(model)
