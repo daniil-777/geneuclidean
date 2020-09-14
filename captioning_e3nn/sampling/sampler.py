@@ -37,6 +37,7 @@ class Sampler():
     def __init__(self, cfg, idx_fold):
         # model params
         #sampling params
+        self.idx_fold = idx_fold
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # self.device = torch.device("cpu")
         self.sampling = cfg['sampling_params']['sampling']
@@ -50,7 +51,6 @@ class Sampler():
         self.file_folds = cfg["sampling_params"]["folds"]
         # self.file_folds = os.path.join()
         self.name_file_stat = cfg["sampling_params"]["name_all_stat"]
-        self.id_fold = cfg["sampling_params"]["id_fold"]
         # model params
         self.num_epochs = cfg['model_params']['num_epochs']
         self.batch_size = cfg['model_params']['batch_size']
@@ -69,10 +69,10 @@ class Sampler():
         self.tesnorboard_path = self.savedir
         self.log_path = os.path.join(self.savedir, "logs")
         self.idx_file = os.path.join(self.log_path, "idxs")
-        self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(idx_fold))
+        self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(self.idx_fold))
         #encoder/decoder path
-        self.encoder_path = os.path.join(self.savedir, "models", cfg['training_params']['encoder_name']) 
-        self.decoder_path = os.path.join(self.savedir, "models", cfg['training_params']['decoder_name'])
+        # self.encoder_path = os.path.join(self.savedir, "models", cfg['training_params']['encoder_name']) 
+        # self.decoder_path = os.path.join(self.savedir, "models", cfg['training_params']['decoder_name'])
         self.save_dir_encodings = os.path.join(self.savedir, "encodings")
         #sampling params
         
@@ -94,7 +94,15 @@ class Sampler():
             self.vocab = pickle.load(f)
 
         self.dataset = Pdb_Dataset(cfg, self.vocab)
+        self.encoder_path, self.decoder_path = self._get_model_path()
         self.encoder, self.decoder = config.eval_model_captioning(cfg, self.encoder_path, self.decoder_path, device = self.device)
+
+    def _get_model_path(self):
+        encoder_name = "encoder-" + str(self.idx_fold) + "-1-2.ckpt"
+        decoder_name = "decoder-" + str(self.idx_fold) + "-1-2.ckpt"
+        encoder_path = os.path.join(self.savedir, "models", encoder_name)
+        decoder_path = os.path.join(self.savedir, "models", decoder_name)
+        return encoder_path, decoder_path
 
 
     def load_pocket(self, id_protein, transform=None):
@@ -107,7 +115,7 @@ class Sampler():
         return features, geometry, masks
 
 
-    def generate_encodings(self, id):
+    def generate_encodings(self, idx_):
         #generate features of encoder and writes it to files
         protein_name =  self.dataset._get_name_protein(id)
         features, geometry = self.load_pocket(id)
@@ -197,7 +205,7 @@ class Sampler():
         
         if (amount_val_smiles > 0):
             # save_dir_analysis = os.path.join(save_dir_smiles, str(id_fold), protein_name)
-            stat_protein = analysis_to_csv(smiles,  protein_name, self.id_fold, self.type_fold) #get the list of lists of statistics
+            stat_protein = analysis_to_csv(smiles,  protein_name, self.idx_fold, self.type_fold) #get the list of lists of statistics
             # stat_protein = np.transpose(np.vstack((stat_protein, np.asarray(amount_val_smiles * [amount_val_smiles /iter]))))
             stat_protein.append(amount_val_smiles * [amount_val_smiles /iter])
             stat_protein.append(amount_val_smiles * [self.sampling])

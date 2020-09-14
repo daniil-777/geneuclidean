@@ -109,11 +109,11 @@ class Trainer():
             # writer.add_scalar("training_loss", loss.item(), epoch)
             self.log_file_tensor.write(str(loss.item()) + "\n")
             self.log_file_tensor.flush()
-            handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
-            fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
-            mem = fb_mem_info.used >> 20
-            print('GPU memory usage: ', mem)
-            self.writer.add_scalar('val/gpu_memory', mem, epoch)
+            # handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
+            # fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
+            # mem = fb_mem_info.used >> 20
+            # print('GPU memory usage: ', mem)
+            # self.writer.add_scalar('val/gpu_memory', mem, epoch)
             # Print log info
             if i % self.log_step == 0:
                 result = "Split [{}], Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Perplexity: {:5.4f}".format(
@@ -149,15 +149,15 @@ class Trainer():
         featuriser = Pdb_Dataset(self.cfg, vocab=self.vocab)
         # data_ids, data_names = utils._get_refined_data()
         files_refined = os.listdir(self.protein_dir)
-        data_ids = np.array([i for i in range(len(files_refined) - 3)])
-        # data_ids = np.array([i for i in range(20)])
+        # data_ids = np.array([i for i in range(len(files_refined) - 3)])
+        data_ids = np.array([i for i in range(20)])
 
         #cross validation
         kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=2)
         my_list = list(kf.split(data_ids))
         test_idx = []
         # output memory usage
-        py3nvml.nvmlInit()
+        # py3nvml.nvmlInit()
         for split_no in range(self.n_splits):
             train_id, test_id = my_list[split_no]
             train_data = data_ids[train_id]
@@ -193,7 +193,7 @@ class Trainer():
                 #if add masks everywhere call just train_loop
                 self.train_loop_mask(loader_train, encoder, decoder, caption_optimizer, split_no, epoch, total_step)
             #run sampling for the test indxs
-            sampler = Sampler(cfg, split_no)
+            sampler = Sampler(self.cfg, split_no)
             sampler.analysis_cluster()
 
 
