@@ -44,7 +44,7 @@ model_params:
 
 
 output_parameters: 
-  savedir: ../results/captioning_results/cv/se3cnn_resnet_after_se3cnn_1/
+  savedir: ../results/captioning_results/se3cnn_resnet_after_se3cnn_1/
 
 
 sampling_params: 
