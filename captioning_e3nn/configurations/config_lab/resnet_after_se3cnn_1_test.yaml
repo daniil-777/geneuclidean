@@ -1,0 +1,61 @@
+preprocessing:
+  mask: True
+  collate_fn: masks
+training_params:
+  log_step: 10
+  save_step: 10
+  encoder_name: encoder-20-600.ckpt
+  decoder_name: decoder-20-600.ckpt
+  n_splits: 5
+model:
+  encoder: se3cnn_resnet_after_se3cnn
+  encoder_kwargs:
+    lat_out: 60
+    nclouds: 2
+    emb_dim: 10
+    neighborradius: 2
+    cloudord: 1
+    cloud_dim: 10
+    natoms: 286
+    nffl: 1
+    ffl1size: 512
+    num_embeddings: 6
+    nradial: 3
+    nbasis: 3
+    rad_neurons : 100
+  decoder: lstm
+  decoder_kwargs:
+    vocab_size: 32
+    embed_size: 60
+    hidden_size: 60
+    num_layers: 1
+
+
+model_params: 
+  model_name: "e3nn"
+  num_epochs: 100
+  batch_size: 4
+  n_splits: 5
+  num_workers: 2
+  learning_rate: 0.001
+  input_channels: 22
+  feature_type: with_labels
+  representations: [(23,), (2, 2), (4, 4), (10,)]
+
+
+output_parameters: 
+  savedir: ../results/captioning_results/cv/se3cnn_resnet_after_se3cnn_1/
+
+
+sampling_params: 
+  sampling: probabilistic
+  sample_id: 15
+  number_smiles: 1
+  time_waiting: 2
+  type_fold: O
+  id_fold: 0
+  folds: ../results/captioning_results/cv/se3cnn_resnet_after_se3cnn_1/test_idx_0
+  file_stat: 0_fold_stat.csv
+  sampling_data: test
+  name_all_stat: all_stat_test_resnet_after_se3cnn.csv
+
