@@ -169,8 +169,8 @@ class Trainer():
                     self.decoder_name,
                 )
             if (self.loss_best - loss > 0):
-                print("The best loss -", loss.item())
-                self.log_file.write("The best loss - " + str(loss.item()) + "; encoder-{}-{}-{}_best.ckpt".format(split_no, epoch + 1, i + 1) + "\n")
+                print("The best loss -" + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1))
+                self.log_file.write("The best loss - " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1) + "\n")
                 self.encoder_best_name =  os.path.join(
                         self.model_path, "encoder_best.ckpt"
                     )
