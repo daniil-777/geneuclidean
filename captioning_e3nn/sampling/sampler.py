@@ -30,7 +30,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 
 from build_vocab import Vocabulary
 from data_loader import Pdb_Dataset
-from Contrib.statistics import analysis_to_csv
+from Contrib.statistics import analysis_to_csv, analysis_to_csv_test
 
 
 class Sampler():
@@ -137,7 +137,8 @@ class Sampler():
         m = Chem.MolFromSmiles(sentence)
         if m is None or sentence == '' or sentence.isspace() == True:
             print('invalid')
-            return 0
+            list_smiles_all.append(sentence)
+            return 1
         else:
             print(sentence)
             # smiles.append(sentence)
@@ -205,7 +206,7 @@ class Sampler():
         
         if (amount_val_smiles > 0):
             # save_dir_analysis = os.path.join(save_dir_smiles, str(id_fold), protein_name)
-            stat_protein = analysis_to_csv(smiles,  protein_name, self.idx_fold, self.type_fold) #get the list of lists of statistics
+            stat_protein = analysis_to_csv_test(smiles,  protein_name, self.idx_fold, self.type_fold) #get the list of lists of statistics
             # stat_protein = np.transpose(np.vstack((stat_protein, np.asarray(amount_val_smiles * [amount_val_smiles /iter]))))
             stat_protein.append(amount_val_smiles * [amount_val_smiles /iter])
             stat_protein.append(amount_val_smiles * [self.sampling])
