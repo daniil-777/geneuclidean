@@ -10,8 +10,8 @@ training_params:
 model:
   encoder: se3cnn_resnet_after_se3cnn
   encoder_kwargs:
-    lat_out: 60
-    nclouds: 2
+    lat_out: 100
+    nclouds: 1
     emb_dim: 10
     neighborradius: 2
     cloudord: 1
@@ -26,8 +26,8 @@ model:
   decoder: lstm
   decoder_kwargs:
     vocab_size: 32
-    embed_size: 60
-    hidden_size: 60
+    embed_size: 100
+    hidden_size: 100
     num_layers: 1
 
 
@@ -51,7 +51,7 @@ sampling_params:
   sampling: probabilistic
   sample_id: 15
   number_smiles: 1
-  time_waiting: 25
+  time_waiting: 1200
   type_fold: O
   id_fold: 0
   folds: ../results/captioning_results/cv/se3cnn_resnet_after_se3cnn_1/test_idx_0

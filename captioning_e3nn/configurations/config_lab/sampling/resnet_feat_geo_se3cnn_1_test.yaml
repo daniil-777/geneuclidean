@@ -10,7 +10,7 @@ training_params:
 model:
   encoder: se3cnn_geo_feat_resnet
   encoder_kwargs:
-    lat_out: 110
+    lat_out: 100
     nclouds: 1
     emb_dim: 10
     neighborradius: 2
@@ -51,7 +51,7 @@ sampling_params:
   sampling: probabilistic
   sample_id: 15
   number_smiles: 30
-  time_waiting: 25
+  time_waiting: 1200
   type_fold: O
   id_fold: 0
   folds: ../results/captioning_results/se3cnn_geo_feat_resnet_1/test_idx_0
