@@ -70,7 +70,7 @@ class Sampler():
         self.tesnorboard_path = self.savedir
         self.log_path = os.path.join(self.savedir, "logs")
         self.idx_file = os.path.join(self.log_path, "idxs")
-        self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(self.idx_fold))
+        
         #encoder/decoder path
         # self.encoder_path = os.path.join(self.savedir, "models", cfg['training_params']['encoder_name']) 
         # self.decoder_path = os.path.join(self.savedir, "models", cfg['training_params']['decoder_name'])
@@ -266,6 +266,7 @@ class Sampler():
         self.idx_fold = split_no
         self.encoder_path, self.decoder_path = self._get_model_path()
         self.encoder, self.decoder = config.eval_model_captioning(cfg, self.encoder_path, self.decoder_path, device = self.device)
+        self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(self.idx_fold))
         with (open(self.file_folds, "rb")) as openfile:
             idx_proteins = pickle.load(openfile)
         files_refined = os.listdir(self.protein_dir)
