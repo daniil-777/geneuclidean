@@ -92,8 +92,8 @@ def get_shape_input(cfg):
     Args:
         cfg (yaml object): the config file
     '''
-    n_atoms = cfg['encoder']['encoder_kwargs']['natoms']
-    num_embed = cfg['encoder']['encoder_kwargs']['num_embeddings']
+    n_atoms = cfg['model']['encoder_kwargs']['natoms']
+    num_embed = cfg['model']['encoder_kwargs']['num_embeddings']
     batch_size = cfg['model_params']['batch_size']
     features_shape = (batch_size, n_atoms, num_embed)
     geometry_shape = (batch_size, n_atoms, 3)
