@@ -97,7 +97,8 @@ def get_shape_input(cfg):
     batch_size = cfg['model_params']['batch_size']
     features_shape = (batch_size, n_atoms, num_embed)
     geometry_shape = (batch_size, n_atoms, 3)
-    return [features_shape, geometry_shape]
+    masks_shape = (batch_size, n_atoms, 284)
+    return [features_shape, geometry_shape, masks_shape]
 
 def get_model_captioning(cfg, device=None, **kwargs):
     r''' Returns the model for encoder and decoder
