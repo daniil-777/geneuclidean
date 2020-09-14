@@ -91,7 +91,7 @@ class Sampler():
         # self.file_statistics.flush()
         self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "w")
         #the file of the whole stat
-        self.file_statistics.write("name,fold,type_fold, orig_smile, gen_smile, gen_NP, gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity, orig_NP, orig_logP, orig_sa, orig_qed, orig_weight, frequency, sampling", "encoder","decoder" + "\n")
+        self.file_statistics.write("name,fold,type_fold, orig_smile, gen_smile, gen_NP, gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity, orig_NP, orig_logP, orig_sa, orig_qed, orig_weight, frequency, sampling, encoder,decoder" +  "\n")
         self.file_statistics.flush()
 
         with open(self.vocab_path, "rb") as f:
