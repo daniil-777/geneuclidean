@@ -118,7 +118,7 @@ class Sampler():
         else:
             idx_to_generate = idx_proteins
         for id_protein in idx_to_generate:
-            self.generate_smiles(id_protein, file_statistics)
+            self.generate_smiles(id_protein, self.file_statistics)
 
 
     def _get_models(self, idx_fold):
