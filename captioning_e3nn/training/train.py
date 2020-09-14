@@ -206,6 +206,7 @@ class Trainer():
             #run sampling for the test indxs
             sampler = Sampler(self.cfg, split_no, self.file_statistics)  
             sampler.analysis_cluster()
+            self.file_statistics.flush()
 
 
 
