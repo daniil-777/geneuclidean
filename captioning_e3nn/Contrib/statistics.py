@@ -72,8 +72,7 @@ def analysis_to_csv(smiles,  name_protein, id_fold, type_fold):
     statistics = [length * [name_protein], length * [str(id_fold)], length * [type_fold], length * [orig_smile], gen_smiles, gen_NP, gen_logP, gen_sa, gen_qed, gen_weight, gen_sim,
                   length * [orig_NP], length * [orig_logP], length * [orig_sa], length * [orig_qed], length * [orig_weight]]
 
-     statistics = [length * ['fg'], length * [str(id_fold)], length * [type_fold], length * [orig_smile], smiles[1:], smiles[1:], smiles[1:], smiles[1:], smiles[1:], smiles[1:], smiles[1:],
-                  length * [orig_NP], length * [orig_logP], length * [orig_sa], length * [orig_qed], length * [orig_weight]]  
+    
 
     return statistics
 
@@ -97,12 +96,6 @@ def analysis_to_csv_test(smiles,  name_protein, id_fold, type_fold):
     orig_weight = ExactMolWt(mol_orig)
     orig_NP = processMols([mol_orig])
     
-
-
-
-
-   
-
     statistics = [length * ['fg'], length * [str(id_fold)], length * [type_fold], length * [orig_smile], smiles[1:], smiles[1:], smiles[1:], smiles[1:], smiles[1:], smiles[1:], smiles[1:],
                   length * [orig_NP], length * [orig_logP], length * [orig_sa], length * [orig_qed], length * [orig_weight]]  
 
