@@ -1,10 +1,6 @@
 
 import argparse
 import config
-from sampling.sampler import Sampler
-
-import argparse
-import config
 import multiprocessing
 
 import numpy as np
@@ -35,25 +31,28 @@ from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 from build_vocab import Vocabulary
 from data_loader import get_loader, Pdb_Dataset, collate_fn, collate_fn_masks
-from sampling.sampler import Sampler
+from models_new import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
+# from training.trainer import train_loop, train_loop_mask
+from training.train import Trainer
+# from utils import Utils
+
+# from training.train import Trainer
 # from utils import Utils
 
 
 
 def main():
     parser = argparse.ArgumentParser(
-    description='sample from trained model'
+    description='Train a 3D reconstruction model.'
 )
     parser.add_argument('config', type=str, help='Path to config file.')
-    args = parser.parse_args()
-    
-    savedir =  cfg['output_parameters']['savedir']
 
-    cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
-    encoder_path = os.path.join(savedir, "models", cfg['training_params']['encoder_name']) 
-    decoder_path = os.path.join(savedir, "models", cfg['training_params']['decoder_name']) 
-    sampler = Sampler(cfg)
-    sampler.analysis_cluster(0, encoder_path, decoder_path)
+    args = parser.parse_args()
+
+
+    cfg = config.load_config(args.config, 'configurations/config_local/default.yaml')
+    trainer = Trainer(cfg)
+    trainer.train_epochs()
 
 if __name__ == "__main__":
     main()
