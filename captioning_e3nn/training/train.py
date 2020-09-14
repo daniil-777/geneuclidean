@@ -204,8 +204,8 @@ class Trainer():
                 #if add masks everywhere call just train_loop
                 self.train_loop_mask(loader_train, encoder, decoder, caption_optimizer, split_no, epoch, total_step)
             #run sampling for the test indxs
-            sampler = Sampler(self.cfg, split_no, self.file_statistics)  
-            sampler.analysis_cluster()
+            sampler = Sampler(self.cfg, split_no)  
+            sampler.analysis_cluster(self.file_statistics)
             self.file_statistics.flush()
 
 
