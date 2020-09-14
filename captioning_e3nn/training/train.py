@@ -3,7 +3,7 @@ import multiprocessing
 import numpy as np
 from numpy import savetxt
 import torch
-
+from torchsummary import summary
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ExponentialLR
 # from torch.utils.tensorboard import SummaryWriter
@@ -35,6 +35,7 @@ from sampling.sampler import Sampler
 class Trainer():
     def __init__(self, cfg):
         # model params
+        self.original_stdout = sys.stdout
         self.cfg = cfg
         self.num_epochs = cfg['model_params']['num_epochs']
         self.batch_size = cfg['model_params']['batch_size']
@@ -76,6 +77,13 @@ class Trainer():
         self.Encoder, self.Decoder = config.get_model(cfg, device=self.device)
         self.log_file.write(self.Encoder)
         self.log_file.write(self.Decoder)
+        self.input = config.get_shape_input(self.cfg)
+        print(summary(self.Encoder + self.Decoder, self.input))
+        with open(os.path.join(self.log_path, "model.txt"), 'w') as f:
+            sys.stdout = f # Change the standard output to the file we created.
+            print(summary(self.Encoder + self.Decoder, self.input))
+            sys.stdout = self.original_stdout
+           
         # print(model)
         self.name_file_stat = cfg["sampling_params"]["name_all_stat"]
         self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "w")
