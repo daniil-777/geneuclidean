@@ -56,23 +56,28 @@ class Trainer():
         self.log_path = os.path.join(self.savedir, "logs")
         self.idx_file = os.path.join(self.log_path, "idxs")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.save_dir_smiles = os.path.join(self.savedir, "statistics")
         if not os.path.exists(self.log_path):
             os.makedirs(self.log_path)
         if not os.path.exists(self.idx_file):
             os.makedirs(self.idx_file)
         if not os.path.exists(self.model_path):
             os.makedirs(self.model_path)
+
+        if not os.path.exists(self.save_dir_smiles):
+            os.makedirs(self.save_dir_smiles)
         #log files 
         self.test_idx_file = open(os.path.join(self.idx_file, "test_idx.txt"), "w")
         self.log_file = open(os.path.join(self.log_path, "log.txt"), "w")
         self.log_file_tensor = open(os.path.join(self.log_path, "log_tensor.txt"), "w")
         self.writer = SummaryWriter(self.tesnorboard_path)
-        self.save_dir_smiles = os.path.join(self.savedir, "statistics")
+        
         self.Encoder, self.Decoder = config.get_model(cfg, device=self.device)
         self.name_file_stat = cfg["sampling_params"]["name_all_stat"]
-        # self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "w")
-        # #the file of the whole stat
-        # self.file_statistics.write("name,fold,type_fold, orig_smile, gen_smile, gen_NP, gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity, orig_NP, orig_logP, orig_sa, orig_qed, orig_weight, frequency, sampling" + "\n")
+        self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "w")
+        #the file of the whole stat
+        self.file_statistics.write("name,fold,type_fold, orig_smile, gen_smile, gen_NP, gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity, orig_NP, orig_logP, orig_sa, orig_qed, orig_weight, frequency, sampling" + "\n")
+        self.file_statistics.flush()
 
         #print all params
         nparameters_enc = sum(p.numel() for p in self.Encoder.parameters())
@@ -163,6 +168,7 @@ class Trainer():
         test_idx = []
         # output memory usage
         # py3nvml.nvmlInit()
+        sampler = Sampler(self.cfg, self.file_statistics)
         for split_no in range(self.n_splits):
             train_id, test_id = my_list[split_no]
             train_data = data_ids[train_id]
@@ -198,8 +204,8 @@ class Trainer():
                 #if add masks everywhere call just train_loop
                 self.train_loop_mask(loader_train, encoder, decoder, caption_optimizer, split_no, epoch, total_step)
             #run sampling for the test indxs
-                sampler = Sampler(self.cfg, split_no)
-                sampler.analysis_cluster()
+                
+            sampler.analysis_cluster(split_no)
 
 
 
