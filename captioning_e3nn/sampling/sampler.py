@@ -48,7 +48,8 @@ class Sampler():
             self.number_smiles = 1
         self.time_waiting = cfg["sampling_params"]["time_waiting"]
         self.type_fold = cfg["sampling_params"]["type_fold"]
-        self.file_folds = cfg["sampling_params"]["folds"]
+        # self.file_folds = cfg["sampling_params"]["folds"]
+        
         # self.file_folds = os.path.join()
         self.name_file_stat = cfg["sampling_params"]["name_all_stat"]
         # model params
@@ -69,7 +70,7 @@ class Sampler():
         self.tesnorboard_path = self.savedir
         self.log_path = os.path.join(self.savedir, "logs")
         self.idx_file = os.path.join(self.log_path, "idxs")
-        
+        self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(self.idx_fold))
         #encoder/decoder path
         self.encoder_path = os.path.join(self.savedir, "models", cfg['training_params']['encoder_name']) 
         self.decoder_path = os.path.join(self.savedir, "models", cfg['training_params']['decoder_name'])
