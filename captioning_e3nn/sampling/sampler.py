@@ -34,7 +34,7 @@ from Contrib.statistics import analysis_to_csv, analysis_to_csv_test
 
 
 class Sampler():
-    def __init__(self, cfg, idx_fold, file_statistics):
+    def __init__(self, cfg, idx_fold):
         # model params
         #sampling params
         self.idx_fold = idx_fold
@@ -86,8 +86,8 @@ class Sampler():
         self.file_long_proteins = open(os.path.join(self.save_dir_smiles, "exceptions_long.txt"), "w")
         self.name_all_statistics = cfg['sampling_params']['name_all_stat']
         self.file_all_stat = open(os.path.join(self.save_dir_smiles, self.name_all_statistics), "w")
-        self.file_statistics = file_statistics
-        self.file_statistics.flush()
+        # self.file_statistics = file_statistics
+        # self.file_statistics.flush()
         # self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "w")
         #the file of the whole stat
         # self.file_statistics.write("name,fold,type_fold, orig_smile, gen_smile, gen_NP, gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity, orig_NP, orig_logP, orig_sa, orig_qed, orig_weight, frequency, sampling" + "\n")
@@ -166,7 +166,7 @@ class Sampler():
                 file_all_smiles.write(initial_smile + "\n")
                 file_all_smiles.flush()
 
-    def generate_smiles(self, id):
+    def generate_smiles(self, id, file_statistics):
         #original + gen smiles
         print("current id - ", id)
         smiles = []
@@ -221,9 +221,9 @@ class Sampler():
             stat_protein.append(amount_val_smiles * [self.sampling])
             # print("shape all_stat", all_stat.shape)
             # file_statistics.write(str(list(map(list, zip(*stat_protein)))) + "\n")
-            wr = csv.writer(self.file_statistics)
+            wr = csv.writer(file_statistics)
             wr.writerows(list(map(list, zip(*stat_protein))))
-            self.file_statistics.flush()
+            file_statistics.flush()
             
 
     def analysis_all():
@@ -261,7 +261,7 @@ class Sampler():
 
 
 
-    def analysis_cluster(self):
+    def analysis_cluster(self, file_statistics):
         # encoder, decoder = self._get_model_path(idx_fold)
         with (open(self.file_folds, "rb")) as openfile:
             idx_proteins = pickle.load(openfile)
@@ -273,7 +273,7 @@ class Sampler():
         else:
             idx_to_generate = idx_proteins
         for id_protein in idx_to_generate:
-            self.generate_smiles(id_protein)
+            self.generate_smiles(id_protein, file_statistics)
 
     def save_encodings_all(self):
         r'''For every protein id in rain/test generates feature and saves it
