@@ -169,8 +169,8 @@ class Sampler():
         m = Chem.MolFromSmiles(sentence)
         if m is None or sentence == '' or sentence.isspace() == True:
             print('invalid')
-            list_smiles_all.append(sentence)
-            return 1
+            # list_smiles_all.append(sentence)
+            return 0
         else:
             print(sentence)
             # smiles.append(sentence)
