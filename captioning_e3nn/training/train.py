@@ -137,17 +137,19 @@ class Trainer():
             #
             # Save the model checkpoints
             if (i + 1) % self.save_step == 0:
-                torch.save(
-                    decoder.state_dict(),
-                    os.path.join(
+                self.encoder_name =  os.path.join(
+                        self.model_path, "encoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
+                    )
+                self.decoder_name =  os.path.join(
                         self.model_path, "decoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
-                    ),
-                )
+                    )
                 torch.save(
                     encoder.state_dict(),
-                    os.path.join(
-                        self.model_path, "encoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
-                    ),
+                    self.encoder_name,
+                )
+                torch.save(
+                    decoder.state_dict(),
+                    self.decoder_name,
                 )
         self.log_file_tensor.write("\n")
         self.log_file_tensor.flush()
@@ -205,7 +207,7 @@ class Trainer():
                 self.train_loop_mask(loader_train, encoder, decoder, caption_optimizer, split_no, epoch, total_step)
             #run sampling for the test indxs
              
-            sampler.analysis_cluster(split_no)
+            sampler.analysis_cluster(split_no, self.encoder_name, self.decoder_name)
        
 
 

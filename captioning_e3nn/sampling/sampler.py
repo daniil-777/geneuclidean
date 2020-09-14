@@ -102,11 +102,11 @@ class Sampler():
         # self.encoder, self.decoder = config.eval_model_captioning(cfg, self.encoder_path, self.decoder_path, device = self.device)
     
 
-    def analysis_cluster(self, split_no):
+    def analysis_cluster(self, split_no, encoder_path, decoder_path):
         # encoder, decoder = self._get_model_path(idx_fold)
         self.idx_fold = split_no
-        self.encoder_path, self.decoder_path = self._get_model_path()
-        self.encoder, self.decoder = config.eval_model_captioning(self.cfg, self.encoder_path, self.decoder_path, device = self.device)
+        # self.encoder_path, self.decoder_path = self._get_model_path()
+        self.encoder, self.decoder = config.eval_model_captioning(self.cfg, encoder_path, decoder_path, device = self.device)
         self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(self.idx_fold))
         with (open(self.file_folds, "rb")) as openfile:
             idx_proteins = pickle.load(openfile)
