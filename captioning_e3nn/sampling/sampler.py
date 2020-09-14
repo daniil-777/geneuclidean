@@ -34,10 +34,10 @@ from Contrib.statistics import analysis_to_csv, analysis_to_csv_test
 
 
 class Sampler():
-    def __init__(self, cfg, idx_fold):
+    def __init__(self, cfg):
         # model params
         #sampling params
-        self.idx_fold = idx_fold
+        # self.idx_fold = idx_fold
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # self.device = torch.device("cpu")
         self.sampling = cfg['sampling_params']['sampling']
@@ -72,8 +72,8 @@ class Sampler():
         self.idx_file = os.path.join(self.log_path, "idxs")
         self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(self.idx_fold))
         #encoder/decoder path
-        self.encoder_path = os.path.join(self.savedir, "models", cfg['training_params']['encoder_name']) 
-        self.decoder_path = os.path.join(self.savedir, "models", cfg['training_params']['decoder_name'])
+        # self.encoder_path = os.path.join(self.savedir, "models", cfg['training_params']['encoder_name']) 
+        # self.decoder_path = os.path.join(self.savedir, "models", cfg['training_params']['decoder_name'])
         self.save_dir_encodings = os.path.join(self.savedir, "encodings")
         #sampling params
         
@@ -88,10 +88,10 @@ class Sampler():
         self.file_all_stat = open(os.path.join(self.save_dir_smiles, self.name_all_statistics), "w")
         # self.file_statistics = file_statistics
         # self.file_statistics.flush()
-        # self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "w")
+        self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "w")
         #the file of the whole stat
-        # self.file_statistics.write("name,fold,type_fold, orig_smile, gen_smile, gen_NP, gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity, orig_NP, orig_logP, orig_sa, orig_qed, orig_weight, frequency, sampling" + "\n")
-        # self.file_statistics.flush()
+        self.file_statistics.write("name,fold,type_fold, orig_smile, gen_smile, gen_NP, gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity, orig_NP, orig_logP, orig_sa, orig_qed, orig_weight, frequency, sampling" + "\n")
+        self.file_statistics.flush()
 
         with open(self.vocab_path, "rb") as f:
             self.vocab = pickle.load(f)
@@ -166,7 +166,7 @@ class Sampler():
                 file_all_smiles.write(initial_smile + "\n")
                 file_all_smiles.flush()
 
-    def generate_smiles(self, id, file_statistics):
+    def generate_smiles(self, id):
         #original + gen smiles
         print("current id - ", id)
         smiles = []
@@ -221,9 +221,9 @@ class Sampler():
             stat_protein.append(amount_val_smiles * [self.sampling])
             # print("shape all_stat", all_stat.shape)
             # file_statistics.write(str(list(map(list, zip(*stat_protein)))) + "\n")
-            wr = csv.writer(file_statistics)
+            wr = csv.writer(self.file_statistics)
             wr.writerows(list(map(list, zip(*stat_protein))))
-            file_statistics.flush()
+            self.file_statistics.flush()
             
 
     def analysis_all():
@@ -261,8 +261,11 @@ class Sampler():
 
 
 
-    def analysis_cluster(self, file_statistics):
+    def analysis_cluster(self, split_no):
         # encoder, decoder = self._get_model_path(idx_fold)
+        self.idx_fold = split_no
+        self.encoder_path, self.decoder_path = self._get_model_path()
+        self.encoder, self.decoder = config.eval_model_captioning(cfg, self.encoder_path, self.decoder_path, device = self.device)
         with (open(self.file_folds, "rb")) as openfile:
             idx_proteins = pickle.load(openfile)
         files_refined = os.listdir(self.protein_dir)
