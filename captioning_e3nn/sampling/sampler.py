@@ -100,6 +100,26 @@ class Sampler():
         self.encoder_path, self.decoder_path = self._get_model_path()
         self.encoder, self.decoder = config.eval_model_captioning(cfg, self.encoder_path, self.decoder_path, device = self.device)
     
+
+    def analysis_cluster(self, split_no):
+        # encoder, decoder = self._get_model_path(idx_fold)
+        self.idx_fold = split_no
+        self.encoder_path, self.decoder_path = self._get_model_path()
+        self.encoder, self.decoder = config.eval_model_captioning(cfg, self.encoder_path, self.decoder_path, device = self.device)
+        self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(self.idx_fold))
+        with (open(self.file_folds, "rb")) as openfile:
+            idx_proteins = pickle.load(openfile)
+        files_refined = os.listdir(self.protein_dir)
+        idx_all = [i for i in range(len(files_refined) - 3)]
+        #take indx of proteins in the training set
+        if (self.sampling_data == "train"):
+            idx_to_generate = np.setdiff1d(idx_all, idx_proteins)
+        else:
+            idx_to_generate = idx_proteins
+        for id_protein in idx_to_generate:
+            self.generate_smiles(id_protein, file_statistics)
+
+
     def _get_models(self, idx_fold):
         encoder_path, decoder_path = self._get_model_path(idx_fold)
         encoder, decoder = config.eval_model_captioning(cfg, encoder_path, decoder_path, device = self.device)
@@ -258,26 +278,6 @@ class Sampler():
         df = pd.DataFrame(all_stat, columns = ['name', 'fold', 'logP','sa','qed','weight','similarity', 'orig_logP', 'orig_sa', 'orig_qed', 'orig_weight','frequency'])
         df.to_csv(os.path.join(save_dir_smiles, "all_stat_new.csv"))
     
-
-
-
-    def analysis_cluster(self, split_no):
-        # encoder, decoder = self._get_model_path(idx_fold)
-        self.idx_fold = split_no
-        self.encoder_path, self.decoder_path = self._get_model_path()
-        self.encoder, self.decoder = config.eval_model_captioning(cfg, self.encoder_path, self.decoder_path, device = self.device)
-        self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(self.idx_fold))
-        with (open(self.file_folds, "rb")) as openfile:
-            idx_proteins = pickle.load(openfile)
-        files_refined = os.listdir(self.protein_dir)
-        idx_all = [i for i in range(len(files_refined) - 3)]
-        #take indx of proteins in the training set
-        if (self.sampling_data == "train"):
-            idx_to_generate = np.setdiff1d(idx_all, idx_proteins)
-        else:
-            idx_to_generate = idx_proteins
-        for id_protein in idx_to_generate:
-            self.generate_smiles(id_protein, file_statistics)
 
     def save_encodings_all(self):
         r'''For every protein id in rain/test generates feature and saves it
