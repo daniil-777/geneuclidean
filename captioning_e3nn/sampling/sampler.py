@@ -97,8 +97,8 @@ class Sampler():
             self.vocab = pickle.load(f)
 
         self.dataset = Pdb_Dataset(cfg, self.vocab)
-        self.encoder_path, self.decoder_path = self._get_model_path()
-        self.encoder, self.decoder = config.eval_model_captioning(cfg, self.encoder_path, self.decoder_path, device = self.device)
+        # self.encoder_path, self.decoder_path = self._get_model_path()
+        # self.encoder, self.decoder = config.eval_model_captioning(cfg, self.encoder_path, self.decoder_path, device = self.device)
     
 
     def analysis_cluster(self, split_no):
