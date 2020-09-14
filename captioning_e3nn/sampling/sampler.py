@@ -38,6 +38,7 @@ class Sampler():
         # model params
         #sampling params
         # self.idx_fold = idx_fold
+        self.cfg = cfg
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # self.device = torch.device("cpu")
         self.sampling = cfg['sampling_params']['sampling']
