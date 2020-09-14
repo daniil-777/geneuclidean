@@ -75,8 +75,6 @@ class Trainer():
         self.writer = SummaryWriter(self.tesnorboard_path)
         
         self.Encoder, self.Decoder = config.get_model(cfg, device=self.device)
-        self.log_file.write(self.Encoder)
-        self.log_file.write(self.Decoder)
         self.input = config.get_shape_input(self.cfg)
         print(summary(self.Encoder + self.Decoder, self.input))
         with open(os.path.join(self.log_path, "model.txt"), 'w') as f:
