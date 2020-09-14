@@ -2,8 +2,8 @@ preprocessing:
   mask: True
   collate_fn: masks
 training_params:
-  log_step: 10
-  save_step: 10
+  log_step: 1
+  save_step: 1
   encoder_name: encoder-20-600.ckpt
   decoder_name: decoder-20-600.ckpt
   n_splits: 5
