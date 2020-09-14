@@ -7,7 +7,7 @@ from decoder import decoder_dict
 from torch.utils.data import DataLoader
 import data_loader
 from data_loader import collate_fn, collate_fn_masks
-from training.trainer import train_loop, train_loop_mask
+# from training.trainer import train_loop, train_loop_mask
 
 # General config
 def load_config(path, default_path=None):
@@ -86,6 +86,18 @@ def get_trainer(model, optimizer, cfg, device):
         model, optimizer, cfg, device)
     return trainer
 
+def get_shape_input(cfg):
+    r''' Returns input for the model
+
+    Args:
+        cfg (yaml object): the config file
+    '''
+    n_atoms = cfg['encoder_kwargs']['natoms']
+    num_embed = cfg['encoder_kwargs']['num_embeddings']
+    batch_size = cfg['model_params']['batch_size']
+    features_shape = (batch_size, n_atoms, num_embed)
+    geometry_shape = (batch_size, n_atoms, 3)
+    return [features_shape, geometry_shape]
 
 def get_model_captioning(cfg, device=None, **kwargs):
     r''' Returns the model for encoder and decoder
