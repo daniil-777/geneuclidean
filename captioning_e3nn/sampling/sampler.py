@@ -37,7 +37,7 @@ class Sampler():
     def __init__(self, cfg, file_statistics):
         # model params
         #sampling params
-        self.idx_fold = idx_fold
+        
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # self.device = torch.device("cpu")
         self.sampling = cfg['sampling_params']['sampling']
