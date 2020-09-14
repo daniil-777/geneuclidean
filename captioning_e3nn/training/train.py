@@ -137,6 +137,7 @@ class Trainer():
             #
             # Save the model checkpoints
             if (i + 1) % self.save_step == 0:
+                print("yeeees!!!")
                 self.encoder_name =  os.path.join(
                         self.model_path, "encoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
                     )
