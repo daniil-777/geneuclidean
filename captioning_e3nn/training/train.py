@@ -67,7 +67,12 @@ class Trainer():
         self.log_file = open(os.path.join(self.log_path, "log.txt"), "w")
         self.log_file_tensor = open(os.path.join(self.log_path, "log_tensor.txt"), "w")
         self.writer = SummaryWriter(self.tesnorboard_path)
+        self.save_dir_smiles = os.path.join(self.savedir, "statistics")
         self.Encoder, self.Decoder = config.get_model(cfg, device=self.device)
+        self.name_file_stat = cfg["sampling_params"]["name_all_stat"]
+        # self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "w")
+        # #the file of the whole stat
+        # self.file_statistics.write("name,fold,type_fold, orig_smile, gen_smile, gen_NP, gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity, orig_NP, orig_logP, orig_sa, orig_qed, orig_weight, frequency, sampling" + "\n")
 
         #print all params
         nparameters_enc = sum(p.numel() for p in self.Encoder.parameters())
@@ -158,7 +163,6 @@ class Trainer():
         test_idx = []
         # output memory usage
         # py3nvml.nvmlInit()
-        sampler = Sampler(self.cfg, split_no)
         for split_no in range(self.n_splits):
             train_id, test_id = my_list[split_no]
             train_data = data_ids[train_id]
@@ -187,14 +191,15 @@ class Trainer():
 
             caption_params = list(decoder.parameters()) + list(encoder.parameters())
             caption_optimizer = torch.optim.Adam(caption_params, lr = self.learning_rate)
-
+           
             # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(caption_optimizer, 'min')
             for epoch in range(self.num_epochs):
                 # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
                 #if add masks everywhere call just train_loop
                 self.train_loop_mask(loader_train, encoder, decoder, caption_optimizer, split_no, epoch, total_step)
             #run sampling for the test indxs
-            sampler.analysis_cluster()
+                sampler = Sampler(self.cfg, split_no)
+                sampler.analysis_cluster()
 
 
 
