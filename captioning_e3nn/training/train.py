@@ -170,20 +170,19 @@ class Trainer():
                 )
             if (self.loss_best - loss > 0):
                 print("The best loss -", loss)
-                self.log_file.write("The best loss - " + str(loss) + "\n")
-                self.encoder_name =  os.path.join(
-                        self.model_path, "encoder-{}-{}-{}_best.ckpt".format(split_no, epoch + 1, i + 1)
+                self.log_file.write("The best loss - " + str(loss), "; encoder-{}-{}-{}_best.ckpt".format(split_no, epoch + 1, i + 1) + "\n")
+                self.encoder_best_name =  os.path.join(
+                        self.model_path, "encoder_best.ckpt"
                     )
-                self.decoder_name =  os.path.join(
-                        self.model_path, "decoder-{}-{}-{}_best.ckpt".format(split_no, epoch + 1, i + 1)
-                    )
+                self.decoder_best_name =  os.path.join(
+                        self.model_path, "decoder_best.ckpt")
                 torch.save(
                     encoder.state_dict(),
-                    self.encoder_name,
+                    self.encoder_best_name,
                 )
                 torch.save(
                     decoder.state_dict(),
-                    self.decoder_name,
+                    self.decoder_best_name,
                 )
         self.log_file_tensor.write("\n")
         self.log_file_tensor.flush()
