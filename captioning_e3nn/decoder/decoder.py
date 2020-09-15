@@ -565,7 +565,7 @@ class MyDecoderWithAttention(nn.Module):
         seqs = k_prev_words  # (k, 1)
 
         # Tensor to store top k sequences' scores; now they're just 0
-        top_k_scores = torch.zeros(k, 1).to(device)  # (k, 1)
+        top_k_scores = torch.zeros(k, 1).to(self.device)  # (k, 1)
 
         # Tensor to store top k sequences' alphas; now they're just 1s
         # seqs_alpha = torch.ones(k, 1, enc_image_size, enc_image_size).to(device)  # (k, 1, enc_image_size, enc_image_size)
@@ -586,7 +586,7 @@ class MyDecoderWithAttention(nn.Module):
 
             awe, alpha = self.attention(encoder_out, h)  # (s, encoder_dim), (s, num_pixels)
 
-            alpha = alpha.view(-1, enc_image_size, enc_image_size)  # (s, enc_image_size, enc_image_size)
+            # alpha = alpha.view(-1, enc_image_size, enc_image_size)  # (s, enc_image_size, enc_image_size)
             
             gate = self.sigmoid(decoder.f_beta(h))  # gating scalar, (s, encoder_dim)
             awe = gate * awe
@@ -618,7 +618,7 @@ class MyDecoderWithAttention(nn.Module):
 
             # Which sequences are incomplete (didn't reach <end>)?
             incomplete_inds = [ind for ind, next_word in enumerate(next_word_inds) if
-                            next_word != word_map['<end>']]
+                            next_word != self.vocab.word2idx['<end>']]
             complete_inds = list(set(range(len(next_word_inds))) - set(incomplete_inds))
 
             # Set aside complete sequences
@@ -640,7 +640,7 @@ class MyDecoderWithAttention(nn.Module):
             k_prev_words = next_word_inds[incomplete_inds].unsqueeze(1)
 
             # Break if things have been going on too long
-            if step > 50:
+            if step > MAX_Length:
                 break
             step += 1
 
