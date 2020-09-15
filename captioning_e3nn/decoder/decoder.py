@@ -350,12 +350,13 @@ class MyDecoderWithAttention(nn.Module):
     def sample_prob(self, features, states=None, device=DEVICE):
         """Samples SMILES tockens for given  features (Greedy search).
         """
+        features = features.squeeze(0)
+        features = features.unsqueeze(1)
         h, c = self.init_hidden_state(features)
         # features = features.long()
         sampled_ids = []
         
-        features = features.squeeze(0)
-        features = features.unsqueeze(1)
+        
         print("shape feat", features.shape)
         inputs = features.long()
         for i in range(self.max_seg_length):
@@ -363,6 +364,7 @@ class MyDecoderWithAttention(nn.Module):
                 1
             )  # (s, embed_dim)  ?why should we alos use it???
             print("embed shape", embeddings.shape)
+            print("h shape", h.shape)
             awe, alpha = self.attention(
                 features, h
             )  # (s, encoder_dim), (s, num_pixels) - we give to Attention the same features
