@@ -342,7 +342,7 @@ class MyDecoderWithAttention(nn.Module):
         )  #!!! shape [padded_length, voc] do that like with simple version
         return scores.data  # , encoded_captions, decode_lengths, alphas, sort_ind
 
-    def sample_prob(self, features, vocab, states=None, device=DEVICE):
+    def sample_prob(self, features, states=None, device=DEVICE):
         """Samples SMILES tockens for given  features (Greedy search).
         """
         h, c = self.init_hidden_state(features)
