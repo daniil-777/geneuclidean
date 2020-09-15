@@ -327,6 +327,8 @@ class MyDecoderWithAttention(nn.Module):
             )  # gating scalar, (batch_size_t, encoder_dim)
             attention_weighted_encoding = gate * attention_weighted_encoding
             h, c = self.decode_step(
+                print("shape emb help", embeddings[:batch_size_t, t, :].shape)
+                print("shape aw help", attention_weighted_encoding.shape)
                 torch.cat(
                     [embeddings[:batch_size_t, t, :], attention_weighted_encoding],
                     dim=1,
