@@ -584,7 +584,7 @@ class MyDecoderWithAttention(nn.Module):
         
             embeddings = self.embedding(k_prev_words).squeeze(1)  # (s, embed_dim)  ?why should we alos use it???
 
-            awe, alpha = self.attention(encoder_out, h)  # (s, encoder_dim), (s, num_pixels)
+            awe, alpha = self.attention(features, h)  # (s, encoder_dim), (s, num_pixels)
 
             # alpha = alpha.view(-1, enc_image_size, enc_image_size)  # (s, enc_image_size, enc_image_size)
             
@@ -635,7 +635,7 @@ class MyDecoderWithAttention(nn.Module):
             # seqs_alpha = seqs_alpha[incomplete_inds]
             h = h[prev_word_inds[incomplete_inds]]
             c = c[prev_word_inds[incomplete_inds]]
-            encoder_out = encoder_out[prev_word_inds[incomplete_inds]]
+            features = features[prev_word_inds[incomplete_inds]]
             top_k_scores = top_k_scores[incomplete_inds].unsqueeze(1)
             k_prev_words = next_word_inds[incomplete_inds].unsqueeze(1)
 
