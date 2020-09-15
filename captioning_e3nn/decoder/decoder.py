@@ -350,7 +350,7 @@ class MyDecoderWithAttention(nn.Module):
         sampled_ids = []
         inputs = features.unsqueeze(1)
         for i in range(self.max_seg_length):
-            embeddings = self.embedding(k_prev_words).squeeze(
+            embeddings = self.embedding(features).squeeze(
                 1
             )  # (s, embed_dim)  ?why should we alos use it???
 
