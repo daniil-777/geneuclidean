@@ -348,15 +348,16 @@ class MyDecoderWithAttention(nn.Module):
         h, c = self.init_hidden_state(features)
         # features = features.long()
         sampled_ids = []
-        inputs = features.long().unsqueeze(1)
+        inputs = features.long().unsqueeze(0)
         for i in range(self.max_seg_length):
             embeddings = self.embedding(inputs).squeeze(
                 1
             )  # (s, embed_dim)  ?why should we alos use it???
-
+            print("embed shape", embeddings.shape)
             awe, alpha = self.attention(
                 features, h
             )  # (s, encoder_dim), (s, num_pixels) - we give to Attention the same features
+            print("awe shape", awe.shape)
 
             # alpha = alpha.view(
             #     -1, enc_image_size, enc_image_size
