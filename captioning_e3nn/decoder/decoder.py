@@ -319,6 +319,8 @@ class MyDecoderWithAttention(nn.Module):
         # sequence at the t-th place (we put an array of vocab length there)
         for t in range(max(decode_lengths)):
             batch_size_t = sum([l > t for l in decode_lengths])
+            print("shape encoder_out att", encoder_out[:batch_size_t].shape)
+            print("shape h att", h[:batch_size_t].shape)
             attention_weighted_encoding, alpha = self.attention(
                 encoder_out[:batch_size_t], h[:batch_size_t]
             )
@@ -326,7 +328,7 @@ class MyDecoderWithAttention(nn.Module):
                 self.f_beta(h[:batch_size_t])
             )  # gating scalar, (batch_size_t, encoder_dim)
             attention_weighted_encoding = gate * attention_weighted_encoding
-            print("real emb shape", embeddings.shape)
+            # print("real emb shape", embeddings.shape)
             # print("shape emb help", embeddings[:batch_size_t, t, :].shape)
             # print("shape aw help", attention_weighted_encoding.shape)
             h, c = self.decode_step(    
