@@ -365,8 +365,7 @@ class MyDecoderWithAttention(nn.Module):
             )  # (s, embed_dim)  ?why should we alos use it???
             print("embed shape", embeddings.shape)
             print("h shape", h.shape)
-            features.squeeze(1)
-            features.unsqueeze(0)
+            features = features.permute(1,0)
             print("feat shape before att", features.shape)
             awe, alpha = self.attention(
                 features, h
