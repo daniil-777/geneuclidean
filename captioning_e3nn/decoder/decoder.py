@@ -342,11 +342,9 @@ class MyDecoderWithAttention(nn.Module):
         )  #!!! shape [padded_length, voc] do that like with simple version
         return scores.data  # , encoded_captions, decode_lengths, alphas, sort_ind
 
-    def sample(self, features, vocab, states=None, device=DEVICE):
+    def sample_prob(self, features, vocab, states=None, device=DEVICE):
         """Samples SMILES tockens for given  features (Greedy search).
         """
-        k = 1
-        k_prev_words = torch.LongTensor([[vocab.word2idx["<start>"]]] * k).to(device)
         h, c = self.init_hidden_state(features)
 
         sampled_ids = []
@@ -373,17 +371,50 @@ class MyDecoderWithAttention(nn.Module):
             )  # (s, decoder_dim)
 
             scores = self.fc(h)  # (s, vocab_size)
-            predicted = scores.max(1)[1]  # check that
-            k_prev_words = (
-                predicted  # now we have predicted word and give it to the next lastm
-            )
-            # scores = F.log_softmax(scores, dim=1)
-            # h = h[i] #we have the only word - no sense to have index of h (h dim - [1, decoder_dim])
-            # c = c[prev_word_inds[incomplete_inds]]
-            # encoder_out = encoder_out[prev_word_inds[incomplete_inds]] - we give to Attention the same features
+            # predicted = scores.max(1)[1]  # check that
+            #  k_prev_words = (
+            #     predicted  # now we have predicted word and give it to the next lastm
+            # )
+            if i == 0:
+                predicted = scores.max(1)[1]
+            else:
+                probs = F.softmax(scores, dim=1)
+
+                # Probabilistic sample tokens
+                if probs.is_cuda:
+                    probs_np = probs.data.cpu().numpy()
+                else:
+                    probs_np = probs.data.numpy()
+                    # print("shape probs_np", probs_np.shape)
+
+                rand_num = np.random.rand(probs_np.shape[0])
+                # print("shape rand_num", rand_num.shape)
+                iter_sum = np.zeros((probs_np.shape[0],))
+                tokens = np.zeros(probs_np.shape[0], dtype=np.int)
+            
+                for i in range(probs_np.shape[1]):
+                    c_element = probs_np[:, i]
+                    iter_sum += c_element
+                    valid_token = rand_num < iter_sum
+                    update_indecies = np.logical_and(valid_token,
+                                                     np.logical_not(tokens.astype(np.bool)))
+                    tokens[update_indecies] = i
+
+                # put back on the GPU.
+                if probs.is_cuda:
+                    predicted = Variable(torch.LongTensor(tokens.astype(np.int)).cuda())
+                else:
+                    predicted = Variable(torch.LongTensor(tokens.astype(np.int)))
+            # print("shape predicted", predicted.shape)
             sampled_ids.append(predicted)
+            inputs = self.embed(predicted)
+            inputs = inputs.unsqueeze(1)
+        # print("shape sampled_ids", len(sampled_ids))
         sampled_ids = torch.stack(sampled_ids, 1)
         return sampled_ids
+
+
+        
 
     def caption_image_beam_search(encoder, decoder, image_path, word_map, beam_size=3):
         """
