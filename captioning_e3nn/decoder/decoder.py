@@ -533,7 +533,7 @@ class MyDecoderWithAttention(nn.Module):
         sampled_ids = torch.stack(sampled_ids, 1) 
         return sampled_ids
 
-    def caption_image_beam_search(self, features, beam_size=3):
+    def sample_beam_search(self, features, beam_size=3):
         """
         Reads an image and captions it with beam search.
 

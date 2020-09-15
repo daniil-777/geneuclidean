@@ -224,11 +224,13 @@ class Sampler():
 
             # Generate a caption from the image
             feature = self.encoder(features, geometry, masks)
-
+            
             if (self.sampling == "probabilistic"):
                 sampled_ids = self.decoder.sample_prob(feature)
             elif (self.sampling == "max"):
                 sampled_ids = self.decoder.sample(feature)
+            else:
+                sampled_ids = self.decoder.sample_beam_search(feature)
     
             sampled_ids = (
                 sampled_ids[0].cpu().numpy()
