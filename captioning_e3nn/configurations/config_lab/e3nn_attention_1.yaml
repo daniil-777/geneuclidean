@@ -2,8 +2,8 @@ preprocessing:
   mask: True
   collate_fn: masks
 training_params:
-  log_step: 1
-  save_step: 1
+  log_step: 10
+  save_step: 10
   encoder_name: encoder-0-99-900.ckpt
   decoder_name: decoder-0-99-900.ckpt
   n_splits: 5
@@ -41,7 +41,7 @@ model:
 
 model_params: 
   model_name: "e3nn"
-  num_epochs: 1
+  num_epochs: 100
   batch_size: 4
   n_splits: 5
   num_workers: 1
@@ -58,8 +58,8 @@ output_parameters:
 sampling_params: 
   sampling: probabilistic
   sample_id: 15
-  number_smiles: 1
-  time_waiting: 2
+  number_smiles: 30
+  time_waiting: 1200
   type_fold: O
   id_fold: 0
   folds: ../results/captioning_results/e3nn_1/logs/idx/test_idx_0
