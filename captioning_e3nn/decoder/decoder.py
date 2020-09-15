@@ -197,7 +197,7 @@ class MyDecoderWithAttention(nn.Module):
         :param dropout: dropout
         """
         super(MyDecoderWithAttention, self).__init__()
-
+        self.device = device
         self.encoder_dim = encoder_dim
         self.attention_dim = attention_dim
         self.embed_dim = embed_dim
@@ -441,7 +441,7 @@ class MyDecoderWithAttention(nn.Module):
     def sample_prob(self, features, states=None):
         """Samples SMILES tockens for given  features (Greedy search)."""
         k = 1
-        k_prev_words = torch.LongTensor([[self.vocab.word2idx['<start>']]] * k).to(device) 
+        k_prev_words = torch.LongTensor([[self.vocab.word2idx['<start>']]] * k).to(self.device) 
         h, c = decoder.init_hidden_state(features)
 
         sampled_ids = []
