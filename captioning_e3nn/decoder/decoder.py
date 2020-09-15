@@ -447,19 +447,19 @@ class MyDecoderWithAttention(nn.Module):
         sampled_ids = []
         inputs = features.unsqueeze(1)
         for i in range(self.max_seg_length):
-            embeddings = decoder.embedding(k_prev_words).squeeze(1)  # (s, embed_dim)  ?why should we alos use it???
+            embeddings = self.embedding(k_prev_words).squeeze(1)  # (s, embed_dim)  ?why should we alos use it???
 
-            awe, alpha = decoder.attention(features, h)  # (s, encoder_dim), (s, num_pixels) - we give to Attention the same features
+            awe, alpha = self.attention(features, h)  # (s, encoder_dim), (s, num_pixels) - we give to Attention the same features
 
             alpha = alpha.view(-1, enc_image_size, enc_image_size)  # (s, enc_image_size, enc_image_size)
             
-            gate = decoder.sigmoid(decoder.f_beta(h))  # gating scalar, (s, encoder_dim)
+            gate = self.sigmoid(decoder.f_beta(h))  # gating scalar, (s, encoder_dim)
             awe = gate * awe
             #s is a batch_size_t since we do not have a batch of images, we have just one image
             # and we want to find several words. 
-            h, c = decoder.decode_step(torch.cat([embeddings, awe], dim=1), (h, c))  # (s, decoder_dim)
+            h, c = self.decode_step(torch.cat([embeddings, awe], dim=1), (h, c))  # (s, decoder_dim)
 
-            scores = decoder.fc(h)  # (s, vocab_size)
+            scores = self.fc(h)  # (s, vocab_size)
             predicted = scores.max(1)[1] #check that
             k_prev_words = predicted #now we have predicted word and give it to the next lastm
             # scores = F.log_softmax(scores, dim=1)
