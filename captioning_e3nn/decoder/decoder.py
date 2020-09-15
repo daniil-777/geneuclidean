@@ -16,6 +16,7 @@ from se3cnn.point.radial import CosineBasisModel
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MAX_Length = 245
 
+
 class DecoderRNN(nn.Module):
     def __init__(self, embed_size, hidden_size, vocab_size, num_layers):
         """Set the hyper-parameters and build the layers.
@@ -142,6 +143,7 @@ class My_attention(nn.Module):
         )  # linear layer to calculate values to be softmax-ed
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)  # softmax layer to calculate weights
+       
 
     def forward(self, encoder_out, decoder_hidden):
         """
@@ -179,9 +181,11 @@ class MyDecoderWithAttention(nn.Module):
         attention_dim,
         embed_dim,
         decoder_dim,
+        vocab,
         vocab_size,
         encoder_dim=512,
         dropout=0.5,
+        vocab_path,
         device=DEVICE,
     ):
         """
@@ -198,6 +202,7 @@ class MyDecoderWithAttention(nn.Module):
         self.attention_dim = attention_dim
         self.embed_dim = embed_dim
         self.decoder_dim = decoder_dim
+        self.vocab = vocab
         self.vocab_size = vocab_size
         self.dropout = dropout
         self.max_seg_length = MAX_Length
@@ -224,7 +229,10 @@ class MyDecoderWithAttention(nn.Module):
             decoder_dim, vocab_size
         )  # linear layer to find scores over vocabulary
         self.init_weights()  # initialize some layers with the uniform distribution
-
+        self.vocab_path = vocab_path
+        with open(self.vocab_path, "rb") as f:
+            self.vocab = pickle.load(f)
+ 
     def init_weights(self):
         """
         Initializes some parameters with values from the uniform distribution, for easier convergence.
@@ -347,10 +355,10 @@ class MyDecoderWithAttention(nn.Module):
         )  #!!! shape [padded_length, voc] do that like with simple version
         return scores.data  # , encoded_captions, decode_lengths, alphas, sort_ind
 
-    def sample_prob(self, features, states=None, device=DEVICE):
+    def sample_prob_1(self, features, states=None, device=DEVICE):
         """Samples SMILES tockens for given  features (Greedy search).
         """
-        
+        k_prev_words = torch.LongTensor([[word_map['<start>']]] * k).to(device)  # (k, 1)
         h, c = self.init_hidden_state(features)
         # features = features.long()
         sampled_ids = []
@@ -428,7 +436,40 @@ class MyDecoderWithAttention(nn.Module):
         return sampled_ids
 
 
-        
+ 
+    
+
+    def sample_prob(self, features, vocab, states=None):
+        """Samples SMILES tockens for given  features (Greedy search)."""
+        k = 1
+        k_prev_words = torch.LongTensor([[vocab.word2idx['<start>']]] * k).to(device) 
+        h, c = decoder.init_hidden_state(features)
+
+        sampled_ids = []
+        inputs = features.unsqueeze(1)
+        for i in range(self.max_seg_length):
+            embeddings = decoder.embedding(k_prev_words).squeeze(1)  # (s, embed_dim)  ?why should we alos use it???
+
+            awe, alpha = decoder.attention(features, h)  # (s, encoder_dim), (s, num_pixels) - we give to Attention the same features
+
+            alpha = alpha.view(-1, enc_image_size, enc_image_size)  # (s, enc_image_size, enc_image_size)
+            
+            gate = decoder.sigmoid(decoder.f_beta(h))  # gating scalar, (s, encoder_dim)
+            awe = gate * awe
+            #s is a batch_size_t since we do not have a batch of images, we have just one image
+            # and we want to find several words. 
+            h, c = decoder.decode_step(torch.cat([embeddings, awe], dim=1), (h, c))  # (s, decoder_dim)
+
+            scores = decoder.fc(h)  # (s, vocab_size)
+            predicted = scores.max(1)[1] #check that
+            k_prev_words = predicted #now we have predicted word and give it to the next lastm
+            # scores = F.log_softmax(scores, dim=1)
+            # h = h[i] #we have the only word - no sense to have index of h (h dim - [1, decoder_dim])
+            # c = c[prev_word_inds[incomplete_inds]]
+            # encoder_out = encoder_out[prev_word_inds[incomplete_inds]] - we give to Attention the same features
+            sampled_ids.append(predicted)
+        sampled_ids = torch.stack(sampled_ids, 1) 
+        return sampled_ids
 
     def caption_image_beam_search(encoder, decoder, image_path, word_map, beam_size=3):
         """

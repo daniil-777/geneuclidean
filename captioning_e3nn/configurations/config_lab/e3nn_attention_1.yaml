@@ -35,6 +35,7 @@ model:
     vocab_size: 32
     encoder_dim: 100
     dropout: 0.9
+    vocab_path: ../data/vocab.pkl
   
 
 model_params: 
