@@ -61,9 +61,9 @@ def constants(geometry, mask):
 
 class Network(torch.nn.Module):
     def __init__(self,  max_rad, num_basis, n_neurons, n_layers, beta, rad_model,
-                 embed, l0,   L, scalar_act_name, gate_act_name, avg_n_atoms, mlp_h, Out, aggregation_mode):
+                 embed, l0,   L, scalar_act_name, gate_act_name, natoms, mlp_h, Out, aggregation_mode):
         super().__init__()
-        self.avg_n_atoms = avg_n_atoms #286
+        self.natoms = natoms #286
         self.ssp = rescaled_act.ShiftedSoftplus(beta = beta)
         self.sp = rescaled_act.Softplus(beta=beta)
         self.l0 = l0
@@ -105,10 +105,10 @@ class Network(torch.nn.Module):
         self.layers += [make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])]
         self.leakyrelu = nn.LeakyReLU(0.2) # Relu
         self.e_out_1 = nn.Linear(mlp_h, mlp_h)
-        self.bn_out_1 = nn.BatchNorm1d(avg_n_atoms)
+        self.bn_out_1 = nn.BatchNorm1d(natoms)
 
         self.e_out_2 = nn.Linear(mlp_h, 2 * mlp_h)
-        self.bn_out_2 = nn.BatchNorm1d(avg_n_atoms)
+        self.bn_out_2 = nn.BatchNorm1d(natoms)
         torch.autograd.set_detect_anomaly(True) 
 
     def forward(self, features, geometry, mask):
@@ -123,7 +123,7 @@ class Network(torch.nn.Module):
             if kc.set_of_l_filters != set_of_l_filters:
                 set_of_l_filters = kc.set_of_l_filters
                 y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
-            features = features.div(self.avg_n_atoms ** 0.5).to(self.device)
+            features = features.div(self.natoms ** 0.5).to(self.device)
             features = kc(
                 features,
                 diff_geo,
@@ -138,9 +138,9 @@ class Network(torch.nn.Module):
         
         # out_net = OutputMLPNetwork(kernel_conv=kernel_conv, previous_Rs = self.Rs[-1],
         #                          l0 = self.l0, l1 = 0, L = 1, scalar_act=sp, gate_act=rescaled_act.sigmoid,
-        #                           mlp_h = 128, mlp_L = 1, avg_n_atoms = 286)
+        #                           mlp_h = 128, mlp_L = 1, natoms = 286)
         # features = out_net(features, geometry, mask)
-        # features = self.leakyrelu(self.bn_out_1(self.e_out_1(features))) # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
+        features = self.leakyrelu(self.bn_out_1(self.e_out_1(features))) # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
         features = self.leakyrelu(self.bn_out_2(self.e_out_2(features)))
 
         # if self.atomref is not None:
@@ -158,8 +158,8 @@ class Network(torch.nn.Module):
 
 
 class ResNetwork(Network):
-    def __init__(self, kernel_conv, embed, l0, l1, L, scalar_act, gate_act, avg_n_atoms):
-        super(ResNetwork, self).__init__(kernel_conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act, avg_n_atoms)
+    def __init__(self, kernel_conv, embed, l0, l1, L, scalar_act, gate_act, natoms):
+        super(ResNetwork, self).__init__(kernel_conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act, natoms)
 
     def forward(self, features, geometry, mask):
         features, _, mask, diff_geo, radii = constants(features, geometry, mask)
@@ -169,7 +169,7 @@ class ResNetwork(Network):
         y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
         kc, act = self.layers[1]
         features = kc(
-            features.div(self.avg_n_atoms ** 0.5),
+            features.div(self.natoms ** 0.5),
             diff_geo,
             mask,
             y=y,
@@ -182,7 +182,7 @@ class ResNetwork(Network):
                 set_of_l_filters = kc.set_of_l_filters
                 y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
             new_features = kc(
-                features.div(self.avg_n_atoms ** 0.5),
+                features.div(self.natoms ** 0.5),
                 diff_geo,
                 mask,
                 y=y,
@@ -200,9 +200,9 @@ def gate_error(x):
 
 
 class OutputScalarNetwork(torch.nn.Module):
-    def __init__(self, kernel_conv, previous_Rs, scalar_act, avg_n_atoms):
+    def __init__(self, kernel_conv, previous_Rs, scalar_act, natoms):
         super(OutputScalarNetwork, self).__init__()
-        self.avg_n_atoms = avg_n_atoms
+        self.natoms = natoms
 
         Rs = [previous_Rs]
         Rs += [[(1, 0)]]
@@ -218,7 +218,7 @@ class OutputScalarNetwork(torch.nn.Module):
     def forward(self, features, geometry, mask):
         _, _, mask, diff_geo, radii = constants(features, geometry, mask)
         for kc, act in self.layers:
-            features = kc(features.div(self.avg_n_atoms ** 0.5), diff_geo, mask, radii=radii)
+            features = kc(features.div(self.natoms ** 0.5), diff_geo, mask, radii=radii)
             features = act(features)
             features = features * mask.unsqueeze(-1)
         return features
@@ -247,13 +247,13 @@ class PermutedBatchNorm1d(torch.nn.Module):
 
 
 class OutputMLPNetwork(torch.nn.Module):
-    def __init__(self, kernel_conv, previous_Rs, l0, l1, L, scalar_act, gate_act, mlp_h, mlp_L, avg_n_atoms):
+    def __init__(self, kernel_conv, previous_Rs, l0, l1, L, scalar_act, gate_act, mlp_h, mlp_L, natoms):
         super(OutputMLPNetwork, self).__init__()
         assert L > 0
         L = L - 1
         assert mlp_L > 0
         mlp_L = mlp_L - 1
-        self.avg_n_atoms = avg_n_atoms #286
+        self.natoms = natoms #286
 
         def make_gb_layer(Rs_in, Rs_out):
             act = GatedBlock(Rs_out, scalar_act, gate_act)
@@ -276,7 +276,7 @@ class OutputMLPNetwork(torch.nn.Module):
         _, _, mask, diff_geo, radii = constants(features, geometry, mask)
         features = batch["representation"]
         for kc, act in self.layers:
-            features = kc(features.div(self.avg_n_atoms ** 0.5), diff_geo, mask, radii=radii)
+            features = kc(features.div(self.natoms ** 0.5), diff_geo, mask, radii=radii)
             features = act(features)
             features = features * mask.unsqueeze(-1)
         for layer in self.mlp:
