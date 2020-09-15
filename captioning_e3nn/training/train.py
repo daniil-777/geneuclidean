@@ -138,11 +138,11 @@ class Trainer():
             # writer.add_scalar("training_loss", loss.item(), epoch)
             self.log_file_tensor.write(str(loss.item()) + "\n")
             self.log_file_tensor.flush()
-            # handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
-            # fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
-            # mem = fb_mem_info.used >> 20
-            # print('GPU memory usage: ', mem)
-            # self.writer.add_scalar('val/gpu_memory', mem, epoch)
+            handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
+            fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
+            mem = fb_mem_info.used >> 20
+            print('GPU memory usage: ', mem)
+            self.writer.add_scalar('val/gpu_memory', mem, epoch)
             # Print log info
             if i % self.log_step == 0:
                 result = "Split [{}], Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Perplexity: {:5.4f}".format(
@@ -156,7 +156,7 @@ class Trainer():
             #
             # Save the model checkpoints
             if (i + 1) % self.save_step == 0:
-                print("yeeees!!!")
+                # print("yeeees!!!")
                 self.encoder_name =  os.path.join(
                         self.model_path, "encoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
                     )
@@ -172,8 +172,8 @@ class Trainer():
                     self.decoder_name,
                 )
             if (self.loss_best - loss > 0):
-                print("The best loss -" + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1))
-                self.log_file.write("The best loss - " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1) + "\n")
+                print("The best loss " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1))
+                self.log_file.write("The best loss " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1) + "\n")
                 self.encoder_best_name =  os.path.join(
                         self.model_path, "encoder_best.ckpt"
                     )
@@ -205,7 +205,7 @@ class Trainer():
         my_list = list(kf.split(data_ids))
         test_idx = []
         # output memory usage
-        # py3nvml.nvmlInit()
+        py3nvml.nvmlInit()
         sampler = Sampler(self.cfg)
         for split_no in range(self.n_splits):
             train_id, test_id = my_list[split_no]
