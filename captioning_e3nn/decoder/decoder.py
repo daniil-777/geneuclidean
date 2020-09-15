@@ -438,6 +438,39 @@ class MyDecoderWithAttention(nn.Module):
  
     
 
+    def sample_max(self, features, states=None):
+        """Samples SMILES tockens for given  features (Greedy search)."""
+        k = 1
+        k_prev_words = torch.LongTensor([[self.vocab.word2idx['<start>']]] * k).to(self.device) 
+        h, c = self.init_hidden_state(features)
+
+        sampled_ids = []
+        inputs = features.unsqueeze(1)
+        for i in range(self.max_seg_length):
+            embeddings = self.embedding(k_prev_words).squeeze(1)  # (s, embed_dim)  ?why should we alos use it???
+
+            awe, alpha = self.attention(features, h)  # (s, encoder_dim), (s, num_pixels) - we give to Attention the same features
+
+            # alpha = alpha.view(-1, enc_image_size, enc_image_size)  # (s, enc_image_size, enc_image_size)
+            
+            gate = self.sigmoid(self.f_beta(h))  # gating scalar, (s, encoder_dim)
+            awe = gate * awe
+            #s is a batch_size_t since we do not have a batch of images, we have just one image
+            # and we want to find several words. 
+            h, c = self.decode_step(torch.cat([embeddings, awe], dim=1), (h, c))  # (s, decoder_dim)
+
+            scores = self.fc(h)  # (s, vocab_size)
+            scores = F.log_softmax(scores, dim=1)
+            predicted = scores.max(1)[1] #check that
+            k_prev_words = predicted #now we have predicted word and give it to the next lastm
+            # scores = F.log_softmax(scores, dim=1)
+            # h = h[i] #we have the only word - no sense to have index of h (h dim - [1, decoder_dim])
+            # c = c[prev_word_inds[incomplete_inds]]
+            # encoder_out = encoder_out[prev_word_inds[incomplete_inds]] - we give to Attention the same features
+            sampled_ids.append(predicted)
+        sampled_ids = torch.stack(sampled_ids, 1) 
+        return sampled_ids
+
     def sample_prob(self, features, states=None):
         """Samples SMILES tockens for given  features (Greedy search)."""
         k = 1
@@ -460,12 +493,41 @@ class MyDecoderWithAttention(nn.Module):
             h, c = self.decode_step(torch.cat([embeddings, awe], dim=1), (h, c))  # (s, decoder_dim)
 
             scores = self.fc(h)  # (s, vocab_size)
-            predicted = scores.max(1)[1] #check that
+               
+   
+            # print("outputs shape,", outputs.shape)
+            if i == 0:
+                predicted = scores.max(1)[1]
+            else:
+                probs = F.softmax(scores, dim=1)
+
+                # Probabilistic sample tokens
+                if probs.is_cuda:
+                    probs_np = probs.data.cpu().numpy()
+                else:
+                    probs_np = probs.data.numpy()
+                    # print("shape probs_np", probs_np.shape)
+
+                rand_num = np.random.rand(probs_np.shape[0])
+                # print("shape rand_num", rand_num.shape)
+                iter_sum = np.zeros((probs_np.shape[0],))
+                tokens = np.zeros(probs_np.shape[0], dtype=np.int)
+            
+                for i in range(probs_np.shape[1]):
+                    c_element = probs_np[:, i]
+                    iter_sum += c_element
+                    valid_token = rand_num < iter_sum
+                    update_indecies = np.logical_and(valid_token,
+                                                     np.logical_not(tokens.astype(np.bool)))
+                    tokens[update_indecies] = i
+
+                # put back on the GPU.
+                if probs.is_cuda:
+                    predicted = Variable(torch.LongTensor(tokens.astype(np.int)).cuda())
+                else:
+                    predicted = Variable(torch.LongTensor(tokens.astype(np.int)))
+         
             k_prev_words = predicted #now we have predicted word and give it to the next lastm
-            # scores = F.log_softmax(scores, dim=1)
-            # h = h[i] #we have the only word - no sense to have index of h (h dim - [1, decoder_dim])
-            # c = c[prev_word_inds[incomplete_inds]]
-            # encoder_out = encoder_out[prev_word_inds[incomplete_inds]] - we give to Attention the same features
             sampled_ids.append(predicted)
         sampled_ids = torch.stack(sampled_ids, 1) 
         return sampled_ids
