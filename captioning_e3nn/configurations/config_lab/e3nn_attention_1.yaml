@@ -30,11 +30,11 @@ model:
   decoder_kwargs:
     attention_dim: 100
     embed_dim: 100
+    decoder_dim: 100
     vocab_size: 32
     encoder_dim: 100
     dropout: 0.9
   
-
 
 model_params: 
   model_name: "e3nn"
