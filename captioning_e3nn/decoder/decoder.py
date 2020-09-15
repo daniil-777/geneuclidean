@@ -336,7 +336,7 @@ class MyDecoderWithAttention(nn.Module):
             )  # gating scalar, (batch_size_t, encoder_dim)
             attention_weighted_encoding = gate * attention_weighted_encoding
             # print("real emb shape", embeddings.shape)
-            print("shape emb help", embeddings[:batch_size_t, t, :].shape)
+            # print("shape emb help", embeddings[:batch_size_t, t, :].shape)
             # print("shape aw help", attention_weighted_encoding.shape)
             h, c = self.decode_step(    
                 torch.cat(
@@ -442,7 +442,7 @@ class MyDecoderWithAttention(nn.Module):
         """Samples SMILES tockens for given  features (Greedy search)."""
         k = 1
         k_prev_words = torch.LongTensor([[self.vocab.word2idx['<start>']]] * k).to(self.device) 
-        h, c = decoder.init_hidden_state(features)
+        h, c = self.init_hidden_state(features)
 
         sampled_ids = []
         inputs = features.unsqueeze(1)
