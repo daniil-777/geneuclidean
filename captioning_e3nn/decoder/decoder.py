@@ -451,7 +451,7 @@ class MyDecoderWithAttention(nn.Module):
 
             awe, alpha = self.attention(features, h)  # (s, encoder_dim), (s, num_pixels) - we give to Attention the same features
 
-            alpha = alpha.view(-1, enc_image_size, enc_image_size)  # (s, enc_image_size, enc_image_size)
+            # alpha = alpha.view(-1, enc_image_size, enc_image_size)  # (s, enc_image_size, enc_image_size)
             
             gate = self.sigmoid(decoder.f_beta(h))  # gating scalar, (s, encoder_dim)
             awe = gate * awe
