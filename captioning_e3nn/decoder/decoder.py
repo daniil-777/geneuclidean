@@ -351,7 +351,9 @@ class MyDecoderWithAttention(nn.Module):
         h, c = self.init_hidden_state(features)
         # features = features.long()
         sampled_ids = []
-        # features = features.unsqueeze(0)
+        
+        features = features.unsqueeze(1)
+        print("shape feat", features.shape)
         inputs = features.long()
         for i in range(self.max_seg_length):
             embeddings = self.embedding(inputs).squeeze(
