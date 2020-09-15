@@ -365,6 +365,8 @@ class MyDecoderWithAttention(nn.Module):
             )  # (s, embed_dim)  ?why should we alos use it???
             print("embed shape", embeddings.shape)
             print("h shape", h.shape)
+            features.squeeze(1)
+            features.unsqueeze(0)
             awe, alpha = self.attention(
                 features, h
             )  # (s, encoder_dim), (s, num_pixels) - we give to Attention the same features
