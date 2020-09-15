@@ -367,6 +367,7 @@ class MyDecoderWithAttention(nn.Module):
             print("h shape", h.shape)
             features.squeeze(1)
             features.unsqueeze(0)
+            print("feat shape before att", features.shape)
             awe, alpha = self.attention(
                 features, h
             )  # (s, encoder_dim), (s, num_pixels) - we give to Attention the same features
