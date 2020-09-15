@@ -181,7 +181,6 @@ class MyDecoderWithAttention(nn.Module):
         attention_dim,
         embed_dim,
         decoder_dim,
-        vocab,
         vocab_size,
         vocab_path,
         encoder_dim=512,
@@ -202,7 +201,6 @@ class MyDecoderWithAttention(nn.Module):
         self.attention_dim = attention_dim
         self.embed_dim = embed_dim
         self.decoder_dim = decoder_dim
-        self.vocab = vocab
         self.vocab_size = vocab_size
         self.dropout = dropout
         self.max_seg_length = MAX_Length
@@ -439,10 +437,10 @@ class MyDecoderWithAttention(nn.Module):
  
     
 
-    def sample_prob(self, features, vocab, states=None):
+    def sample_prob(self, features, states=None):
         """Samples SMILES tockens for given  features (Greedy search)."""
         k = 1
-        k_prev_words = torch.LongTensor([[vocab.word2idx['<start>']]] * k).to(device) 
+        k_prev_words = torch.LongTensor([[self.vocab.word2idx['<start>']]] * k).to(device) 
         h, c = decoder.init_hidden_state(features)
 
         sampled_ids = []
