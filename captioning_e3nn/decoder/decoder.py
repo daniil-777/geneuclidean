@@ -381,7 +381,7 @@ class MyDecoderWithAttention(nn.Module):
             # s is a batch_size_t since we do not have a batch of images, we have just one image
             # and we want to find several words.
             h, c = self.decode_step(
-                torch.cat([embeddings, awe], dim=0), (h, c)
+                torch.cat([embeddings, awe], dim=1), (h, c)
             )  # (s, decoder_dim)
 
             scores = self.fc(h)  # (s, vocab_size)
