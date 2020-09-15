@@ -183,9 +183,9 @@ class MyDecoderWithAttention(nn.Module):
         decoder_dim,
         vocab,
         vocab_size,
+        vocab_path,
         encoder_dim=512,
         dropout=0.5,
-        vocab_path,
         device=DEVICE,
     ):
         """

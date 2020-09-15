@@ -33,9 +33,10 @@ model:
     embed_dim: 100
     decoder_dim: 100
     vocab_size: 32
+    vocab_path: ../data/vocab.pkl
     encoder_dim: 100
     dropout: 0.9
-    vocab_path: ../data/vocab.pkl
+    
   
 
 model_params: 
