@@ -60,7 +60,7 @@ def constants(geometry, mask):
 
 
 class Network(torch.nn.Module):
-    def __init__(self,  max_rad, num_basis, n_neurons, n_layers, beta, rad_model,
+    def __init__(self,  max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
                  embed, l0,   L, scalar_act_name, gate_act_name, natoms, mlp_h, Out, aggregation_mode):
         super().__init__()
         self.natoms = natoms #286
@@ -83,7 +83,7 @@ class Network(torch.nn.Module):
             self.atom_pool =  Aggregate(axis=1, mean=False)
         elif aggregation_mode == "avg":
             self.atom_pool =  Aggregate(axis=1, mean=True)
-        qm9_max_z = 6
+        self.num_embeddings = 6
         self.RadialModel = partial(
             CosineBasisModel,
             max_radius=max_rad,
@@ -101,7 +101,7 @@ class Network(torch.nn.Module):
             kc = self.kernel_conv(Rs_in, act.Rs_in)
             return torch.nn.ModuleList([kc, act])
 
-        self.layers = torch.nn.ModuleList([torch.nn.Embedding(qm9_max_z, embed, padding_idx=5)])
+        self.layers = torch.nn.ModuleList([torch.nn.Embedding(self.num_embeddings, embed, padding_idx=5)])
         self.layers += [make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])]
         self.leakyrelu = nn.LeakyReLU(0.2) # Relu
         self.e_out_1 = nn.Linear(mlp_h, mlp_h)
