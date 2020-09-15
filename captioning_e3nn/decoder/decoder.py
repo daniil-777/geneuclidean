@@ -353,6 +353,7 @@ class MyDecoderWithAttention(nn.Module):
         sampled_ids = []
         
         features = features.unsqueeze(1)
+        features = features.unsqueeze(0)
         print("shape feat", features.shape)
         inputs = features.long()
         for i in range(self.max_seg_length):
