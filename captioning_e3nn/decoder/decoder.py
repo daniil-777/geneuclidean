@@ -349,7 +349,7 @@ class MyDecoderWithAttention(nn.Module):
         # features = features.long()
         sampled_ids = []
         features = features.unsqueeze(0)
-        inputs = features.long().unsqueeze(0)
+        inputs = features.long()
         for i in range(self.max_seg_length):
             embeddings = self.embedding(inputs).squeeze(
                 1
