@@ -346,9 +346,9 @@ class MyDecoderWithAttention(nn.Module):
         """Samples SMILES tockens for given  features (Greedy search).
         """
         h, c = self.init_hidden_state(features)
-        features = features.long()
+        # features = features.long()
         sampled_ids = []
-        inputs = features.unsqueeze(1)
+        inputs = features.long().unsqueeze(1)
         for i in range(self.max_seg_length):
             embeddings = self.embedding(inputs).squeeze(
                 1
