@@ -123,12 +123,12 @@ class Trainer_Attention():
             # Forward, backward and optimize
             feature = encoder(features, geometry, masks)
             # outputs = decoder(feature, captions, lengths)
-            print("len of lengths", lengths.shape)
+     
             scores, caps_sorted, decode_lengths = decoder(feature, captions, lengths)
 
         # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
             targets = caps_sorted[:, 1:]
-            print("len of decode_lengths", decode_lengths.shape)
+    
             scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0]
             targets = pack_padded_sequence(targets, decode_lengths, batch_first=True)[0]
 
