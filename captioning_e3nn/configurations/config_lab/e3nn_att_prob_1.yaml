@@ -3,10 +3,10 @@ preprocessing:
   collate_fn: masks
 training_params:
   mode: attention
-  log_step: 1
-  save_step: 1
-  encoder_name: best_test/encoder_best.ckpt
-  decoder_name: best_test/decoder_best.ckpt
+  log_step: 10
+  save_step: 10
+  encoder_name: best_test/encoder-0-32-500.ckpt
+  decoder_name: best_test/decoder-0-32-500.ckpt
   n_splits: 5
 model:
   encoder: network1
@@ -57,9 +57,9 @@ output_parameters:
 
 
 sampling_params: 
-  sampling: beam
+  sampling: probabilistic
   sample_id: 15
-  number_smiles: 1
+  number_smiles: 30
   time_waiting: 1200
   type_fold: O
   id_fold: 0
