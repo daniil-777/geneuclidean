@@ -352,7 +352,7 @@ class MyDecoderWithAttention(nn.Module):
         scores = pack_padded_sequence(
             predictions, decode_lengths, batch_first=True
         )  #!!! shape [padded_length, voc] do that like with simple version
-        return scores.data  # , encoded_captions, decode_lengths, alphas, sort_ind
+        return scores.data, encoded_captions, decode_lengths  # , encoded_captions, decode_lengths, alphas, sort_ind
 
     def sample_prob_1(self, features, states=None, device=DEVICE):
         """Samples SMILES tockens for given  features (Greedy search).
