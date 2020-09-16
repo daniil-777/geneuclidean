@@ -309,7 +309,7 @@ class MyDecoderWithAttention(nn.Module):
 
         # We won't decode at the <end> position, since we've finished generating as soon as we generate <end>
         # So, decoding lengths are actual lengths - 1
-        decode_lengths = (caption_lengths).tolist()  # maybe just caption_lengths
+        decode_lengths = (caption_lengths - 1).tolist()  # maybe just caption_lengths
         # Create tensors to hold word predicion scores and alphas
         predictions = torch.zeros(batch_size, max(decode_lengths), vocab_size).to(
             device
