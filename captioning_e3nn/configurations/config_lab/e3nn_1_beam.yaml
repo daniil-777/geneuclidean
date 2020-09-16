@@ -22,7 +22,7 @@ model:
     L: 2
     scalar_act_name:  sp
     gate_act_name: sigmoid
-    avg_n_atoms: 286
+    natoms: 286
     mlp_h: 50
     Out: 1
     aggregation_mode: avg
