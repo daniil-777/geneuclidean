@@ -124,7 +124,7 @@ class DecoderRNN(nn.Module):
         sampled_ids = torch.stack(sampled_ids, 1)
         return sampled_ids
 
-    def sample_beam_search(self, features):
+    def sample_beam_search(self, features, states=None):
         """
         Reads an image and captions it with beam search.
 
