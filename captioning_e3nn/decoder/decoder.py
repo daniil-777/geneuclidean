@@ -560,7 +560,7 @@ class MyDecoderWithAttention(nn.Module):
         # # We'll treat the problem as having a batch size of k
         shape_1 = features.shape[0]
         shape_2 = features.shape[1]
-        features = features.expand(k, shape_1) ##? check tomorrow!!!
+        features = features.expand(k, shape_2) ##? check tomorrow!!!
         # encoder_out = encoder_out.expand(k, num_pixels, encoder_dim)  # (k, num_pixels, encoder_dim)
 
         # Tensor to store top k previous words at each step; now they're just <start>
