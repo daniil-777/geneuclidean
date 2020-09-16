@@ -1,0 +1,65 @@
+preprocessing:
+  mask: True
+  collate_fn: masks
+training_params:
+  mode: no_attention
+  log_step: 10
+  save_step: 10
+  encoder_name: encoder-0-99-900.ckpt
+  decoder_name: decoder-0-99-900.ckpt
+  n_splits: 5
+model:
+  encoder: network1
+  encoder_kwargs:
+    max_rad: 2
+    num_basis: 50
+    n_neurons: 80
+    n_layers: 2
+    beta: 5
+    rad_model: gaussian
+    embed: 10
+    l0: 10
+    L: 2
+    scalar_act_name:  sp
+    gate_act_name: sigmoid
+    avg_n_atoms: 286
+    mlp_h: 50
+    Out: 1
+    aggregation_mode: avg
+
+  decoder: lstm
+  decoder_kwargs:
+    vocab_size: 32
+    vocab_path: ../data/vocab.pkl
+    embed_size: 100
+    hidden_size: 100
+    num_layers: 1
+    beam_size: 3
+    
+model_params: 
+  model_name: "e3nn"
+  num_epochs: 100
+  batch_size: 4
+  n_splits: 5
+  num_workers: 1
+  learning_rate: 0.001
+  input_channels: 22
+  feature_type: with_labels
+  representations: [(23,), (2, 2), (4, 4), (10,)]
+
+
+output_parameters: 
+  savedir: ../results/captioning_results/e3nn_1
+
+
+sampling_params: 
+  sampling: beam
+  sample_id: 15
+  number_smiles: 30
+  time_waiting: 2000
+  type_fold: O
+  id_fold: 0
+  folds: ../results/captioning_results/e3nn_1/logs/idx/test_idx_0
+  file_stat: 0_fold_stat.csv
+  sampling_data: train
+  name_all_stat: all_stat_train.csv

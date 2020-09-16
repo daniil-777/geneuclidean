@@ -111,9 +111,9 @@ class Sampler():
         # self.encoder_path, self.decoder_path = self._get_model_path()
         self.encoder, self.decoder = config.eval_model_captioning(self.cfg, encoder_path, decoder_path, device = self.device)
         self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(self.idx_fold))
-        # with (open(self.file_folds, "rb")) as openfile:
-        #     idx_proteins = pickle.load(openfile)
-        idx_proteins = [1,2,3,4]
+        with (open(self.file_folds, "rb")) as openfile:
+            idx_proteins = pickle.load(openfile)
+        # idx_proteins = [1,2,3,4]
         files_refined = os.listdir(self.protein_dir)
         idx_all = [i for i in range(len(files_refined) - 3)]
         #take indx of proteins in the training set
@@ -242,7 +242,7 @@ class Sampler():
         
         if (amount_val_smiles > 0):
             # save_dir_analysis = os.path.join(save_dir_smiles, str(id_fold), protein_name)
-            stat_protein = analysis_to_csv_test(smiles,  protein_name, self.idx_fold, self.type_fold) #get the list of lists of statistics
+            stat_protein = analysis_to_csv(smiles,  protein_name, self.idx_fold, self.type_fold) #get the list of lists of statistics
             # stat_protein = np.transpose(np.vstack((stat_protein, np.asarray(amount_val_smiles * [amount_val_smiles /iter]))))
             stat_protein.append(amount_val_smiles * [amount_val_smiles /iter])
             stat_protein.append(amount_val_smiles * [self.sampling])
