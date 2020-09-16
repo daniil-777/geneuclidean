@@ -188,10 +188,10 @@ class Trainer_Attention():
                 print("The best loss " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1))
                 self.log_file.write("The best loss " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1) + "\n")
                 self.encoder_best_name =  os.path.join(
-                        self.model_path, "encoder_best" + str(split_no) + ".ckpt"
+                        self.model_path, "encoder_best_" + str(split_no) + ".ckpt"
                     )
                 self.decoder_best_name =  os.path.join(
-                        self.model_path, "decoder_best" + str(split_no) + ".ckpt")
+                        self.model_path, "decoder_best_" + str(split_no) + ".ckpt")
                 torch.save(
                     encoder.state_dict(),
                     self.encoder_best_name,
