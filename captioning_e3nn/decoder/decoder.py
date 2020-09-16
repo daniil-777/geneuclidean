@@ -349,10 +349,12 @@ class MyDecoderWithAttention(nn.Module):
             predictions[:batch_size_t, t, :] = preds
 
             # alphas[:batch_size_t, t, :] = alpha
-        scores = pack_padded_sequence(
-            predictions, decode_lengths, batch_first=True
-        )  #!!! shape [padded_length, voc] do that like with simple version
-        return scores.data, encoded_captions, decode_lengths  # , encoded_captions, decode_lengths, alphas, sort_ind
+        # scores = pack_padded_sequence(
+        #     predictions, decode_lengths, batch_first=True
+        # )  #!!! shape [padded_length, voc] do that like with simple version
+        return predictions, encoded_captions, decode_lengths  # , encoded_captions, decode_lengths, alphas, sort_ind
+
+
 
     def sample_prob_1(self, features, states=None, device=DEVICE):
         """Samples SMILES tockens for given  features (Greedy search).
