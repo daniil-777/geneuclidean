@@ -34,6 +34,7 @@ from data_loader import get_loader, Pdb_Dataset, collate_fn, collate_fn_masks
 from models_new import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
 # from training.trainer import train_loop, train_loop_mask
 from training.train import Trainer
+from training.train_attention import Trainer_Attention
 # from utils import Utils
 
 # from training.train import Trainer
@@ -51,8 +52,12 @@ def main():
 
 
     cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
-    trainer = Trainer(cfg)
-    trainer.train_epochs()
+    if(cfg['training_params']['mode'] == "no_attention"):
+        trainer = Trainer(cfg)
+        trainer.train_epochs()
+    elif(cfg['training_params']['mode'] == "attention"):
+        trainer = Trainer_Attention(cfg)
+        trainer.train_epochs()
 
 if __name__ == "__main__":
     main()
