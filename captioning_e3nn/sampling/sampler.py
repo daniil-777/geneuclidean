@@ -111,8 +111,9 @@ class Sampler():
         # self.encoder_path, self.decoder_path = self._get_model_path()
         self.encoder, self.decoder = config.eval_model_captioning(self.cfg, encoder_path, decoder_path, device = self.device)
         self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(self.idx_fold))
-        with (open(self.file_folds, "rb")) as openfile:
-            idx_proteins = pickle.load(openfile)
+        # with (open(self.file_folds, "rb")) as openfile:
+        #     idx_proteins = pickle.load(openfile)
+        idx_proteins = [1,2,3,4]
         files_refined = os.listdir(self.protein_dir)
         idx_all = [i for i in range(len(files_refined) - 3)]
         #take indx of proteins in the training set
