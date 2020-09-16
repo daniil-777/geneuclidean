@@ -30,6 +30,7 @@ class DecoderRNN(nn.Module):
         self.init_weights()
         self.beam_size = beam_size
         self.vocab_path = vocab_path
+        self.device = DEVICE
         with open(self.vocab_path, "rb") as f:
             self.vocab = pickle.load(f)
 
