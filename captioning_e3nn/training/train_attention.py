@@ -127,8 +127,8 @@ class Trainer_Attention():
 
         # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
             targets = caps_sorted[:, 1:]
-            scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)
-            targets = pack_padded_sequence(targets, decode_lengths, batch_first=True)
+            scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0]
+            targets = pack_padded_sequence(targets, decode_lengths, batch_first=True)[0]
 
 
             loss = self.criterion(scores, targets)
