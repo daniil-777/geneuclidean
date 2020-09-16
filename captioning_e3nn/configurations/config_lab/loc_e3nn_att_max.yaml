@@ -56,9 +56,9 @@ output_parameters:
 
 
 sampling_params: 
-  sampling: probabilistic
+  sampling: max
   sample_id: 15
-  number_smiles: 10
+  number_smiles: 1
   time_waiting: 60
   type_fold: O
   id_fold: 0
