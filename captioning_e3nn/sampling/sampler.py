@@ -229,7 +229,7 @@ class Sampler():
             if (self.sampling == "probabilistic"):
                 sampled_ids = self.decoder.sample_prob(feature)
             elif (self.sampling == "max"):
-                sampled_ids = self.decoder.sample(feature)
+                sampled_ids = self.decoder.sample_max(feature)
             else:
                 sampled_ids = self.decoder.sample_beam_search(feature)
     
