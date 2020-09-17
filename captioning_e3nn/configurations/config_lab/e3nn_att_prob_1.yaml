@@ -5,8 +5,8 @@ training_params:
   mode: attention
   log_step: 10
   save_step: 10
-  encoder_name: best_test/encoder-0-32-500.ckpt
-  decoder_name: best_test/decoder-0-32-500.ckpt
+  encoder_name: encoder_best_0.ckpt
+  decoder_name: decoder_best_0.ckpt
   n_splits: 5
 model:
   encoder: network1
