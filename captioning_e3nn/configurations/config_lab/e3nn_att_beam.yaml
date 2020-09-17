@@ -5,8 +5,8 @@ training_params:
   mode: attention
   log_step: 1
   save_step: 1
-  encoder_name: best_test/encoder_best.ckpt
-  decoder_name: best_test/decoder_best.ckpt
+  encoder_name: encoder_best_0.ckpt
+  decoder_name: decoder_best_0.ckpt
   n_splits: 5
 model:
   encoder: network1
@@ -66,4 +66,4 @@ sampling_params:
   folds: ../results/captioning_results/e3nn_1/logs/idx/test_idx_0
   file_stat: 0_fold_stat.csv
   sampling_data: test
-  name_all_stat: all_stat_train.csv
+  name_all_stat: all_stat_trai.csv
