@@ -64,7 +64,7 @@ output_parameters:
 sampling_params: 
   sampling: probabilistic
   sample_id: 15
-  number_smiles: 30
+  number_smiles: 3
   time_waiting: 2000
   type_fold: random
   id_fold: 0

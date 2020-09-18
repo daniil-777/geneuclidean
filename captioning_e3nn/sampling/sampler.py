@@ -57,7 +57,7 @@ class Sampler():
         # self.file_folds = cfg["sampling_params"]["folds"]
         
         # self.file_folds = os.path.join()
-        self.name_file_stat = self.sampling + "_" + cfg["sampling_params"]["name_all_stat"] 
+    
         # model params
         self.num_epochs = cfg['model_params']['num_epochs']
         self.batch_size = cfg['model_params']['batch_size']
@@ -110,6 +110,7 @@ class Sampler():
     def analysis_cluster(self, split_no, encoder_path, decoder_path):
         # encoder, decoder = self._get_model_path(idx_fold)
         self.idx_fold = split_no
+        self.name_file_stat = self.sampling + "_" + self.idx_fold + "_" cfg["sampling_params"]["name_all_stat"] 
         # self.encoder_path, self.decoder_path = self._get_model_path()
         self.encoder, self.decoder = config.eval_model_captioning(self.cfg, encoder_path, decoder_path, device = self.device)
         self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(self.idx_fold))
@@ -261,7 +262,7 @@ class Sampler():
         
         if (amount_val_smiles > 0):
             # save_dir_analysis = os.path.join(save_dir_smiles, str(id_fold), protein_name)
-            stat_protein = analysis_to_csv(smiles,  protein_name, self.idx_fold, self.type_fold) #get the list of lists of statistics
+            stat_protein = analysis_to_csv_test(smiles,  protein_name, self.idx_fold, self.type_fold) #get the list of lists of statistics
             # stat_protein = np.transpose(np.vstack((stat_protein, np.asarray(amount_val_smiles * [amount_val_smiles /iter]))))
             stat_protein.append(amount_val_smiles * [amount_val_smiles /iter])
             stat_protein.append(amount_val_smiles * [self.sampling])
