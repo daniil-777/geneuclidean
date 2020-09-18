@@ -38,7 +38,7 @@ class Pdb_Dataset(Dataset):
         ##################refined files###################
         self.files_refined = os.listdir(self.init_refined)
         self.files_refined.sort()
-        self.files_refined.remove(".DS_Store")
+        # self.files_refined.remove(".DS_Store")
         ##################################################
         self.len_files = len(self.files_refined)
         ###################core files#####################
