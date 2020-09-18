@@ -71,7 +71,7 @@ class Splitter:
         with open(os.path.join(self.idx_file, self.name_file_folds), 'wb') as fp:
             pickle.dump(my_list, fp)
         
-    if __name__ == "__main__"
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -85,7 +85,7 @@ def main():
     cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
     
     splitter = Splitter(cfg)
-    
+
     if(cfg['splitting']['split'] == 'random'):
         splitter._get_random_split()
 
