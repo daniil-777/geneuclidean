@@ -207,7 +207,6 @@ class Trainer_Fold():
 
         #cross validation
         kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=2)
-        my_list = list(kf.split(data_ids))
         idx_folds = pickle.load( open(os.path.join(self.idx_file, self.name_file_folds), "rb" ) )
         split_no = self.fold_number
         test_idx = []
