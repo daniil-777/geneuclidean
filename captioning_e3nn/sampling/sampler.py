@@ -110,7 +110,7 @@ class Sampler():
     def analysis_cluster(self, split_no, encoder_path, decoder_path):
         # encoder, decoder = self._get_model_path(idx_fold)
         self.idx_fold = split_no
-        self.name_file_stat = self.sampling + "_" + self.idx_fold + "_" cfg["sampling_params"]["name_all_stat"] 
+        self.name_file_stat = self.sampling + "_" + str(self.idx_fold) + "_" + cfg["sampling_params"]["name_all_stat"] 
         # self.encoder_path, self.decoder_path = self._get_model_path()
         self.encoder, self.decoder = config.eval_model_captioning(self.cfg, encoder_path, decoder_path, device = self.device)
         self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(self.idx_fold))
