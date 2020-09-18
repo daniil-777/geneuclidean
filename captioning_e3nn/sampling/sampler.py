@@ -57,7 +57,7 @@ class Sampler():
         # self.file_folds = cfg["sampling_params"]["folds"]
         
         # self.file_folds = os.path.join()
-        self.name_file_stat = cfg["sampling_params"]["name_all_stat"] + "_" + self.sampling
+        self.name_file_stat = self.sampling + "_" + cfg["sampling_params"]["name_all_stat"] 
         # model params
         self.num_epochs = cfg['model_params']['num_epochs']
         self.batch_size = cfg['model_params']['batch_size']
