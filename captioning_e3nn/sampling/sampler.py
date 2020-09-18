@@ -93,11 +93,11 @@ class Sampler():
         self.name_all_statistics = cfg['sampling_params']['name_all_stat']
         self.file_all_stat = open(os.path.join(self.save_dir_smiles, self.name_all_statistics), "w")
         # self.file_statistics = file_statistics
+    
+        # self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "w")
+        # #the file of the whole stat
+        # self.file_statistics.write("name,fold,type_fold,orig_smile,gen_smile,gen_NP,gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity,orig_NP,orig_logP,orig_sa,orig_qed,orig_weight,frequency,sampling,encoder,decoder" +  "\n")
         # self.file_statistics.flush()
-        self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "w")
-        #the file of the whole stat
-        self.file_statistics.write("name,fold,type_fold,orig_smile,gen_smile,gen_NP,gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity,orig_NP,orig_logP,orig_sa,orig_qed,orig_weight,frequency,sampling,encoder,decoder" +  "\n")
-        self.file_statistics.flush()
 
         with open(self.vocab_path, "rb") as f:
             self.vocab = pickle.load(f)
@@ -111,6 +111,10 @@ class Sampler():
         # encoder, decoder = self._get_model_path(idx_fold)
         self.idx_fold = split_no
         self.name_file_stat = self.sampling + "_" + str(self.idx_fold) + "_" + cfg["sampling_params"]["name_all_stat"] 
+        self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "w")
+        #the file of the whole stat
+        self.file_statistics.write("name,fold,type_fold,orig_smile,gen_smile,gen_NP,gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity,orig_NP,orig_logP,orig_sa,orig_qed,orig_weight,frequency,sampling,encoder,decoder" +  "\n")
+        self.file_statistics.flush()
         # self.encoder_path, self.decoder_path = self._get_model_path()
         self.encoder, self.decoder = config.eval_model_captioning(self.cfg, encoder_path, decoder_path, device = self.device)
         self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(self.idx_fold))
