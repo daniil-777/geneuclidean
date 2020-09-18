@@ -1,6 +1,10 @@
 preprocessing:
   mask: True
   collate_fn: masks
+splitting:
+  split: random
+  file_folds: random_split_e3nn_18_09
+  id_fold: 2
 training_params:
   mode: no_attention
   file_folds: data/folds/e3nn_18_09/
