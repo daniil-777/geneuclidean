@@ -9,7 +9,7 @@ from torch.optim.lr_scheduler import ExponentialLR
 # from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from utils import Utils
+
 import argparse
 import sys
 import config
@@ -220,7 +220,8 @@ class Trainer():
         test_idx = []
         # output memory usage
         py3nvml.nvmlInit()
-        sampler = Sampler(self.cfg)
+        sampling = cfg['sampling_params']['sampling']
+        sampler = Sampler(self.cfg, sampling)
  
         train_id, test_id = idx_folds[split_no]
         train_data = data_ids[train_id]
