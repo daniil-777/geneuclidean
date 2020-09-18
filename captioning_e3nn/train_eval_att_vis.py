@@ -61,7 +61,8 @@ def main():
         trainer.train_epochs("beam")
     elif(cfg['training_params']['mode'] == "attention"):
         trainer = Trainer_Attention_Vis(cfg)
-        trainer.train_epochs()
+        trainer.train_epochs("probabilistic")
+        trainer.train_epochs("beam")
 
 if __name__ == "__main__":
     main()
