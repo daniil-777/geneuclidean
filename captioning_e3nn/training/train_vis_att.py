@@ -38,7 +38,7 @@ class Trainer_Attention_Vis():
         self.original_stdout = sys.stdout
         self.cfg = cfg
         self.name_file_folds = cfg['splitting']['file_folds']
-        
+
         self.fold_number = cfg['splitting']['id_fold']
         self.num_epochs = cfg['model_params']['num_epochs']
 
@@ -215,7 +215,7 @@ class Trainer_Attention_Vis():
     def train_epochs(self):
         # get indexes of all complexes and "nick names"
         # Load vocabulary wrapper
-          def train_epochs(self, sampling):
+    
         # get indexes of all complexes and "nick names"
         # Load vocabulary wrapper
 
