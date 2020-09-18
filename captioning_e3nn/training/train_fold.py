@@ -212,7 +212,7 @@ class Trainer_Fold():
         test_idx = []
         # output memory usage
         py3nvml.nvmlInit()
-        sampling = cfg['sampling_params']['sampling']
+        sampling = self.cfg['sampling_params']['sampling']
         sampler = Sampler(self.cfg, sampling)
  
         train_id, test_id = idx_folds[split_no]
