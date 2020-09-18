@@ -196,7 +196,7 @@ class Trainer_Fold():
         self.log_file_tensor.write("\n")
         self.log_file_tensor.flush()
 
-    def train_epochs(self):
+    def train_epochs(self, sampling):
         # get indexes of all complexes and "nick names"
         # Load vocabulary wrapper
 
@@ -212,7 +212,7 @@ class Trainer_Fold():
         test_idx = []
         # output memory usage
         py3nvml.nvmlInit()
-        sampling = self.cfg['sampling_params']['sampling']
+        # sampling = self.cfg['sampling_params']['sampling']
         sampler = Sampler(self.cfg, sampling)
  
         train_id, test_id = idx_folds[split_no]
