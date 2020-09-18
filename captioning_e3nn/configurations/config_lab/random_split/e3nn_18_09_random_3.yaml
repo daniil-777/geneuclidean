@@ -2,6 +2,7 @@ preprocessing:
   mask: True
   collate_fn: masks
 training_params:
+  mode: no_attention
   file_folds: data/folds/e3nn_18_09/
   log_step: 10
   save_step: 10

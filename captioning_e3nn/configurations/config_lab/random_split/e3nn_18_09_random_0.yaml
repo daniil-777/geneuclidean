@@ -6,6 +6,7 @@ splitting:
   file_folds: random_split_e3nn_18_09
 
 training_params:
+  mode: no_attention
   log_step: 10
   save_step: 10
   encoder_name: encoder_best_0.ckpt
