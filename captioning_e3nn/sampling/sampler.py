@@ -248,7 +248,7 @@ class Sampler():
         elif (self.sampling == "beam"):
             features, geometry, masks = self.load_pocket(id)
             feature = self.encoder(features, geometry, masks)
-            self.decoder = self.decoder.float()
+            # self.decoder = self.decoder.float()
             sampled_ids = self.decoder.sample_beam_search(feature)
             for sentence in sampled_ids:
                 iter += 1
