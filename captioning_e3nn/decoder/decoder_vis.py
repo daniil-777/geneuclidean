@@ -377,7 +377,7 @@ class MyDecoderWithAttention_Vis(nn.Module):
         top_k_scores = torch.zeros(k, 1).to(self.device)  # (k, 1)
 
         # Tensor to store top k sequences' alphas; now they're just 1s
-        seqs_alpha = torch.ones(k, 1, enc_image_size, enc_image_size).to(device)  # (k, 1, enc_image_size, enc_image_size)
+        seqs_alpha = torch.ones(k, 1, enc_image_size, enc_image_size).to(self.device)  # (k, 1, enc_image_size, enc_image_size)
 
         # Lists to store completed sequences, their alphas and scores
         complete_seqs = list()
