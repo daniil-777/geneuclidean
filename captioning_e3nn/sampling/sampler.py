@@ -245,6 +245,7 @@ class Sampler():
             feature = self.encoder(features, geometry, masks)
             sampled_ids = self.decoder.sample_beam_search(feature)
             for sentence in sampled_ids:
+                iter += 1
                 idx =  self.printing_smiles(np.asarray(sentence[1:]), smiles)
                 amount_val_smiles += idx
         else:
