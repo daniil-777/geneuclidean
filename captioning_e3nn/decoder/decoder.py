@@ -46,22 +46,18 @@ class DecoderRNN(nn.Module):
         embeddings = self.embed(
             captions
         )  # shape [batch_size, padded_length, embed_size]
-        # print("shape emb", embeddings.shape)
-        # print("features emb", features.shape)
+    
         embeddings = torch.cat(
             (features.unsqueeze(1), embeddings), 1
         )  # shape [batch_size, padded_length + 1, embed_size]
-        # print("shape embeddings", embeddings.shape)
         packed = pack_padded_sequence(
             embeddings, lengths, batch_first=True
         )  # shape [packed_length, embed_size]
-        # print("packed shape", packed.data.shape)
         hiddens, _ = self.lstm(packed)
         outputs = self.linear(hiddens[0])  # shape [packed_length, vocab_size]
-        # print("shape outputs", outputs.shape)
         return outputs
 
-    def sample(self, features, states=None):
+    def sample_max(self, features, states=None):
         """Samples SMILES tockens for given  features (Greedy search).
         """
 
@@ -99,7 +95,6 @@ class DecoderRNN(nn.Module):
                     # print("shape probs_np", probs_np.shape)
 
                 rand_num = np.random.rand(probs_np.shape[0])
-                # print("shape rand_num", rand_num.shape)
                 iter_sum = np.zeros((probs_np.shape[0],))
                 tokens = np.zeros(probs_np.shape[0], dtype=np.int)
             
@@ -116,11 +111,9 @@ class DecoderRNN(nn.Module):
                     predicted = Variable(torch.LongTensor(tokens.astype(np.int)).cuda())
                 else:
                     predicted = Variable(torch.LongTensor(tokens.astype(np.int)))
-            # print("shape predicted", predicted.shape)
             sampled_ids.append(predicted)
             inputs = self.embed(predicted)
             inputs = inputs.unsqueeze(1)
-        # print("shape sampled_ids", len(sampled_ids))
         sampled_ids = torch.stack(sampled_ids, 1)
         return sampled_ids
 
@@ -135,7 +128,7 @@ class DecoderRNN(nn.Module):
         :param beam_size: number of sequences to consider at each decode-step
         :return: caption, weights for visualization
         """
-
+        print("feat shape init", features.shape)
         k = self.beam_size
         vocab_size = len(self.vocab)
 
@@ -143,7 +136,8 @@ class DecoderRNN(nn.Module):
         shape_1 = features.shape[0]
         shape_2 = features.shape[1]
         # inputs = features.unsqueeze(1)
-        features = features.expand(k, shape_2) ##? check tomorrow!!!
+        inputs  = features.expand(k, shape_2) ##? check tomorrow!!!
+        inputs = inputs.unsqueeze(1)
         # encoder_out = encoder_out.expand(k, num_pixels, encoder_dim)  # (k, num_pixels, encoder_dim)
 
         # Tensor to store top k previous words at each step; now they're just <start>
@@ -168,30 +162,25 @@ class DecoderRNN(nn.Module):
     
         # s is a number less than or equal to k, because sequences are removed from this process once they hit <end>
         while True:
-        
-            # embeddings = self.embedding(k_prev_words).squeeze(1)  # (s, embed_dim)  ?why should we alos use it???
-
-            # awe, alpha = self.attention(features, h)  # (s, encoder_dim), (s, num_pixels)
-
-            # # alpha = alpha.view(-1, enc_image_size, enc_image_size)  # (s, enc_image_size, enc_image_size)
-            
-            # gate = self.sigmoid(self.f_beta(h))  # gating scalar, (s, encoder_dim)
-            # awe = gate * awe
-            # #s is a batch_size_t since we do not have a batch of images, we have just one image
-            # # and we want to find several words. 
-            # h, c = self.decode_step(torch.cat([embeddings, awe], dim=1), (h, c))  # (s, decoder_dim)
-
-            h, c = self.lstm(features, states)
+            if step == 1:
+                h, states = self.lstm(inputs, states)
+            else:
+               # h, states = self.lstm(inputs, (h, states))
+                h, states = self.lstm(inputs, states)
+           # h, states = self.lstm(inputs,  states)
+           # print("states usual")
             scores = self.linear(h.squeeze(1))
-            scores = F.log_softmax(scores, dim=1)
-            scores = top_k_scores.expand_as(scores) + scores  # (s, vocab_size)
+            scores = F.softmax(scores, dim=1)
+            # print("scores", scores)
+           scores = top_k_scores.expand_as(scores) + scores  # (s, vocab_size)
+           # print("scores", scores)
             # For the first step, all k points will have the same scores (since same k previous words, h, c)
             if step == 1:
-                top_k_scores, top_k_words = scores[0].topk(k, 0, True, True)  # (s)
+              top_k_scores, top_k_words = scores[0].topk(k, 0, True, True)  # (s)
             else:
                 # Unroll and find top scores, and their unrolled indices
-                top_k_scores, top_k_words = scores.view(-1).topk(k, 0, True, True)  # (s)
-
+              top_k_scores, top_k_words = scores.view(-1).topk(k, 0, True, True)  # (s)
+        
             # Convert unrolled indices to actual indices of scores
             prev_word_inds = top_k_words / vocab_size  # (s)
             next_word_inds = top_k_words % vocab_size  # (s)
@@ -205,7 +194,7 @@ class DecoderRNN(nn.Module):
             incomplete_inds = [ind for ind, next_word in enumerate(next_word_inds) if
                             next_word != self.vocab.word2idx['<end>']]
             complete_inds = list(set(range(len(next_word_inds))) - set(incomplete_inds))
-
+        
             # Set aside complete sequences
             if len(complete_inds) > 0:
                 complete_seqs.extend(seqs[complete_inds].tolist())
@@ -217,26 +206,26 @@ class DecoderRNN(nn.Module):
             if k == 0:
                 break
             seqs = seqs[incomplete_inds]
-            # seqs_alpha = seqs_alpha[incomplete_inds]
+           # print("h", h)
             h = h[prev_word_inds[incomplete_inds]]
-            c = c[prev_word_inds[incomplete_inds]]
-            features = features[prev_word_inds[incomplete_inds]]
+            states = (states[0][:, prev_word_inds[incomplete_inds]], states[1][:, prev_word_inds[incomplete_inds]])
+           # print("shape states in end", states[0].shape)
+           # print("states in the end")
             top_k_scores = top_k_scores[incomplete_inds].unsqueeze(1)
             k_prev_words = next_word_inds[incomplete_inds].unsqueeze(1)
-
+            inputs = self.embed(k_prev_words)
             # Break if things have been going on too long
             if step > MAX_Length:
                 break
             step += 1
         i = complete_seqs_scores.index(max(complete_seqs_scores))
         seq = complete_seqs[i]
-        # alphas = complete_seqs_alpha[i]
-
-        return seq
-
+        return complete_seqs
+    
 
 
 class My_attention(nn.Module):
+
     """
     Attention Network.
     """
@@ -301,6 +290,7 @@ class MyDecoderWithAttention(nn.Module):
         vocab_path,
         encoder_dim=512,
         dropout=0.5,
+        beam_size=3,
         device=DEVICE,
     ):
         """
@@ -344,6 +334,7 @@ class MyDecoderWithAttention(nn.Module):
         )  # linear layer to find scores over vocabulary
         self.init_weights()  # initialize some layers with the uniform distribution
         self.vocab_path = vocab_path
+        self.beam_size = beam_size
         with open(self.vocab_path, "rb") as f:
             self.vocab = pickle.load(f)
  
@@ -441,8 +432,6 @@ class MyDecoderWithAttention(nn.Module):
         # sequence at the t-th place (we put an array of vocab length there)
         for t in range(max(decode_lengths)):
             batch_size_t = sum([l > t for l in decode_lengths])
-            # print("shape encoder_out att", encoder_out[:batch_size_t].shape)
-            # print("shape h att", h[:batch_size_t].shape)
             attention_weighted_encoding, alpha = self.attention(
                 encoder_out[:batch_size_t], h[:batch_size_t]
             )
@@ -450,9 +439,6 @@ class MyDecoderWithAttention(nn.Module):
                 self.f_beta(h[:batch_size_t])
             )  # gating scalar, (batch_size_t, encoder_dim)
             attention_weighted_encoding = gate * attention_weighted_encoding
-            # print("real emb shape", embeddings.shape)
-            # print("shape emb help", embeddings[:batch_size_t, t, :].shape)
-            # print("shape aw help", attention_weighted_encoding.shape)
             h, c = self.decode_step(    
                 torch.cat(
                     [embeddings[:batch_size_t, t, :], attention_weighted_encoding],
@@ -463,97 +449,11 @@ class MyDecoderWithAttention(nn.Module):
             preds = self.fc(self.dropout(h))  # (batch_size_t, vocab_size)
             predictions[:batch_size_t, t, :] = preds
 
-            # alphas[:batch_size_t, t, :] = alpha
-        # scores = pack_padded_sequence(
-        #     predictions, decode_lengths, batch_first=True
-        # )  #!!! shape [padded_length, voc] do that like with simple version
         return predictions, encoded_captions, decode_lengths  # , encoded_captions, decode_lengths, alphas, sort_ind
 
 
 
-    def sample_prob_1(self, features, states=None, device=DEVICE):
-        """Samples SMILES tockens for given  features (Greedy search).
-        """
-        k_prev_words = torch.LongTensor([[word_map['<start>']]] * k).to(device)  # (k, 1)
-        h, c = self.init_hidden_state(features)
-        # features = features.long()
-        sampled_ids = []
-        
-        features = features.squeeze(0)
-        features = features.unsqueeze(1)
-        print("shape feat", features.shape)
-        inputs = features.long()
-        for i in range(self.max_seg_length):
-            embeddings = self.embedding(inputs).squeeze(
-                1
-            )  # (s, embed_dim)  ?why should we alos use it???
-            print("embed shape", embeddings.shape)
-            print("h shape", h.shape)
-            features = features.permute(1,0)
-            print("feat shape before att", features.shape)
-            awe, alpha = self.attention(
-                features, h
-            )  # (s, encoder_dim), (s, num_pixels) - we give to Attention the same features
-            print("awe shape", awe.shape)
 
-            # alpha = alpha.view(
-            #     -1, enc_image_size, enc_image_size
-            # )  # (s, enc_image_size, enc_image_size)
-
-            gate = self.sigmoid(self.f_beta(h))  # gating scalar, (s, encoder_dim)
-            awe = gate * awe
-            # s is a batch_size_t since we do not have a batch of images, we have just one image
-            # and we want to find several words.
-            h, c = self.decode_step(
-                torch.cat([embeddings, awe], dim=1), (h, c)
-            )  # (s, decoder_dim)
-
-            scores = self.fc(h)  # (s, vocab_size)
-            # predicted = scores.max(1)[1]  # check that
-            #  k_prev_words = (
-            #     predicted  # now we have predicted word and give it to the next lastm
-            # )
-            if i == 0:
-                predicted = scores.max(1)[1]
-            else:
-                probs = F.softmax(scores, dim=1)
-
-                # Probabilistic sample tokens
-                if probs.is_cuda:
-                    probs_np = probs.data.cpu().numpy()
-                else:
-                    probs_np = probs.data.numpy()
-                    # print("shape probs_np", probs_np.shape)
-
-                rand_num = np.random.rand(probs_np.shape[0])
-                # print("shape rand_num", rand_num.shape)
-                iter_sum = np.zeros((probs_np.shape[0],))
-                tokens = np.zeros(probs_np.shape[0], dtype=np.int)
-            
-                for i in range(probs_np.shape[1]):
-                    c_element = probs_np[:, i]
-                    iter_sum += c_element
-                    valid_token = rand_num < iter_sum
-                    update_indecies = np.logical_and(valid_token,
-                                                     np.logical_not(tokens.astype(np.bool)))
-                    tokens[update_indecies] = i
-
-                # put back on the GPU.
-                if probs.is_cuda:
-                    predicted = Variable(torch.LongTensor(tokens.astype(np.int)).cuda())
-                else:
-                    predicted = Variable(torch.LongTensor(tokens.astype(np.int)))
-            # print("shape predicted", predicted.shape)
-            sampled_ids.append(predicted)
-            inputs = self.embed(predicted)
-            inputs = inputs.unsqueeze(1)
-        # print("shape sampled_ids", len(sampled_ids))
-        sampled_ids = torch.stack(sampled_ids, 1)
-        return sampled_ids
-
-
- 
-    
 
     def sample_max(self, features, states=None):
         """Samples SMILES tockens for given  features (Greedy search)."""
@@ -650,7 +550,7 @@ class MyDecoderWithAttention(nn.Module):
         sampled_ids = torch.stack(sampled_ids, 1) 
         return sampled_ids
 
-    def sample_beam_search(self, features, beam_size=3):
+    def sample_beam_search(self, features):
         """
         Reads an image and captions it with beam search.
 
@@ -662,12 +562,8 @@ class MyDecoderWithAttention(nn.Module):
         :return: caption, weights for visualization
         """
 
-        k = beam_size
+        k = self.beam_size
         vocab_size = len(self.vocab)
-
-      
-
-
         # # Flatten encoding
         # encoder_out = encoder_out.view(1, -1, encoder_dim)  # (1, num_pixels, encoder_dim)
         # num_pixels = encoder_out.size(1)
@@ -719,14 +615,15 @@ class MyDecoderWithAttention(nn.Module):
             #!!!!!!!!!!!!!!!!!!!# choose the highest score here
             # Add
             scores = top_k_scores.expand_as(scores) + scores  # (s, vocab_size)
-
+           # print("scores", scores)
             # For the first step, all k points will have the same scores (since same k previous words, h, c)
             if step == 1:
                 top_k_scores, top_k_words = scores[0].topk(k, 0, True, True)  # (s)
             else:
                 # Unroll and find top scores, and their unrolled indices
                 top_k_scores, top_k_words = scores.view(-1).topk(k, 0, True, True)  # (s)
-
+           # print("top_scores", top_k_scores)
+           # print("top k words", top_k_words)
             # Convert unrolled indices to actual indices of scores
             prev_word_inds = top_k_words / vocab_size  # (s)
             next_word_inds = top_k_words % vocab_size  # (s)
@@ -739,9 +636,13 @@ class MyDecoderWithAttention(nn.Module):
             # Which sequences are incomplete (didn't reach <end>)?
             incomplete_inds = [ind for ind, next_word in enumerate(next_word_inds) if
                             next_word != self.vocab.word2idx['<end>']]
+           # print("end idx", self.vocab.word2idx['<end>'])
+           # print("incomp inds", incomplete_inds)
             complete_inds = list(set(range(len(next_word_inds))) - set(incomplete_inds))
+           # print("comp inds", complete_inds)
 
             # Set aside complete sequences
+           # print("seqs", seqs)
             if len(complete_inds) > 0:
                 complete_seqs.extend(seqs[complete_inds].tolist())
                 # complete_seqs_alpha.extend(seqs_alpha[complete_inds].tolist())
@@ -753,6 +654,7 @@ class MyDecoderWithAttention(nn.Module):
                 break
             seqs = seqs[incomplete_inds]
             # seqs_alpha = seqs_alpha[incomplete_inds]
+           # print("prev_word_inds[incomplete_inds]", prev_word_inds[incomplete_inds])
             h = h[prev_word_inds[incomplete_inds]]
             c = c[prev_word_inds[incomplete_inds]]
             features = features[prev_word_inds[incomplete_inds]]
@@ -763,9 +665,15 @@ class MyDecoderWithAttention(nn.Module):
             if step > MAX_Length:
                 break
             step += 1
-
-        i = complete_seqs_scores.index(max(complete_seqs_scores))
-        seq = complete_seqs[i]
-        # alphas = complete_seqs_alpha[i]
-
-        return seq
+        if (len(complete_seqs_scores) > 0):
+            i = complete_seqs_scores.index(max(complete_seqs_scores))
+            seq = complete_seqs[i]
+            # print("more than zero")
+            return complete_seqs
+        else:
+            # print("zero")
+            return seqs.cpu()
+       # i = complete_seqs_scores.index(max(complete_seqs_scores))
+       # seq = complete_seqs[i]
+       # alphas = complete_seqs_alpha[i]
+       # return seq

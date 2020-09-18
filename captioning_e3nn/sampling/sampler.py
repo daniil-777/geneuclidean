@@ -171,7 +171,7 @@ class Sampler():
         if m is None or sentence == '' or sentence.isspace() == True:
             print('invalid')
             # list_smiles_all.append(sentence)
-            return 0
+            return 1
         else:
             print(sentence)
             # smiles.append(sentence)
@@ -225,6 +225,7 @@ class Sampler():
 
             # Generate a caption from the image
             feature = self.encoder(features, geometry, masks)
+            #print("feature", feature)
             
             if (self.sampling == "probabilistic"):
                 sampled_ids = self.decoder.sample_prob(feature)
@@ -232,17 +233,28 @@ class Sampler():
                 sampled_ids = self.decoder.sample_max(feature)
             else:
                 sampled_ids = self.decoder.sample_beam_search(feature)
-    
-            sampled_ids = (
-                sampled_ids[0].cpu().numpy()
-            )  # (1, max_seq_length) -> (max_seq_length)
-            # Convert word_ids to words
-            idx =  self.printing_smiles(sampled_ids, smiles)
-            amount_val_smiles += idx
+           # print("sampl idxs", sampled_ids)
+            if (self.sampling == "probabilistic" or self.sampling ==  "max"):
+                sampled_ids = ( sampled_ids[0].cpu().numpy() )
+                idx =  self.printing_smiles(sampled_ids, smiles)
+                amount_val_smiles += idx
+            elif (self.sampling == "beam"):
+                for sentence in sampled_ids:
+                    idx =  self.printing_smiles(np.asarray(sentence[1:]), smiles)
+                    amount_val_smiles += idx
+        
+
+           # sampled_ids = (
+            #   sampled_ids[0].cpu().numpy()
+           # )  # (1, max_seq_length) -> (max_seq_length)
+            # Convert word_ids to wordsi
+           # for sentence in sampled_ids:
+           #     idx =  self.printing_smiles(np.asarray(sentence[1:]), smiles)
+           #     amount_val_smiles += idx
         
         if (amount_val_smiles > 0):
             # save_dir_analysis = os.path.join(save_dir_smiles, str(id_fold), protein_name)
-            stat_protein = analysis_to_csv(smiles,  protein_name, self.idx_fold, self.type_fold) #get the list of lists of statistics
+            stat_protein = analysis_to_csv_test(smiles,  protein_name, self.idx_fold, self.type_fold) #get the list of lists of statistics
             # stat_protein = np.transpose(np.vstack((stat_protein, np.asarray(amount_val_smiles * [amount_val_smiles /iter]))))
             stat_protein.append(amount_val_smiles * [amount_val_smiles /iter])
             stat_protein.append(amount_val_smiles * [self.sampling])
