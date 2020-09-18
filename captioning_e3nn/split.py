@@ -40,7 +40,7 @@ number_atoms = 22
 
 class Splitter:
     # def __init__(self, path_pocket: str, path_ligand: str):
-    def __init__(self, config):
+    def __init__(self, cfg):
         self.cfg = cfg
         self.name_file_folds = cfg['splitting']['file_folds']
         self.num_epochs = cfg['model_params']['num_epochs']
