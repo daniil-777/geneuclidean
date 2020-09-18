@@ -15,11 +15,25 @@ import pandas as pd
 import scipy.spatial.distance as dist
 import torch
 from matplotlib import pyplot as plt
-from moleculekit.molecule import Molecule
 from numpy import mean, std
 # from openbabel import openbabel
 from scipy import spatial as spatial
 from scipy.stats import pearsonr
+import argparse
+import sys
+import config
+from py3nvml import py3nvml
+
+import json
+import os
+import pickle
+
+from sklearn.model_selection import KFold
+import numpy as np
+
+
+from build_vocab import Vocabulary
+
 
 number_atoms = 22
 
