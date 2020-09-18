@@ -357,8 +357,8 @@ class MyDecoderWithAttention_Vis(nn.Module):
         vocab_size = len(self.vocab)
         # # Flatten encoding
         enc_image_size = 17
-        encoder_out = encoder_out.view(1, -1, encoder_dim)  # (1, num_pixels, encoder_dim)
-        num_atoms = encoder_out.size(1)
+        # encoder_out = encoder_out.view(1, -1, encoder_dim)  # (1, num_pixels, encoder_dim)
+        # num_atoms = encoder_out.size(1)
 
         # # We'll treat the problem as having a batch size of k
         shape_1 = features.shape[0]
