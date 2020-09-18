@@ -5,8 +5,8 @@ training_params:
   file_folds: data/folds/e3nn_18_09/
   log_step: 10
   save_step: 10
-  encoder_name: encoder-0-99-900.ckpt
-  decoder_name: decoder-0-99-900.ckpt
+  encoder_name: encoder_best_2.ckpt
+  decoder_name: decoder_best_2.ckpt
   n_splits: 5
 model:
   encoder: network1
@@ -33,6 +33,7 @@ model:
     embed_size: 100
     hidden_size: 100
     num_layers: 1
+    beam_size: 20
 
 
 model_params: 
@@ -52,13 +53,13 @@ output_parameters:
 
 
 sampling_params: 
-  sampling: max
+  sampling: probabilistic
   sample_id: 15
-  number_smiles: 1
-  time_waiting: 2000
+  number_smiles: 30
+  time_waiting: 1200
   type_fold: random
   id_fold: 2
   folds: ../results/captioning_results/e3nn_1/logs/idx/test_idx_0
   file_stat: 0_fold_stat.csv
   sampling_data: test
-  name_all_stat: stat_e3nn_2.csv
+  name_all_stat: stat_e3nn_prob_2.csv

@@ -34,14 +34,16 @@ from Contrib.statistics import analysis_to_csv, analysis_to_csv_test
 
 
 class Sampler():
-    def __init__(self, cfg):
+    def __init__(self, cfg, sampling):
         # model params
         #sampling params
         # self.idx_fold = idx_fold
         self.cfg = cfg
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # self.device = torch.device("cpu")
-        self.sampling = cfg['sampling_params']['sampling']
+        self.sampling = sampling
+        # self.sampling = cfg['sampling_params']['sampling']
+
         self.model_encoder =  cfg['model']['encoder']
         print(self.model_encoder)
         self.model_decoder =  cfg['model']['decoder']
@@ -55,7 +57,7 @@ class Sampler():
         # self.file_folds = cfg["sampling_params"]["folds"]
         
         # self.file_folds = os.path.join()
-        self.name_file_stat = cfg["sampling_params"]["name_all_stat"]
+        self.name_file_stat = cfg["sampling_params"]["name_all_stat"] + "_" + self.sampling
         # model params
         self.num_epochs = cfg['model_params']['num_epochs']
         self.batch_size = cfg['model_params']['batch_size']
@@ -209,40 +211,44 @@ class Sampler():
         
         iter = 0
         start = time.time()
-        while (amount_val_smiles < self.number_smiles):
-            end = time.time()
-            print("time elapsed", end - start)
-            if((end - start) > self.time_waiting):
-                #stop generating if we wait for too long till 50 ligands
-                self.file_long_proteins.write(protein_name + "\n") #write a protein with long time of generating
-                self.file_long_proteins.flush()
-                break
-            iter += 1
-            # Build models
-            # Load the trained model parameters            
-            # # Prepare features and geometry from pocket
-            features, geometry, masks = self.load_pocket(id)
+        if (self.sampling != "beam"):
+            while (amount_val_smiles < self.number_smiles):
+                end = time.time()
+                print("time elapsed", end - start)
+                if((end - start) > self.time_waiting):
+                    #stop generating if we wait for too long till 50 ligands
+                    self.file_long_proteins.write(protein_name + "\n") #write a protein with long time of generating
+                    self.file_long_proteins.flush()
+                    break
+                iter += 1
+                # Build models
+                # Load the trained model parameters            
+                # # Prepare features and geometry from pocket
+                features, geometry, masks = self.load_pocket(id)
 
-            # Generate a caption from the image
-            feature = self.encoder(features, geometry, masks)
-            #print("feature", feature)
-            
-            if (self.sampling == "probabilistic"):
-                sampled_ids = self.decoder.sample_prob(feature)
-            elif (self.sampling == "max"):
-                sampled_ids = self.decoder.sample_max(feature)
-            else:
-                sampled_ids = self.decoder.sample_beam_search(feature)
-           # print("sampl idxs", sampled_ids)
-            if (self.sampling == "probabilistic" or self.sampling ==  "max"):
+                # Generate a caption from the image
+                feature = self.encoder(features, geometry, masks)
+                #print("feature", feature)
+                
+                if (self.sampling == "probabilistic"):
+                    sampled_ids = self.decoder.sample_prob(feature)
+                elif (self.sampling == "max"):
+                    sampled_ids = self.decoder.sample_max(feature)
+               
                 sampled_ids = ( sampled_ids[0].cpu().numpy() )
                 idx =  self.printing_smiles(sampled_ids, smiles)
                 amount_val_smiles += idx
-            elif (self.sampling == "beam"):
-                for sentence in sampled_ids:
-                    idx =  self.printing_smiles(np.asarray(sentence[1:]), smiles)
-                    amount_val_smiles += idx
+           
         
+        elif (self.sampling == "beam"):
+            features, geometry, masks = self.load_pocket(id)
+            feature = self.encoder(features, geometry, masks)
+            sampled_ids = self.decoder.sample_beam_search(feature)
+            for sentence in sampled_ids:
+                idx =  self.printing_smiles(np.asarray(sentence[1:]), smiles)
+                amount_val_smiles += idx
+        else:
+            raise ValueError("Unknown sampling...")
 
            # sampled_ids = (
             #   sampled_ids[0].cpu().numpy()
