@@ -212,7 +212,7 @@ class Trainer_Attention_Vis():
         self.log_file_tensor.write("\n")
         self.log_file_tensor.flush()
 
-    def train_epochs(self):
+    def train_epochs(self, sampling):
         # get indexes of all complexes and "nick names"
         # Load vocabulary wrapper
     
