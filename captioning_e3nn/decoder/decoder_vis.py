@@ -465,7 +465,7 @@ class MyDecoderWithAttention_Vis(nn.Module):
         else:
             # print("zero")
             return seqs.cpu()
-       i = complete_seqs_scores.index(max(complete_seqs_scores))
-       seq = complete_seqs[i]
-       alphas = complete_seqs_alpha[i]
-       return seq
+        i = complete_seqs_scores.index(max(complete_seqs_scores))
+        seq = complete_seqs[i]
+        alphas = complete_seqs_alpha[i]
+        return seq
