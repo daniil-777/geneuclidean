@@ -37,7 +37,11 @@ class Trainer_Attention_Vis():
         # model params
         self.original_stdout = sys.stdout
         self.cfg = cfg
+        self.name_file_folds = cfg['splitting']['file_folds']
+        
+        self.fold_number = cfg['splitting']['id_fold']
         self.num_epochs = cfg['model_params']['num_epochs']
+
         self.batch_size = cfg['model_params']['batch_size']
         self.learning_rate = cfg['model_params']['learning_rate']
         self.num_workers = cfg['model_params']['num_workers']
@@ -211,57 +215,63 @@ class Trainer_Attention_Vis():
     def train_epochs(self):
         # get indexes of all complexes and "nick names"
         # Load vocabulary wrapper
+          def train_epochs(self, sampling):
+        # get indexes of all complexes and "nick names"
+        # Load vocabulary wrapper
 
         featuriser = Pdb_Dataset(self.cfg, vocab=self.vocab)
         # data_ids, data_names = utils._get_refined_data()
         files_refined = os.listdir(self.protein_dir)
-        data_ids = np.array([i for i in range(len(files_refined) - 3)])
-        # data_ids = np.array([i for i in range(20)])
+        # data_ids = np.array([i for i in range(len(files_refined) - 3)])
 
         #cross validation
         kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=2)
-        my_list = list(kf.split(data_ids))
+        idx_folds = pickle.load( open(os.path.join(self.idx_file, self.name_file_folds), "rb" ) )
+        split_no = self.fold_number
         test_idx = []
         # output memory usage
         py3nvml.nvmlInit()
-        sampler = Sampler(self.cfg)
-        for split_no in range(self.n_splits):
-            train_id, test_id = my_list[split_no]
-            train_data = data_ids[train_id]
-            test_data = data_ids[test_id]
-            with open(os.path.join(self.idx_file, 'test_idx_' + str(split_no)), 'wb') as fp:
-                pickle.dump(test_data, fp)
+        # sampling = self.cfg['sampling_params']['sampling']
+        sampler = Sampler(self.cfg, sampling)
+ 
+        train_id, test_id = idx_folds[split_no]
+        train_data = train_id
+        test_data = test_id
+        with open(os.path.join(self.idx_file, 'test_idx_' + str(split_no)), 'wb') as fp:
+            pickle.dump(test_data, fp)
+        
+        test_idx.append(test_data)
+        self.test_idx_file.write(str(test_data) + "\n")
+        self.test_idx_file.flush()
+
+        feat_train = [featuriser[data] for data in train_data]
+        
+        loader_train = DataLoader(feat_train, batch_size=self.batch_size,
+                                    shuffle=True,
+                                    num_workers=self.num_workers,
+                                    collate_fn=collate_fn_masks,)
+        # loader_train = config.get_loader(cfg, feat_train, batch_size, num_workers,)
+
+        total_step = len(loader_train)
+        print("total_step", total_step)
+        encoder = self.Encoder
+        decoder = self.Decoder
+
+        # params_encoder = filter(lambda p: p.requires_grad, encoder.parameters())
+
+        caption_params = list(decoder.parameters()) + list(encoder.parameters())
+        caption_optimizer = torch.optim.Adam(caption_params, lr = self.learning_rate)
+        
+        # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(caption_optimizer, 'min')
+        for epoch in range(self.num_epochs):
+            # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
+            #if add masks everywhere call just train_loop
+            self.train_loop_mask(loader_train, encoder, decoder, caption_optimizer, split_no, epoch, total_step)
+        #run sampling for the test indxs
             
-            test_idx.append(test_data)
-            self.test_idx_file.write(str(test_data) + "\n")
-            self.test_idx_file.flush()
+        sampler.analysis_cluster(split_no, self.encoder_best_name, self.decoder_best_name)
 
-            feat_train = [featuriser[data] for data in train_data]
-            
-            loader_train = DataLoader(feat_train, batch_size=self.batch_size,
-                                        shuffle=True,
-                                        num_workers=self.num_workers,
-                                        collate_fn=collate_fn_masks,)
-            # loader_train = config.get_loader(cfg, feat_train, batch_size, num_workers,)
-
-            total_step = len(loader_train)
-            print("total_step", total_step)
-            encoder = self.Encoder
-            decoder = self.Decoder
-
-            # params_encoder = filter(lambda p: p.requires_grad, encoder.parameters())
-
-            caption_params = list(decoder.parameters()) + list(encoder.parameters())
-            caption_optimizer = torch.optim.Adam(caption_params, lr = self.learning_rate)
-           
-            # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(caption_optimizer, 'min')
-            for epoch in range(self.num_epochs):
-                # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
-                #if add masks everywhere call just train_loop
-                self.train_loop_mask(loader_train, encoder, decoder, caption_optimizer, split_no, epoch, total_step)
-            #run sampling for the test indxs
-             
-            sampler.analysis_cluster(split_no, self.encoder_best_name, self.decoder_best_name)
+      
        
 
 
