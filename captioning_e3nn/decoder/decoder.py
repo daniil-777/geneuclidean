@@ -172,7 +172,7 @@ class DecoderRNN(nn.Module):
             scores = self.linear(h.squeeze(1))
             scores = F.softmax(scores, dim=1)
             # print("scores", scores)
-           scores = top_k_scores.expand_as(scores) + scores  # (s, vocab_size)
+            scores = top_k_scores.expand_as(scores) + scores  # (s, vocab_size)
            # print("scores", scores)
             # For the first step, all k points will have the same scores (since same k previous words, h, c)
             if step == 1:
