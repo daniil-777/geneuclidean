@@ -32,7 +32,7 @@ from models_new import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
 from sampling.sampler import Sampler
 
 
-class Trainer_Attention():
+class Trainer_Attention_Vis():
     def __init__(self, cfg):
         # model params
         self.original_stdout = sys.stdout
@@ -51,7 +51,7 @@ class Trainer_Attention():
         self.n_splits = cfg['training_params']['n_splits']
         self.loss_best = np.inf
         self.alpha_c = cfg['training_params']['alpha_c']
-        
+
         #output files
         self.savedir = cfg['output_parameters']['savedir']
         self.tesnorboard_path = self.savedir
