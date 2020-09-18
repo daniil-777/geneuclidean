@@ -218,8 +218,8 @@ class DecoderRNN(nn.Module):
             if step > MAX_Length:
                 break
             step += 1
-        i = complete_seqs_scores.index(max(complete_seqs_scores))
-        seq = complete_seqs[i]
+        # i = complete_seqs_scores.index(max(complete_seqs_scores))
+        # seq = complete_seqs[i]
         return complete_seqs
     
 
