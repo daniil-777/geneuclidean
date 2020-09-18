@@ -37,12 +37,13 @@ model:
 
   decoder: lstm_attention_vis
   decoder_kwargs:
+    attention_dim: 100
+    embed_dim: 100
+    decoder_dim: 100
     vocab_size: 32
     vocab_path: ../data/vocab.pkl
-    embed_size: 100
-    hidden_size: 100
-    num_layers: 1
-    beam_size: 20
+    encoder_dim: 100
+    dropout: 0.5
 
 
 model_params: 
