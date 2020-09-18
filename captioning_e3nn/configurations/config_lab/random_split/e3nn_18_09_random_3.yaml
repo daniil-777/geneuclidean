@@ -46,7 +46,7 @@ model:
 
 model_params: 
   model_name: "e3nn"
-  num_epochs: 1
+  num_epochs: 100
   batch_size: 4
   n_splits: 5
   num_workers: 1
