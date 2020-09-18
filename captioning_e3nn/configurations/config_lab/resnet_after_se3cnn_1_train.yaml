@@ -10,8 +10,8 @@ training_params:
 model:
   encoder: se3cnn_resnet_after_se3cnn
   encoder_kwargs:
-    lat_out: 100
-    nclouds: 1
+    lat_out: 60
+    nclouds: 2
     emb_dim: 10
     neighborradius: 2
     cloudord: 1
@@ -26,8 +26,8 @@ model:
   decoder: lstm
   decoder_kwargs:
     vocab_size: 32
-    embed_size: 100
-    hidden_size: 100
+    embed_size: 60
+    hidden_size: 60
     num_layers: 1
 
 
@@ -56,6 +56,6 @@ sampling_params:
   id_fold: 0
   folds: ../results/captioning_results/cv/se3cnn_resnet_after_se3cnn_1/test_idx_0
   file_stat: 0_fold_stat.csv
-  sampling_data: test
-  name_all_stat: all_stat_test_resnet_after_se3cnn.csv
+  sampling_data: train
+  name_all_stat: all_stat_train_resnet_after_se3cnn.csv
 

@@ -1,6 +1,7 @@
 preprocessing:
   mask: True
   collate_fn: masks
+
 training_params:
   mode: attention
   log_step: 1
@@ -37,6 +38,7 @@ model:
     vocab_path: ../data/vocab.pkl
     encoder_dim: 100
     dropout: 0.5
+    beam_size: 3
     
   
 

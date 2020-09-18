@@ -2,6 +2,7 @@ preprocessing:
   mask: True
   collate_fn: masks
 training_params:
+  mode: no_attention
   log_step: 10
   save_step: 10
   encoder_name: encoder-0-99-900.ckpt

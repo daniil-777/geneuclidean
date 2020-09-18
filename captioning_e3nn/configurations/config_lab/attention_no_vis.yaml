@@ -3,19 +3,19 @@ preprocessing:
   collate_fn: masks
 splitting:
   split: random
-  file_folds: random_split_e3nn_18_09
-  id_fold: 3
+  file_folds: random_split_att_no_vis_18_09
+  id_fold: 0
+
 training_params:
-  mode: no_attention
-  file_folds: data/folds/e3nn_18_09/
+  mode: attention
   log_step: 10
   save_step: 10
-  encoder_name: encoder_best_3.ckpt
-  decoder_name: decoder_best_3.ckpt
+  encoder_name: encoder_best_0.ckpt
+  decoder_name: decoder_best_0.ckpt
   n_splits: 5
   alpha_c: 1
 model:
-  encoder: network1_vis
+  encoder: network1
   encoder_kwargs:
     max_rad: 2
     num_basis: 50
@@ -29,13 +29,14 @@ model:
     L: 2
     scalar_act_name:  sp
     gate_act_name: sigmoid
-    natoms: 286
+    natoms: 289
     mlp_h: 50
     Out: 1
     aggregation_mode: avg
 
+  
 
-  decoder: lstm_attention_vis
+  decoder: lstm_attention
   decoder_kwargs:
     attention_dim: 100
     embed_dim: 100
@@ -44,7 +45,6 @@ model:
     vocab_path: ../data/vocab.pkl
     encoder_dim: 100
     dropout: 0.5
-
 
 model_params: 
   model_name: "e3nn"
@@ -59,7 +59,7 @@ model_params:
 
 
 output_parameters: 
-  savedir: ../results/captioning_results/att_vis_18_09
+  savedir: ../results/captioning_results/att_no_vis_18_09
 
 
 sampling_params: 
@@ -68,8 +68,8 @@ sampling_params:
   number_smiles: 30
   time_waiting: 1200
   type_fold: random
-  id_fold: 3
+  id_fold: 0
   folds: ../results/captioning_results/e3nn_1/logs/idx/test_idx_0
   file_stat: 0_fold_stat.csv
   sampling_data: test
-  name_all_stat: stat_e3nn_prob_3.csv
+  name_all_stat: stat_e3nn_prob_0.csv

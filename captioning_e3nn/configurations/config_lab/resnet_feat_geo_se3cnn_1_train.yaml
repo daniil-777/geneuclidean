@@ -8,9 +8,9 @@ training_params:
   decoder_name: decoder-20-600.ckpt
   n_splits: 5
 model:
-  encoder: se3cnn_resnet_after_se3cnn
+  encoder: se3cnn_geo_feat_resnet
   encoder_kwargs:
-    lat_out: 100
+    lat_out: 110
     nclouds: 1
     emb_dim: 10
     neighborradius: 2
@@ -22,12 +22,12 @@ model:
     num_embeddings: 6
     nradial: 3
     nbasis: 3
-    rad_neurons : 100
+    rad_neurons: 100
   decoder: lstm
   decoder_kwargs:
     vocab_size: 32
-    embed_size: 100
-    hidden_size: 100
+    embed_size: 110
+    hidden_size: 110
     num_layers: 1
 
 
@@ -44,7 +44,7 @@ model_params:
 
 
 output_parameters: 
-  savedir: ../results/captioning_results/cv/se3cnn_resnet_after_se3cnn_1/
+  savedir: ../results/captioning_results/cv/se3cnn_geo_feat_resnet_1
 
 
 sampling_params: 
@@ -54,8 +54,7 @@ sampling_params:
   time_waiting: 25
   type_fold: O
   id_fold: 0
-  folds: ../results/captioning_results/cv/se3cnn_resnet_after_se3cnn_1/test_idx_0
+  folds: ../results/captioning_results/cv/se3cnn_geo_feat_resnet_1/test_idx_0
   file_stat: 0_fold_stat.csv
-  sampling_data: test
-  name_all_stat: all_stat_test_resnet_after_se3cnn.csv
-
+  sampling_data: train
+  name_all_stat: all_stat_train_resnet_feat_geo_se3cnn_1.csv
