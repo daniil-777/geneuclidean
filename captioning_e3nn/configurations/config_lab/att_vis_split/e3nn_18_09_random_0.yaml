@@ -48,7 +48,7 @@ model:
 
 model_params: 
   model_name: "e3nn"
-  num_epochs: 100
+  num_epochs: 1
   batch_size: 4
   n_splits: 5
   num_workers: 1
@@ -65,7 +65,7 @@ output_parameters:
 sampling_params: 
   sampling: probabilistic
   sample_id: 15
-  number_smiles: 30
+  number_smiles: 3
   time_waiting: 2000
   type_fold: random
   id_fold: 0
