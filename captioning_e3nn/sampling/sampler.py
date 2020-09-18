@@ -267,7 +267,7 @@ class Sampler():
         
         if (amount_val_smiles > 0):
             # save_dir_analysis = os.path.join(save_dir_smiles, str(id_fold), protein_name)
-            stat_protein = analysis_to_csv_test(smiles,  protein_name, self.idx_fold, self.type_fold) #get the list of lists of statistics
+            stat_protein = analysis_to_csv(smiles,  protein_name, self.idx_fold, self.type_fold) #get the list of lists of statistics
             # stat_protein = np.transpose(np.vstack((stat_protein, np.asarray(amount_val_smiles * [amount_val_smiles /iter]))))
             stat_protein.append(amount_val_smiles * [amount_val_smiles /iter])
             stat_protein.append(amount_val_smiles * [self.sampling])
