@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader, Dataset
 from dictionaries import atom_most_common, dict_atoms_hot, dict_atoms_simple
 
 # number_atoms_unique = 22
-LEN_PADDING = 286
+LEN_PADDING = 289
 
 
 class Pdb_Dataset(Dataset):
@@ -38,7 +38,7 @@ class Pdb_Dataset(Dataset):
         ##################refined files###################
         self.files_refined = os.listdir(self.init_refined)
         self.files_refined.sort()
-        # self.files_refined.remove(".DS_Store")
+        self.files_refined.remove(".DS_Store")
         ##################################################
         self.len_files = len(self.files_refined)
         ###################core files#####################
@@ -62,8 +62,8 @@ class Pdb_Dataset(Dataset):
 
     def __len__(self):
         #!!!!!!!!!!!!!!!!
-        # return 20
-        return len(self.files_refined) - 3 # from the lab:
+        return 20
+        # return len(self.files_refined) - 3 # from the lab:
 
     def __getitem__(self, idx: int):
         vocab = self.vocab
