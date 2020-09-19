@@ -44,6 +44,7 @@ from build_vocab import Vocabulary
 
 number_atoms = 22
 
+FP_SIZE = 1024 
 
 class Splitter:
     # def __init__(self, path_pocket: str, path_ligand: str):
