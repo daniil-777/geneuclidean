@@ -47,7 +47,10 @@ class Splitter:
         self.batch_size = cfg['model_params']['batch_size']
         self.learning_rate = cfg['model_params']['learning_rate']
         self.num_workers = cfg['model_params']['num_workers']
-
+        self.files_refined = os.listdir(self.protein_dir)
+        self.files_refined.sort()
+        self.path_root = cfg['preprocessing']['path_root']
+        self.init_refined = self.path_root + "/data/new_refined/"
         # training params
         self.protein_dir = cfg['training_params']['image_dir']
         self.caption_path = cfg['training_params']['caption_path']
@@ -56,7 +59,7 @@ class Splitter:
         self.vocab_path = cfg['preprocessing']['vocab_path']
         self.n_splits = cfg['training_params']['n_splits']
         self.loss_best = np.inf
-
+        self.n_samples = len(self.files_refined) - 3
         #output files
         self.savedir = cfg['output_parameters']['savedir']
         self.tesnorboard_path = self.savedir
@@ -76,14 +79,55 @@ class Splitter:
 
        
     def _get_random_split(self):
-        files_refined = os.listdir(self.protein_dir)
-        data_ids = np.array([i for i in range(len(files_refined) - 3)])
+        data_ids = np.array([i for i in range(self.n_samples)])
    
         #cross validation
         kf = KFold(n_splits=5, shuffle=True, random_state=2)
         my_list = list(kf.split(data_ids))
         with open(os.path.join(self.idx_file, self.name_file_folds), 'wb') as fp:
             pickle.dump(my_list, fp)
+
+    def _ligand_scaffold_split(self):
+        """
+        Ligand-based scaffold split using Morgan fingerprints
+        and k-means clustering.
+        """
+        km = MiniBatchKMeans(n_clusters=self.n_splits, random_state=self.random_state)
+        feat = np.zeros((self.n_samples, 1024), dtype=np.uint8)
+
+        for idx in range(len(self.files_refined)):
+            smile = Splitter._get_caption(idx)
+            mol = Chem.MolFromSmiles(smile)
+            fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=FP_SIZE)
+            arr = np.zeros((1,), dtype=np.uint8)
+            DataStructs.ConvertToNumpyArray(fp, arr)
+            feat[idx] = arr.copy()
+
+        labels = km.fit_predict(feat)
+        splits = []
+        for split_no in range(self.n_splits):
+            indices_train = np.where(labels != split_no)[0]
+            indices_test = np.where(labels == split_no)[0]
+            splits.append((indices_train, indices_test))
+        splits = np.asarray(splits)
+        with open(os.path.join(self.idx_file, self.name_file_folds), 'wb') as fp:
+            pickle.dump(splits, fp)
+        return splits
+
+    
+
+    def _get_caption(self, id):
+        """get caption as a row of a smile by id
+        """
+
+        protein_name = self.files_refined[id]
+        # print("current protein", protein_name)
+        path_to_smile = os.path.join(
+            self.init_refined, protein_name, protein_name + "_ligand.smi"
+        )
+        with open(path_to_smile, "r") as file:
+            caption = file.read()
+        return caption
         
 
 
@@ -102,6 +146,8 @@ def main():
 
     if(cfg['splitting']['split'] == 'random'):
         splitter._get_random_split()
+    elif(cfg['splitting']['split'] == 'morgan'):
+        splitter._get_caption()
 
 if __name__ == "__main__":
     main()
