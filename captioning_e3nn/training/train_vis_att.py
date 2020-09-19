@@ -176,7 +176,7 @@ class Trainer_Attention_Vis():
             # loss is a real crossentropy loss
             #
             # Save the model checkpoints
-            if (i + 1) % self.save_step == 0:
+            # if (i + 1) % self.save_step == 0:
                 # print("yeeees!!!")
                 # self.encoder_name =  os.path.join(
                 #         self.model_path, "encoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
