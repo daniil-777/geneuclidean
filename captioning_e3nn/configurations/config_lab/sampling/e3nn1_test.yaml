@@ -16,12 +16,13 @@ model:
     n_layers: 2
     beta: 5
     rad_model: gaussian
+    num_embeddings: 6
     embed: 10
     l0: 10
     L: 2
     scalar_act_name:  sp
     gate_act_name: sigmoid
-    avg_n_atoms: 286
+    natoms: 286
     mlp_h: 50
     Out: 1
     aggregation_mode: avg
