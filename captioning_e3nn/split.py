@@ -104,7 +104,7 @@ class Splitter:
         feat = np.zeros((self.n_samples, 1024), dtype=np.uint8)
 
         for idx in range(len(self.files_refined)):
-            smile = Splitter._get_caption(idx)
+            smile = self._get_caption(idx)
             mol = Chem.MolFromSmiles(smile)
             fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=FP_SIZE)
             arr = np.zeros((1,), dtype=np.uint8)
