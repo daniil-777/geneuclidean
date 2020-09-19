@@ -154,7 +154,7 @@ def main():
     if(cfg['splitting']['split'] == 'random'):
         splitter._get_random_split()
     elif(cfg['splitting']['split'] == 'morgan'):
-        splitter._get_caption()
+        splitter._ligand_scaffold_split()
 
 if __name__ == "__main__":
     main()
