@@ -55,7 +55,7 @@ class Trainer_Attention_Vis():
         self.n_splits = cfg['training_params']['n_splits']
         self.loss_best = np.inf
         self.alpha_c = cfg['training_params']['alpha_c']
-
+        self.loss_mode = cfg['training_params']['loss_mode']
         #output files
         self.savedir = cfg['output_parameters']['savedir']
         self.tesnorboard_path = self.savedir
@@ -81,6 +81,7 @@ class Trainer_Attention_Vis():
         
         self.Encoder, self.Decoder = config.get_model(cfg, device=self.device)
         self.input = config.get_shape_input(self.cfg)
+    
     
         # print(summary(self.Encoder, self.input))
         # print(summary(self.Decoder))
@@ -140,8 +141,11 @@ class Trainer_Attention_Vis():
 
 
             loss = self.criterion(scores, targets)
-
-            loss += self.alpha_c * ((1 - alphas.sum(dim = 1)) ** 2).mean() 
+            if (self.loss_mode == "usual"):
+                pass
+            elif (self.loss_mode == "double_stochastic"):
+                loss += self.alpha_c * ((1 - alphas.sum(dim = 1)) ** 2).mean() 
+            # loss += self.alpha_c * ((1 - alphas.sum(dim = 1)) ** 2).mean() 
             # scheduler.step(loss)
             # if grad_clip is not None:
             #     clip_gradient(decoder_optimizer, grad_clip)
