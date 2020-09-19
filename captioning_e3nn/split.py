@@ -31,6 +31,12 @@ import pickle
 from sklearn.model_selection import KFold
 import numpy as np
 
+from rdkit import DataStructs
+from rdkit.Chem import AllChem
+
+from sklearn.model_selection import KFold
+from sklearn.cluster import MiniBatchKMeans
+
 
 from build_vocab import Vocabulary
 
@@ -47,12 +53,13 @@ class Splitter:
         self.batch_size = cfg['model_params']['batch_size']
         self.learning_rate = cfg['model_params']['learning_rate']
         self.num_workers = cfg['model_params']['num_workers']
-        self.files_refined = os.listdir(self.protein_dir)
-        self.files_refined.sort()
+        
         self.path_root = cfg['preprocessing']['path_root']
         self.init_refined = self.path_root + "/data/new_refined/"
         # training params
         self.protein_dir = cfg['training_params']['image_dir']
+        self.files_refined = os.listdir(self.protein_dir)
+        self.files_refined.sort()
         self.caption_path = cfg['training_params']['caption_path']
         self.log_step = cfg['training_params']['log_step']
         self.save_step = cfg['training_params']['save_step']
