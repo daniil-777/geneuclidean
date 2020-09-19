@@ -178,20 +178,20 @@ class Trainer_Attention_Vis():
             # Save the model checkpoints
             if (i + 1) % self.save_step == 0:
                 # print("yeeees!!!")
-                self.encoder_name =  os.path.join(
-                        self.model_path, "encoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
-                    )
-                self.decoder_name =  os.path.join(
-                        self.model_path, "decoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
-                    )
-                torch.save(
-                    encoder.state_dict(),
-                    self.encoder_name,
-                )
-                torch.save(
-                    decoder.state_dict(),
-                    self.decoder_name,
-                )
+                # self.encoder_name =  os.path.join(
+                #         self.model_path, "encoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
+                #     )
+                # self.decoder_name =  os.path.join(
+                #         self.model_path, "decoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
+                #     )
+                # torch.save(
+                #     encoder.state_dict(),
+                #     self.encoder_name,
+                # )
+                # torch.save(
+                #     decoder.state_dict(),
+                #     self.decoder_name,
+                # )
             if (self.loss_best - loss > 0):
                 print("The best loss " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1))
                 self.log_file.write("The best loss " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1) + "\n")
