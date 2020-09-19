@@ -1,6 +1,7 @@
 preprocessing:
   mask: True
   collate_fn: masks
+  natoms: 289
 splitting:
   split: random
   file_folds: random_split_e3nn_18_09

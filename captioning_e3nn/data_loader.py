@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader, Dataset
 from dictionaries import atom_most_common, dict_atoms_hot, dict_atoms_simple
 
 # number_atoms_unique = 22
-LEN_PADDING = 289
+
 
 
 class Pdb_Dataset(Dataset):
@@ -23,7 +23,7 @@ class Pdb_Dataset(Dataset):
     def __init__(self, cfg, vocab):
         """uses cfg file which is given as arg in "python train_server.py"
         """
-
+         
         self.path_root = cfg['preprocessing']['path_root']
         self.init_refined = self.path_root + "/data/new_refined/"
         # self.init_refined = path_root + "/data/refined_26.05/"
@@ -58,6 +58,7 @@ class Pdb_Dataset(Dataset):
         # self.type_filtering = "filtered"
         self.type_filtering = cfg['preprocessing']['selection']  # "filtered"
         self.mask = cfg['preprocessing']['mask']
+        self.len_padding = cfg['preprocessing']['natoms']
         print("filtering", self.type_filtering)
 
     def __len__(self):
@@ -290,7 +291,7 @@ class Pdb_Dataset(Dataset):
         tensor_all_features = torch.tensor(
             features_pocket_part, dtype=torch.long
         ).unsqueeze(0)
-        length_padding = LEN_PADDING - tensor_all_features.shape[1]
+        length_padding = self.len_padding - tensor_all_features.shape[1]
         result = F.pad(
             input=tensor_all_features,
             pad=(0, 0, 0, length_padding),
@@ -327,7 +328,7 @@ class Pdb_Dataset(Dataset):
         tensor_all_atoms_coords = (
             torch.from_numpy(all_atoms_coords).squeeze().unsqueeze(0)
         )
-        length_padding = LEN_PADDING - tensor_all_atoms_coords.shape[1]
+        length_padding = self.len_padding - tensor_all_atoms_coords.shape[1]
         result = F.pad(
             input=tensor_all_atoms_coords,
             pad=(0, 0, 0, length_padding),
