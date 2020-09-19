@@ -32,6 +32,7 @@ from sklearn.model_selection import KFold
 import numpy as np
 
 from rdkit import DataStructs
+from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from sklearn.model_selection import KFold
