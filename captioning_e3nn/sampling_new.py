@@ -52,7 +52,9 @@ def main():
     savedir =  cfg['output_parameters']['savedir']
     encoder_path = os.path.join(savedir, "models", cfg['training_params']['encoder_name']) 
     decoder_path = os.path.join(savedir, "models", cfg['training_params']['decoder_name']) 
-    sampler = Sampler(cfg)
+    sampler = Sampler(cfg, "probabilistic")
+    sampler.analysis_cluster(0, encoder_path, decoder_path)
+    sampler = Sampler(cfg, "beam")
     sampler.analysis_cluster(0, encoder_path, decoder_path)
 
 if __name__ == "__main__":
