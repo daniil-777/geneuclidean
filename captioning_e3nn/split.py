@@ -105,7 +105,7 @@ class Splitter:
         km = MiniBatchKMeans(n_clusters=self.n_splits, random_state=self.random_state)
         feat = np.zeros((self.n_samples, 1024), dtype=np.uint8)
 
-        for idx in range(len(self.files_refined)):
+        for idx in range(self.n_samples):
             smile = self._get_caption(idx)
             mol = Chem.MolFromSmiles(smile)
             fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=FP_SIZE)
