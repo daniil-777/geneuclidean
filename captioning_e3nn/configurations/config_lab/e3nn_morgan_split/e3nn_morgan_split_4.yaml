@@ -59,7 +59,7 @@ model_params:
 
 
 output_parameters: 
-  savedir: ../results/captioning_results/e3nn_18_09
+  savedir: ../results/captioning_results/e3nn_18_09_morgan
 
 
 sampling_params: 
