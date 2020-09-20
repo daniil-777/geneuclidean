@@ -210,7 +210,7 @@ class Trainer_Binding_Fold():
 
         print("Training model...")
         losses_to_write_train = []
-        for i in range(N_EPOCHS):
+        for i in range(self.N_EPOCHS):
 
             print("Epoch {}/{}...".format(i + 1, self.N_EPOCHS))
             epoch = i + 1
