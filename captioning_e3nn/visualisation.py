@@ -31,7 +31,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from build_vocab import Vocabulary
 from data_loader import Pdb_Dataset
 from Contrib.statistics import analysis_to_csv, analysis_to_csv_test
-
+from decoder.decoder_vis import sample_beam_search
 
 class Visualisation:
     def __init__(self, cfg, sampling):
@@ -210,7 +210,7 @@ class Visualisation:
             features, geometry, masks = self.load_pocket(id)
             feature = self.encoder(features, geometry, masks)
             # self.decoder = self.decoder.float()
-            sampled_ids, alpha_all = self.decoder.sample_beam_search(feature)
+            sampled_ids, alpha_all = sample_beam_search(self.decoder, feature)
             for sentence in sampled_ids:
                 iter += 1
                 idx = self.printing_smiles(np.asarray(sentence[1:]), smiles, alphas_result, alpha_all, iter)
