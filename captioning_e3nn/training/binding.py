@@ -204,7 +204,7 @@ class Trainer_Binding_Fold():
 
 
         loss_cl = Loss()
-        opt = Adam(model.parameters(),
+        opt = Adam(self.Encoder.parameters(),
                     lr=config["model_params"]["learning_rate"])
         scheduler = ExponentialLR(opt, gamma=0.95)
 
@@ -214,7 +214,7 @@ class Trainer_Binding_Fold():
 
             print("Epoch {}/{}...".format(i + 1, self.N_EPOCHS))
             epoch = i + 1
-            target_pkd_all, pkd_pred, loss = training_loop(
+            target_pkd_all, pkd_pred, loss = self.training_loop(
                 loader_train, self.Encoder, loss_cl, opt, epoch
             )
             print("pkd_pred", pkd_pred)
@@ -247,7 +247,7 @@ class Trainer_Binding_Fold():
 
         print("Evaluating model...")
         target_pkd_all_test, pkd_pred_test, loss_test_to_write = eval_loop(
-            loader_test, model, epoch
+            loader_test, self.Encoder, epoch
         )
         print("pkd_pred", pkd_pred_test)
         loss_test_to_write = np.asarray(loss_test_to_write, dtype=np.float32)
