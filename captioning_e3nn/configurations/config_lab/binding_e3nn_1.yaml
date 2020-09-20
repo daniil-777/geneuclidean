@@ -50,5 +50,6 @@ model_params:
 
 output_parameters: 
   savedir: ../results/binding_results/binding_e3nn_1
+  name_plot: "e3nn_1"
 
 
