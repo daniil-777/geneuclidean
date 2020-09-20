@@ -214,7 +214,7 @@ class Trainer_Binding_Fold():
 
             print("Epoch {}/{}...".format(i + 1, self.N_EPOCHS))
             epoch = i + 1
-            target_pkd_all, pkd_pred, loss = self.training_loop(
+            target_pkd_all, pkd_pred, loss = self.train_loop_mask(
                 loader_train, self.Encoder, loss_cl, opt, epoch
             )
             print("pkd_pred", pkd_pred)
