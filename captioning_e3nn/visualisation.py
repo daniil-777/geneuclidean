@@ -210,7 +210,8 @@ class Visualisation:
             features, geometry, masks = self.load_pocket(id)
             feature = self.encoder(features, geometry, masks)
             # self.decoder = self.decoder.float()
-            sampled_ids, alpha_all = sample_beam_search(self.decoder, feature)
+            # sampled_ids, alpha_all = sample_beam_search(self.decoder, feature)
+            sampled_ids, alpha_all = self.decoder.sample_beam_search(feature)
             for sentence in sampled_ids:
                 iter += 1
                 idx = self.printing_smiles(np.asarray(sentence[1:]), smiles, alphas_result, alpha_all, iter)

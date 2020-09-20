@@ -340,6 +340,92 @@ class MyDecoderWithAttention_Vis(nn.Module):
             sampled_ids.append(predicted)
         sampled_ids = torch.stack(sampled_ids, 1) 
         return sampled_ids
+    
+    def simple_prob(self, features, states = None):
+        sampled_ids = []
+        inputs = features.unsqueeze(1)
+        for i in range(self.max_seg_length):  # maximum sampling length
+            embeddings = self.embedding(k_prev_words).squeeze(1)  # (s, embed_dim)  ?why should we alos use it???
+
+            awe, alpha = self.attention(features, h)  # (s, encoder_dim), (s, num_pixels) - we give to Attention the same features
+
+            # alpha = alpha.view(-1, enc_image_size, enc_image_size)  # (s, enc_image_size, enc_image_size)
+            
+            gate = self.sigmoid(self.f_beta(h))  # gating scalar, (s, encoder_dim)
+            awe = gate * awe
+            #s is a batch_size_t since we do not have a batch of images, we have just one image
+            # and we want to find several words. 
+            h, c = self.decode_step(torch.cat([embeddings, awe], dim=1), (h, c))  # (s, decoder_dim)
+
+            scores = self.fc(h)  # (s, vocab_size)
+            if i == 0:
+                predicted = scores.max(1)[1]
+            else:
+                probs = F.softmax(scores, dim=1)
+
+                # Probabilistic sample tokens
+                if probs.is_cuda:
+                    probs_np = probs.data.cpu().numpy()
+                else:
+                    probs_np = probs.data.numpy()
+                    # print("shape probs_np", probs_np.shape)
+
+                # top_k_probs = sorted(probs)[-top_k:]
+                # for i in range(self.vocab_size):
+                #     if probs[i] < top_k_probs[0]:
+                #         probs[i] = 0
+                predicted = np.random.choice(self.vocab_size, p=probs)
+
+              
+            sampled_ids.append(predicted)
+            inputs = self.embed(predicted)
+            inputs = inputs.unsqueeze(1)
+        sampled_ids = torch.stack(sampled_ids, 1)
+        return sampled_ids
+
+    def simple_prob_topk(self, features, states = None):
+        sampled_ids = []
+        inputs = features.unsqueeze(1)
+        for i in range(self.max_seg_length):  # maximum sampling length
+            embeddings = self.embedding(k_prev_words).squeeze(1)  # (s, embed_dim)  ?why should we alos use it???
+
+            awe, alpha = self.attention(features, h)  # (s, encoder_dim), (s, num_pixels) - we give to Attention the same features
+
+            # alpha = alpha.view(-1, enc_image_size, enc_image_size)  # (s, enc_image_size, enc_image_size)
+            
+            gate = self.sigmoid(self.f_beta(h))  # gating scalar, (s, encoder_dim)
+            awe = gate * awe
+            #s is a batch_size_t since we do not have a batch of images, we have just one image
+            # and we want to find several words. 
+            h, c = self.decode_step(torch.cat([embeddings, awe], dim=1), (h, c))  # (s, decoder_dim)
+
+            scores = self.fc(h)  # (s, vocab_size)
+
+            if i == 0:
+                predicted = scores.max(1)[1]
+            else:
+                probs = F.softmax(scores, dim=1)
+
+                # Probabilistic sample tokens
+                if probs.is_cuda:
+                    probs_np = probs.data.cpu().numpy()
+                else:
+                    probs_np = probs.data.numpy()
+                    # print("shape probs_np", probs_np.shape)
+
+                top_k_probs = sorted(probs)[-3:]
+                for i in range(self.vocab_size):
+                    if probs[i] < top_k_probs[0]:
+                        probs[i] = 0
+                predicted = np.random.choice(self.vocab_size, p=probs)
+
+              
+            sampled_ids.append(predicted)
+            inputs = self.embed(predicted)
+            inputs = inputs.unsqueeze(1)
+        sampled_ids = torch.stack(sampled_ids, 1)
+    return sampled_ids
+
 
     def sample_beam_search(self, features):
         """
@@ -462,15 +548,16 @@ class MyDecoderWithAttention_Vis(nn.Module):
         if (len(complete_seqs_scores) > 0):
             i = complete_seqs_scores.index(max(complete_seqs_scores))
             seq = complete_seqs[i]
+            alphas = complete_seqs_alpha[i]
             # print("more than zero")
-            return complete_seqs
+            return seq, alphas
         else:
             # print("zero")
-            return seqs.cpu()
-        i = complete_seqs_scores.index(max(complete_seqs_scores))
-        seq = complete_seqs[i]
-        alphas = complete_seqs_alpha[i]
-        return seq, alphas
+            return seqs.cpu(), complete_seqs_alpha
+        # i = complete_seqs_scores.index(max(complete_seqs_scores))
+        # seq = complete_seqs[i]
+        # alphas = complete_seqs_alpha[i]
+        # return seq, alphas
 
 
 def sample_beam_search(decoder, features):

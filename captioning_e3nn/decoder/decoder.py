@@ -31,6 +31,7 @@ class DecoderRNN(nn.Module):
         self.beam_size = beam_size
         self.vocab_path = vocab_path
         self.device = DEVICE
+        self.vocab_size = vocab_size
         with open(self.vocab_path, "rb") as f:
             self.vocab = pickle.load(f)
 
@@ -116,6 +117,70 @@ class DecoderRNN(nn.Module):
             inputs = inputs.unsqueeze(1)
         sampled_ids = torch.stack(sampled_ids, 1)
         return sampled_ids
+  
+    def simple_prob(self, features, states = None):
+        sampled_ids = []
+        inputs = features.unsqueeze(1)
+        for i in range(self.max_seg_length):  # maximum sampling length
+            hiddens, states = self.lstm(inputs, states)
+            outputs = self.linear(hiddens.squeeze(1))
+            # print("outputs shape,", outputs.shape)
+            if i == 0:
+                predicted = outputs.max(1)[1]
+            else:
+                probs = F.softmax(outputs, dim=1)
+
+                # Probabilistic sample tokens
+                if probs.is_cuda:
+                    probs_np = probs.data.cpu().numpy()
+                else:
+                    probs_np = probs.data.numpy()
+                    # print("shape probs_np", probs_np.shape)
+
+                # top_k_probs = sorted(probs)[-top_k:]
+                # for i in range(self.vocab_size):
+                #     if probs[i] < top_k_probs[0]:
+                #         probs[i] = 0
+                predicted = np.random.choice(self.vocab_size, p=probs)
+
+              
+            sampled_ids.append(predicted)
+            inputs = self.embed(predicted)
+            inputs = inputs.unsqueeze(1)
+        sampled_ids = torch.stack(sampled_ids, 1)
+        return sampled_ids
+
+    def simple_prob_topk(self, features, states = None):
+        sampled_ids = []
+        inputs = features.unsqueeze(1)
+        for i in range(self.max_seg_length):  # maximum sampling length
+            hiddens, states = self.lstm(inputs, states)
+            outputs = self.linear(hiddens.squeeze(1))
+            # print("outputs shape,", outputs.shape)
+            if i == 0:
+                predicted = outputs.max(1)[1]
+            else:
+                probs = F.softmax(outputs, dim=1)
+
+                # Probabilistic sample tokens
+                if probs.is_cuda:
+                    probs_np = probs.data.cpu().numpy()
+                else:
+                    probs_np = probs.data.numpy()
+                    # print("shape probs_np", probs_np.shape)
+
+                top_k_probs = sorted(probs)[-3:]
+                for i in range(self.vocab_size):
+                    if probs[i] < top_k_probs[0]:
+                        probs[i] = 0
+                predicted = np.random.choice(self.vocab_size, p=probs)
+
+              
+            sampled_ids.append(predicted)
+            inputs = self.embed(predicted)
+            inputs = inputs.unsqueeze(1)
+        sampled_ids = torch.stack(sampled_ids, 1)
+    return sampled_ids
 
     def sample_beam_search(self, features, states=None):
         """
