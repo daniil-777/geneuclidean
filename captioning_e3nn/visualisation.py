@@ -216,9 +216,9 @@ class Visualisation:
 
         alphas_result = alphas_result.cpu().numpy() #? convert..
 
-        with open(os.path.join(self.vis_path, name_protein, "smiles", 'wb') as fp:
+        with open(os.path.join(self.vis_path, name_protein, "smiles", 'wb')) as fp:
             pickle.dump(test_data, fp)
-        with open(os.path.join(self.vis_path, name_protein, "alphas", 'wb')  as f:
+        with open(os.path.join(self.vis_path, name_protein, "alphas", 'wb'))  as f:
             np.save(f, alphas_result)
         
            # sampled_ids = (
