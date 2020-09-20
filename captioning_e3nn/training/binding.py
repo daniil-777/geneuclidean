@@ -117,7 +117,7 @@ class Trainer_Binding_Fold():
             self.vocab = pickle.load(f)
         self.criterion = nn.CrossEntropyLoss()
 
-    def train_loop_mask(self, model, loss_cl, opt, epoch):
+    def train_loop_mask(self, loader, model, loss_cl, opt, epoch):
 
         target_pkd_all = []
         model = model.train()
