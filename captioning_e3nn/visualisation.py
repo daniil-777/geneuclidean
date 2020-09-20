@@ -132,6 +132,9 @@ class Visualisation:
     def load_pocket(self, id_protein, transform=None):
         name_protein = self.dataset._get_name_protein(id_protein)
         print("loading data of a protein", name_protein)
+        self.path_protein = os.path.join(self.vis_path, name_protein)
+        if not os.path.exists(self.path_protein):
+            os.makedirs(self.path_protein)
         features, masks = self.dataset._get_features_complex(id_protein)
         geometry = self.dataset._get_geometry_complex(id_protein)
         features = features.to(self.device).unsqueeze(0)
@@ -140,7 +143,7 @@ class Visualisation:
         features = np.asarray(features.cpu().clone().numpy())
         geometry = np.asarray(geometry.cpu().clone().numpy())
         np.save(
-            os.path.join(self.vis_path, name_protein, "geometry"),
+            os.path.join(self.path_protein, "geometry"),
             arr = geometry,
         )
         return features, geometry, masks
@@ -216,9 +219,9 @@ class Visualisation:
 
         alphas_result = alphas_result.cpu().numpy() #? convert..
 
-        with open(os.path.join(self.vis_path, name_protein, "smiles", 'wb')) as fp:
+        with open(os.path.join(self.path_protein, "smiles", 'wb')) as fp:
             pickle.dump(test_data, fp)
-        with open(os.path.join(self.vis_path, name_protein, "alphas", 'wb'))  as f:
+        with open(os.path.join(self.path_protein, "alphas", 'wb'))  as f:
             np.save(f, alphas_result)
         
            # sampled_ids = (
