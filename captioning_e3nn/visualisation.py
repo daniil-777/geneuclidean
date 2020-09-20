@@ -135,6 +135,7 @@ class Visualisation:
         self.path_protein = os.path.join(self.vis_path, name_protein)
         if not os.path.exists(self.path_protein):
             os.makedirs(self.path_protein)
+        os.makedirs(self.path_protein, exist_ok=True)
         features, masks = self.dataset._get_features_complex(id_protein)
         geometry = self.dataset._get_geometry_complex(id_protein)
         features = features.to(self.device).unsqueeze(0)
