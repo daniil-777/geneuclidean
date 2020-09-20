@@ -1,0 +1,54 @@
+preprocessing:
+  mask: True
+  collate_fn: masks
+splitting:
+  split: random
+  file_folds: random_split_att_no_vis_18_09
+  id_fold: 0
+
+training_params:
+  mode: no_attention
+  log_step: 10
+  save_step: 10
+  encoder_name: encoder_best_0.ckpt
+  decoder_name: decoder_best_0.ckpt
+  n_splits: 5
+  alpha_c: 1
+model:
+  encoder: binding_e3nn
+  encoder_kwargs:
+    max_rad: 2
+    num_basis: 50
+    n_neurons: 80
+    n_layers: 2
+    beta: 5
+    rad_model: gaussian
+    num_embeddings: 6
+    embed: 10
+    l0: 10
+    L: 2
+    scalar_act_name:  sp
+    gate_act_name: sigmoid
+    natoms: 286
+    mlp_h: 50
+    Out: 1
+    aggregation_mode: avg
+
+  
+
+model_params: 
+  model_name: "e3nn"
+  num_epochs: 100
+  batch_size: 4
+  n_splits: 5
+  num_workers: 1
+  learning_rate: 0.001
+  input_channels: 22
+  feature_type: with_labels
+
+
+
+output_parameters: 
+  savedir: ../results/binding_results/binding_e3nn_1
+
+
