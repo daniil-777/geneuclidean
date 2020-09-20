@@ -420,7 +420,20 @@ def collate_fn(data):
         targets[i, :end] = cap[:end]
     return features, geometry, mask, targets, lengths
 
+class Loss(nn.Module):
+    """
+    MSELoss for rmsd_min / rmsd_ave and PoissonNLLLoss for n_rmsd
+    """
 
+    def __init__(self):
+        super(Loss, self).__init__()
+        self.loss_rmsd_pkd = nn.MSELoss()
+
+    def forward(self, out1, pkd_mask):
+        loss_rmsd_pkd = self.loss_rmsd_pkd(out1.double(), pkd_mask).double()
+        return loss_rmsd_pkd
+
+        
 def collate_fn_masks(data):
     # Sort a data list by caption length (descending order).
     data.sort(key=lambda x: len(x[3]), reverse=True)

@@ -27,15 +27,11 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 from build_vocab import Vocabulary
-from data_loader_binding import Pdb_Dataset
+from data_loader_binding import Pdb_Dataset, Loss
 from models_new import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
 from sampling.sampler import Sampler
 from utils import Utils
-
-
-
-
-
+import sys
 
 
 
