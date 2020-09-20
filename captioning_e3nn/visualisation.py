@@ -141,7 +141,7 @@ class Visualisation:
         geometry = np.asarray(geometry.cpu().clone().numpy())
         np.save(
             os.path.join(self.vis_path, name_protein, "geometry"),
-            arr = geometry.detach().cpu().clone().numpy(),
+            arr = geometry,
         )
         return features, geometry, masks
 
