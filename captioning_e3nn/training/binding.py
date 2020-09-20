@@ -15,7 +15,6 @@ import argparse
 import sys
 import config
 from py3nvml import py3nvml
-import tqdm
 import json
 import os
 import pickle

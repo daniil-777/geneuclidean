@@ -239,7 +239,11 @@ class Sampler():
                     sampled_ids = self.decoder.sample_prob(feature)
                 elif (self.sampling == "max"):
                     sampled_ids = self.decoder.sample_max(feature)
-               
+                elif (self.sampling == "simple_probabilistic"):
+                    sampled_ids = self.decoder.simple_prob(feature)
+                elif (self.sampling == "simple_probabilistic_topk"):
+                    sampled_ids = self.decoder.simple_prob_topk(feature)
+                
                 sampled_ids = ( sampled_ids[0].cpu().numpy() )
                 idx =  self.printing_smiles(sampled_ids, smiles)
                 amount_val_smiles += idx
