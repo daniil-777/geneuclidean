@@ -72,7 +72,7 @@ class Trainer_Binding_Fold():
         self.PKD_PATH = os.path.join(self.savedir, "logs")
         self.PATH_PLOTS = os.path.join(self.savedir, "plots")
         self.idx_file = os.path.join(self.log_path, "idxs")
-        self.self.device = torch.self.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.save_dir_smiles = os.path.join(self.savedir, "statistics")
         if not os.path.exists(self.tesnorboard_path):
             os.makedirs(self.tesnorboard_path)
