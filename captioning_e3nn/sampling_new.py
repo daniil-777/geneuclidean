@@ -55,8 +55,8 @@ def main():
    
     sampler = Sampler(cfg, "max")
     sampler.analysis_cluster(0, encoder_path, decoder_path)
-    sampler = Sampler(cfg, "beam")
-    sampler.analysis_cluster(0, encoder_path, decoder_path)
+    # sampler = Sampler(cfg, "beam")
+    # sampler.analysis_cluster(0, encoder_path, decoder_path)
     sampler = Sampler(cfg, "simple_probabilistic")
     sampler.analysis_cluster(0, encoder_path, decoder_path)
     sampler = Sampler(cfg, "simple_probabilistic_topk")
