@@ -1,6 +1,7 @@
 preprocessing:
   mask: True
   collate_fn: masks
+  natoms: 286
 splitting:
   split: random
   file_folds: random_split_att_no_vis_18_09
