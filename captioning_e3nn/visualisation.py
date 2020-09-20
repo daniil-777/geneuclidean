@@ -214,8 +214,8 @@ class Visualisation:
             sampled_ids, alpha_all = self.decoder.sample_beam_search(feature)
             for sentence in sampled_ids:
                 iter += 1
-                idx = self.printing_smiles(np.asarray(sentence[1:]), smiles, alphas_result, alpha_all, iter)
-                amount_val_smiles += idx
+                self.printing_smiles(np.asarray(sentence[1:]), smiles, alphas_result, alpha_all, iter)
+                amount_val_smiles += iter
         else:
             raise ValueError("Unknown sampling...")
 
@@ -250,12 +250,12 @@ class Visualisation:
         if m is None or sentence == '' or sentence.isspace() == True:
             print('invalid')
             # list_smiles_all.append(sentence)
-            return 1
+            
         else:
             print(sentence)
             # smiles.append(sentence)
             list_smiles_all.append(sentence)
             alphas_result.append(alpha_all[idx, :])
-            return 1
+            
 
     
