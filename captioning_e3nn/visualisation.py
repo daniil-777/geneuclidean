@@ -141,11 +141,11 @@ class Visualisation:
         features = features.to(self.device).unsqueeze(0)
         geometry = geometry.to(self.device).unsqueeze(0)
         masks = masks.to(self.device).unsqueeze(0)
-        features = np.asarray(features.cpu().clone().numpy())
-        geometry = np.asarray(geometry.cpu().clone().numpy())
+        # features = np.asarray(features.cpu().clone().numpy())
+        geometry_write = np.asarray(geometry.cpu().clone().numpy())
         np.save(
             os.path.join(self.path_protein, "geometry"),
-            arr = geometry,
+            arr = geometry_write,
         )
         return features, geometry, masks
 
