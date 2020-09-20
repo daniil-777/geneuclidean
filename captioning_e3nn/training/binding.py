@@ -176,14 +176,13 @@ class Trainer_Binding_Fold():
             
          
 
-    def train_epochs(self, sampling):
+    def train_epochs(self):
         featuriser = Pdb_Dataset(self.cfg, vocab=self.vocab)
         files_refined = os.listdir(self.protein_dir)
         idx_folds = pickle.load( open(os.path.join(self.idx_file, self.name_file_folds), "rb" ) )
         split_no = self.fold_number
         test_idx = []
         py3nvml.nvmlInit()
-        sampler = Sampler(self.cfg, sampling)
  
         train_id, test_id = idx_folds[split_no]
         train_data = train_id
@@ -195,7 +194,7 @@ class Trainer_Binding_Fold():
         feat_test = [featuriser[data] for data in test_data]
 
         loader_train = DataLoader(
-            feat_train, batch_size=self.BATCH_SIZE, num_workers=self.batch_sampler=self.NUM_WORKERS, shuffle=True
+            feat_train, batch_size=self.BATCH_SIZE, num_workers= self.NUM_WORKERS, shuffle=True
         )
 
         loader_test = DataLoader(
