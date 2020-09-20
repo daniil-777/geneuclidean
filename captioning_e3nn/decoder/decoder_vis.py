@@ -424,7 +424,7 @@ class MyDecoderWithAttention_Vis(nn.Module):
             inputs = self.embed(predicted)
             inputs = inputs.unsqueeze(1)
         sampled_ids = torch.stack(sampled_ids, 1)
-    return sampled_ids
+        return sampled_ids
 
 
     def sample_beam_search(self, features):
