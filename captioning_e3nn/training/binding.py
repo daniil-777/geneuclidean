@@ -93,8 +93,8 @@ class Trainer_Binding_Fold():
         self.log_file_tensor = open(os.path.join(self.log_path, "log_tensor.txt"), "w")
         self.writer = SummaryWriter(self.tesnorboard_path)
         
-        self.Encoder  = config.get_model_binding(cfg, self.device=self.self.device)
-        self.input = config.get_shape_input(self.cfg)
+        self.Encoder  = self.cfg.get_model_binding(cfg, self.device=self.self.device)
+        self.input = self.cfg.get_shape_input(self.cfg)
         # print(summary(self.Encoder, self.input))
         # print(summary(self.Decoder))
         print(self.Encoder)
@@ -105,7 +105,7 @@ class Trainer_Binding_Fold():
             print(self.Encoder)
   
             sys.stdout = self.original_stdout
-        self.tils = Utils(config)
+        self.tils = Utils(self.cfg)
 
         #print all params
         nparameters_enc = sum(p.numel() for p in self.Encoder.parameters())
