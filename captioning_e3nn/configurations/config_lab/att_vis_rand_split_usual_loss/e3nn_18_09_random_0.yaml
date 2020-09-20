@@ -65,7 +65,7 @@ output_parameters:
 
 
 sampling_params: 
-  sampling: probabilistic
+  sampling: beam
   sample_id: 15
   number_smiles: 30
   time_waiting: 1200
