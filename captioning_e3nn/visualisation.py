@@ -210,10 +210,10 @@ class Visualisation:
             features, geometry, masks = self.load_pocket(id)
             feature = self.encoder(features, geometry, masks)
             # self.decoder = self.decoder.float()
-            sampled_ids, alphas = self.decoder.sample_beam_search(feature)
+            sampled_ids, alpha_all = self.decoder.sample_beam_search(feature)
             for sentence in sampled_ids:
                 iter += 1
-                idx = self.printing_smiles(np.asarray(sentence[1:]), smiles, alphas_result, alphas, iter)
+                idx = self.printing_smiles(np.asarray(sentence[1:]), smiles, alphas_result, alpha_all, iter)
                 amount_val_smiles += idx
         else:
             raise ValueError("Unknown sampling...")
@@ -234,7 +234,7 @@ class Visualisation:
            #     amount_val_smiles += idx
         
       
-    def printing_smiles(self, sampled_ids, list_smiles_all, alphas_result, alphas, idx):
+    def printing_smiles(self, sampled_ids, list_smiles_all, alphas_result, alpha_all, idx):
     
         sampled_caption = []
         for word_id in sampled_ids:
@@ -254,7 +254,7 @@ class Visualisation:
             print(sentence)
             # smiles.append(sentence)
             list_smiles_all.append(sentence)
-            alphas_result.append(alphas[idx, :])
+            alphas_result.append(alpha_all[idx, :])
             return 1
 
     
