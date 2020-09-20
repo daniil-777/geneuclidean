@@ -100,6 +100,27 @@ def get_shape_input(cfg):
     masks_shape = (batch_size, n_atoms, 284)
     return [features_shape, geometry_shape, masks_shape]
 
+
+def get_model_binding(cfg, device=None, **kwargs):
+    r''' Returns the model for encoder and decoder
+
+    Args:
+        cfg (yaml object): the config file
+        device (PyTorch device): the PyTorch device
+    '''
+    encoder = cfg['model']['encoder']
+    
+    encoder_kwargs = cfg['model']['encoder_kwargs']
+
+
+    encoder = encoder_dict[encoder](
+        **encoder_kwargs
+    ).to(device).double()
+
+    # model = models.PCGN(decoder, encoder)
+    # model = model.to(device)
+    return encoder
+
 def get_model_captioning(cfg, device=None, **kwargs):
     r''' Returns the model for encoder and decoder
 
