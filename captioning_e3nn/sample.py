@@ -3,7 +3,8 @@ import json
 import os
 import pickle
 import sys
-
+import rdkit
+from rdkit import Chem
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -11,7 +12,7 @@ from PIL import Image
 from torchvision import transforms
 
 from build_vocab import Vocabulary
-from dataset import Pdb_Dataset
+from data_loader import Pdb_Dataset
 from models import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
 from utils import Utils
 
@@ -94,7 +95,8 @@ def main(args):
     # Load vocabulary wrapper
     # with open(vocab_path, 'rb') as f:
     #     vocab = pickle.load(f)
-
+    with open(vocab_path, "rb") as f:
+        vocab = pickle.load(f)
     # Build models
     encoder = Encoder_se3ACN().eval()  # eval mode (batchnorm uses moving mean/variance)
     # decoder = DecoderRNN(embed_size, hidden_size, len(vocab), num_layers)
@@ -122,7 +124,7 @@ def main(args):
     print("geomrery shape", geometry_tensor.shape)
     print("feature shape", features_tensor.shape)
     feature = encoder(geometry_tensor, features_tensor)
-    sampled_ids = decoder.sample(feature)
+    sampled_ids = decoder.sample(feature, vocab)
     sampled_ids = (
         sampled_ids[0].cpu().numpy()
     )  # (1, max_seq_length) -> (max_seq_length)
