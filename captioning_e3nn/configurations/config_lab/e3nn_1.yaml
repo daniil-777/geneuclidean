@@ -1,6 +1,7 @@
 preprocessing:
   mask: True
   collate_fn: masks
+  natoms: 286
 training_params:
   mode: no_attention
   log_step: 10
