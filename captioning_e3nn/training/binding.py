@@ -205,7 +205,7 @@ class Trainer_Binding_Fold():
 
         loss_cl = Loss()
         opt = Adam(self.Encoder.parameters(),
-                    lr=config["model_params"]["learning_rate"])
+                    lr=self.learning_rate)
         scheduler = ExponentialLR(opt, gamma=0.95)
 
         print("Training model...")
