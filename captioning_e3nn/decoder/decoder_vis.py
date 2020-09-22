@@ -342,6 +342,9 @@ class MyDecoderWithAttention_Vis(nn.Module):
         return sampled_ids
     
     def simple_prob(self, features, states = None):
+        k = 1
+        k_prev_words = torch.LongTensor([[self.vocab.word2idx['<start>']]] * k).to(self.device) 
+        h, c = self.init_hidden_state(features)
         sampled_ids = []
         inputs = features.unsqueeze(1)
         for i in range(self.max_seg_length):  # maximum sampling length
@@ -384,6 +387,9 @@ class MyDecoderWithAttention_Vis(nn.Module):
         return sampled_ids
 
     def simple_prob_topk(self, features, states = None):
+        k = 1
+        k_prev_words = torch.LongTensor([[self.vocab.word2idx['<start>']]] * k).to(self.device) 
+        h, c = self.init_hidden_state(features)
         sampled_ids = []
         inputs = features.unsqueeze(1)
         for i in range(self.max_seg_length):  # maximum sampling length
