@@ -72,9 +72,7 @@ class Pdb_Dataset(Dataset):
         vocab = self.vocab
         all_features, masks = self._get_features_complex(idx)
         all_geometry = self._get_geometry_complex(idx)
-        target = torch.Tensor(caption)
         target_pkd = np.asarray(float(self.labels_voc[self.files_refined[idx]]))
-    
         return idx, all_features, all_geometry, masks, torch.from_numpy(target_pkd)
         
     
