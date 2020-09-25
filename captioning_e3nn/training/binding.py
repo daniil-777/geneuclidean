@@ -158,7 +158,7 @@ class Trainer_Binding_Fold():
         target_pkd_all = []
         pkd_pred = []
         all_rmsd = []
-        for idx, features, geometry, target_pkd in progress:
+        for idx, features, geometry, masks, target_pkd in progress:
             with torch.no_grad():
                 features = features.to(self.device)
                 geometry = geometry.to(self.device)
