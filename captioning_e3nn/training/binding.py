@@ -73,6 +73,7 @@ class Trainer_Binding_Fold():
         self.PATH_PLOTS = os.path.join(self.savedir, "plots")
         self.idx_file = os.path.join(self.log_path, "idxs")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
         self.save_dir_smiles = os.path.join(self.savedir, "statistics")
         if not os.path.exists(self.tesnorboard_path):
             os.makedirs(self.tesnorboard_path)
@@ -228,11 +229,11 @@ class Trainer_Binding_Fold():
             scheduler.step()
         losses_to_write_train = np.asarray(losses_to_write_train, dtype=np.float32)
         # save losses for the train
-        np.savetxt(
-            os.path.join(self.PATH_LOSS, "losses_train_2016.out"),
-            losses_to_write_train,
-            delimiter=",",
-        )
+        # np.savetxt(
+        #     os.path.join(self.PATH_LOSS, "losses_train_2016.out"),
+        #     losses_to_write_train,
+        #     delimiter=",",
+        # )
         # save true values of training target
         savetxt(
             os.path.join(self.PKD_PATH, "target_pkd_all_train.csv"),
@@ -251,11 +252,11 @@ class Trainer_Binding_Fold():
         print("pkd_pred", pkd_pred_test)
         loss_test_to_write = np.asarray(loss_test_to_write, dtype=np.float32)
         loss_test_to_write = np.asarray([loss_test_to_write])
-        np.savetxt(
-            os.path.join(self.PATH_LOSS, "losses_test_2016.out"),
-            loss_test_to_write,
-            delimiter=",",
-        )
+        # np.savetxt(
+        #     os.path.join(self.PATH_LOSS, "losses_test_2016.out"),
+        #     loss_test_to_write,
+        #     delimiter=",",
+        # )
 
         os.makedirs(self.PKD_PATH, exist_ok=True)
 
