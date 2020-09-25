@@ -71,16 +71,7 @@ class Pdb_Dataset(Dataset):
     def __getitem__(self, idx: int):
         vocab = self.vocab
         all_features, masks = self._get_features_complex(idx)
-
         all_geometry = self._get_geometry_complex(idx)
-        # print("shape all geom", all_geometry.shape)
-        caption_raw = self._get_caption(idx)
-        tokens = [token for token in caption_raw]
-        caption = []
-        caption.append(vocab("<start>"))
-        # print("caption of start", vocab('<start>'))
-        caption.extend([vocab(token) for token in tokens])
-        caption.append(vocab("<end>"))
         target = torch.Tensor(caption)
         target_pkd = np.asarray(float(self.labels_voc[self.files_refined[idx]]))
     
