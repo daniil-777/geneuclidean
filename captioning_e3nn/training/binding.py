@@ -246,7 +246,7 @@ class Trainer_Binding_Fold():
         )
 
         print("Evaluating model...")
-        target_pkd_all_test, pkd_pred_test, loss_test_to_write = eval_loop(
+        target_pkd_all_test, pkd_pred_test, loss_test_to_write = self.eval_loop(
             loader_test, self.Encoder, epoch
         )
         print("pkd_pred", pkd_pred_test)
