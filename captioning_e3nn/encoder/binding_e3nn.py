@@ -134,7 +134,7 @@ class Binding_Network(torch.nn.Module):
             )
             features = act(features)
             features = features * mask.unsqueeze(-1)
-        print("features shape after enc", features.shape)
+        # print("features shape after enc", features.shape)
         
         # features = self.leakyrelu(self.bn_out_1(self.e_out_1(features))) # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
         # features = self.leakyrelu(self.bn_out_2(self.e_out_2(features)))
@@ -144,5 +144,5 @@ class Binding_Network(torch.nn.Module):
         #     features = features_z + features
         features = self.atom_pool(features, mask)
         features = features.squeeze(1)
-        print("feat final shape", features.shape)
+        # print("feat final shape", features.shape)
         return features # shape ? 
