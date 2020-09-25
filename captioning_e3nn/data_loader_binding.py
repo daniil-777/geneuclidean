@@ -84,7 +84,7 @@ class Pdb_Dataset(Dataset):
         target = torch.Tensor(caption)
         target_pkd = np.asarray(float(self.labels_voc[self.files_refined[idx]]))
     
-        return all_features, all_geometry, masks, torch.from_numpy(target_pkd)
+        return idx, all_features, all_geometry, masks, torch.from_numpy(target_pkd)
         
     
     def get_label(self, idx:int):
