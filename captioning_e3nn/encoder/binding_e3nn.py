@@ -136,8 +136,8 @@ class Binding_Network(torch.nn.Module):
             features = features * mask.unsqueeze(-1)
         print("features shape after enc", features.shape)
         
-        features = self.leakyrelu(self.bn_out_1(self.e_out_1(features))) # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
-        features = self.leakyrelu(self.bn_out_2(self.e_out_2(features)))
+        # features = self.leakyrelu(self.bn_out_1(self.e_out_1(features))) # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
+        # features = self.leakyrelu(self.bn_out_2(self.e_out_2(features)))
 
         # if self.atomref is not None:
         #     features_z = self.atomref(atomic_numbers)
