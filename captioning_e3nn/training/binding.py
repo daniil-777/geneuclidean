@@ -169,7 +169,7 @@ class Trainer_Binding_Fold():
                 target_pkd_all.append(target_pkd)
                 pkd_pred.append(out1.cpu())
 
-                loss_rmsd_pkd = loss_cl(out1, target_pkd).float()
+                loss_rmsd_pkd = self.loss_cl(out1, target_pkd).float()
                 self.writer.add_scalar("test_loss", loss_rmsd_pkd.item(), epoch)
                 all_rmsd.append(loss_rmsd_pkd.item())
         return torch.cat(target_pkd_all), torch.cat(pkd_pred), sum(all_rmsd) / len(all_rmsd)
@@ -203,7 +203,7 @@ class Trainer_Binding_Fold():
         )
 
 
-        loss_cl = Loss()
+        self.loss_cl = Loss()
         opt = Adam(self.Encoder.parameters(),
                     lr=self.learning_rate)
         scheduler = ExponentialLR(opt, gamma=0.95)
@@ -215,7 +215,7 @@ class Trainer_Binding_Fold():
             print("Epoch {}/{}...".format(i + 1, self.N_EPOCHS))
             epoch = i + 1
             target_pkd_all, pkd_pred, loss = self.train_loop_mask(
-                loader_train, self.Encoder, loss_cl, opt, epoch
+                loader_train, self.Encoder, self.loss_cl, opt, epoch
             )
             print("pkd_pred", pkd_pred)
             losses_to_write_train.append(loss)
