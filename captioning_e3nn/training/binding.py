@@ -134,7 +134,7 @@ class Trainer_Binding_Fold():
             opt.zero_grad()
 
             # out1 = model(features, geometry)
-            out1 = model(geometry, features, masks)
+            out1 = model(features, geometry, masks)
             pkd_pred.append(out1.cpu())
             # print(out1.cpu())
             loss_rmsd_pkd = loss_cl(out1, target_pkd).float()
@@ -163,7 +163,7 @@ class Trainer_Binding_Fold():
                 geometry = geometry.to(self.device)
                 masks = masks.to(self.device)
 
-                out1 = model(geometry, features, masks).to(self.device)
+                out1 = model(features, geometry, masks).to(self.device)
                 target_pkd = target_pkd.to(self.device)
                 target_pkd_all.append(target_pkd)
                 pkd_pred.append(out1.cpu())
