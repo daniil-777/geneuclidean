@@ -270,8 +270,8 @@ class Trainer_Binding_Fold():
             arr=pkd_pred_test.detach().cpu().clone().numpy(),
         )
 
-        with open(os.path.join(self.PKD_PATH, "split_pdbids.pt"), "wb") as handle:
-            pickle.dump(split_pdbids, handle)
+        # with open(os.path.join(self.PKD_PATH, "split_pdbids.pt"), "wb") as handle:
+        #     pickle.dump(split_pdbids, handle)
 
         self.utils.plot_statistics(
             self.PKD_PATH,
@@ -293,9 +293,9 @@ class Trainer_Binding_Fold():
             loss_test_to_write[0],
         )
 
-        self.utils.plot_losses(
-            self.PATH_LOSS, self.PATH_PLOTS, self.N_EPOCHS, self.name_plot
-        )
+        # self.utils.plot_losses(
+        #     self.PATH_LOSS, self.PATH_PLOTS, self.N_EPOCHS, self.name_plot
+        # )
 
 
        
