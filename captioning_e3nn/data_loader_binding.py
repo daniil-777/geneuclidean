@@ -15,7 +15,7 @@ from dictionaries import atom_most_common, dict_atoms_hot, dict_atoms_simple
 
 # number_atoms_unique = 22
 
-
+LEN_PADDING = 286
 
 class Pdb_Dataset(Dataset):
     """PdB binding dataset"""
