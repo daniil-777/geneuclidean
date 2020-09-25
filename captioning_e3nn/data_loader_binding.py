@@ -87,7 +87,7 @@ class Pdb_Dataset(Dataset):
         return all_features, all_geometry, masks, torch.from_numpy(target_pkd)
         
     
-        def get_label(self, idx:int):
+    def get_label(self, idx:int):
         name_protein = self.files_refined[idex]
         # label = 
     
@@ -449,7 +449,7 @@ class Pdb_Dataset(Dataset):
         #     if length > max_length:
         #         max_length = length
         # print("max length", max_length)
-        
+
 def collate_fn(data):
     """Creates mini-batch tensors from the list of tuples (image, caption).
     
