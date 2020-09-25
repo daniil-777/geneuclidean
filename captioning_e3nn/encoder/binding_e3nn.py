@@ -83,7 +83,7 @@ class Binding_Network(torch.nn.Module):
             self.atom_pool =  Aggregate(axis=1, mean=False)
         elif aggregation_mode == "avg":
             self.atom_pool =  Aggregate(axis=1, mean=True)
-        self.num_embeddings = 6
+        self.num_embeddings = 11
         self.RadialModel = partial(
             CosineBasisModel,
             max_radius=max_rad,
@@ -101,7 +101,7 @@ class Binding_Network(torch.nn.Module):
             kc = self.kernel_conv(Rs_in, act.Rs_in)
             return torch.nn.ModuleList([kc, act])
 
-        self.layers = torch.nn.ModuleList([torch.nn.Embedding(self.num_embeddings, embed, padding_idx=5)])
+        self.layers = torch.nn.ModuleList([torch.nn.Embedding(self.num_embeddings, embed, padding_idx=10)])
         self.layers += [make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])]
         self.leakyrelu = nn.LeakyReLU(0.2) # Relu
         self.e_out_1 = nn.Linear(mlp_h, mlp_h)
