@@ -86,47 +86,48 @@ class Pdb_Dataset(Dataset):
     
         return all_features, all_geometry, masks, torch.from_numpy(target_pkd)
         
-    def _get_labels_dict(self, vocab_path):
-        with open(vocab_path, "rb") as f:
-            vocab = pickle.load(f)
-        return vocab
-
-    def _get_name_protein(self, idx: int):
-        name_protein = self.files_refined[idx]
-        return name_protein
+    
+        def get_label(self, idx:int):
+        name_protein = self.files_refined[idex]
+        # label = 
+    
+    def get_caption(self, idx: int):
+        protein_name = self.files_refined[protein_id]
+        path_ligand_caption = os.path.join(
+                self.init_refined, protein_name, protein_name + "_ligand.txt"
+            )
+        ligand_caption = loadtxt(path_ligand_caption, delimiter=",", unpack=False)
+        return ligand_caption
         
-    def _get_caption(self, id):
-        """get caption as a row of a smile by id
-        """
-
-        protein_name = self.files_refined[id]
-        # print("current protein", protein_name)
-        path_to_smile = os.path.join(
-            self.init_refined, protein_name, protein_name + "_ligand.smi"
-        )
-        with open(path_to_smile, "r") as file:
-            caption = file.read()
-        return caption
-
-    # def get_caption(self, idx: int):
-    #     protein_name = self.files_refined[protein_id]
-    #     path_ligand_caption = os.path.join(
-    #             self.init_refined, protein_name, protein_name + "_ligand.txt"
-    #         )
-    #     ligand_caption = loadtxt(path_ligand_caption, delimiter=",", unpack=False)
-    #     return ligand_caption
+    
 
     def _get_path(self, protein_id: int):
         """ get a full path to pocket/ligand
 
         """
-        protein_name = self.files_refined[protein_id]
-        # print("current protein", protein_name)
-        path_pocket = os.path.join(
-            self.init_refined, protein_name, protein_name + "_pocket.pdb"
-        )
+        if protein_id >= self.len_files:
+            new_id = protein_id - self.len_files
+            protein_name = self.files_core[new_id]
+            print("casf", protein_name)
 
-        return path_pocket
+            path_pocket = os.path.join(
+                self.init_casf, protein_name, protein_name + "_pocket.pdb"
+            )
+            # path_ligand=os.path.join(
+            #     self.init_core_ligand,  protein_name + "_ligand.mol2")
+            path_ligand = os.path.join(
+                self.init_casf, protein_name, protein_name + "_ligand.mol2"
+            )
+        else:
+            protein_name = self.files_refined[protein_id]
+            # print("current protein", protein_name)
+            path_pocket = os.path.join(
+                self.init_refined, protein_name, protein_name + "_pocket.pdb"
+            )
+            path_ligand = os.path.join(
+                self.init_refined, protein_name, protein_name + "_ligand.mol2"
+            )
+        return path_pocket, path_ligand
 
     def _get_elems(self, protein_id: int, type_filtering: str):
         """ gives np.array of elements for a pocket and a ligand in one complex
@@ -136,31 +137,30 @@ class Pdb_Dataset(Dataset):
         protein_id   : str
                       id of a complex
         """
-        path_pocket = self._get_path(protein_id)
+        path_pocket, path_ligand = self._get_path(protein_id)
         try:
+            # print("path_pocket", path_pocket)
             mol_pocket = Molecule(path_pocket)
-            # mol_ligand = Molecule(path_ligand)
-            if type_filtering == "filtered":
-                mol_pocket_element = [
-                    elem
-                    for elem in mol_pocket.element
-                    if elem in ["C", "H", "N", "O", "S"]
-                ]
-                # mol_ligand_element = [elem for elem in mol_ligand.element if elem in ["C", "H", "N", "O", "S"]]
-            elif type_filtering == "all":
+            mol_ligand = Molecule(path_ligand)
+            if(type_filtering == "filtered"):
+                mol_pocket_element = [elem for elem in mol_pocket.element if elem in self.common_atoms]
+                mol_ligand_element = [elem for elem in mol_ligand.element if elem in self.common_atoms]
+            elif(type_filtering == "all"):
                 mol_pocket_element = mol_pocket.element
-                # mol_ligand_element = mol_ligand.element
+                mol_ligand_element = mol_ligand.element
 
         except FileNotFoundError:
 
             print(protein_id, "   exception")
-            path_pocket = self._get_path(2)
+            path_pocket, path_ligand = self._get_path(2)
             mol_pocket = Molecule(path_pocket)
-            mol_pocket_element = mol_pocket.element
-
+            mol_ligand = Molecule(path_ligand)
             # print("mol_ligand_element", mol_ligand.element)
+        
+        return mol_pocket_element, mol_ligand_element
 
-        return mol_pocket_element
+
+
 
     def atom_to_vector(self, elem: str):
         """ creates a hot vector of an atom
@@ -190,23 +190,29 @@ class Pdb_Dataset(Dataset):
         elem   : str atom element
         """
         hot_vector_atom = self.atom_to_vector(elem)
-
+        
         if type_atom == "pocket":
             if type_filtering == "filtered":
-                feature_vector_atom = self.dict_words[elem]
+                feature_vector_atom =  self.dict_words[elem]
                 feature_vector_atom = np.array([feature_vector_atom])
             elif type_filtering == "all":
-                feature_vector_atom = np.concatenate(
-                    (self.label_protein, hot_vector_atom)
-                )
+                feature_vector_atom = np.concatenate((self.label_protein, hot_vector_atom))
                 feature_vector_atom = np.array([hot_vector_atom])
 
             # print("feat_atom", feature_vector_atom)
             # feature_vector_atom = np.concatenate((self.label_protein, hot_vector_atom))
             # feature_vector_atom = np.array([hot_vector_atom])
-
+            
             # print("feat vector", feature_vector_atom)
-
+        
+        elif type_atom == "ligand":
+            if type_filtering == "filtered":
+                feature_vector_atom =  self.dict_words[elem] + 5
+                feature_vector_atom = np.array([feature_vector_atom])
+            elif type_filtering == "all":
+                feature_vector_atom = np.concatenate((self.label_ligand, hot_vector_atom))
+                feature_vector_atom = np.array([hot_vector_atom])
+        
             # print("feat_atom_lig", feature_vector_atom)
             # print("feature_lig", feature_vector_atom)
             # print("feat vector", feature_vector_atom)
@@ -218,9 +224,7 @@ class Pdb_Dataset(Dataset):
         return feature_vector_atom
         # return hot_vector_atom
 
-    def _get_features_unit(
-        self, elements: np.array, type_atom: str, type_filtering: str
-    ):
+    def _get_features_unit(self, elements: np.array, type_atom: str, type_filtering: str):
         """creates a union of tensors-features of an atoms' array at particlular biological unit: pocket/ligand 
 
         Parameters
@@ -238,9 +242,7 @@ class Pdb_Dataset(Dataset):
 
         list_features_tensors = []
         for elem in elements:
-            tensor_feature = self._get_feature_vector_atom(
-                elem, type_atom, type_filtering
-            )
+            tensor_feature = self._get_feature_vector_atom(elem, type_atom, type_filtering)
             list_features_tensors.append(tensor_feature)
         # features = torch.cat(list_features_tensors, dim=-1)
         return list_features_tensors
@@ -278,38 +280,35 @@ class Pdb_Dataset(Dataset):
         tensor : torch.tensor [1, n, 23]
             The tensor of all n atoms' features:
             1 | 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 - pocket
-    
+            -1 | 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 - ligand
         type_filtering: filtered
             The tensor of all n atoms' features:
-            (atoms are encoded from 0 to 4 - ["C", "H", "O", "N", "S"] for pocket)
+            (atoms are encoded from 0 to 4 - ["C", "H", "O", "N", "S"] for pocket and * + 5 for ligand)
             1 1 2 4 4 - pocket
-    
+            6 6 7 9 9 - ligand
         n atoms are padded then till max_length with 10 
         """
-        elem_pocket = self._get_elems(id, self.type_filtering)
+        elem_pocket, elem_ligand = self._get_elems(id, self.type_filtering)
         # coord_pocket, coord_ligand = self._get_coord(id)
-        features_pocket_part = self._get_features_unit(
-            elem_pocket, "pocket", self.type_filtering
+        features_pocket_part = self._get_features_unit(elem_pocket, "pocket", self.type_filtering)
+        features_ligand_part = self._get_features_unit(elem_ligand, "ligand", self.type_filtering)
+        features_all = features_pocket_part + features_ligand_part
+        tensor_all_features = (
+            torch.tensor(features_all, dtype=torch.long)
+            .unsqueeze(0)
         )
-        # features_ligand_part = self._get_features_unit(elem_ligand, "ligand", self.type_filtering)
-        # features_all = features_pocket_part + features_ligand_part
-        tensor_all_features = torch.tensor(
-            features_pocket_part, dtype=torch.long
-        ).unsqueeze(0)
-        length_padding = self.len_padding - tensor_all_features.shape[1]
+        length_padding = LEN_PADDING - tensor_all_features.shape[1]
         result = F.pad(
             input=tensor_all_features,
             pad=(0, 0, 0, length_padding),
             mode="constant",
-            value=5,
+            value=10,
         )
-        mask_binary = torch.cat([torch.ones(tensor_all_features.shape[1]),torch.zeros(length_padding)])
         # print("feature shape")
         # print(result.shape)
         # print(result)
         result = result.squeeze(0)
-        
-        return result, mask_binary
+        return result
         # return result, elem_pocket, elem_ligand
         # return tensor_all_features
 
@@ -326,14 +325,14 @@ class Pdb_Dataset(Dataset):
         tensor_all_atoms_coords : torch.tensor [1, n, 3]
             The tensor of coords-tensors
         """
-        coords_pocket = self._get_coord(id, self.type_filtering)
-
+        coords_pocket, coords_ligand = self._get_coord(id, self.type_filtering)
+        
         list_geom_tensors = []
-        all_atoms_coords = np.asarray(coords_pocket)
+        all_atoms_coords = np.concatenate((coords_pocket, coords_ligand))
         tensor_all_atoms_coords = (
             torch.from_numpy(all_atoms_coords).squeeze().unsqueeze(0)
         )
-        length_padding = self.len_padding - tensor_all_atoms_coords.shape[1]
+        length_padding = LEN_PADDING - tensor_all_atoms_coords.shape[1]
         result = F.pad(
             input=tensor_all_atoms_coords,
             pad=(0, 0, 0, length_padding),
@@ -347,6 +346,48 @@ class Pdb_Dataset(Dataset):
         # return result, tensor_all_atoms_coords.shape[1]
         # return tensor_all_atoms_coords
 
+    def read_labels(self, path: str):
+        # labels = np.loadtxt(path, delimiter='\n', unpack=True)
+        file = open(path, "r")
+        labels = [float(line.split(",")[1][:-1]) for line in file.readlines()]
+        # labels = np.asarray(labels)
+        file.close()
+        return labels
+    
+    def _get_labels_dict(self, vocab_path):
+        with open(vocab_path, "rb") as f:
+            vocab = pickle.load(f)
+        return vocab
+
+    def _get_labels_refined_core(self, path_refined: str, path_core: str):
+        """ gives list of labels of refined and core datasets
+
+        Parameters
+        ----------
+        path_refined   : str
+                      path to the refined pdbbind dataset
+        path_core      : str
+                      path to the core pdbbind (CASF) dataset
+        """
+
+        
+        file_lb_refined = open(path_refined, "r")
+        labels_refined = [
+            float(line.split(",")[1][:-1]) for line in file_lb_refined.readlines()
+        ]
+        proteins = [line for line in file_lb_refined.readlines()]
+        # labels = np.asarray(labels)
+        file_lb_refined.close()
+        file_lb_core = open(path_core, "r")
+        labels_core = [
+            float(line.split(",")[1][:-1]) for line in file_lb_core.readlines()
+        ]
+        # labels = np.asarray(labels)
+        file_lb_core.close()
+        # print("labels",labels_refined)
+        print("proteins !!!",proteins)
+        return labels_refined #attention!!
+
     def _get_coord(self, protein_id: int, type_filtering: str):
         """ gives np.array of coordinates for a pocket and a ligand in one complex
 
@@ -356,32 +397,59 @@ class Pdb_Dataset(Dataset):
                       id of a complex
         """
 
-        path_pocket = self._get_path(protein_id)
+        path_pocket, path_ligand = self._get_path(protein_id)
         mol_pocket = Molecule(path_pocket)
         # print("protein coords", mol_pocket.coords)
-
-        if type_filtering == "all":
+        mol_ligand = Molecule(path_ligand)
+        if (type_filtering == "all"):
             coords_pocket = mol_pocket.coords
+            coords_ligand = mol_ligand.coords
+        elif (type_filtering == "filtered"):
+            prot_idxs = [idx for idx, elem in enumerate(mol_pocket.element) if elem in self.common_atoms]
+            coords_pocket = [element for i, element in enumerate(mol_pocket.coords) if i in prot_idxs]
 
-        elif type_filtering == "filtered":
-            prot_idxs = [
-                idx
-                for idx, elem in enumerate(mol_pocket.element)
-                if elem in self.common_atoms
-            ]
-            coords_pocket = [
-                element for i, element in enumerate(mol_pocket.coords) if i in prot_idxs
-            ]
-
-            # lig_idxs = [idx for idx, elem in enumerate(mol_ligand.element) if elem in self.common_atoms]
-            # coords_ligand = [element for i, element in enumerate(mol_ligand.coords) if i in lig_idxs]
+            lig_idxs = [idx for idx, elem in enumerate(mol_ligand.element) if elem in self.common_atoms]
+            coords_ligand = [element for i, element in enumerate(mol_ligand.coords) if i in lig_idxs]
+        
 
         # lig_idxs = [idx for idx, elem in enumerate(mol_ligand.element) if elem in ["C", "H", "N", "O", "S"]]
         # lig_coords = [element for i, element in enumerate(mol_ligand.coords) if i in lig_idxs]
         # return mol_pocket.coords, mol_ligand.coords
-        return coords_pocket
+        return coords_pocket, coords_ligand
 
 
+    def _get_length_padding(self, flag_dataset: str):
+        """allows to get maximum length of a feature vector for the refined or core sets
+        Parameters
+        ----------
+        flag_dataset   : str
+                      type of dataset - "refined" or "core"
+        Returns
+        -------
+        max_length     : int
+                      maximum length of a feature vector to pad to 
+        """
+        if flag_dataset == "refined":
+            list_indexes = [i for i in range(1, len(self.files_refined))]
+        elif flag_dataset == "core":
+            list_indexes = [285 + i for i in range(len(self.files_refined))]
+        else:
+            raise ValueError
+        max_length = 0
+        array_lengthes = []
+        atoms_frequency = [0]*22
+        for id in list_indexes:
+            tensor_f, length = self._get_features_complex(id)
+            array_lengthes.append(length)
+        plt.hist(array_lengthes)
+        plt.show()
+            # print("feature", tensor_f )
+            # tensor_e = self._get_geometry_complex(id)
+
+        #     if length > max_length:
+        #         max_length = length
+        # print("max length", max_length)
+        
 def collate_fn(data):
     """Creates mini-batch tensors from the list of tuples (image, caption).
     
