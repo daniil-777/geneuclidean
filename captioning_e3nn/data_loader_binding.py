@@ -308,7 +308,8 @@ class Pdb_Dataset(Dataset):
         # print(result.shape)
         # print(result)
         result = result.squeeze(0)
-        return result
+        mask_binary = torch.cat([torch.ones(tensor_all_features.shape[1]),torch.zeros(length_padding)])
+        return result, mask_binary
         # return result, elem_pocket, elem_ligand
         # return tensor_all_features
 
