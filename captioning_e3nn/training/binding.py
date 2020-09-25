@@ -106,7 +106,7 @@ class Trainer_Binding_Fold():
             print(self.Encoder)
   
             sys.stdout = self.original_stdout
-        self.tils = Utils(self.cfg)
+        self.utils = Utils(self.cfg)
 
         #print all params
         nparameters_enc = sum(p.numel() for p in self.Encoder.parameters())
