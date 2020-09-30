@@ -222,7 +222,7 @@ class Sampler():
             self.number_smiles = 1
         else:
             self.number_smiles = self.cfg["sampling_params"]["number_smiles"]
-        if (self.sampling != "beam"):
+        if (self.sampling.startswith('beam') == False):
             while (amount_val_smiles < self.number_smiles):
                 end = time.time()
                 print("time elapsed", end - start)
