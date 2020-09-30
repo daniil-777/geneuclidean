@@ -262,11 +262,12 @@ class Sampler():
                     amount_val_smiles = 0
            
         
-        elif (self.sampling == "beam"):
+        elif (self.sampling.startswith('beam') == True):
+            number_beams = int(self.sampling.split("_")[1])
             features, geometry, masks = self.load_pocket(id)
             feature = self.encoder(features, geometry, masks)
             # self.decoder = self.decoder.float()
-            sampled_ids, alphas  = self.decoder.sample_beam_search(feature)
+            sampled_ids, alphas  = self.decoder.sample_beam_search(feature, number_beams)
             print("sampled-ind", sampled_ids)
             if(sampled_ids == 120 ):
                 amount_val_smiles = 0

@@ -362,7 +362,8 @@ class MyDecoderWithAttention_Vis(nn.Module):
 
             scores = self.fc(h)  # (s, vocab_size)
             if i == 0:
-                predicted = scores.max(1)[1]
+                predicted = scores.max(1)[1].item()
+         #       print("first step")
             else:
                 probs = F.softmax(scores, dim=1)
 
@@ -377,13 +378,14 @@ class MyDecoderWithAttention_Vis(nn.Module):
                 # for i in range(self.vocab_size):
                 #     if probs[i] < top_k_probs[0]:
                 #         probs[i] = 0
-                predicted = np.random.choice(self.vocab_size, p=probs)
-
-              
+        #        print("probs_np", probs_np)
+                probs_np[0] /= sum(probs_np[0])
+                predicted = np.random.choice(self.vocab_size, p=probs_np[0])
+       #     print("predicted", predicted)
+           # predicted = torch.LongTensor(predicted.cpu())
             sampled_ids.append(predicted)
-            inputs = self.embed(predicted)
-            inputs = inputs.unsqueeze(1)
-        sampled_ids = torch.stack(sampled_ids, 1)
+       # sampled_ids = torch.LongTensor(sampled_ids)
+        print("out", sampled_ids)
         return sampled_ids
 
     def simple_prob_topk(self, features, states = None):
@@ -433,7 +435,7 @@ class MyDecoderWithAttention_Vis(nn.Module):
         return sampled_ids
 
 
-    def sample_beam_search(self, features):
+    def sample_beam_search(self, features, number_beams):
         """
         Reads an image and captions it with beam search.
 
@@ -553,13 +555,16 @@ class MyDecoderWithAttention_Vis(nn.Module):
             step += 1
         if (len(complete_seqs_scores) > 0):
             i = complete_seqs_scores.index(max(complete_seqs_scores))
+           # print("complete_seqs", complete_seqs)
+            res = [x for _, x in sorted(zip(complete_seqs_scores, complete_seqs))]
+            res_alpha = [x for _, x in sorted(zip(complete_seqs_scores, complete_seqs_alpha))]
             seq = complete_seqs[i]
             alphas = complete_seqs_alpha[i]
             # print("more than zero")
-            return seq, alphas
+            return res[-number_beams:], res_alpha[-number_beams:]
         else:
-            # print("zero")
-            return seqs.cpu(), complete_seqs_alpha
+           # print("zero")
+            return 120, 120
         # i = complete_seqs_scores.index(max(complete_seqs_scores))
         # seq = complete_seqs[i]
         # alphas = complete_seqs_alpha[i]
