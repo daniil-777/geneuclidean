@@ -176,7 +176,7 @@ class Trainer_Fold():
             #         decoder.state_dict(),
             #         self.decoder_name,
             #     )
-            if i == 900:
+            if ((i + 1) == 900):
                 result = "Split [{}], Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Perplexity: {:5.4f}".format(
                     split_no, epoch, self.num_epochs, i, total_step, loss.item(), np.exp(loss.item())
                 )
@@ -236,7 +236,7 @@ class Trainer_Fold():
         # output memory usage
         py3nvml.nvmlInit()
         # sampling = self.cfg['sampling_params']['sampling']
-        sampler = Sampler(self.cfg, sampling)
+        # sampler = Sampler(self.cfg, sampling)
  
         train_id, test_id = idx_folds[split_no]
         train_data = train_id
@@ -273,7 +273,7 @@ class Trainer_Fold():
             self.train_loop_mask(loader_train, encoder, decoder, caption_optimizer, split_no, epoch, total_step)
         #run sampling for the test indxs
             
-        sampler.analysis_cluster(split_no, self.encoder_best_name, self.decoder_best_name)
+        # sampler.analysis_cluster(split_no, self.encoder_best_name, self.decoder_best_name)
        
 
 
