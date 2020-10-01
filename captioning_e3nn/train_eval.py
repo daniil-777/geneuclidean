@@ -56,9 +56,11 @@ def main():
     if(cfg['training_params']['mode'] == "no_attention"):
         # trainer = Trainer(cfg)
         trainer = Trainer_Fold(cfg)
-
+        trainer.train_epochs("beam_1")
+        trainer.train_epochs("beam_3")
+        trainer.train_epochs("beam_10")
+        trainer.train_epochs("max")
         trainer.train_epochs("probabilistic")
-        trainer.train_epochs("beam")
     elif(cfg['training_params']['mode'] == "attention"):
         trainer = Trainer_Attention(cfg)
         trainer.train_epochs()

@@ -176,6 +176,29 @@ class Trainer_Fold():
             #         decoder.state_dict(),
             #         self.decoder_name,
             #     )
+            if i == 900:
+                result = "Split [{}], Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Perplexity: {:5.4f}".format(
+                    split_no, epoch, self.num_epochs, i, total_step, loss.item(), np.exp(loss.item())
+                )
+                # print(result)
+                self.encoder_epoch_name =  os.path.join(
+                self.model_path, "encoder_epoch_" + str(epoch) + ".ckpt"
+                    )
+                self.decoder_epoch_name =  os.path.join(
+                        self.model_path, "decoder_epoch_" + str(epoch) + ".ckpt")
+                torch.save(
+                    encoder.state_dict(),
+                    self.encoder_epoch_name,
+                )
+                torch.save(
+                    decoder.state_dict(),
+                    self.decoder_epoch_name,
+                )
+
+                self.log_file.write(result + "\n")
+                self.log_file.flush()
+
+
             if (self.loss_best - loss > 0):
                 print("The best loss " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1))
                 self.log_file.write("The best loss " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1) + "\n")
@@ -206,7 +229,7 @@ class Trainer_Fold():
         # data_ids = np.array([i for i in range(len(files_refined) - 3)])
 
         #cross validation
-        kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=2)
+        
         idx_folds = pickle.load( open(os.path.join(self.idx_file, self.name_file_folds), "rb" ) )
         split_no = self.fold_number
         test_idx = []
