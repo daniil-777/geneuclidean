@@ -31,11 +31,12 @@ from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 from build_vocab import Vocabulary
 from data_loader import get_loader, Pdb_Dataset, collate_fn, collate_fn_masks
-from models_new import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
+
 # from training.trainer import train_loop, train_loop_mask
 from training.train import Trainer
 from training.train_fold import Trainer_Fold
 from training.train_vis_att import Trainer_Attention_Vis
+from training.train_fold_att import Trainer_Attention_Fold
 # from utils import Utils
 
 # from training.train import Trainer
@@ -60,7 +61,8 @@ def main():
         trainer.train_epochs("probabilistic")
         trainer.train_epochs("beam")
     elif(cfg['training_params']['mode'] == "attention"):
-        trainer = Trainer_Attention_Vis(cfg)
+        # trainer = Trainer_Attention_Vis(cfg)
+        trainer = Trainer_Attention_Fold(cfg)
         trainer.train_epochs("probabilistic")
         trainer.train_epochs("beam")
 

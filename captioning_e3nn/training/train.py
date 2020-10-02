@@ -118,27 +118,20 @@ class Trainer():
             captions = captions.to(self.device)
             masks = masks.to(self.device)
             targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
-            
+
             caption_optimizer.zero_grad()
             # Forward, backward and optimize
             feature = encoder(features, geometry, masks)
             outputs = decoder(feature, captions, lengths)
-            scores, caps_sorted, decode_lengths, alphas, sort_ind = decoder(imgs, caps, caplens)
-
-        # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
-            targets = caps_sorted[:, 1:]
-            
-            scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)
-            targets = pack_padded_sequence(targets, decode_lengths, batch_first=True)
-
 
             loss = self.criterion(outputs, targets)
             # scheduler.step(loss)
-            
+
             decoder.zero_grad()
             encoder.zero_grad()
             loss.backward()
             caption_optimizer.step()  #!!! figure out whether we should leave that 
+
 
             name = "training_loss_" + str(split_no + 1)
             self.writer.add_scalar(name, loss.item(), epoch)

@@ -15,6 +15,19 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 criterion = nn.CrossEntropyLoss()
 
+# training params
+protein_dir = cfg['training_params']['image_dir']
+caption_path = cfg['training_params']['caption_path']
+log_step = cfg['training_params']['log_step']
+save_step = cfg['training_params']['save_step']
+vocab_path = cfg['preprocessing']['vocab_path']
+
+#output files
+savedir = cfg['output_parameters']['savedir']
+tesnorboard_path = savedir
+model_path = os.path.join(savedir, "models")
+log_path = os.path.join(savedir, "logs")
+
 
 
 def train_loop(loader, encoder, decoder, caption_optimizer, split_no, epoch, total_step, writer):
