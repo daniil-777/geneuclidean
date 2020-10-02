@@ -110,7 +110,7 @@ class Trainer_Fold():
             self.vocab = pickle.load(f)
         self.criterion = nn.CrossEntropyLoss()
         self.model_name = 'e3nn'
-        self.checkpoint_path =  os.path.join(self.model_path, 'checkpoint_' + self.model_name + '.pth.tar')
+        self.checkpoint_path =  os.path.join(self.model_path, 'checkpoint_' + self.model_name + '.pkl')
         if (os.path.exists(self.checkpoint_path)):
             checkpoint = torch.load(self.checkpoint_path)
             print("loading model...")
