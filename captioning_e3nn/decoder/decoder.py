@@ -8,10 +8,10 @@ import torchvision
 from torch import nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.autograd import Variable
-from se3cnn.non_linearities.rescaled_act import Softplus
-from se3cnn.point.kernel import Kernel
-from se3cnn.point.operations import NeighborsConvolution
-from se3cnn.point.radial import CosineBasisModel
+# from se3cnn.non_linearities.rescaled_act import Softplus
+# from se3cnn.point.kernel import Kernel
+# from se3cnn.point.operations import NeighborsConvolution
+# from se3cnn.point.radial import CosineBasisModel
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
