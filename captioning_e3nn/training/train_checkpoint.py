@@ -236,7 +236,7 @@ class Trainer_Fold():
         train_id, test_id = idx_folds[self.split_no]
         train_data = train_id
         test_data = test_id
-        with open(os.path.join(self.idx_file, 'test_idx_' + str(split_no)), 'wb') as fp:
+        with open(os.path.join(self.idx_file, 'test_idx_' + str(self.split_no)), 'wb') as fp:
             pickle.dump(test_data, fp)
         
         test_idx.append(test_data)
@@ -261,7 +261,7 @@ class Trainer_Fold():
             #if add masks everywhere call just train_loop
             self.train_loop_mask(loader_train, self.Encoder, self.Decoder, self.caption_optimizer, self.split_no, epoch, total_step)
             save_checkpoint(self.checkpoint_path, epoch, encoder, decoder,
-                            encoder_best, decoder_best, caption_optimizer, split_no)
+                            encoder_best, decoder_best, caption_optimizer, self.split_no)
         #run sampling for the test indxs
             
         # sampler.analysis_cluster(split_no, self.encoder_best_name, self.decoder_best_name)
