@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 import argparse
 import sys
-from captioning_e3nn import config
+import captioning_e3nn.config
 from py3nvml import py3nvml
 
 import json
