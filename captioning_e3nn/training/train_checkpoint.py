@@ -115,8 +115,9 @@ class Trainer_Fold():
             checkpoint = torch.load(self.checkpoint_path)
             print("loading model...")
             self.start_epoch = checkpoint['start_epoch'] + 1
-            self.Encoder = checkpoint['encoder']
-            self.Decoder = checkpoint['decoder']
+            self.Encoder, self.Decoder = config.get_model(cfg, device=self.device)
+            self.Encoder.load_state_dict(torch.load(checkpoint['encoder']))
+            self.Decoder.load_state_dict(torch.load(checkpoint['encoder']))
             self.caption_optimizer = checkpoint['caption_optimizer']
             self.split_no = checkpoint['split_no']
         else:
