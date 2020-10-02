@@ -2,7 +2,7 @@ import os
 import torch
 
 
-def save_checkpoint(checkpoint_path, model_name, start_epoch, encoder, decoder,
+def save_checkpoint(checkpoint_path, start_epoch, encoder, decoder,
                     encoder_best, decoder_best, caption_optimizer, split_no):
     """
     Saves model checkpoint.
@@ -24,6 +24,6 @@ def save_checkpoint(checkpoint_path, model_name, start_epoch, encoder, decoder,
              'encoder_best': encoder_best,
              'decoder_best': decoder_best}
 
-    filename = os.path.join(checkpoint_path, 'checkpoint_' + model_name + '.pth.tar')
-    torch.save(state, filename)
+    # filename = os.path.join(checkpoint_path, 'checkpoint_' + model_name + '.pth.tar')
+    torch.save(state, checkpoint_path)
    

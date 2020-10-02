@@ -109,10 +109,9 @@ class Trainer_Fold():
         with open(self.vocab_path, "rb") as f:
             self.vocab = pickle.load(f)
         self.criterion = nn.CrossEntropyLoss()
-        self.checkpoint_path =  self.model_path
         self.model_name = 'e3nn'
-        
-        try:
+        self.checkpoint_path =  os.path.join(self.model_path, 'checkpoint_' + self.model_name + '.pth.tar')
+        if (self.checkpoint_path.exists()):
             checkpoint = torch.load(self.checkpoint_path)
             print("loading model...")
             self.start_epoch = checkpoint['epoch'] + 1
@@ -120,15 +119,14 @@ class Trainer_Fold():
             self.Decoder = checkpoint['decoder']
             self.caption_optimizer = checkpoint['caption_optimizer']
             self.split_no = checkpoint['split_no']
-        except FileExistsError:
+        else:
             print("initialising model...")
             self.start_epoch = 0
             self.Encoder, self.Decoder = config.get_model(cfg, device=self.device)
             caption_params = list(self.Encoder.parameters()) + list(self.Decoder.parameters())
             self.caption_optimizer = torch.optim.Adam(caption_params, lr = self.learning_rate)
             self.split_no = self.fold_number
-            
-    
+
 
     def train_loop_mask(self, loader, encoder, decoder, caption_optimizer, split_no, epoch, total_step):
         encoder.train()
@@ -262,7 +260,7 @@ class Trainer_Fold():
             # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
             #if add masks everywhere call just train_loop
             self.train_loop_mask(loader_train, self.Encoder, self.Decoder, self.caption_optimizer, self.split_no, epoch, total_step)
-            save_checkpoint(self.checkpoint_path, self.model_name, epoch, encoder, decoder,
+            save_checkpoint(self.checkpoint_path, epoch, encoder, decoder,
                             encoder_best, decoder_best, caption_optimizer, split_no)
         #run sampling for the test indxs
             
