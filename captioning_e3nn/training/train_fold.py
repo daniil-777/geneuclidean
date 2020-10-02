@@ -28,7 +28,6 @@ from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 from build_vocab import Vocabulary
 from data_loader import get_loader, Pdb_Dataset, collate_fn, collate_fn_masks
-from models_new import DecoderRNN,  MyDecoderWithAttention
 from sampling.sampler import Sampler
 
 

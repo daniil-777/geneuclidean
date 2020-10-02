@@ -27,6 +27,7 @@ from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 from build_vocab import Vocabulary
 from data_loader import get_loader, Pdb_Dataset, collate_fn
+from models import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
 from utils import Utils
 
 
@@ -65,14 +66,9 @@ model_path = configuration["training_params"]["model_path"]
 #encoder params
 cloud_dim = configuration["encoder_params"]["cloud_dim"]
 emb_dim_encoder = configuration["encoder_params"]["emb_dim"]
-neighborradius = configuration["encoder_params"]["neighborradius"]
-cloudord = configuration["encoder_params"]["cloudord"]
-nclouds = configuration["encoder_params"]["nclouds"]
 # decoder params
 embed_size = configuration["decoder_params"]["embed_size"]
 hidden_size = configuration["decoder_params"]["hidden_size"]
-# hidden_size = 2 * cloud_dim * (cloudord ** 2) * nclouds
-embed_size = hidden_size
 num_layers = configuration["decoder_params"]["num_layers"]
 vocab_path = configuration["preprocessing"]["vocab_path"]
 
@@ -109,9 +105,13 @@ writer = SummaryWriter(tesnorboard_path)
 with open(vocab_path, "rb") as f:
     vocab = pickle.load(f)
 
+best_loss = 10000
+
 def train_loop(loader, encoder, decoder, caption_optimizer, split_no, epoch, total_step):
 
     for i, (features, geometry, captions, lengths) in enumerate(loader):
+        
+
         # Set mini-batch dataset
         # features = torch.tensor(features)
         features = features.to(device)
@@ -139,6 +139,20 @@ def train_loop(loader, encoder, decoder, caption_optimizer, split_no, epoch, tot
 
         name = "training_loss_" + str(split_no + 1)
         writer.add_scalar(name, loss.item(), epoch)
+        
+        if(loss < best_loss):
+            torch.save(
+                decoder.state_dict(),
+                os.path.join(
+                    model_path, "best_decoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
+                ),
+            )
+            torch.save(
+                encoder.state_dict(),
+                os.path.join(
+                    model_path, "best_encoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
+                ),
+            )
 
         # writer.add_scalar("training_loss", loss.item(), epoch)
         log_file_tensor.write(str(loss.item()) + "\n")
@@ -187,6 +201,9 @@ if __name__ == "__main__":
     kf = KFold(n_splits=5, shuffle=True, random_state=2)
     my_list = list(kf.split(data_ids))
     test_idx = []
+    with open(os.path.join(savedir, 'test_idx_all'), 'wb') as fp:
+            pickle.dump(np.asarray(my_list), fp)
+
     for split_no in range(N_SPLITS):
         train_id, test_id = my_list[split_no]
         train_data = data_ids[train_id]
@@ -207,9 +224,7 @@ if __name__ == "__main__":
 
         total_step = len(loader_train)
         print("total_step", total_step)
-        print("len of vocabulary - ", len(vocab))
-        encoder = Encoder_se3ACN(cloud_dim = cloud_dim, emb_dim = emb_dim_encoder, neighborradius=neighborradius,
-                                cloudord= cloudord, nclouds = nclouds).to(device).double()
+        encoder = Encoder_se3ACN(cloud_dim = cloud_dim, emb_dim = emb_dim_encoder).to(device).double()
         decoder = DecoderRNN(embed_size, hidden_size, len(vocab), num_layers).to(device).double()
 
         criterion = nn.CrossEntropyLoss()
