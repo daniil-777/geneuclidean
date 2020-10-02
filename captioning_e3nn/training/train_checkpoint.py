@@ -28,7 +28,6 @@ from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
 from build_vocab import Vocabulary
 from data_loader import get_loader, Pdb_Dataset, collate_fn, collate_fn_masks
-from models_new import DecoderRNN, Encoder_se3ACN, MyDecoderWithAttention
 from sampling.sampler import Sampler
 from training.utils import save_checkpoint
 
@@ -111,6 +110,7 @@ class Trainer_Fold():
             self.vocab = pickle.load(f)
         self.criterion = nn.CrossEntropyLoss()
         self.checkpoint_path =  self.model_path
+        self.model_name = 'e3nn'
         
         try:
             checkpoint = torch.load(checkpoint_path)
@@ -262,7 +262,7 @@ class Trainer_Fold():
             # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
             #if add masks everywhere call just train_loop
             self.train_loop_mask(loader_train, self.Encoder, self.Decoder, self.caption_optimizer, self.split_no, epoch, total_step)
-            save_checkpoint(self.checkpoint_path, model_name, epoch, encoder, decoder,
+            save_checkpoint(self.checkpoint_path, self.model_name, epoch, encoder, decoder,
                             encoder_best, decoder_best, caption_optimizer, split_no)
         #run sampling for the test indxs
             
