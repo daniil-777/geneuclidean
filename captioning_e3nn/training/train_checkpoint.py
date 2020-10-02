@@ -196,8 +196,8 @@ class Trainer_Fold():
             if (self.loss_best - loss > 0):
                 print("The best loss " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1))
                 self.log_file.write("The best loss " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1) + "\n")
-                enoder_best = encoder
-                decoder_best = decoder
+                self.enoder_best = encoder
+                self.decoder_best = decoder
                 self.encoder_best_name =  os.path.join(
                         self.model_path, "encoder_best_" + str(split_no) + ".ckpt"
                     )
@@ -260,8 +260,8 @@ class Trainer_Fold():
             # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
             #if add masks everywhere call just train_loop
             self.train_loop_mask(loader_train, self.Encoder, self.Decoder, self.caption_optimizer, self.split_no, epoch, total_step)
-            save_checkpoint(self.checkpoint_path, epoch, encoder, decoder,
-                            encoder_best, decoder_best, self.caption_optimizer, self.split_no)
+            save_checkpoint(self.checkpoint_path, epoch, self.encoder, self.decoder,
+                            self.encoder_best, self.decoder_best, self.caption_optimizer, self.split_no)
         #run sampling for the test indxs
             
         # sampler.analysis_cluster(split_no, self.encoder_best_name, self.decoder_best_name)
