@@ -20,7 +20,7 @@ def save_checkpoint(checkpoint_path, model_name, start_epoch, encoder, decoder,
              'encoder': encoder,
              'decoder': decoder,
              'caption_optimizer': caption_optimizer,
-             'split_no': split_no
+             'split_no': split_no,
              'encoder_best': encoder_best,
              'decoder_best': decoder_best}
 
