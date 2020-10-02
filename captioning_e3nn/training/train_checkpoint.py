@@ -3,7 +3,7 @@ import multiprocessing
 import numpy as np
 from numpy import savetxt
 import torch
-from torchsummary import summary
+# from torchsummary import summary
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ExponentialLR
 # from torch.utils.tensorboard import SummaryWriter
