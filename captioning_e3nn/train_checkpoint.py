@@ -40,11 +40,11 @@ parser = argparse.ArgumentParser(
     description='Train a 3D reconstruction model.'
 )
 parser.add_argument('config', type=str, help='Path to config file.')
-parser.add_argument('model_name', type=str, default='model', help='Model output file, i.e. for stupid_name.pt insert stupid_name')
+# parser.add_argument('model_name', type=str, default='model', help='Model output file, i.e. for stupid_name.pt insert stupid_name')
 
 args = parser.parse_args()
-global modelname
-model_name = args.model_name
+# global modelname
+# model_name = args.model_name
 
 cfg = config.load_config(args.config, 'configurations/config_local/default.yaml')
 trainer = Trainer_Fold(cfg)
