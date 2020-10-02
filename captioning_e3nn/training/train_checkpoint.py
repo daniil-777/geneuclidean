@@ -117,6 +117,7 @@ class Trainer_Fold():
             self.start_epoch = checkpoint['epoch'] + 1
             self.Encoder = checkpoint['encoder']
             self.Decoder = checkpoint['decoder']
+            self.encoder_best, self.decoder_best = self.Encoder, self.Decoder
             self.caption_optimizer = checkpoint['caption_optimizer']
             self.split_no = checkpoint['split_no']
         else:
