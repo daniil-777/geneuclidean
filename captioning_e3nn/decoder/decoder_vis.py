@@ -8,10 +8,7 @@ import torchvision
 from torch import nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.autograd import Variable
-from se3cnn.non_linearities.rescaled_act import Softplus
-from se3cnn.point.kernel import Kernel
-from se3cnn.point.operations import NeighborsConvolution
-from se3cnn.point.radial import CosineBasisModel
+
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -302,8 +299,6 @@ class MyDecoderWithAttention_Vis(nn.Module):
             h, c = self.decode_step(torch.cat([embeddings, awe], dim=1), (h, c))  # (s, decoder_dim)
 
             scores = self.fc(h)  # (s, vocab_size)
-               
-   
             # print("outputs shape,", outputs.shape)
             if i == 0:
                 predicted = scores.max(1)[1]
@@ -410,7 +405,7 @@ class MyDecoderWithAttention_Vis(nn.Module):
             scores = self.fc(h)  # (s, vocab_size)
 
             if i == 0:
-                predicted = scores.max(1)[1]
+                predicted = scores.max(1)[1].item()
             else:
                 probs = F.softmax(scores, dim=1)
 
@@ -425,8 +420,7 @@ class MyDecoderWithAttention_Vis(nn.Module):
                 for i in range(self.vocab_size):
                     if probs[i] < top_k_probs[0]:
                         probs[i] = 0
-                predicted = np.random.choice(self.vocab_size, p=probs)
-
+                predicted = np.random.choice(self.vocab_size, p=probs[0])
               
             sampled_ids.append(predicted)
             inputs = self.embed(predicted)
