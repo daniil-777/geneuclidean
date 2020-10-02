@@ -78,7 +78,7 @@ class Trainer_Fold():
         self.log_file_tensor = open(os.path.join(self.log_path, "log_tensor.txt"), "w")
         self.writer = SummaryWriter(self.tesnorboard_path)
         
-        # self.Encoder, self.Decoder = config.get_model(cfg, device=self.device)
+        self.Encoder, self.Decoder = config.get_model(cfg, device=self.device)
         self.input = config.get_shape_input(self.cfg)
         # print(summary(self.Encoder, self.input))
         # print(summary(self.Decoder))
