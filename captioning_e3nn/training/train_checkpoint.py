@@ -113,7 +113,7 @@ class Trainer_Fold():
         self.model_name = 'e3nn'
         
         try:
-            checkpoint = torch.load(checkpoint_path)
+            checkpoint = torch.load(self.checkpoint_path)
             print("loading model...")
             self.start_epoch = checkpoint['epoch'] + 1
             self.Encoder = checkpoint['encoder']
