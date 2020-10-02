@@ -111,7 +111,7 @@ class Trainer_Fold():
         self.criterion = nn.CrossEntropyLoss()
         self.model_name = 'e3nn'
         self.checkpoint_path =  os.path.join(self.model_path, 'checkpoint_' + self.model_name + '.pth.tar')
-        if (self.checkpoint_path.exists()):
+        if (os.path.exists(self.checkpoint_path)):
             checkpoint = torch.load(self.checkpoint_path)
             print("loading model...")
             self.start_epoch = checkpoint['epoch'] + 1
