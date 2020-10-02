@@ -46,7 +46,7 @@ args = parser.parse_args()
 # global modelname
 # model_name = args.model_name
 
-cfg = config.load_config(args.config, 'configurations/config_local/default.yaml')
+cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
 trainer = Trainer_Fold(cfg)
 trainer.train_epochs()
 
