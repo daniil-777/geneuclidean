@@ -215,7 +215,7 @@ class Trainer_Fold():
         self.log_file_tensor.write("\n")
         self.log_file_tensor.flush()
 
-    def train_epochs(self, sampling):
+    def train_epochs(self):
         # get indexes of all complexes and "nick names"
         # Load vocabulary wrapper
 
