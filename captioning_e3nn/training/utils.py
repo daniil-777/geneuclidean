@@ -17,9 +17,9 @@ def save_checkpoint(checkpoint_path, start_epoch, encoder, decoder,
     :param is_best: is this checkpoint the best so far?
     """
     state = {'start_epoch': start_epoch,
-             'encoder': encoder,
-             'decoder': decoder,
-             'caption_optimizer': caption_optimizer,
+             'encoder': encoder.state_dict(),
+             'decoder': decoder.state_dict(),
+             'caption_optimizer': caption_optimizer.state_dict(),
              'split_no': split_no,
            }
 
