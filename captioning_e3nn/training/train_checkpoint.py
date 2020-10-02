@@ -233,7 +233,7 @@ class Trainer_Fold():
         # sampling = self.cfg['sampling_params']['sampling']
         # sampler = Sampler(self.cfg, sampling)
  
-        train_id, test_id = idx_folds[split_no]
+        train_id, test_id = idx_folds[self.split_no]
         train_data = train_id
         test_data = test_id
         with open(os.path.join(self.idx_file, 'test_idx_' + str(split_no)), 'wb') as fp:
