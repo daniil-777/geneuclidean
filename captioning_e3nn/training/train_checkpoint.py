@@ -256,12 +256,12 @@ class Trainer_Fold():
 
         # params_encoder = filter(lambda p: p.requires_grad, encoder.parameters())        
         # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(caption_optimizer, 'min')
-        for epoch in range(start_epoch, self.num_epochs):
+        for epoch in range(self.start_epoch, self.num_epochs):
             # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
             #if add masks everywhere call just train_loop
             self.train_loop_mask(loader_train, self.Encoder, self.Decoder, self.caption_optimizer, self.split_no, epoch, total_step)
             save_checkpoint(self.checkpoint_path, epoch, encoder, decoder,
-                            encoder_best, decoder_best, caption_optimizer, self.split_no)
+                            encoder_best, decoder_best, self.caption_optimizer, self.split_no)
         #run sampling for the test indxs
             
         # sampler.analysis_cluster(split_no, self.encoder_best_name, self.decoder_best_name)
