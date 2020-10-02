@@ -117,13 +117,13 @@ class Trainer_Fold():
             self.start_epoch = checkpoint['epoch'] + 1
             self.Encoder = checkpoint['encoder']
             self.Decoder = checkpoint['decoder']
-            self.encoder_best, self.decoder_best = self.Encoder, self.Decoder
             self.caption_optimizer = checkpoint['caption_optimizer']
             self.split_no = checkpoint['split_no']
         else:
             print("initialising model...")
             self.start_epoch = 0
             self.Encoder, self.Decoder = config.get_model(cfg, device=self.device)
+            self.encoder_best, self.decoder_best = self.Encoder, self.Decoder
             caption_params = list(self.Encoder.parameters()) + list(self.Decoder.parameters())
             self.caption_optimizer = torch.optim.Adam(caption_params, lr = self.learning_rate)
             self.split_no = self.fold_number
