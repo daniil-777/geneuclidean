@@ -114,7 +114,7 @@ class Trainer_Fold():
         if (os.path.exists(self.checkpoint_path)):
             checkpoint = torch.load(self.checkpoint_path)
             print("loading model...")
-            self.start_epoch = checkpoint['epoch'] + 1
+            self.start_epoch = checkpoint['start_epoch'] + 1
             self.Encoder = checkpoint['encoder']
             self.Decoder = checkpoint['decoder']
             self.caption_optimizer = checkpoint['caption_optimizer']
