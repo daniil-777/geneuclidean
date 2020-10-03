@@ -4,12 +4,17 @@
 from encoder.e3nn import Network, ResNetwork, OutputScalarNetwork, OutputMLPNetwork
 from encoder.e3nn_vis import Network_Vis
 from encoder.binding_e3nn import Binding_Network
+from encoder.e3nn_res import ResNetwork
+from encoder.pointnet_e3nn import PointNetAllNetwork
+from encoder.e3nn_att import AttentionE3nn
 
 encoder_dict = {
     'network1': Network,
     'network1_vis': Network_Vis,
-    'resnetnetwork1': ResNetwork,
     'OutputScalarNetwork': OutputScalarNetwork,
     'OutputMLPNetwork': OutputMLPNetwork,
-    'binding_e3nn': Binding_Network
+    'binding_e3nn': Binding_Network,
+    'e3nn_res': ResNetwork,
+    'pointnetall': PointNetAllNetwork,
+    'att_e3nn': AttentionE3nn
 }
