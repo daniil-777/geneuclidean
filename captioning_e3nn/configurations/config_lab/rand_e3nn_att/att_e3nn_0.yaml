@@ -5,8 +5,8 @@ preprocessing:
   vocab_path: ../data/vocab.pkl
 splitting:
   split: random
-  file_folds: random_split_res_e3nn
-  id_fold: 1
+  file_folds: random_split_att_e3nn
+  id_fold: 0
 
 training_params:
   mode: no_attention
@@ -16,18 +16,18 @@ training_params:
   decoder_name: decoder_best_0.ckpt
   n_splits: 5
 model:
-  encoder: e3nn_res
+  encoder: att_e3nn
   encoder_kwargs:
     max_rad: 2
     num_basis: 50
-    n_neurons: 60
+    n_neurons: 80
     n_layers: 2
     beta: 5
     rad_model: gaussian
     num_embeddings: 6
     embed: 21
     l0: 21
-    L: 2
+    L: 1
     scalar_act_name:  sp
     gate_act_name: sigmoid
     natoms: 286
@@ -41,8 +41,8 @@ model:
   decoder_kwargs:
     vocab_size: 32
     vocab_path: ../data/vocab.pkl
-    embed_size: 42
-    hidden_size: 42
+    embed_size: 64
+    hidden_size: 64
     num_layers: 1
     beam_size: 20
 
@@ -60,7 +60,7 @@ model_params:
 
 
 output_parameters: 
-  savedir: ../results/captioning_results/res_e3nn_04_10
+  savedir: ../results/captioning_results/att_e3nn
 
 
 sampling_params: 
