@@ -2,7 +2,7 @@ preprocessing:
   mask: True
   collate_fn: masks
   natoms: 286
-  vocab_path: /Volumes/Ubuntu/research_drugs/data/vocab.pkl
+  vocab_path: ../data/vocab.pkl
 splitting:
   split: random
   file_folds: random_split_res_e3nn
