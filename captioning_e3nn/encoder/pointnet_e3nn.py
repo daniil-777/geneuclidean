@@ -111,12 +111,11 @@ class PointNetAllNetwork(torch.nn.Module):
 
         self.e_out_2 = nn.Linear(mlp_h, 2 * mlp_h)
         self.bn_out_2 = nn.BatchNorm1d(natoms)
-        
+        self.resnet_block = ResnetPointnet(mask,  self.embed, 2*self.embed)
         torch.autograd.set_detect_anomaly(True) 
 
     def forward(self, features, geometry, mask):
         mask = mask.to(torch.double)
-        self.resnet_block = ResnetPointnet(mask,  self.embed, 2*self.embed)
         mask, diff_geo, radii = constants(geometry, mask)
         embedding = self.layers[0]
         features = torch.tensor(features).to(self.device).long()
@@ -145,7 +144,8 @@ class PointNetAllNetwork(torch.nn.Module):
         #                          l0 = self.l0, l1 = 0, L = 1, scalar_act=sp, gate_act=rescaled_act.sigmoid,
         #                           mlp_h = 128, mlp_L = 1, natoms = 286)
         # features = out_net(features, geometry, mask)
-        # features = features.to(torch.double).to(self.device)
+        features = features.to(torch.double).to(self.device)
+
         features = self.resnet_block(features)
         # features = self.leakyrelu(self.bn_out_1(self.e_out_1(features))) # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
         # features = self.leakyrelu(self.bn_out_2(self.e_out_2(features)))
@@ -166,133 +166,3 @@ class PointNetAllNetwork(torch.nn.Module):
 
 
 
-class ResNetwork(PointNetAllNetwork):
-    def __init__(self, kernel_conv, embed, l0,  L, scalar_act_name, gate_act_name, natoms):
-        super(ResNetwork, self).__init__(kernel_conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act, avg_n_atoms)
-
-    def forward(self, features, geometry, mask):
-        mask, diff_geo, radii = constants(geometry, mask)
-        embedding = self.layers[0]
-        features = torch.tensor(features).to(self.device).long()
-        features = embedding(features).to(self.device)
-        set_of_l_filters = self.layers[1][0].set_of_l_filters
-        y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
-        kc, act = self.layers[1]
-        features = kc(
-            features.div(self.avg_n_atoms ** 0.5),
-            diff_geo,
-            mask,
-            y=y,
-            radii=radii,
-            custom_backward=CUSTOM_BACKWARD
-        )
-        features = act(features)
-        for kc, act in self.layers[2:]:
-            if kc.set_of_l_filters != set_of_l_filters:
-                set_of_l_filters = kc.set_of_l_filters
-                y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
-            new_features = kc(
-                features.div(self.avg_n_atoms ** 0.5),
-                diff_geo,
-                mask,
-                y=y,
-                radii=radii,
-                custom_backward=CUSTOM_BACKWARD
-            )
-            new_features = act(new_features)
-            new_features = new_features * mask.unsqueeze(-1)
-            features = features + new_features
-        return features
-
-
-def gate_error(x):
-    raise ValueError("There should be no L>0 components in a scalar network.")
-
-
-class OutputScalarNetwork(torch.nn.Module):
-    def __init__(self, kernel_conv, previous_Rs, scalar_act, natoms):
-        super(OutputScalarNetwork, self).__init__()
-        self.natoms = natoms
-
-        Rs = [previous_Rs]
-        Rs += [[(1, 0)]]
-        self.Rs = Rs
-
-        def make_layer(Rs_in, Rs_out):
-            act = GatedBlock(Rs_out, scalar_act, gate_error)
-            kc = kernel_conv(Rs_in, act.Rs_in)
-            return torch.nn.ModuleList([kc, act])
-
-        self.layers = torch.nn.ModuleList([make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])])
-
-    def forward(self, features, geometry, mask):
-        _, _, mask, diff_geo, radii = constants(features, geometry, mask)
-        for kc, act in self.layers:
-            features = kc(features.div(self.natoms ** 0.5), diff_geo, mask, radii=radii)
-            features = act(features)
-            features = features * mask.unsqueeze(-1)
-        return features
-
-
-class NormVarianceLinear(torch.nn.Module):
-    def __init__(self, in_features, out_features):
-        super(NormVarianceLinear, self).__init__()
-        self.in_features = in_features
-        self.out_features = out_features
-        self.weight = torch.nn.Parameter(torch.randn(out_features, in_features))
-        self.bias = torch.nn.Parameter(torch.zeros(out_features))
-
-    def forward(self, x):
-        size = x.size(-1)
-        return x @ (self.weight.t() / size ** 0.5) + self.bias
-
-
-class PermutedBatchNorm1d(torch.nn.Module):
-    def __init__(self, num_features):
-        super(PermutedBatchNorm1d, self).__init__()
-        self.bn = torch.nn.BatchNorm1d(num_features=num_features)
-
-    def forward(self, x):
-        return self.bn(x.permute([0, 2, 1])).permute([0, 2, 1])
-
-
-class OutputMLPNetwork(torch.nn.Module):
-    def __init__(self, kernel_conv, previous_Rs, l0, l1, L, scalar_act, gate_act, mlp_h, mlp_L, natoms):
-        super(OutputMLPNetwork, self).__init__()
-        assert L > 0
-        L = L - 1
-        assert mlp_L > 0
-        mlp_L = mlp_L - 1
-        self.natoms = natoms #286
-
-        def make_gb_layer(Rs_in, Rs_out):
-            act = GatedBlock(Rs_out, scalar_act, gate_act)
-            kc = kernel_conv(Rs_in, act.Rs_in)
-            return torch.nn.ModuleList([kc, act])
-
-        Rs = [previous_Rs]
-        Rs_mid = [(mul, l) for l, mul in enumerate([l0, l1, l2, l3])]
-        Rs += [Rs_mid] * L
-        
-        self.Rs = Rs
-
-        self.layers = torch.nn.ModuleList([make_gb_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])])
-        self.mlp = torch.nn.ModuleList(
-            [NormVarianceLinear(mlp_h, mlp_h), torch.nn.ReLU()] * mlp_L +
-            [NormVarianceLinear(mlp_h, 1)]
-        )
-
-    def forward(self, features, geometry, mask):
-        _, _, mask, diff_geo, radii = constants(features, geometry, mask)
-        features = batch["representation"]
-        for kc, act in self.layers:
-            features = kc(features.div(self.natoms ** 0.5), diff_geo, mask, radii=radii)
-            features = act(features)
-            features = features * mask.unsqueeze(-1)
-        for layer in self.mlp:
-            features = layer(features) * mask.unsqueeze(-1)
-        return features
-
-
-if __name__ == '__main__':
-    pass

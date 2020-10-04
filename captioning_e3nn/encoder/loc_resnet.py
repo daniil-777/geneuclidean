@@ -100,7 +100,6 @@ class ResnetPointnet(nn.Module):
         # print("D", D)
         # p = p.to(torch.float)
         # Grid features
-        p = p.to("cuda")
         net = self.fc_pos(p)
         net = self.block_0(net)
         pool_test = self.pool(net, keepdim=True)
