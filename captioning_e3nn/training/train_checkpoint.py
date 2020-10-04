@@ -268,6 +268,21 @@ class Trainer_Fold():
             self.train_loop_mask(loader_train, self.Encoder, self.Decoder, self.caption_optimizer, self.split_no, epoch, total_step)
             save_checkpoint(self.checkpoint_path, epoch, self.Encoder, self.Decoder,
                             self.encoder_best, self.decoder_best, self.caption_optimizer, self.split_no)
+
+            self.encoder_name =  os.path.join(
+                        self.model_path, "encoder-{}-{}-{}.ckpt".format(self.split_no, epoch + 1)
+                    )
+            self.decoder_name =  os.path.join(
+                        self.model_path, "decoder-{}-{}-{}.ckpt".format(self.split_no, epoch + 1)
+                    )
+            torch.save(
+                    encoder.state_dict(),
+                    self.encoder_name,
+                )
+            torch.save(
+                    decoder.state_dict(),
+                    self.decoder_name,
+                )
         #run sampling for the test indxs
             
         # sampler.analysis_cluster(split_no, self.encoder_best_name, self.decoder_best_name)
