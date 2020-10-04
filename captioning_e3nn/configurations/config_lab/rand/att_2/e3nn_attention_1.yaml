@@ -8,7 +8,7 @@ splitting:
   id_fold: 0
 training_params:
   mode: attention
-  visualisation: yes
+  visualisation: vis
   log_step: 10
   save_step: 10
   encoder_name: encoder-0-99-900.ckpt
