@@ -132,9 +132,9 @@ class Trainer_Fold():
             self.split_no = self.fold_number
 
 
-    def train_loop_mask(self, loader, encoder, decoder, caption_optimizer, split_no, epoch, total_step):
-        encoder.train()
-        decoder.train()
+    def train_loop_mask(self, loader,  caption_optimizer, split_no, epoch, total_step):
+        self.Encoder.train()
+        self.Decoder.train()
         for i, (features, geometry, masks, captions, lengths) in enumerate(loader):
             # Set mini-batch dataset
 
@@ -146,14 +146,14 @@ class Trainer_Fold():
 
             caption_optimizer.zero_grad()
             # Forward, backward and optimize
-            feature = encoder(features, geometry, masks)
-            outputs = decoder(feature, captions, lengths)
+            feature = self.Encoder(features, geometry, masks)
+            outputs = self.Decoder(feature, captions, lengths)
 
             loss = self.criterion(outputs, targets)
             # scheduler.step(loss)
 
-            decoder.zero_grad()
-            encoder.zero_grad()
+            self.Decoder.zero_grad()
+            self.Encoder.zero_grad()
             loss.backward()
             caption_optimizer.step()  #!!! figure out whether we should leave that 
      
@@ -182,19 +182,19 @@ class Trainer_Fold():
             if (self.loss_best - loss > 0):
                 print("The best loss " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1))
                 self.log_file.write("The best loss " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1) + "\n")
-                self.enoder_best = encoder
-                self.decoder_best = decoder
+                self.enoder_best = self.Encoder
+                self.decoder_best = self.Decoder
                 self.encoder_best_name =  os.path.join(
                         self.model_path, "encoder_best_" + str(split_no) + ".ckpt"
                     )
                 self.decoder_best_name =  os.path.join(
                         self.model_path, "decoder_best_" + str(split_no) + ".ckpt")
                 torch.save(
-                    encoder.state_dict(),
+                    self.Encoder.state_dict(),
                     self.encoder_best_name,
                 )
                 torch.save(
-                    decoder.state_dict(),
+                    self.Decoder.state_dict(),
                     self.decoder_best_name,
                 )
                 self.loss_best = loss
@@ -242,7 +242,7 @@ class Trainer_Fold():
         for epoch in range(self.start_epoch, self.num_epochs):
             # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
             #if add masks everywhere call just train_loop
-            self.train_loop_mask(loader_train, self.Encoder, self.Decoder, self.caption_optimizer, self.split_no, epoch, total_step)
+            self.train_loop_mask(loader_train, self.caption_optimizer, self.split_no, epoch, total_step)
             save_checkpoint(self.checkpoint_path, epoch, self.Encoder, self.Decoder,
                             self.encoder_best, self.decoder_best, self.caption_optimizer, self.split_no)
 
@@ -253,11 +253,11 @@ class Trainer_Fold():
                         self.model_path, "decoder-{}-{}.ckpt".format(self.split_no, epoch + 1)
                     )
             torch.save(
-                    encoder.state_dict(),
+                    self.Encoder.state_dict(),
                     self.encoder_name,
                 )
             torch.save(
-                    decoder.state_dict(),
+                    self.Decoder.state_dict(),
                     self.decoder_name,
                 )
         #run sampling for the test indxs

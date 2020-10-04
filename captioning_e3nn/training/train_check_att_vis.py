@@ -31,7 +31,7 @@ from data_loader import get_loader, Pdb_Dataset, collate_fn, collate_fn_masks
 from sampling.sampler import Sampler
 
 
-class Trainer_Attention_Vis():
+class Trainer_Attention_Check_Vis():
     def __init__(self, cfg):
         # model params
         self.original_stdout = sys.stdout
@@ -132,8 +132,8 @@ class Trainer_Attention_Vis():
             self.split_no = self.fold_number
 
     def train_loop_mask(self, loader, encoder, decoder, caption_optimizer, split_no, epoch, total_step):
-        encoder.train()
-        decoder.train()
+        self.Encoder.train()
+        self.Decoder.train()
         for i, (features, geometry, masks, captions, lengths) in enumerate(loader):
             # Set mini-batch dataset
             features = features.to(self.device)
@@ -144,10 +144,10 @@ class Trainer_Attention_Vis():
             
             caption_optimizer.zero_grad()
             # Forward, backward and optimize
-            feature = encoder(features, geometry, masks)
+            feature = self.Encoder(features, geometry, masks)
             # outputs = decoder(feature, captions, lengths)
      
-            scores, caps_sorted, decode_lengths, alphas = decoder(feature, captions, lengths)
+            scores, caps_sorted, decode_lengths, alphas = self.Decoder(feature, captions, lengths)
 
         # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
             targets = caps_sorted[:, 1:]
@@ -167,8 +167,8 @@ class Trainer_Attention_Vis():
             #     if encoder_optimizer is not None:
             #         clip_gradient(encoder_optimizer, grad_clip)
 
-            decoder.zero_grad()
-            encoder.zero_grad() #shall I do that?
+            self.Decoder.zero_grad()
+            self.Encoder.zero_grad() #shall I do that?
             loss.backward()
             caption_optimizer.step()  #!!! figure out whether we should leave that 
 
@@ -201,11 +201,11 @@ class Trainer_Attention_Vis():
                 self.decoder_best_name =  os.path.join(
                         self.model_path, "decoder_best_" + str(split_no) + ".ckpt")
                 torch.save(
-                    encoder.state_dict(),
+                    self.Encoder.state_dict(),
                     self.encoder_best_name,
                 )
                 torch.save(
-                    decoder.state_dict(),
+                    self.Decoder.state_dict(),
                     self.decoder_best_name,
                 )
                 self.loss_best = loss
@@ -250,7 +250,7 @@ class Trainer_Attention_Vis():
         for epoch in range(self.start_epoch, self.num_epochs):
             # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
             #if add masks everywhere call just train_loop
-            self.train_loop_mask(loader_train, self.Encoder, self.Decoder, self.caption_optimizer, self.split_no, epoch, total_step)
+            self.train_loop_mask(loader_train, self.caption_optimizer, self.split_no, epoch, total_step)
             save_checkpoint(self.checkpoint_path, epoch, self.Encoder, self.Decoder,
                             self.encoder_best, self.decoder_best, self.caption_optimizer, self.split_no)
 
@@ -261,11 +261,11 @@ class Trainer_Attention_Vis():
                         self.model_path, "decoder-{}-{}.ckpt".format(self.split_no, epoch + 1)
                     )
             torch.save(
-                    encoder.state_dict(),
+                    self.Encoder.state_dict(),
                     self.encoder_name,
                 )
             torch.save(
-                    decoder.state_dict(),
+                    self.Decoder.state_dict(),
                     self.decoder_name,
                 )
         #run sampling for the test indxs
