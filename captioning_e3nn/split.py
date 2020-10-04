@@ -7,7 +7,7 @@ from distutils.dir_util import copy_tree
 from functools import partial
 from multiprocessing import Pool
 from shutil import copyfile
-
+import itertools
 import _pickle as pickle
 import matplotlib.pyplot as plt
 import numpy as np
@@ -77,6 +77,7 @@ class Splitter:
         self.idx_file = os.path.join(self.log_path, "idxs")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.save_dir_smiles = os.path.join(self.savedir, "statistics")
+        self.file_prot_chain = "data/bc-95.txt"
         self.random_state = 1337
         if not os.path.exists(self.save_dir_smiles):
             os.makedirs(self.save_dir_smiles)
@@ -124,6 +125,46 @@ class Splitter:
             pickle.dump(splits, fp)
         return splits
 
+    def chain_split(self):
+        with open(self.file_prot_chain, 'r') as file: 
+            lines = file.read().splitlines()
+        words_all = []
+        for line in lines:
+            words_line = [word.split("_")[0].lower() for word in line.split()]
+            words_all.append(words_line)
+            
+        word_dict = {}
+        for idx, line in enumerate(words_all):
+            for word in line:
+                word_dict[word] = idx
+                
+
+        refined_orig_dict = {key: value for value, key in enumerate(self.files_refined)}
+        refined_dict_chain = {}
+        for id in self.files_refined:
+            if id in word_dict.keys():
+                refined_dict_chain[id] = word_dict[id]
+                
+        inverted_ref_chain = {}
+        for key, value in refined_dict_chain.items():
+            inverted_ref_chain.setdefault(value, list()).append(key)
+            
+        values_unique = list(set(refined_dict_chain.values())) #idx of line (subgroup) from prot chain
+        kf = KFold(n_splits=5, shuffle=True, random_state=2)
+        my_list = list(kf.split(values_unique))
+
+        split_refined_all = []
+        for split in my_list: # folds
+            split_refined = [] 
+            for sub_split in split: #train/test
+                idx_first = [values_unique[idx] for idx in sub_split] #train/test
+                names_prot = list(itertools.chain.from_iterable([inverted_ref_chain[ind] for ind in idx_first])) #names of refined
+                id_orig = [refined_orig_dict[name] for name in names_prot] #id of prot from original list
+                split_refined.append(id_orig)
+            split_refined_all.append(split_refined)
+
+        with open(os.path.join(self.idx_file, self.name_file_folds), 'wb') as fp:
+            pickle.dump(split_refined_all, fp)
     
 
     def _get_caption(self, id):
@@ -150,7 +191,7 @@ def main():
     args = parser.parse_args()
 
 
-    cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
+    cfg = config.load_config(args.config, 'configurations/config_local/default.yaml')
     
     splitter = Splitter(cfg)
 
@@ -158,6 +199,8 @@ def main():
         splitter._get_random_split()
     elif(cfg['splitting']['split'] == 'morgan'):
         splitter._ligand_scaffold_split()
+    elif(cfg['splitting']['split'] == 'chain'):
+        splitter.chain_split()
 
 if __name__ == "__main__":
     main()
