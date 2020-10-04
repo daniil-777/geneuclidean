@@ -77,7 +77,7 @@ class Splitter:
         self.idx_file = os.path.join(self.log_path, "idxs")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.save_dir_smiles = os.path.join(self.savedir, "statistics")
-        self.file_prot_chain = "data/bc-95.txt"
+        self.file_prot_chain = "../data/bc-95.txt"
         self.random_state = 1337
         if not os.path.exists(self.save_dir_smiles):
             os.makedirs(self.save_dir_smiles)
