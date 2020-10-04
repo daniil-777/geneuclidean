@@ -35,7 +35,7 @@ from data_loader import get_loader, Pdb_Dataset, collate_fn, collate_fn_masks
 # from training.trainer import train_loop, train_loop_mask
 from training.train_checkpoint import Trainer_Fold
 from training.train_check_att_vis import Trainer_Attention_Check_Vis
-
+from training.train_vis_att import Trainer_Attention_Vis
 # parser = argparse.ArgumentParser(
 #     description='Train a 3D reconstruction model.'
 # )
@@ -61,10 +61,11 @@ def main():
     global modelname
     # model_name = args.model_name
 
-    cfg = config.load_config(args.config, 'configurations/config_local/default.yaml')
+    cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
     if (cfg['training_params']['mode'] == 'attention'):
-        if (cfg['training_params']['visualisation'] == 'yes'):
-            trainer = Trainer_Attention_Check_Vis(cfg)
+        if (cfg['training_params']['visualisation'] == 'vis'):
+            # trainer = Trainer_Attention_Check_Vis(cfg)
+            trainer = Trainer_Attention_Vis(cfg)
             trainer.train_epochs()
     else:
         trainer = Trainer_Fold(cfg)

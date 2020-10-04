@@ -131,7 +131,7 @@ class Trainer_Attention_Check_Vis():
             self.caption_optimizer = torch.optim.Adam(caption_params, lr = self.learning_rate)
             self.split_no = self.fold_number
 
-    def train_loop_mask(self, loader, encoder, decoder, caption_optimizer, split_no, epoch, total_step):
+    def train_loop_mask(self, loader, caption_optimizer, split_no, epoch, total_step):
         self.Encoder.train()
         self.Decoder.train()
         for i, (features, geometry, masks, captions, lengths) in enumerate(loader):
@@ -178,10 +178,10 @@ class Trainer_Attention_Check_Vis():
             # writer.add_scalar("training_loss", loss.item(), epoch)
             self.log_file_tensor.write(str(loss.item()) + "\n")
             self.log_file_tensor.flush()
-            handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
-            fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
-            mem = fb_mem_info.used >> 20
-            print('GPU memory usage: ', mem)
+            # handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
+            # fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
+            # mem = fb_mem_info.used >> 20
+            # print('GPU memory usage: ', mem)
             self.writer.add_scalar('val/gpu_memory', mem, epoch)
             # Print log info
             if i % self.log_step == 0:
@@ -222,7 +222,7 @@ class Trainer_Attention_Check_Vis():
         idx_folds = pickle.load( open(os.path.join(self.idx_file, self.name_file_folds), "rb" ) )
         test_idx = []
         # output memory usage
-        py3nvml.nvmlInit()
+        # py3nvml.nvmlInit()
 
  
         train_id, test_id = idx_folds[self.split_no]
