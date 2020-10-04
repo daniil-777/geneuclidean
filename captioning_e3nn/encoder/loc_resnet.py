@@ -8,6 +8,10 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from torch.autograd import Variable
 from encoder.base import Aggregate
 
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 def maxpool(x, dim=-1, keepdim=False):
     out, _ = x.max(dim=dim, keepdim=keepdim)
     return out
@@ -87,15 +91,16 @@ class ResnetPointnet(nn.Module):
         self.pool = maxpool
         
         is_cuda = torch.cuda.is_available()
-        self.device = torch.device("cuda" if is_cuda else "cpu")
+        self.device = DEVICE
        
         self.atom_pool =  Aggregate(axis=-1, mean=True)
 
     def forward(self, p):
         batch_size, T, D = p.size()
         # print("D", D)
-        p = p.to(torch.float)
+        # p = p.to(torch.float)
         # Grid features
+        p = p.to("cuda")
         net = self.fc_pos(p)
         net = self.block_0(net)
         pool_test = self.pool(net, keepdim=True)
