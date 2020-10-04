@@ -6,11 +6,15 @@ splitting:
   file_folds: random_split_att_vis_18_09
   id_fold: 0
 training_params:
+  mode: attention
+  visualisation: yes
   log_step: 10
   save_step: 10
   encoder_name: encoder-0-99-900.ckpt
   decoder_name: decoder-0-99-900.ckpt
   n_splits: 5
+  alpha_c: 1
+  loss_mode: usual
 model:
   encoder: network1
   encoder_kwargs:
