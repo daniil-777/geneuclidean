@@ -36,7 +36,7 @@ model:
     Out: 1
     aggregation_mode: avg
 
-  decoder: lstm_attention
+  decoder: lstm_attention_vis
   decoder_kwargs:
     attention_dim: 42
     embed_dim: 42
