@@ -15,6 +15,7 @@ training_params:
   decoder_name: decoder_best_4.ckpt
   n_splits: 5
   alpha_c: 1
+  loss_mode: double_stochastic
 model:
   encoder: network1_vis
   encoder_kwargs:

@@ -1,6 +1,7 @@
 preprocessing:
   mask: True
   collate_fn: masks
+  natoms: 289
 splitting:
   split: random
   file_folds: random_split_att_vis_18_09
@@ -30,7 +31,7 @@ model:
     L: 2
     scalar_act_name:  sp
     gate_act_name: sigmoid
-    natoms: 286
+    natoms: 289
     mlp_h: 21
     Out: 1
     aggregation_mode: avg

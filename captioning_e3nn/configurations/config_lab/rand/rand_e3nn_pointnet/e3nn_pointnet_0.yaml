@@ -2,35 +2,36 @@ preprocessing:
   mask: True
   collate_fn: masks
   natoms: 286
+  vocab_path: ../data/vocab.pkl
 splitting:
-  split: chain
-  file_folds: random_split_e3nn_18_09
-  id_fold: 4
+  split: random
+  file_folds: random_split_e3nn_02_10
+  id_fold: 0
 
 training_params:
   mode: no_attention
   log_step: 10
   save_step: 10
-  encoder_name: encoder_best_4.ckpt
-  decoder_name: decoder_best_4.ckpt
+  encoder_name: encoder_best_0.ckpt
+  decoder_name: decoder_best_0.ckpt
   n_splits: 5
 model:
-  encoder: network1
+  encoder: pointnetall
   encoder_kwargs:
     max_rad: 2
     num_basis: 50
-    n_neurons: 80
+    n_neurons: 60
     n_layers: 2
     beta: 5
     rad_model: gaussian
     num_embeddings: 6
-    embed: 10
-    l0: 10
-    L: 2
+    embed: 21
+    l0: 21
+    L: 1
     scalar_act_name:  sp
     gate_act_name: sigmoid
     natoms: 286
-    mlp_h: 50
+    mlp_h: 21
     Out: 1
     aggregation_mode: avg
 
@@ -40,8 +41,8 @@ model:
   decoder_kwargs:
     vocab_size: 32
     vocab_path: ../data/vocab.pkl
-    embed_size: 100
-    hidden_size: 100
+    embed_size: 42
+    hidden_size: 42
     num_layers: 1
     beam_size: 20
 
@@ -59,7 +60,7 @@ model_params:
 
 
 output_parameters: 
-  savedir: ../results/captioning_results/e3nn_18_09_chain
+  savedir: ../results/captioning_results/point_net_all
 
 
 sampling_params: 
@@ -68,8 +69,8 @@ sampling_params:
   number_smiles: 30
   time_waiting: 2000
   type_fold: random
-  id_fold: 4
+  id_fold: 0
   folds: ../results/captioning_results/e3nn_1/logs/idx/test_idx_0
-  file_stat: 4_fold_stat.csv
+  file_stat: 0_fold_stat.csv
   sampling_data: test
-  name_all_stat: stat_e3nn_prob_4.csv
+  name_all_stat: stat_e3nn_prob_0.csv
