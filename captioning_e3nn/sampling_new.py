@@ -50,17 +50,38 @@ def main():
 
     cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
     savedir =  cfg['output_parameters']['savedir']
-    encoder_path = os.path.join(savedir, "models", cfg['training_params']['encoder_name']) 
-    decoder_path = os.path.join(savedir, "models", cfg['training_params']['decoder_name']) 
-   
-    sampler = Sampler(cfg, "max")
-    sampler.analysis_cluster(0, encoder_path, decoder_path)
-    # sampler = Sampler(cfg, "beam")
+    # encoder_path = os.path.join(savedir, "models", cfg['training_params']['encoder_name']) 
+    # decoder_path = os.path.join(savedir, "models", cfg['training_params']['decoder_name']) 
+
+    encoder_path = os.path.join(savedir, "models", "encoder_best_" + str(cfg['splitting']['id_fold']) + '.ckpt') 
+    decoder_path = os.path.join(savedir, "models", "decoder_best_" + str(cfg['splitting']['id_fold']) + '.ckpt') 
+    
+    # regimes = ["simple_probabilistic", "max", "temp_sampling", "simple_probabilistic_topk"]
+    regimes = ["beam_1", "beam_3", "beam_10", "max", "temp_sampling_0.7", "probabilistic",
+                "simple_probabilistic_topk_10"]
+    regimes = ["max"]
+    for regim in regimes:
+        sampler = Sampler(cfg, regim)
+        sampler.analysis_cluster(0, encoder_path, decoder_path)
+    # sampler = Sampler(cfg, "simple_probabilistic")
     # sampler.analysis_cluster(0, encoder_path, decoder_path)
-    sampler = Sampler(cfg, "simple_probabilistic")
-    sampler.analysis_cluster(0, encoder_path, decoder_path)
-    sampler = Sampler(cfg, "simple_probabilistic_topk")
-    sampler.analysis_cluster(0, encoder_path, decoder_path)
+
+
+    # sampler = Sampler(cfg, "max")
+    # sampler.analysis_cluster(0, encoder_path, decoder_path)
+
+    # sampler = Sampler(cfg, "temp_sampling")
+    # sampler.analysis_cluster(0, encoder_path, decoder_path)
+
+
+    # sampler = Sampler(cfg, "max")
+    # sampler.analysis_cluster(0, encoder_path, decoder_path)
+    # # sampler = Sampler(cfg, "beam")
+    # # sampler.analysis_cluster(0, encoder_path, decoder_path)
+    # sampler = Sampler(cfg, "simple_probabilistic")
+    # sampler.analysis_cluster(0, encoder_path, decoder_path)
+    # sampler = Sampler(cfg, "simple_probabilistic_topk")
+    # sampler.analysis_cluster(0, encoder_path, decoder_path)
 
 if __name__ == "__main__":
     main()
