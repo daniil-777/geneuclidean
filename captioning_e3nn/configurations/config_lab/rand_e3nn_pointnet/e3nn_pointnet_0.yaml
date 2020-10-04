@@ -20,7 +20,7 @@ model:
   encoder_kwargs:
     max_rad: 2
     num_basis: 50
-    n_neurons: 80
+    n_neurons: 60
     n_layers: 2
     beta: 5
     rad_model: gaussian
