@@ -27,7 +27,7 @@ model:
     num_embeddings: 6
     embed: 21
     l0: 21
-    L: 2
+    L: 1
     scalar_act_name:  sp
     gate_act_name: sigmoid
     natoms: 286
