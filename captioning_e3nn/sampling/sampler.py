@@ -39,6 +39,7 @@ class Sampler():
         #sampling params
         # self.idx_fold = idx_fold
         self.cfg = cfg
+        self.attention = self.cfg['training_params']['mode']
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # self.device = torch.device("cpu")
         self.sampling = sampling
@@ -164,11 +165,9 @@ class Sampler():
         torch.save(feature, os.path.join(self.save_dir_encodings, protein_name + "_feature_encoding.pt"))
 
     def printing_smiles(self, sampled_ids, list_smiles_all):
-    
         sampled_caption = []
        # print("sampled_id", sampled_ids)
         for word_id in sampled_ids:
-            print(type(word_id))
             word = self.vocab.idx2word[word_id]
             sampled_caption.append(word)
             if word == "<end>":
@@ -243,31 +242,37 @@ class Sampler():
                 
                 if (self.sampling == "probabilistic"):
                     sampled_ids = self.decoder.sample_prob(feature)
-                    sampled_ids = ( sampled_ids[0].cpu().numpy())
+                    # sampled_ids = ( sampled_ids[0].cpu().numpy())
                 elif (self.sampling == "max"):
                     sampled_ids = self.decoder.sample_max(feature)
-                    sampled_ids = ( sampled_ids[0].cpu().numpy())
+                    # sampled_ids = ( sampled_ids[0].cpu().numpy())
                 elif (self.sampling == "simple_probabilistic"):
                     sampled_ids = self.decoder.simple_prob(feature)
-                    sampled_ids = ( sampled_ids[0].cpu().numpy())
-                elif (self.sampling == "simple_probabilistic_topk"):
-                    sampled_ids = self.decoder.simple_prob_topk(feature)
-                
-              #  sampled_ids = ( sampled_ids[0].cpu().numpy() )
+                    # sampled_ids = ( sampled_ids[0].cpu().numpy())
+                elif (self.sampling.startswith("simple_probabilistic_topk") == True):
+                    k = int(self.sampling.split("_")[-1])
+                    sampled_ids = self.decoder.simple_prob_topk(feature, k)
+                    # sampled_ids = ( sampled_ids[0].cpu().numpy())
+                elif (self.sampling.startswith("temp_sampling")):
+                    temperature = float(self.sampling.split("_")[-1])
+                    sampled_ids = self.decoder.sample_temp(feature, temperature)
+                    # sampled_ids = ( sampled_ids[0].cpu().numpy())
+                sampled_ids = ( sampled_ids[0].cpu().numpy())
                 if(type(sampled_ids[0]) != list):
-
                     idx =  self.printing_smiles(sampled_ids, smiles)
                     amount_val_smiles += idx
                 else:
                     amount_val_smiles = 0
            
-        
         elif (self.sampling.startswith('beam') == True):
             number_beams = int(self.sampling.split("_")[1])
             features, geometry, masks = self.load_pocket(id)
             feature = self.encoder(features, geometry, masks)
             # self.decoder = self.decoder.float()
-            sampled_ids, alphas  = self.decoder.sample_beam_search(feature, number_beams)
+            if (self.attention == "attention"):
+                sampled_ids, alphas  = self.decoder.sample_beam_search(feature, number_beams)
+            else:
+                sampled_ids  = self.decoder.sample_beam_search(feature, number_beams)
             print("sampled-ind", sampled_ids)
             if(sampled_ids == 120 ):
                 amount_val_smiles = 0
@@ -277,23 +282,8 @@ class Sampler():
                     iter += 1
                     idx =  self.printing_smiles(np.asarray(sentence), smiles)
                     amount_val_smiles += idx
-           # print("sampled_ids", sampled_ids)
-           # print("sampled_ids", sampled_ids)
-           # for sentence in sampled_ids:
-            #    print("sentence", sentence)
-             #   iter += 1
-              #  idx =  self.printing_smiles(np.asarray(sentence[1:]), smiles)
-               # amount_val_smiles += idx
         else:
             raise ValueError("Unknown sampling...")
-
-           # sampled_ids = (
-            #   sampled_ids[0].cpu().numpy()
-           # )  # (1, max_seq_length) -> (max_seq_length)
-            # Convert word_ids to wordsi
-           # for sentence in sampled_ids:
-           #     idx =  self.printing_smiles(np.asarray(sentence[1:]), smiles)
-           #     amount_val_smiles += idx
         
         if (amount_val_smiles > 0):
             # save_dir_analysis = os.path.join(save_dir_smiles, str(id_fold), protein_name)
@@ -303,7 +293,6 @@ class Sampler():
             stat_protein.append(amount_val_smiles * [self.sampling])
             stat_protein.append(amount_val_smiles * [self.model_encoder])
             stat_protein.append(amount_val_smiles * [self.model_decoder])
-            # print("shape all_stat", all_stat.shape)
             # file_statistics.write(str(list(map(list, zip(*stat_protein)))) + "\n")
             wr = csv.writer(self.file_statistics)
             wr.writerows(list(map(list, zip(*stat_protein))))
