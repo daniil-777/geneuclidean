@@ -64,8 +64,8 @@ def main():
     cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
     if (cfg['training_params']['mode'] == 'attention'):
         if (cfg['training_params']['visualisation'] == 'vis'):
-            # trainer = Trainer_Attention_Check_Vis(cfg)
-            trainer = Trainer_Attention_Vis(cfg)
+            trainer = Trainer_Attention_Check_Vis(cfg)
+            # trainer = Trainer_Attention_Vis(cfg)
             trainer.train_epochs()
     else:
         trainer = Trainer_Fold(cfg)
