@@ -80,8 +80,6 @@ class Trainer_Fold():
         
         self.Encoder, self.Decoder = config.get_model(cfg, device=self.device)
         self.input = config.get_shape_input(self.cfg)
-        # print(summary(self.Encoder, self.input))
-        # print(summary(self.Decoder))
         print(self.Encoder)
         print(self.Decoder)
         with open(os.path.join(self.log_path, "model.txt"), 'w') as f:
@@ -180,25 +178,7 @@ class Trainer_Fold():
                 self.log_file.write(result + "\n")
                 self.log_file.flush()
 
-            # loss is a real crossentropy loss
-            #
-            # Save the model checkpoints
-            # if (i + 1) % self.save_step == 0:
-            #     # print("yeeees!!!")
-            #     self.encoder_name =  os.path.join(
-            #             self.model_path, "encoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
-            #         )
-            #     self.decoder_name =  os.path.join(
-            #             self.model_path, "decoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
-            #         )
-            #     torch.save(
-            #         encoder.state_dict(),
-            #         self.encoder_name,
-            #     )
-            #     torch.save(
-            #         decoder.state_dict(),
-            #         self.decoder_name,
-            #     )
+
             if (self.loss_best - loss > 0):
                 print("The best loss " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1))
                 self.log_file.write("The best loss " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1) + "\n")
@@ -222,9 +202,6 @@ class Trainer_Fold():
         self.log_file_tensor.flush()
 
     def train_epochs(self):
-        # get indexes of all complexes and "nick names"
-        # Load vocabulary wrapper
-
         featuriser = Pdb_Dataset(self.cfg, vocab=self.vocab)
         # data_ids, data_names = utils._get_refined_data()
         files_refined = os.listdir(self.protein_dir)
@@ -270,10 +247,10 @@ class Trainer_Fold():
                             self.encoder_best, self.decoder_best, self.caption_optimizer, self.split_no)
 
             self.encoder_name =  os.path.join(
-                        self.model_path, "encoder-{}-{}-{}.ckpt".format(self.split_no, epoch + 1)
+                        self.model_path, "encoder-{}-{}.ckpt".format(self.split_no, epoch + 1)
                     )
             self.decoder_name =  os.path.join(
-                        self.model_path, "decoder-{}-{}-{}.ckpt".format(self.split_no, epoch + 1)
+                        self.model_path, "decoder-{}-{}.ckpt".format(self.split_no, epoch + 1)
                     )
             torch.save(
                     encoder.state_dict(),
