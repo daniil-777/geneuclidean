@@ -209,7 +209,7 @@ class ResNetwork(Network):
         #         kernel_size=(features.shape[1], 1),
         #         ceil_mode=False,)
         features = features.squeeze(1)
-        features = features.squeeze(2)
+        features = features.squeeze(-1)
 
         features = features.to(torch.double)
         print("feat out shape", features.shape)
