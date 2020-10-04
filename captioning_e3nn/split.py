@@ -126,6 +126,7 @@ class Splitter:
         return splits
 
     def chain_split(self):
+        self.files_refined = self.files_refined[:-3]
         with open(self.file_prot_chain, 'r') as file: 
             lines = file.read().splitlines()
         words_all = []
