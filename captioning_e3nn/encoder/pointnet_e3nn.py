@@ -214,7 +214,7 @@ class PointNet_Geo_AllNetwork(torch.nn.Module):
 
         self.e_out_2 = nn.Linear(mlp_h, 2 * mlp_h)
         self.bn_out_2 = nn.BatchNorm1d(natoms)
-        self.resnet_block = ResnetPointnet(self.embed, self.geo_out)
+        self.resnet_block = ResnetPointnet(3, self.geo_out)
         torch.autograd.set_detect_anomaly(True) 
 
     def forward(self, features, geometry, mask):
