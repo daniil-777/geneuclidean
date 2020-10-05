@@ -42,8 +42,8 @@ model:
   decoder_kwargs:
     vocab_size: 32
     vocab_path: ../data/vocab.pkl
-    embed_size: 42
-    hidden_size: 42
+    embed_size: 84
+    hidden_size: 84
     num_layers: 1
     beam_size: 20
 
