@@ -16,7 +16,7 @@ encoder_dict = {
     'binding_e3nn': Binding_Network,
     'e3nn_res': ResNetwork,
     'pointnetall': PointNetAllNetwork,
-    'att_e3nn': AttentionE3nn
-    'se3cnn_resnet_after_se3cnn': Encoder_Resnet_after_se3ACN
+    'att_e3nn': AttentionE3nn,
+    'se3cnn_resnet_after_se3cnn': Encoder_Resnet_after_se3ACN,
     'se3cnn_geo_feat_resnet': Encoder_Resnet_feat_geom_se3ACN
 }
