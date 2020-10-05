@@ -1,4 +1,4 @@
-# from encoder.encoder_resnet import ResnetPointnet, Encoder_Resnet_after_se3ACN, Encoder_Resnet_feat_geom_se3ACN, Encoder_Resnet_geom_se3ACN,  Encoder_Resnet
+from encoder.encoder_resnet import ResnetPointnet, Encoder_Resnet_after_se3ACN, Encoder_Resnet_feat_geom_se3ACN, Encoder_Resnet_geom_se3ACN,  Encoder_Resnet
 
 # from encoder.se3cnn import Encoder_se3ACN, Encoder_se3ACN_Fast
 from encoder.e3nn import Network, ResNetwork, OutputScalarNetwork, OutputMLPNetwork
@@ -17,4 +17,6 @@ encoder_dict = {
     'e3nn_res': ResNetwork,
     'pointnetall': PointNetAllNetwork,
     'att_e3nn': AttentionE3nn
+    'se3cnn_resnet_after_se3cnn': Encoder_Resnet_after_se3ACN
+    'se3cnn_geo_feat_resnet': Encoder_Resnet_feat_geom_se3ACN
 }
