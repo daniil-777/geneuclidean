@@ -159,7 +159,7 @@ class PointNetAllNetwork(torch.nn.Module):
         #         kernel_size=(features.shape[1], 1),
         #         ceil_mode=False,)
         features = features.squeeze(1)
-        features = features.squeeze(2)
+        features = features.squeeze(0)
         print("feat final shape", features.shape)
         return features # shape ? 
 
