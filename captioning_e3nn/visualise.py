@@ -47,8 +47,9 @@ def main():
     savedir =  cfg['output_parameters']['savedir']
     encoder_path = os.path.join(savedir, "models", cfg['training_params']['encoder_name']) 
     decoder_path = os.path.join(savedir, "models", cfg['training_params']['decoder_name'])
-
-    visualiser = Visualisation(cfg, "beam")
+    mode_vis = ["beam_1"]
+    for mode in mode_vis:
+        visualiser = Visualisation(cfg, mode)
 
     visualiser.save_for_vis(0, encoder_path, decoder_path)
     
