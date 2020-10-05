@@ -107,7 +107,7 @@ class Visualisation:
 
     def save_for_vis(self, split_no, encoder_path, decoder_path):
         self.idx_fold = split_no
-        self.vis_path = os.path.join(self.savedir, str(self.idx_fold) + "_visualisations")
+        self.vis_path = os.path.join(self.savedir, str(self.idx_fold) + "_" + self.sampling + "_visualisations")
         if not os.path.exists(self.vis_path):
             os.makedirs(self.vis_path)
         # self.encoder_path, self.decoder_path = self._get_model_path()
@@ -173,7 +173,7 @@ class Visualisation:
         
         with open(init_path_smile) as fp: 
             initial_smile = fp.readlines()[0] #write a true initial smile
-        smiles.append(initial_smile)
+        # smiles.append(initial_smile)
         amount_val_smiles = 0
         
         iter = 0
@@ -197,35 +197,51 @@ class Visualisation:
                 feature = self.encoder(features, geometry, masks)
                 #print("feature", feature)
                 
+                  
                 if (self.sampling == "probabilistic"):
                     sampled_ids = self.decoder.sample_prob(feature)
+                    # sampled_ids = ( sampled_ids[0].cpu().numpy())
                 elif (self.sampling == "max"):
                     sampled_ids = self.decoder.sample_max(feature)
-               
+                    # sampled_ids = ( sampled_ids[0].cpu().numpy())
+                elif (self.sampling == "simple_probabilistic"):
+                    sampled_ids = self.decoder.simple_prob(feature)
+                    # sampled_ids = ( sampled_ids[0].cpu().numpy())
+                elif (self.sampling.startswith("simple_probabilistic_topk") == True):
+                    k = int(self.sampling.split("_")[-1])
+                    sampled_ids = self.decoder.simple_prob_topk(feature, k)
+                    # sampled_ids = ( sampled_ids[0].cpu().numpy())
+                elif (self.sampling.startswith("temp_sampling")):
+                    temperature = float(self.sampling.split("_")[-1])
+                    sampled_ids = self.decoder.sample_temp(feature, temperature)
+
+
                 sampled_ids = ( sampled_ids[0].cpu().numpy() )
                 idx =  self.printing_smiles(sampled_ids, smiles, alphas_result, alphas, iter)
                 amount_val_smiles += idx
         
-        elif (self.sampling == "beam"):
+        elif (self.sampling.startswith("beam")):
+            number_beams = float(self.sampling.split("_")[-1])
             features, geometry, masks = self.load_pocket(id)
             feature = self.encoder(features, geometry, masks)
             # self.decoder = self.decoder.float()
             # sampled_ids, alpha_all = sample_beam_search(self.decoder, feature)
-            sampled_ids, alpha_all = self.decoder.sample_beam_search(feature, 1)
+            sampled_ids, alpha_all = self.decoder.sample_beam_search(feature, number_beams)
             if alpha_all != 120:
                 for sentence in sampled_ids:
                     iter += 1
-                    self.printing_smiles(np.asarray(sentence[1:]), smiles, alphas_result, alpha_all, iter)
+                    self.printing_smiles(np.asarray(sentence[1:]), smiles, alphas_result, alpha_all[0], iter)
                     amount_val_smiles += iter
         else:
             raise ValueError("Unknown sampling...")
 
         if(len(alphas_result) > 0):
-            alphas_result = alphas_result.cpu().numpy() #? convert..
+            print("alph_rea", alphas_result)
+            alphas_result = alphas_result #? convert..
 
-            with open(os.path.join(self.path_protein, "smiles", 'wb')) as fp:
-                pickle.dump(test_data, fp)
-            with open(os.path.join(self.path_protein, "alphas", 'wb'))  as f:
+            with open(os.path.join(self.path_protein, "smiles"), 'wb') as fp:
+                pickle.dump(smiles, fp)
+            with open(os.path.join(self.path_protein, "alphas"), 'wb')  as f:
                 np.save(f, alphas_result)
         
            # sampled_ids = (
@@ -257,7 +273,8 @@ class Visualisation:
             print(sentence)
             # smiles.append(sentence)
             list_smiles_all.append(sentence)
-            alphas_result.append(alpha_all[idx, :])
+            #print('alpha',alpha_all)
+            alphas_result.append(alpha_all[idx])
             
 
     
