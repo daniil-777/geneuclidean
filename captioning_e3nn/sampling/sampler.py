@@ -278,9 +278,9 @@ class Sampler():
                 amount_val_smiles = 0
             else:
                 for sentence in sampled_ids:
-                    print("sentence", sentence)
+                    print("sentence", sentence[1:])
                     iter += 1
-                    idx =  self.printing_smiles(np.asarray(sentence), smiles)
+                    idx =  self.printing_smiles(np.asarray(sentence[1:]), smiles)
                     amount_val_smiles += idx
         else:
             raise ValueError("Unknown sampling...")
@@ -332,19 +332,20 @@ class Sampler():
         df.to_csv(os.path.join(save_dir_smiles, "all_stat_new.csv"))
     
 
-    def save_encodings_all(self):
+    def save_encodings_all(self, mode):
         r'''For every protein id in rain/test generates feature and saves it
         '''
         #writes encodings to .pt files
-        with (open(self.file_folds, "rb")) as openfile:
-            idx_proteins_test = pickle.load(openfile)
-        # Load the trained model parameters
-        files_refined = os.listdir(self.protein_dir)
-        idx_all = [i for i in range(len(files_refined) - 3)]
+        if (mode == "test"):
+            with (open(self.file_folds, "rb")) as openfile:
+                idx_proteins_gen = pickle.load(openfile)
+        else:
+            files_refined = os.listdir(self.protein_dir)
+            idx_all = [i for i in range(len(files_refined) - 3)]
         #take indx of proteins in the training set
-        idx_train =  np.setdiff1d(idx_all, idx_proteins_test)
+            idx_proteins_gen =  np.setdiff1d(idx_all, idx_proteins_test)
         # for id_protein in idx_train:
-        for id_protein in idx_proteins_test:    
+        for id_protein in idx_proteins_gen:    
             self.generate_encodings(id_protein)
 
     def collect_all_encodings(self):

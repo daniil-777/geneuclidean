@@ -268,7 +268,6 @@ class DecoderRNN(nn.Module):
 
         # Lists to store completed sequences, their alphas and scores
         complete_seqs = list()
-        # complete_seqs_alpha = list()
         complete_seqs_scores = list()
 
         # Start decoding
@@ -320,11 +319,8 @@ class DecoderRNN(nn.Module):
             if k == 0:
                 break
             seqs = seqs[incomplete_inds]
-           # print("h", h)
             h = h[prev_word_inds[incomplete_inds]]
             states = (states[0][:, prev_word_inds[incomplete_inds]], states[1][:, prev_word_inds[incomplete_inds]])
-           # print("shape states in end", states[0].shape)
-           # print("states in the end")
             top_k_scores = top_k_scores[incomplete_inds].unsqueeze(1)
             k_prev_words = next_word_inds[incomplete_inds].unsqueeze(1)
             inputs = self.embed(k_prev_words)
@@ -332,9 +328,18 @@ class DecoderRNN(nn.Module):
             if step > MAX_Length:
                 break
             step += 1
+        
+        if (len(complete_seqs_scores) > 0):
+            i = complete_seqs_scores.index(max(complete_seqs_scores))
+            res = [x for _, x in sorted(zip(complete_seqs_scores, complete_seqs))]
+            seq = complete_seqs[i]
+            return res[-number_beams:]
+        else:
+           # print("zero")
+            return 120, 120
         # i = complete_seqs_scores.index(max(complete_seqs_scores))
         # seq = complete_seqs[i]
-        return complete_seqs
+        # return complete_seqs
     
 
 
