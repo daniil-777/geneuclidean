@@ -227,7 +227,6 @@ class DecoderRNN(nn.Module):
                 sampled_ids.append(predicted)
                 inputs = self.embed(predicted)
                 inputs = inputs.unsqueeze(0)
-        print("si", sampled_ids)
         sampled_ids = torch.stack(sampled_ids, 1)
         return sampled_ids
 
@@ -336,7 +335,7 @@ class DecoderRNN(nn.Module):
             return res[-number_beams:]
         else:
            # print("zero")
-            return 120, 120
+            return 120
         # i = complete_seqs_scores.index(max(complete_seqs_scores))
         # seq = complete_seqs[i]
         # return complete_seqs
