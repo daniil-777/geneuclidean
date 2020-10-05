@@ -221,6 +221,7 @@ class PointNet_Geo_AllNetwork(torch.nn.Module):
         mask = mask.to(torch.double)
         mask, diff_geo, radii = constants(geometry, mask)
         embedding = self.layers[0]
+        geometry = geometry.to(torch.float)
         geo_pointnet = self.resnet_block(geometry, mask)
         features = torch.tensor(features).to(self.device).long()
         features = embedding(features).to(self.device)
