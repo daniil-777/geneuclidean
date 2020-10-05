@@ -271,7 +271,7 @@ class Visualisation:
             
         else:
             print(sentence)
-            # smiles.append(sentence)
+            smiles.append(sentence)
             list_smiles_all.append(sentence)
             #print('alpha',alpha_all)
             alphas_result.append(alpha_all[idx])
