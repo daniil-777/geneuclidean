@@ -344,7 +344,7 @@ class Sampler():
             files_refined = os.listdir(self.protein_dir)
             idx_all = [i for i in range(len(files_refined) - 3)]
         #take indx of proteins in the training set
-            idx_proteins_gen =  np.setdiff1d(idx_all, idx_proteins_test)
+            idx_proteins_gen =  np.setdiff1d(idx_all, idx_proteins_gen)
         # for id_protein in idx_train:
         for id_protein in idx_proteins_gen:    
             self.generate_encodings(id_protein)
