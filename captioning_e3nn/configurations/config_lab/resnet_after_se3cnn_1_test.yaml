@@ -1,11 +1,16 @@
 preprocessing:
   mask: True
   collate_fn: masks
+splitting:
+  split: morgan
+  file_folds: random_split_e3nn_18_09
+  id_fold: 0
 training_params:
+  mode: no_attention
   log_step: 1
   save_step: 1
-  encoder_name: encoder-20-600.ckpt
-  decoder_name: decoder-20-600.ckpt
+  encoder_name: encoder-0-99-900.ckpt
+  decoder_name: decoder-0-99-900.ckpt
   n_splits: 5
 model:
   encoder: se3cnn_resnet_after_se3cnn
