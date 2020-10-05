@@ -221,7 +221,7 @@ class Visualisation:
                 amount_val_smiles += idx
         
         elif (self.sampling.startswith("beam")):
-            number_beams = float(self.sampling.split("_")[-1])
+            number_beams = int(self.sampling.split("_")[-1])
             features, geometry, masks = self.load_pocket(id)
             feature = self.encoder(features, geometry, masks)
             # self.decoder = self.decoder.float()
