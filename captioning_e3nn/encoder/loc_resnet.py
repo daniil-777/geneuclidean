@@ -73,11 +73,10 @@ class ResnetPointnet(nn.Module):
    #     n_channels (int): number of planes for projection
     
 
-    def __init__(self, masks, dim=None, hidden_dim=None):
+    def __init__(self, dim=None, hidden_dim=None):
         super().__init__()
         self.dim = dim
         self.hidden_dim = hidden_dim   
-        self.masks = masks
         # For grid features
         self.fc_pos = nn.Linear(dim, 2*hidden_dim)
         self.block_0 = ResnetBlockFC(2*hidden_dim, hidden_dim)
@@ -95,7 +94,7 @@ class ResnetPointnet(nn.Module):
        
         self.atom_pool =  Aggregate(axis=-1, mean=True)
 
-    def forward(self, p):
+    def forward(self, p, masks):
         batch_size, T, D = p.size()
         # print("D", D)
         # p = p.to(torch.float)
@@ -104,13 +103,13 @@ class ResnetPointnet(nn.Module):
         net = self.block_0(net)
         pool_test = self.pool(net, keepdim=True)
         print("shaoe test", pool_test.shape)
-        pooled = self.atom_pool(net, self.masks).expand(net.size())
+        pooled = self.atom_pool(net, masks).expand(net.size())
         net = torch.cat([net, pooled], dim=2)
         net = self.block_1(net)
-        pooled = self.atom_pool(net, self.masks).expand(net.size())
+        pooled = self.atom_pool(net, masks).expand(net.size())
         net = torch.cat([net, pooled], dim=2)
         net = self.block_2(net)
-        pooled = self.atom_pool(net, self.masks).expand(net.size())
+        pooled = self.atom_pool(net, masks).expand(net.size())
         net = torch.cat([net, pooled], dim=2)
         net = self.block_3(net)
         # pooled = self.pool(net, dim=1, keepdim=True).expand(net.size())
