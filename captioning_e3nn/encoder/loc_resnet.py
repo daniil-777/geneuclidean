@@ -92,7 +92,7 @@ class ResnetPointnet(nn.Module):
         is_cuda = torch.cuda.is_available()
         self.device = DEVICE
        
-        self.atom_pool =  Aggregate(axis=-1, mean=True)
+        self.atom_pool =  Aggregate_Pointnet(axis=-1, mean=True)
 
     def forward(self, p, masks):
         batch_size, T, D = p.size()

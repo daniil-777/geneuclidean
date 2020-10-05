@@ -7,6 +7,7 @@ from e3nn.radial import CosineBasisModel, GaussianRadialModel, BesselRadialModel
 from e3nn.non_linearities import rescaled_act
 from e3nn.non_linearities.gated_block import GatedBlock
 from e3nn.rsh import spherical_harmonics_xyz
+from encoder.base import Aggregate
 import torch.nn.functional as F
 from encoder.loc_resnet import ResnetPointnet, ResnetPointnet_4, ResnetBlockFC, Aggregate_Pointnet
 
@@ -81,9 +82,9 @@ class PointNetAllNetwork(torch.nn.Module):
         self.Rs = Rs
         self.device = DEVICE
         if aggregation_mode == "sum":
-            self.atom_pool =  Aggregate_Pointnet(axis=1, mean=False)
+            self.atom_pool =  Aggregate(axis=1, mean=False)
         elif aggregation_mode == "avg":
-            self.atom_pool =  Aggregate_Pointnet(axis=1, mean=True)
+            self.atom_pool =  Aggregate(axis=1, mean=True)
         self.num_embeddings = 6
         self.RadialModel = partial(
             CosineBasisModel,
