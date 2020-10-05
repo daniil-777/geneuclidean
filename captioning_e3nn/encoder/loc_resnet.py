@@ -210,5 +210,5 @@ class Aggregate_Pointnet(nn.Module):
             else:
                 N = input.size(self.axis)
             y = y / N
-        y = y.unsqueeze(2).to(torch.float)
+        y = y.unsqueeze(2).to(torch.double)
         return y
