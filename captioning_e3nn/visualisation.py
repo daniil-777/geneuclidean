@@ -230,7 +230,7 @@ class Visualisation:
             if alpha_all != 120:
                 for sentence in sampled_ids:
                     iter += 1
-                    self.printing_smiles(np.asarray(sentence[1:]), smiles, alphas_result, alpha_all[0], iter)
+                    self.printing_smiles(np.asarray(sentence[1:]), alphas_result, alpha_all[0], iter)
                     amount_val_smiles += iter
         else:
             raise ValueError("Unknown sampling...")
