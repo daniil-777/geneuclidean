@@ -178,7 +178,7 @@ class Visualisation:
         
         iter = 0
         start = time.time()
-        if (self.sampling != "beam"):
+        if (self.sampling.startswith('beam') == False):
             while (amount_val_smiles < self.number_smiles):
                 end = time.time()
                 print("time elapsed", end - start)
