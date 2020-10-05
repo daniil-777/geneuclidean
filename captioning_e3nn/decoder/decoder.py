@@ -223,7 +223,7 @@ class DecoderRNN(nn.Module):
                         probs[0][i] = 0
                 probs[0] /= sum(probs[0])
                 predicted = np.random.choice(self.vocab_size, p=probs_np[0])
-                predicted = torch.tensor(predicted).unsqueeze(0)
+                predicted = torch.tensor(predicted).unsqueeze(0).to(self.device)
                 sampled_ids.append(predicted)
                 inputs = self.embed(predicted)
                 inputs = inputs.unsqueeze(0)
