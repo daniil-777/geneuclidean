@@ -209,10 +209,10 @@ class PointNet_Geo_AllNetwork(torch.nn.Module):
         self.layers = torch.nn.ModuleList([torch.nn.Embedding(self.num_embeddings, embed, padding_idx=5)])
         self.layers += [make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])]
         self.leakyrelu = nn.LeakyReLU(0.2) # Relu
-        self.e_out_1 = nn.Linear(mlp_h, mlp_h)
+        self.e_out_1 = nn.Linear(mlp_h + self.geo_out, mlp_h + self.geo_out)
         self.bn_out_1 = nn.BatchNorm1d(natoms)
 
-        self.e_out_2 = nn.Linear(mlp_h, 2 * mlp_h)
+        self.e_out_2 = nn.Linear(mlp_h + self.geo_out, 2*(mlp_h + self.geo_out))
         self.bn_out_2 = nn.BatchNorm1d(natoms)
         self.resnet_block = ResnetPointnet(3, self.geo_out)
         torch.autograd.set_detect_anomaly(True) 
@@ -252,8 +252,9 @@ class PointNet_Geo_AllNetwork(torch.nn.Module):
         features = features.to(torch.double)
 
         features = torch.cat([features, geo_pointnet], dim=2)
-        # features = self.leakyrelu(self.bn_out_1(self.e_out_1(features))) # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
-        # features = self.leakyrelu(self.bn_out_2(self.e_out_2(features)))
+
+        features = self.leakyrelu(self.bn_out_1(self.e_out_1(features))) # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
+        features = self.leakyrelu(self.bn_out_2(self.e_out_2(features)))
 
         # if self.atomref is not None:
         #     features_z = self.atomref(atomic_numbers)
