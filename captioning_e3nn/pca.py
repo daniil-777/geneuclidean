@@ -56,7 +56,7 @@ def main():
     
     split = cfg['splitting']['id_fold']
     sampler = Sampler(cfg, 'max')
-    sampler.save_encodings_all('test')
+    sampler.save_encodings_all('test', split)
 
   
  

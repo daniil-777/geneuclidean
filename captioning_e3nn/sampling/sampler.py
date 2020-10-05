@@ -274,7 +274,7 @@ class Sampler():
             else:
                 sampled_ids  = self.decoder.sample_beam_search(feature, number_beams)
             print("sampled-ind", sampled_ids)
-            if(sampled_ids == 120 ):
+            if(sampled_ids == 120):
                 amount_val_smiles = 0
             else:
                 for sentence in sampled_ids:
@@ -332,10 +332,11 @@ class Sampler():
         df.to_csv(os.path.join(save_dir_smiles, "all_stat_new.csv"))
     
 
-    def save_encodings_all(self, mode):
+    def save_encodings_all(self, mode, split):
         r'''For every protein id in rain/test generates feature and saves it
         '''
         #writes encodings to .pt files
+        self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(split))
         if (mode == "test"):
             with (open(self.file_folds, "rb")) as openfile:
                 idx_proteins_gen = pickle.load(openfile)
