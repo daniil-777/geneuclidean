@@ -111,9 +111,9 @@ class DecoderRNN(nn.Module):
                 # print("shape p", p.shape)
                 char = np.random.multinomial(1, p, size=1)
                 predicted = np.argmax(char)
-                pedicted = torch.tensor(predicted).unsqueeze(0)
+                pedicted = torch.tensor(predicted).unsqueeze(0).to(self.device)
                 sampled_ids.append(pedicted)
-                inputs = self.embed(pedicted.to(self.device))
+                inputs = self.embed(pedicted)
                 inputs = inputs.unsqueeze(0)
         sampled_ids = torch.stack(sampled_ids, 1)
         return sampled_ids
