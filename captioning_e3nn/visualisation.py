@@ -133,20 +133,14 @@ class Visualisation:
         name_protein = self.dataset._get_name_protein(id_protein)
         print("loading data of a protein", name_protein)
         self.path_protein = os.path.join(self.vis_path, name_protein)
-        if not os.path.exists(self.path_protein):
-            os.makedirs(self.path_protein)
-        os.makedirs(self.path_protein, exist_ok=True)
+        # os.makedirs(self.path_protein, exist_ok=True)
         features, masks = self.dataset._get_features_complex(id_protein)
         geometry = self.dataset._get_geometry_complex(id_protein)
         features = features.to(self.device).unsqueeze(0)
         geometry = geometry.to(self.device).unsqueeze(0)
         masks = masks.to(self.device).unsqueeze(0)
         # features = np.asarray(features.cpu().clone().numpy())
-        geometry_write = np.asarray(geometry.cpu().clone().numpy())
-        np.save(
-            os.path.join(self.path_protein, "geometry"),
-            arr = geometry_write,
-        )
+        self.geometry_write = np.asarray(geometry.cpu().clone().numpy())
         return features, geometry, masks
 
 
@@ -237,8 +231,15 @@ class Visualisation:
 
         if(len(alphas_result) > 0):
             print("alph_rea", alphas_result)
-            alphas_result = alphas_result #? convert..
+            if not os.path.exists(self.path_protein):
+                os.makedirs(self.path_protein)
 
+
+            np.save(
+                os.path.join(self.path_protein, "geometry"),
+                arr = self.geometry_write,
+            )
+            alphas_result = alphas_result #? convert..
             with open(os.path.join(self.path_protein, "smiles"), 'wb') as fp:
                 pickle.dump(self.smiles, fp)
             with open(os.path.join(self.path_protein, "alphas"), 'wb')  as f:
