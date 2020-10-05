@@ -162,7 +162,7 @@ class Visualisation:
     def visualise(self, id):
         #original + gen smiles
         print("current id - ", id)
-        smiles = []
+        self.smiles = []
         alphas_result = []
         protein_name =  self.dataset._get_name_protein(id)
         print("current protein ", protein_name)
@@ -217,7 +217,7 @@ class Visualisation:
 
 
                 sampled_ids = ( sampled_ids[0].cpu().numpy() )
-                idx =  self.printing_smiles(sampled_ids, smiles, alphas_result, alphas, iter)
+                idx =  self.printing_smiles(sampled_ids, alphas_result, alphas, iter)
                 amount_val_smiles += idx
         
         elif (self.sampling.startswith("beam")):
@@ -240,7 +240,7 @@ class Visualisation:
             alphas_result = alphas_result #? convert..
 
             with open(os.path.join(self.path_protein, "smiles"), 'wb') as fp:
-                pickle.dump(smiles, fp)
+                pickle.dump(self.smiles, fp)
             with open(os.path.join(self.path_protein, "alphas"), 'wb')  as f:
                 np.save(f, alphas_result)
         
@@ -253,7 +253,7 @@ class Visualisation:
            #     amount_val_smiles += idx
         
       
-    def printing_smiles(self, sampled_ids, list_smiles_all, alphas_result, alpha_all, idx):
+    def printing_smiles(self, sampled_ids,  alphas_result, alpha_all, idx):
     
         sampled_caption = []
         for word_id in sampled_ids:
@@ -271,8 +271,8 @@ class Visualisation:
             
         else:
             print(sentence)
-            smiles.append(sentence)
-            list_smiles_all.append(sentence)
+            # smiles.append(sentence)
+            self.smiles.append(sentence)
             #print('alpha',alpha_all)
             alphas_result.append(alpha_all[idx])
             
