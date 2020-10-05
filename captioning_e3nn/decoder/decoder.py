@@ -113,7 +113,7 @@ class DecoderRNN(nn.Module):
                 predicted = np.argmax(char)
                 pedicted = torch.tensor(predicted).unsqueeze(0)
                 sampled_ids.append(pedicted)
-                inputs = self.embed(pedicted)
+                inputs = self.embed(pedicted.to(self.device))
                 inputs = inputs.unsqueeze(0)
         sampled_ids = torch.stack(sampled_ids, 1)
         return sampled_ids
