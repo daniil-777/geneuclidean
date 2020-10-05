@@ -212,10 +212,11 @@ class Visualisation:
             # self.decoder = self.decoder.float()
             # sampled_ids, alpha_all = sample_beam_search(self.decoder, feature)
             sampled_ids, alpha_all = self.decoder.sample_beam_search(feature, 1)
-            for sentence in sampled_ids:
-                iter += 1
-                self.printing_smiles(np.asarray(sentence[1:]), smiles, alphas_result, alpha_all, iter)
-                amount_val_smiles += iter
+            if alpha_all != 120:
+                for sentence in sampled_ids:
+                    iter += 1
+                    self.printing_smiles(np.asarray(sentence[1:]), smiles, alphas_result, alpha_all, iter)
+                    amount_val_smiles += iter
         else:
             raise ValueError("Unknown sampling...")
 
