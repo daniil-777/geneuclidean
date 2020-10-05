@@ -60,8 +60,8 @@ def main():
     # regimes = ["simple_probabilistic", "max", "temp_sampling", "simple_probabilistic_topk"]
     regimes = ["beam_1", "beam_3", "beam_10", "max", "temp_sampling_0.7", "probabilistic",
                 "simple_probabilistic_topk_10"]
-    regimes = ["max"]
     for regim in regimes:
+        print("doing sampling... ", regim)
         sampler = Sampler(cfg, regim)
         sampler.analysis_cluster(split, encoder_path, decoder_path)
     # sampler = Sampler(cfg, "simple_probabilistic")
