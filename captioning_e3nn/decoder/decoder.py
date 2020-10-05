@@ -47,13 +47,16 @@ class DecoderRNN(nn.Module):
         embeddings = self.embed(
             captions
         )  # shape [batch_size, padded_length, embed_size]
-    
+        # embeddings = embeddings.to(torch.float)
         embeddings = torch.cat(
             (features.unsqueeze(1), embeddings), 1
         )  # shape [batch_size, padded_length + 1, embed_size]
+        # embeddings = embeddings.to(torch.double)
         packed = pack_padded_sequence(
             embeddings, lengths, batch_first=True
+        
         )  # shape [packed_length, embed_size]
+        # packed = packed.to(torch.float())
         hiddens, _ = self.lstm(packed)
         outputs = self.linear(hiddens[0])  # shape [packed_length, vocab_size]
         return outputs
@@ -69,11 +72,51 @@ class DecoderRNN(nn.Module):
             outputs = self.linear(hiddens.squeeze(1))
             predicted = outputs.max(1)[1]
             sampled_ids.append(predicted)
+            # print("type pr", type(predicted))
             inputs = self.embed(predicted)
             inputs = inputs.unsqueeze(1)
         sampled_ids = torch.stack(sampled_ids, 1)
+        print("sampledids", sampled_ids)
         return sampled_ids
+    
+    def sample_temp(self, features, temperature = 1, states=None):
+            
+        ''' Sample token
+        :param out: output values from model
+        :param T:   sampling temperature
+        :return:    index of predicted token
+        '''
+        sampled_ids = []
+        inputs = features.unsqueeze(1)
+        for i in range(self.max_seg_length):  # maximum sampling length
+            hiddens, states = self.lstm(inputs, states)
+            outputs = self.linear(hiddens.squeeze(1))
+            # print("outputs shape,", outputs.shape)
+            if i == 0:
+                predicted = outputs.max(1)[1]
+                sampled_ids.append(predicted)
+                inputs = self.embed(torch.tensor(predicted))
+                inputs = inputs.unsqueeze(0)
+            else:
+                probs = F.softmax(outputs, dim=1)
 
+                # Probabilistic sample tokens
+                if probs.is_cuda:
+                    probs_np = probs.data.cpu().numpy()
+                else:
+                    probs_np = probs.data.numpy()
+                out_T = probs_np / temperature
+                p = np.exp(out_T) / np.sum(np.exp(out_T))
+                p = p.squeeze(0)
+                # print("shape p", p.shape)
+                char = np.random.multinomial(1, p, size=1)
+                predicted = np.argmax(char)
+                pedicted = torch.tensor(predicted).unsqueeze(0)
+                sampled_ids.append(pedicted)
+                inputs = self.embed(pedicted)
+                inputs = inputs.unsqueeze(0)
+        sampled_ids = torch.stack(sampled_ids, 1)
+        return sampled_ids
 
     def sample_prob(self, features, states=None):
         """Samples SMILES tockens for given shape features (probalistic picking)."""
@@ -127,6 +170,9 @@ class DecoderRNN(nn.Module):
             # print("outputs shape,", outputs.shape)
             if i == 0:
                 predicted = outputs.max(1)[1]
+                sampled_ids.append(predicted)
+                inputs = self.embed(torch.tensor(predicted))
+                inputs = inputs.unsqueeze(0)
             else:
                 probs = F.softmax(outputs, dim=1)
 
@@ -141,16 +187,15 @@ class DecoderRNN(nn.Module):
                 # for i in range(self.vocab_size):
                 #     if probs[i] < top_k_probs[0]:
                 #         probs[i] = 0
-                predicted = np.random.choice(self.vocab_size, p=probs)
-
-              
-            sampled_ids.append(predicted)
-            inputs = self.embed(predicted)
-            inputs = inputs.unsqueeze(1)
+                probs_np = probs_np.squeeze(0)
+                predicted = np.random.choice(self.vocab_size, p=probs_np)
+                sampled_ids.append(predicted)
+                inputs = self.embed(Variable(torch.LongTensor(predicted)))
+                inputs = inputs.unsqueeze(1)
         sampled_ids = torch.stack(sampled_ids, 1)
         return sampled_ids
 
-    def simple_prob_topk(self, features, states = None):
+    def simple_prob_topk(self, features, k, states = None):
         sampled_ids = []
         inputs = features.unsqueeze(1)
         for i in range(self.max_seg_length):  # maximum sampling length
@@ -159,6 +204,10 @@ class DecoderRNN(nn.Module):
             # print("outputs shape,", outputs.shape)
             if i == 0:
                 predicted = outputs.max(1)[1]
+                sampled_ids.append(predicted)
+                inputs = self.embed(torch.tensor(predicted))
+                inputs = inputs.unsqueeze(0)
+                # inputs = inputs.unsqueeze(0)
             else:
                 probs = F.softmax(outputs, dim=1)
 
@@ -167,22 +216,22 @@ class DecoderRNN(nn.Module):
                     probs_np = probs.data.cpu().numpy()
                 else:
                     probs_np = probs.data.numpy()
-                    # print("shape probs_np", probs_np.shape)
-
-                top_k_probs = sorted(probs)[-3:]
+                top_k_probs =  sorted(probs_np[0])
+                top_k_probs = top_k_probs[-k:]
                 for i in range(self.vocab_size):
-                    if probs[i] < top_k_probs[0]:
-                        probs[i] = 0
-                predicted = np.random.choice(self.vocab_size, p=probs)
-
-              
-            sampled_ids.append(predicted)
-            inputs = self.embed(predicted)
-            inputs = inputs.unsqueeze(1)
+                    if probs_np[0][i] < top_k_probs[0]:
+                        probs[0][i] = 0
+                probs[0] /= sum(probs[0])
+                predicted = np.random.choice(self.vocab_size, p=probs_np[0])
+                predicted = torch.tensor(predicted).unsqueeze(0)
+                sampled_ids.append(predicted)
+                inputs = self.embed(predicted)
+                inputs = inputs.unsqueeze(0)
+        print("si", sampled_ids)
         sampled_ids = torch.stack(sampled_ids, 1)
         return sampled_ids
 
-    def sample_beam_search(self, features, states=None):
+    def sample_beam_search(self, features, number_beams, states=None):
         """
         Reads an image and captions it with beam search.
 
@@ -194,7 +243,7 @@ class DecoderRNN(nn.Module):
         :return: caption, weights for visualization
         """
         print("feat shape init", features.shape)
-        k = self.beam_size
+        k = number_beams
         vocab_size = len(self.vocab)
 
         # # We'll treat the problem as having a batch size of k
@@ -551,6 +600,7 @@ class MyDecoderWithAttention(nn.Module):
             # encoder_out = encoder_out[prev_word_inds[incomplete_inds]] - we give to Attention the same features
             sampled_ids.append(predicted)
         sampled_ids = torch.stack(sampled_ids, 1) 
+        print(sampled_ids)
         return sampled_ids
 
     def sample_prob(self, features, states=None):
