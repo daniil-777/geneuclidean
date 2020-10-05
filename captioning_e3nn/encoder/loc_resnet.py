@@ -180,7 +180,7 @@ class Aggregate_Pointnet(nn.Module):
     """
 
     def __init__(self, axis, mean=False, keepdim=True):
-        super(Aggregate, self).__init__()
+        super(Aggregate_Pointnet, self).__init__()
         self.average = mean
         self.axis = axis
         self.keepdim = keepdim
