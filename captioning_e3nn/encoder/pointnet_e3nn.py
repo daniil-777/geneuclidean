@@ -111,11 +111,12 @@ class PointNetAllNetwork(torch.nn.Module):
 
         self.e_out_2 = nn.Linear(mlp_h, 2 * mlp_h)
         self.bn_out_2 = nn.BatchNorm1d(natoms)
-        self.resnet_block = ResnetPointnet(mask,  self.embed, 2*self.embed)
+        
         torch.autograd.set_detect_anomaly(True) 
 
     def forward(self, features, geometry, mask):
         mask = mask.to(torch.double)
+        self.resnet_block = ResnetPointnet(mask,  self.embed, 2*self.embed)
         mask, diff_geo, radii = constants(geometry, mask)
         embedding = self.layers[0]
         features = torch.tensor(features).to(self.device).long()
