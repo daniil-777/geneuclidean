@@ -219,12 +219,13 @@ class Visualisation:
         else:
             raise ValueError("Unknown sampling...")
 
-        alphas_result = alphas_result[0].cpu().numpy() #? convert..
+        if(len(alphas_result) > 0):
+            alphas_result = alphas_result.cpu().numpy() #? convert..
 
-        with open(os.path.join(self.path_protein, "smiles", 'wb')) as fp:
-            pickle.dump(test_data, fp)
-        with open(os.path.join(self.path_protein, "alphas", 'wb'))  as f:
-            np.save(f, alphas_result)
+            with open(os.path.join(self.path_protein, "smiles", 'wb')) as fp:
+                pickle.dump(test_data, fp)
+            with open(os.path.join(self.path_protein, "alphas", 'wb'))  as f:
+                np.save(f, alphas_result)
         
            # sampled_ids = (
             #   sampled_ids[0].cpu().numpy()
