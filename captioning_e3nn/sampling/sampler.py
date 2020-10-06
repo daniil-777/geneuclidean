@@ -159,7 +159,7 @@ class Sampler():
     def generate_encodings(self, id):
         #generate features of encoder and writes it to files
         protein_name =  self.dataset._get_name_protein(id)
-        features, geometry = self.load_pocket(id)
+        features, geometry, masks = self.load_pocket(id)
         # Generate a caption from the image
         feature = self.encoder(features, geometry)
         torch.save(feature, os.path.join(self.save_dir_encodings, protein_name + "_feature_encoding.pt"))
