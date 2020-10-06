@@ -337,7 +337,7 @@ class Sampler():
         '''
         #writes encodings to .pt files
         self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(split))
-        idx_all = [i for i in range(len(files_refined) - 3)]
+        idx_all = [i for i in range(len(self.files_refined) - 3)]
         with (open(self.file_folds), "rb") as openfile:
             idx_test= pickle.load(openfile)
         if (mode == "test"):
