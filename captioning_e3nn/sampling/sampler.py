@@ -346,7 +346,7 @@ class Sampler():
         self.encoder, self.decoder = config.eval_model_captioning(self.cfg, encoder_path, decoder_path, device = self.device)
         #writes encodings to .pt files
         self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(split))
-        idx_all = [i for i in range(len(self.file_folds) - 3)]
+        idx_all = [i for i in range(len(self.files_refined) - 3)]
         with (open(self.file_folds, "rb")) as openfile:
             idx_test = pickle.load(openfile)
         if (mode == "test"):
@@ -370,7 +370,8 @@ class Sampler():
                 print(type(enc_from_torch))
                 all_encodings.append(enc_from_torch)
         all_encodings = np.asarray(all_encodings)
-        np.savetxt(os.path.join(self.folder_save, 'all_encodings.csv'), all_encodings, delimiter=',') 
+        name = str(self.mode_split) + "_all_encodings.csv"
+        np.savetxt(os.path.join(self.save_dir_encodings, name), all_encodings, delimiter=',') 
 
 
 
