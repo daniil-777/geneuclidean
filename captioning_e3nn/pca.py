@@ -57,9 +57,12 @@ def main():
     split = cfg['splitting']['id_fold']
     sampler = Sampler(cfg, 'max')
     sampler.save_encodings_all('test', split, encoder_path, decoder_path)
+    sampler.collect_all_encodings()
 
+    sampler.save_encodings_all('train', split, encoder_path, decoder_path)
+    sampler.collect_all_encodings()
   
- 
+  
 
 if __name__ == "__main__":
     main()

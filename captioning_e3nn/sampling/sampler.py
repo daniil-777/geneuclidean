@@ -162,7 +162,7 @@ class Sampler():
         features, geometry, masks = self.load_pocket(id)
         # Generate a caption from the image
         feature = self.encoder(features, geometry, masks)
-        torch.save(feature, os.path.join(self.save_dir_encodings, protein_name + "_feature_encoding.pt"))
+        torch.save(feature, os.path.join(self.folder_save, protein_name + "_feature_encoding.pt"))
 
     def printing_smiles(self, sampled_ids, list_smiles_all):
         sampled_caption = []
@@ -335,6 +335,11 @@ class Sampler():
     def save_encodings_all(self, mode, split, encoder_path, decoder_path):
         r'''For every protein id in rain/test generates feature and saves it
         '''
+        self.mode_split = mode
+        self.folder_save = os.path.join(self.save_dir_encodings, mode)
+        if not os.path.exists(self.folder_save):
+            os.makedirs(self.folder_save )
+
         self.encoder, self.decoder = config.eval_model_captioning(self.cfg, encoder_path, decoder_path, device = self.device)
         #writes encodings to .pt files
         self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(split))
@@ -353,16 +358,16 @@ class Sampler():
     def collect_all_encodings(self):
         r''' Writes all saved features to 1 file
         '''
-        files_encodings =  os.listdir(self.save_dir_encodings)
+        files_encodings =  os.listdir(self.folder_save)
         all_encodings = []
         for file_enc in files_encodings:
             if(file_enc[0].isdigit()):
-                path_to_enc = os.path.join(self.save_dir_encodings, file_enc)
+                path_to_enc = os.path.join(self.folder_save, file_enc)
                 enc_from_torch = torch.load(path_to_enc, map_location=torch.device('cpu')).view(-1).detach().numpy() 
                 print(type(enc_from_torch))
                 all_encodings.append(enc_from_torch)
         all_encodings = np.asarray(all_encodings)
-        np.savetxt(os.path.join(self.save_dir_encodings, 'all_encodings.csv'), all_encodings, delimiter=',') 
+        np.savetxt(os.path.join(self.folder_save, 'all_encodings.csv'), all_encodings, delimiter=',') 
 
 
 
