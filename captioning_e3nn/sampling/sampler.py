@@ -148,7 +148,8 @@ class Sampler():
 
     def load_pocket(self, id_protein, transform=None):
         print("loading data of a protein", self.dataset._get_name_protein(id_protein))
-        features, geometry, masks = self.dataset._get_features_complex(id_protein)
+        features, masks = self.dataset._get_features_complex(id_protein)
+        geometry = self.dataset._get_geometry_complex(id_protein)
         features = features.to(self.device).unsqueeze(0)
         geometry = geometry.to(self.device).unsqueeze(0)
         masks = masks.to(self.device).unsqueeze(0)
