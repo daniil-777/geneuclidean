@@ -39,6 +39,9 @@ class Sampler():
         #sampling params
         # self.idx_fold = idx_fold
         self.cfg = cfg
+        self.path_root = cfg['preprocessing']['path_root']
+        self.init_refined = self.path_root + "/data/new_refined/"
+        self.files_refined = os.listdir(self.init_refined)
         self.attention = self.cfg['training_params']['mode']
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # self.device = torch.device("cpu")
@@ -343,7 +346,7 @@ class Sampler():
         self.encoder, self.decoder = config.eval_model_captioning(self.cfg, encoder_path, decoder_path, device = self.device)
         #writes encodings to .pt files
         self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(split))
-        idx_all = [i for i in range(4847)]
+        idx_all = [i for i in range(len(self.file_folds) - 3)]
         with (open(self.file_folds, "rb")) as openfile:
             idx_test = pickle.load(openfile)
         if (mode == "test"):
