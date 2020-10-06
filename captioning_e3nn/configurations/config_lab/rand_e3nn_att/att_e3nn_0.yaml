@@ -19,7 +19,7 @@ model:
   encoder: att_e3nn
   encoder_kwargs:
     max_rad: 2
-    num_basis: 50
+    num_basis: 3
     n_neurons: 80
     n_layers: 2
     beta: 5
@@ -27,7 +27,7 @@ model:
     num_embeddings: 6
     embed: 21
     l0: 21
-    L: 1
+    L: 3
     scalar_act_name:  sp
     gate_act_name: sigmoid
     natoms: 286
@@ -41,8 +41,8 @@ model:
   decoder_kwargs:
     vocab_size: 32
     vocab_path: ../data/vocab.pkl
-    embed_size: 64
-    hidden_size: 64
+    embed_size: 128
+    hidden_size: 128
     num_layers: 1
     beam_size: 20
 

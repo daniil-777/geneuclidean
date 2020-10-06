@@ -113,8 +113,8 @@ class AttentionE3nn(torch.nn.Module):
 
         self.e_out_2 = nn.Linear(mlp_h, 2 * mlp_h)
         self.bn_out_2 = nn.BatchNorm1d(natoms)
-        self.attention_hac = Attention_Hac(21, natoms)
-        self.linear = nn.Linear(21 , 64)
+        self.attention_hac = Attention_Hac(self.l0, natoms)
+        self.linear = nn.Linear(self.l0 , 128)
         self.relu = nn.ReLU()
         torch.autograd.set_detect_anomaly(True) 
 
