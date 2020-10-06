@@ -156,7 +156,7 @@ class Sampler():
         return features, geometry, masks
 
 
-    def generate_encodings(self, idx_):
+    def generate_encodings(self, id):
         #generate features of encoder and writes it to files
         protein_name =  self.dataset._get_name_protein(id)
         features, geometry = self.load_pocket(id)
@@ -339,12 +339,12 @@ class Sampler():
         self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(split))
         idx_all = [i for i in range(4847)]
         with (open(self.file_folds, "rb")) as openfile:
-            idx_test= pickle.load(openfile)
+            idx_test = pickle.load(openfile)
         if (mode == "test"):
             idx_proteins_gen = idx_test
         else:
         #take indx of proteins in the training set
-            idx_proteins_gen =  np.setdiff1d(idx_all, idx_test)
+            idx_proteins_gen = np.setdiff1d(idx_all, idx_test)
         # for id_protein in idx_train:
         for id_protein in idx_proteins_gen:    
             self.generate_encodings(id_protein)
