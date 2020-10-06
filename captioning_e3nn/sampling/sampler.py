@@ -338,7 +338,7 @@ class Sampler():
         #writes encodings to .pt files
         self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(split))
         idx_all = [i for i in range(4847)]
-        with (open(self.file_folds), "rb") as openfile:
+        with (open(self.file_folds, "rb")) as openfile:
             idx_test= pickle.load(openfile)
         if (mode == "test"):
             idx_proteins_gen = idx_test
