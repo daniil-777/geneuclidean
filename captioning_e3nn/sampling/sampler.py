@@ -148,8 +148,7 @@ class Sampler():
 
     def load_pocket(self, id_protein, transform=None):
         print("loading data of a protein", self.dataset._get_name_protein(id_protein))
-        features, masks = self.dataset._get_features_complex(id_protein)
-        geometry = self.dataset._get_geometry_complex(id_protein)
+        features, geometry, masks = self.dataset._get_features_complex(id_protein)
         features = features.to(self.device).unsqueeze(0)
         geometry = geometry.to(self.device).unsqueeze(0)
         masks = masks.to(self.device).unsqueeze(0)
@@ -332,9 +331,10 @@ class Sampler():
         df.to_csv(os.path.join(save_dir_smiles, "all_stat_new.csv"))
     
 
-    def save_encodings_all(self, mode, split):
+    def save_encodings_all(self, mode, split, encoder_path, decoder_path):
         r'''For every protein id in rain/test generates feature and saves it
         '''
+        self.encoder, self.decoder = config.eval_model_captioning(self.cfg, encoder_path, decoder_path, device = self.device)
         #writes encodings to .pt files
         self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(split))
         idx_all = [i for i in range(4847)]
