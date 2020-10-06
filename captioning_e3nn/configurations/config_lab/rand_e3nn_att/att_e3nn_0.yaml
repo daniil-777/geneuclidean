@@ -25,9 +25,9 @@ model:
     beta: 5
     rad_model: gaussian
     num_embeddings: 6
-    embed: 21
-    l0: 21
-    L: 3
+    embed: 64
+    l0: 64
+    L: 2
     scalar_act_name:  sp
     gate_act_name: sigmoid
     natoms: 286
