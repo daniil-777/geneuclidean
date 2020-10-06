@@ -120,7 +120,7 @@ class AttentionE3nn(torch.nn.Module):
 
     def forward(self, features, geometry, mask):
         mask = mask.to(torch.double)
-        self.resnet_block = ResnetPointnet(mask,  self.embed, 2*self.embed)
+        # self.resnet_block = ResnetPointnet(mask,  self.embed, 2*self.embed)
         mask, diff_geo, radii = constants(geometry, mask)
         embedding = self.layers[0]
         features = torch.tensor(features).to(self.device).long()
