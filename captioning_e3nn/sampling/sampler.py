@@ -161,7 +161,7 @@ class Sampler():
         protein_name =  self.dataset._get_name_protein(id)
         features, geometry, masks = self.load_pocket(id)
         # Generate a caption from the image
-        feature = self.encoder(features, geometry)
+        feature = self.encoder(features, geometry, masks)
         torch.save(feature, os.path.join(self.save_dir_encodings, protein_name + "_feature_encoding.pt"))
 
     def printing_smiles(self, sampled_ids, list_smiles_all):
