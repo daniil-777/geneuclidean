@@ -337,10 +337,13 @@ class Sampler():
         '''
         #writes encodings to .pt files
         self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(split))
+
         if (mode == "test"):
             with (open(self.file_folds, "rb")) as openfile:
                 idx_proteins_gen = pickle.load(openfile)
         else:
+            with (open(self.file_folds, "rb")) as openfile:
+                idx_proteins_gen = pickle.load(openfile)
             files_refined = os.listdir(self.protein_dir)
             idx_all = [i for i in range(len(files_refined) - 3)]
         #take indx of proteins in the training set
