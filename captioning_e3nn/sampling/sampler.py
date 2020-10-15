@@ -34,7 +34,7 @@ from Contrib.statistics import analysis_to_csv, analysis_to_csv_test
 
 
 class Sampler():
-    def __init__(self, cfg, sampling):
+    def __init__(self, cfg, sampling, id_fold, type_fold):
         # model params
         #sampling params
         # self.idx_fold = idx_fold
@@ -57,6 +57,7 @@ class Sampler():
         # if (self.sampling == "max"):
         #     self.number_smiles = 1
         self.time_waiting = cfg["sampling_params"]["time_waiting"]
+        self.type_fold = type_fold
         self.type_fold = cfg["sampling_params"]["type_fold"]
         # self.file_folds = cfg["sampling_params"]["folds"]
         
@@ -111,10 +112,11 @@ class Sampler():
         # self.encoder, self.decoder = config.eval_model_captioning(cfg, self.encoder_path, self.decoder_path, device = self.device)
     
 
-    def analysis_cluster(self, split_no, encoder_path, decoder_path):
+    def analysis_cluster(self, split_no, type_fold, encoder_path, decoder_path):
         # encoder, decoder = self._get_model_path(idx_fold)
         self.idx_fold = split_no
-        self.name_file_stat = self.sampling + "_" + str(self.idx_fold) + "_" + self.cfg["sampling_params"]["name_all_stat"] 
+        self.type_fold = type_fold
+        self.name_file_stat = self.sampling + "_" + str(self.idx_fold) + "_" + self.type_fold
         self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "w")
         #the file of the whole stat
         self.file_statistics.write("name,fold,type_fold,orig_smile,gen_smile,gen_NP,gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity,orig_NP,orig_logP,orig_sa,orig_qed,orig_weight,frequency,sampling,encoder,decoder" +  "\n")
