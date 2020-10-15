@@ -36,8 +36,7 @@ from training.train import Trainer
 # from training.train_fold import Trainer_Fold
 from training.train_check_att_vis import Trainer_Attention_Check_Vis
 from training.train_checkpoint import Trainer_Fold
-
-
+from sampling.sampler import Sampler
 
 
 def main():
