@@ -132,10 +132,11 @@ class Trainer_Fold():
             self.split_no = self.fold_number
 
 
-    def train_loop_mask(self, loader,  caption_optimizer, split_no, epoch, total_step):
+    def train_loop_mask(self, loader, caption_optimizer, split_no, epoch, total_step):
         self.Encoder.train()
         self.Decoder.train()
-        for i, (features, geometry, masks, captions, lengths) in enumerate(loader):
+        progress = tqdm(loader)
+        for i, (features, geometry, masks, captions, lengths) in progress
             # Set mini-batch dataset
 
             features = features.to(self.device)
@@ -201,6 +202,29 @@ class Trainer_Fold():
         self.log_file_tensor.write("\n")
         self.log_file_tensor.flush()
 
+
+    def eval_loop(self, loader):
+        """
+        Evaluation loop using `model` and data from `loader`.
+        """
+        self.Encoder.eval()
+        self.Decoder.eval()
+        progress = tqdm(loader)
+                
+        for step, (i, features, geometry, masks, captions, lengths) in enumerate(progress):
+            with torch.no_grad():
+                features = features.to(self.device)
+                geometry = geometry.to(self.device)
+                captions = captions.to(self.device)
+                masks = masks.to(self.device)
+                targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
+                # Forward, backward and optimize
+                feature = self.Encoder(features, geometry, masks)
+                outputs = self.Decoder(feature, captions, lengths)
+                loss = self.criterion(outputs, targets)
+                self.writer.add_scalar("test_loss", loss.item(), step)
+      
+
     def train_epochs(self):
         featuriser = Pdb_Dataset(self.cfg, vocab=self.vocab)
         # data_ids, data_names = utils._get_refined_data()
@@ -227,9 +251,15 @@ class Trainer_Fold():
         self.test_idx_file.flush()
 
         feat_train = [featuriser[data] for data in train_data]
+        feat_test = [featuriser[data] for data in test_data]
         
         loader_train = DataLoader(feat_train, batch_size=self.batch_size,
                                     shuffle=True,
+                                    num_workers=self.num_workers,
+                                    collate_fn=collate_fn_masks,)
+
+        loader_test = DataLoader(feat_test, batch_size=self.batch_size,
+                                    shuffle=False,
                                     num_workers=self.num_workers,
                                     collate_fn=collate_fn_masks,)
         # loader_train = config.get_loader(cfg, feat_train, batch_size, num_workers,)
@@ -260,6 +290,9 @@ class Trainer_Fold():
                     self.Decoder.state_dict(),
                     self.decoder_name,
                 )
+        
+        self.eval_loop(loader_test)
+
         #run sampling for the test indxs
             
         # sampler.analysis_cluster(split_no, self.encoder_best_name, self.decoder_best_name)
