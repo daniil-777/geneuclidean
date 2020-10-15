@@ -57,7 +57,6 @@ class Sampler():
         # if (self.sampling == "max"):
         #     self.number_smiles = 1
         self.time_waiting = cfg["sampling_params"]["time_waiting"]
-        self.type_fold = type_fold
         self.type_fold = cfg["sampling_params"]["type_fold"]
         # self.file_folds = cfg["sampling_params"]["folds"]
         
