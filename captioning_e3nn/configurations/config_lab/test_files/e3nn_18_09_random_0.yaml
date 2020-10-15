@@ -60,7 +60,7 @@ model_params:
 
 
 output_parameters: 
-  savedir: ../results/captioning_results/att_vis_18_09
+  savedir: ../results/captioning_results/test_e3nn
 
 
 sampling_params: 
