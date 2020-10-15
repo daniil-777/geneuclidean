@@ -50,8 +50,8 @@ def main():
     args = parser.parse_args()
                          
     cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
-    type_fold = config.load_config(args.type_fold, 'random')
-    idx_fold = config.load_config(args.idx_fold, '0')
+    type_fold = args.type_fold
+    idx_fold = args.idx_fold
 
 
     if(cfg['training_params']['mode'] == "no_attention"):
