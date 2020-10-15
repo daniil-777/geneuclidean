@@ -280,7 +280,7 @@ class MyDecoderWithAttention_Vis(nn.Module):
         """Samples SMILES tockens for given  features (Greedy search)."""
         k = 1
         k_prev_words = torch.LongTensor([[self.vocab.word2idx['<start>']]] * k).to(self.device) 
-        print("feat decoder begin shape", features.shape)
+        # print("feat decoder begin shape", features.shape)
         h, c = self.init_hidden_state(features)
 
         sampled_ids = []

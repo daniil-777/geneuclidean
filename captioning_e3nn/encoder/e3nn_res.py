@@ -134,7 +134,7 @@ class Network(torch.nn.Module):
             )
             features = act(features)
             features = features * mask.unsqueeze(-1)
-        print("features shape after enc", features.shape)
+        # print("features shape after enc", features.shape)
         
         # out_net = OutputMLPNetwork(kernel_conv=kernel_conv, previous_Rs = self.Rs[-1],
         #                          l0 = self.l0, l1 = 0, L = 1, scalar_act=sp, gate_act=rescaled_act.sigmoid,
@@ -181,7 +181,7 @@ class ResNetwork(Network):
             custom_backward=CUSTOM_BACKWARD
         )
         features = act(features)
-        print("feat shape", features.shape)
+        # print("feat shape", features.shape)
         for kc, act in self.layers[2:]:
             if kc.set_of_l_filters != set_of_l_filters:
                 set_of_l_filters = kc.set_of_l_filters
@@ -196,7 +196,7 @@ class ResNetwork(Network):
             )
             new_features = act(new_features)
             new_features = new_features * mask.unsqueeze(-1)
-            print("newfeat shape", new_features.shape)
+            # print("newfeat shape", new_features.shape)
             features = features + new_features
         features = self.leakyrelu(self.bn_out_1(self.e_out_1(features))) # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
         features = self.leakyrelu(self.bn_out_2(self.e_out_2(features)))
@@ -212,5 +212,5 @@ class ResNetwork(Network):
         features = features.squeeze(-1)
 
         features = features.to(torch.double)
-        print("feat out shape", features.shape)
+        # print("feat out shape", features.shape)
         return features

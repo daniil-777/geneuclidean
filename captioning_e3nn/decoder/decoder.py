@@ -67,6 +67,7 @@ class DecoderRNN(nn.Module):
 
         sampled_ids = []
         inputs = features.unsqueeze(1)
+        
         for i in range(self.max_seg_length):
             hiddens, states = self.lstm(inputs, states)
             outputs = self.linear(hiddens.squeeze(1))
@@ -76,7 +77,7 @@ class DecoderRNN(nn.Module):
             inputs = self.embed(predicted)
             inputs = inputs.unsqueeze(1)
         sampled_ids = torch.stack(sampled_ids, 1)
-        print("sampledids", sampled_ids)
+        # print("sampledids", sampled_ids)
         return sampled_ids
     
     def sample_temp(self, features, temperature = 1, states=None):
@@ -241,7 +242,7 @@ class DecoderRNN(nn.Module):
         :param beam_size: number of sequences to consider at each decode-step
         :return: caption, weights for visualization
         """
-        print("feat shape init", features.shape)
+        # print("feat shape init", features.shape)
         k = number_beams
         vocab_size = len(self.vocab)
 
@@ -604,14 +605,14 @@ class MyDecoderWithAttention(nn.Module):
             # encoder_out = encoder_out[prev_word_inds[incomplete_inds]] - we give to Attention the same features
             sampled_ids.append(predicted)
         sampled_ids = torch.stack(sampled_ids, 1) 
-        print(sampled_ids)
+        # print(sampled_ids)
         return sampled_ids
 
     def sample_prob(self, features, states=None):
         """Samples SMILES tockens for given  features (Greedy search)."""
         k = 1
         k_prev_words = torch.LongTensor([[self.vocab.word2idx['<start>']]] * k).to(self.device) 
-        print("feat decoder begin shape", features.shape)
+        # print("feat decoder begin shape", features.shape)
         h, c = self.init_hidden_state(features)
 
         sampled_ids = []

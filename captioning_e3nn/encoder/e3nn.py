@@ -134,7 +134,7 @@ class Network(torch.nn.Module):
             )
             features = act(features)
             features = features * mask.unsqueeze(-1)
-        print("features shape after enc", features.shape)
+        # print("features shape after enc", features.shape)
         
         # out_net = OutputMLPNetwork(kernel_conv=kernel_conv, previous_Rs = self.Rs[-1],
         #                          l0 = self.l0, l1 = 0, L = 1, scalar_act=sp, gate_act=rescaled_act.sigmoid,
@@ -151,25 +151,26 @@ class Network(torch.nn.Module):
         #         kernel_size=(features.shape[1], 1),
         #         ceil_mode=False,)
         features = features.squeeze(1)
-        print("feat final shape", features.shape)
+        # print("feat final shape", features.shape)
         return features # shape ? 
 
 
 
 
 class ResNetwork(Network):
-    def __init__(self, kernel_conv, embed, l0, l1, L, scalar_act, gate_act, natoms):
-        super(ResNetwork, self).__init__(kernel_conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act, natoms)
+    def __init__(self, kernel_conv, embed, l0,  L, scalar_act_name, gate_act_name, natoms):
+        super(ResNetwork, self).__init__(kernel_conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act, avg_n_atoms)
 
     def forward(self, features, geometry, mask):
-        features, _, mask, diff_geo, radii = constants(features, geometry, mask)
+        mask, diff_geo, radii = constants(geometry, mask)
         embedding = self.layers[0]
+        features = torch.tensor(features).to(self.device).long()
         features = embedding(features).to(self.device)
         set_of_l_filters = self.layers[1][0].set_of_l_filters
         y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
         kc, act = self.layers[1]
         features = kc(
-            features.div(self.natoms ** 0.5),
+            features.div(self.avg_n_atoms ** 0.5),
             diff_geo,
             mask,
             y=y,
@@ -182,7 +183,7 @@ class ResNetwork(Network):
                 set_of_l_filters = kc.set_of_l_filters
                 y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
             new_features = kc(
-                features.div(self.natoms ** 0.5),
+                features.div(self.avg_n_atoms ** 0.5),
                 diff_geo,
                 mask,
                 y=y,
