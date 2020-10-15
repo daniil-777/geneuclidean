@@ -52,7 +52,7 @@ def main():
     cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
     type_fold = args.type_fold
     idx_fold = args.idx_fold
-
+    savedir = cfg["output_parameters"]["savedir"]
 
     if(cfg['training_params']['mode'] == "no_attention"):
         trainer = Trainer_Fold(cfg)
@@ -60,7 +60,7 @@ def main():
     elif(cfg['training_params']['mode'] == "attention"):
         trainer = Trainer_Attention_Check_Vis(cfg)
         trainer.train_epochs()
-
+    
     encoder_path = os.path.join(savedir, "models", "encoder_best_" + str(idx_fold) + '.ckpt') 
     decoder_path = os.path.join(savedir, "models", "decoder_best_" + str(idx_fold) + '.ckpt') 
 
