@@ -66,8 +66,9 @@ def main():
 
     split = cfg['splitting']['id_fold']
     # regimes = ["simple_probabilistic", "max", "temp_sampling", "simple_probabilistic_topk"]
-    regimes = ["beam_1", "beam_3", "beam_10", "max", "temp_sampling_0.7", "probabilistic",
-                "simple_probabilistic_topk_10"]
+    # regimes = ["beam_1", "beam_3", "beam_10", "max", "temp_sampling_0.7", "probabilistic",
+    #             "simple_probabilistic_topk_10"]
+    regimes = ["probabilistic", "max"]
     for regim in regimes:
         print("doing sampling... ", regim)
         sampler = Sampler(cfg, regim)
