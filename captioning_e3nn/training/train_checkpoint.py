@@ -136,7 +136,7 @@ class Trainer_Fold():
         self.Encoder.train()
         self.Decoder.train()
         progress = tqdm(loader)
-        for i, (features, geometry, masks, captions, lengths) in progress
+        for i, (features, geometry, masks, captions, lengths) in progress:
             # Set mini-batch dataset
 
             features = features.to(self.device)
