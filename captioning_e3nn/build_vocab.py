@@ -15,13 +15,13 @@ MAX_Length = 245
 # with open(args) as json_file:
 #     config = json.load(json_file)
 # Arguments
-parser = argparse.ArgumentParser(
-    description='Train a 3D reconstruction model.'
-)
-parser.add_argument('config', type=str, help='Path to config file.')
+# parser = argparse.ArgumentParser(
+#     description='Train a 3D reconstruction model.'
+# )
+# parser.add_argument('config', type=str, help='Path to config file.')
 
-args = parser.parse_args()
-cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
+# args = parser.parse_args()
+# cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
 
 class Vocabulary(object):
     """Simple vocabulary wrapper."""
