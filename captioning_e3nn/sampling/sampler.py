@@ -117,7 +117,7 @@ class Sampler():
         
         self.idx_fold = split_no
         self.type_fold = type_fold
-        self.name_file_stat = self.sampling + "_" + str(self.idx_fold) + "_" + self.type_fold
+        self.name_file_stat = self.sampling + "_" + str(self.type_fold) + "_" + self.idx_fold
         self.path_to_file_stat = os.path.join(self.save_dir_smiles, self.name_file_stat)
         self.file_statistics = open(self.path_to_file_stat, "a+")
         #the file of the whole stat

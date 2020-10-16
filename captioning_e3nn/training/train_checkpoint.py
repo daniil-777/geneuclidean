@@ -117,6 +117,10 @@ class Trainer_Fold():
         self.checkpoint_path = os.path.join(self.savedir, 'checkpoints')
         os.makedirs(self.checkpoint_path, exist_ok=True)
         self.checkpoint_path_training =  os.path.join(self.savedir, 'checkpoints', 'training.pkl')
+
+        self.eval_check_path = os.path.join(self.savedir, 'checkpoints', 'eval.txt')
+        with open(self.eval_check_path, 'w') as file:
+            file.write('0')
         
         #loading checkpoint
         if (os.path.exists(self.checkpoint_path_training)):
@@ -235,6 +239,8 @@ class Trainer_Fold():
                 loss = self.criterion(outputs, targets)
                 self.writer.add_scalar("test_loss", loss.item(), step)
                 progress.set_postfix({'loss': loss.item()})
+        with open(self.eval_check_path, 'w') as file:
+            file.write('1')
       
 
     def train_epochs(self):
@@ -302,8 +308,10 @@ class Trainer_Fold():
                     self.Decoder.state_dict(),
                     self.decoder_name,
                 )
-        
-        self.eval_loop(loader_test)
+        check_eval = open(self.eval_check_path).readlines()[0]
+        if check_eval == '0':
+            self.eval_loop(loader_test)
+        print("Evaluation is done already!")
 
         #run sampling for the test indxs
             
