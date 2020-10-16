@@ -127,7 +127,7 @@ class Sampler():
         
         checkpoint_sampling = torch.load(self.checkpoint_sampling_path)
         print("loading start_ind_protein...")
-        start_ind_protein = checkpoint_sampling['start_ind_protein']
+        start_ind_protein = checkpoint_sampling['idx_sample_start']
         idx_sample = checkpoint_sampling['idx_sample_regime_start']
         
         # self.file_statistics.write("name,fold,type_fold,orig_smile,gen_smile,gen_NP,gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity,orig_NP,orig_logP,orig_sa,orig_qed,orig_weight,frequency,sampling,encoder,decoder" +  "\n")

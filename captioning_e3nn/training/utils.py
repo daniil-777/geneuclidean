@@ -28,7 +28,7 @@ def save_checkpoint(checkpoint_path, start_epoch, encoder, decoder,
 
 def save_checkpoint_sampling(checkpoint_path, idx_sampling, idx_sample_regime_start):
 
-  state = {'idx_sampling': idx_sampling,
+  state = {'idx_sample_start': idx_sampling,
            'idx_sample_regime_start': idx_sample_regime_start, 
           }
 
