@@ -68,7 +68,7 @@ def main():
     # regimes = ["simple_probabilistic", "max", "temp_sampling", "simple_probabilistic_topk"]
     # regimes = ["beam_1", "beam_3", "beam_10", "max", "temp_sampling_0.7", "probabilistic",
     #             "simple_probabilistic_topk_10"]
-    regimes = ["probabilistic", "max", "temp_sampling"]
+    regimes = ["probabilistic", "max", "temp_sampling_0.8"]
     end_sampling_ind = len(regimes)
     if (os.path.exists(checkpoint_sampling_path)):
         print("loading sample ids...")
