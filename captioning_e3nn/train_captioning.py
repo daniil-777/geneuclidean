@@ -82,6 +82,7 @@ def main():
 
     for sampling_ind in range(start_sampling_ind, end_sampling_ind):
         sample = regimes[sampling_ind]
+        print("*********sample regim*********** ", sample)
         sampler = Sampler(cfg, sample)
         sampler.analysis_cluster(idx_fold, type_fold, encoder_path, decoder_path)
     # for regim in regimes:
