@@ -80,6 +80,9 @@ class Sampler():
         self.tesnorboard_path = self.savedir
         self.log_path = os.path.join(self.savedir, "logs")
         self.idx_file = os.path.join(self.log_path, "idxs")
+        self.checkpoint_sampling_path = os.path.join(self.savedir, "checkpoints", 'sample.pkl')
+
+        
         
         #encoder/decoder path
         # self.encoder_path = os.path.join(self.savedir, "models", cfg['training_params']['encoder_name']) 
@@ -107,17 +110,25 @@ class Sampler():
             self.vocab = pickle.load(f)
 
         self.dataset = Pdb_Dataset(cfg, self.vocab)
-        # self.encoder_path, self.decoder_path = self._get_model_path()
-        # self.encoder, self.decoder = config.eval_model_captioning(cfg, self.encoder_path, self.decoder_path, device = self.device)
+       
     
-
     def analysis_cluster(self, split_no, type_fold, encoder_path, decoder_path):
         # encoder, decoder = self._get_model_path(idx_fold)
+        
         self.idx_fold = split_no
         self.type_fold = type_fold
         self.name_file_stat = self.sampling + "_" + str(self.idx_fold) + "_" + self.type_fold
         self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "a+")
         #the file of the whole stat
+        if (len(open(self.name_file_stat).readlines()) == 0):
+            self.file_statistics.write("name,fold,type_fold,orig_smile,gen_smile,gen_NP,gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity,orig_NP,orig_logP,orig_sa,orig_qed,orig_weight,frequency,sampling,encoder,decoder" +  "\n")
+            self.file_statistics.flush()
+        
+        checkpoint_sampling = torch.load(self.checkpoint_sampling_path)
+        print("loading start_ind_protein...")
+        start_ind_protein = checkpoint_sampling['start_ind_protein']
+        idx_sample = checkpoint_sampling['idx_sample_regime_start']
+        
         # self.file_statistics.write("name,fold,type_fold,orig_smile,gen_smile,gen_NP,gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity,orig_NP,orig_logP,orig_sa,orig_qed,orig_weight,frequency,sampling,encoder,decoder" +  "\n")
         # self.file_statistics.flush()
         # self.encoder_path, self.decoder_path = self._get_model_path()
@@ -133,15 +144,26 @@ class Sampler():
             idx_to_generate = np.setdiff1d(idx_all, idx_proteins)
         else:
             idx_to_generate = idx_proteins
-        for id_protein in idx_to_generate:
-            self.generate_smiles(id_protein)
+            
+        #sampling checkpoint
+        end_idx = len(idx_to_generate)
+        for idx in range(start_ind_protein, end_idx):
+            id_abs_protein = idx_to_generate[idx]
+            self.generate_smiles(id_abs_protein)
+            next_idx = (idx + 1) % end_idx
+            checkpoint_sampling(self.checkpoint_sampling_path, next_idx, idx_sample)
+            if (next_idx == 0):
+                checkpoint_sampling(self.checkpoint_sampling_path, next_idx, idx_sample + 1)
+        
+        # for id_protein in idx_to_generate:
+        #     self.generate_smiles(id_protein)
 
 
     def _get_models(self, idx_fold):
         encoder_path, decoder_path = self._get_model_path(idx_fold)
         encoder, decoder = config.eval_model_captioning(cfg, encoder_path, decoder_path, device = self.device)
         return encoder, decoder
-
+    
     def _get_model_path(self):
         encoder_name = "encoder-" + str(self.idx_fold) + "-1-2.ckpt"
         decoder_name = "decoder-" + str(self.idx_fold) + "-1-2.ckpt"

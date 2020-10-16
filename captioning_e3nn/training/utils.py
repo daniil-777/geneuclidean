@@ -23,6 +23,13 @@ def save_checkpoint(checkpoint_path, start_epoch, encoder, decoder,
              'split_no': split_no,
            }
 
-    # filename = os.path.join(checkpoint_path, 'checkpoint_' + model_name + '.pth.tar')
     torch.save(state, checkpoint_path)
    
+
+def save_checkpoint_sampling(checkpoint_path, idx_sampling, idx_sample_regime_start):
+
+  state = {'idx_sampling': idx_sampling,
+           'idx_sample_regime_start': idx_sample_regime_start, 
+          }
+
+  torch.save(state, checkpoint_path)

@@ -37,7 +37,7 @@ from training.train import Trainer
 from training.train_check_att_vis import Trainer_Attention_Check_Vis
 from training.train_checkpoint import Trainer_Fold
 from sampling.sampler import Sampler
-
+from training.utils import save_checkpoint_sampling
 
 def main():
     parser = argparse.ArgumentParser(
@@ -48,10 +48,11 @@ def main():
     parser.add_argument('idx_fold', type=str, help='Path to config file.')
     args = parser.parse_args()
                          
-    cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
+    cfg = config.load_config(args.config, 'configurations/config_local/default.yaml')
     type_fold = args.type_fold
     idx_fold = args.idx_fold
     savedir = cfg["output_parameters"]["savedir"]
+    
 
     if(cfg['training_params']['mode'] == "no_attention"):
         trainer = Trainer_Fold(cfg)
@@ -62,12 +63,26 @@ def main():
     
     encoder_path = os.path.join(savedir, "models", "encoder_best_" + str(idx_fold) + '.ckpt') 
     decoder_path = os.path.join(savedir, "models", "decoder_best_" + str(idx_fold) + '.ckpt') 
-
-    split = cfg['splitting']['id_fold']
+    checkpoint_sampling_path = os.path.join(savedir, "checkpoints", 'sample.pkl')
+   
     # regimes = ["simple_probabilistic", "max", "temp_sampling", "simple_probabilistic_topk"]
     # regimes = ["beam_1", "beam_3", "beam_10", "max", "temp_sampling_0.7", "probabilistic",
     #             "simple_probabilistic_topk_10"]
     regimes = ["probabilistic", "max"]
+    end_sampling_ind = len(regimes)
+    if (os.path.exists(self.checkpoint_path)):
+        print("loading sample ids...")
+        checkpoint_sampling = torch.load(self.checkpoint_path_sampling)
+        start_sampling_ind = checkpoint_sampling['idx_sample_start']
+    else:
+        start_sampling_ind = 0
+        save_checkpoint_sampling(checkpoint_sampling_path, 0, 0)
+
+
+    for sampling_ind in range(start_sampling_ind, end_sampling_ind):
+        sample = regimes[sampling_ind]
+        sampler = Sampler(cfg, sample)
+        sampler.analysis_cluster(idx_fold, type_fold, encoder_path, decoder_path)
     for regim in regimes:
         print("doing sampling... ", regim)
         sampler = Sampler(cfg, regim)
