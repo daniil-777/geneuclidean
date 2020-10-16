@@ -68,12 +68,13 @@ def main():
     # regimes = ["simple_probabilistic", "max", "temp_sampling", "simple_probabilistic_topk"]
     # regimes = ["beam_1", "beam_3", "beam_10", "max", "temp_sampling_0.7", "probabilistic",
     #             "simple_probabilistic_topk_10"]
-    regimes = ["probabilistic", "max"]
+    regimes = ["probabilistic", "max", "temp_sampling"]
     end_sampling_ind = len(regimes)
     if (os.path.exists(checkpoint_sampling_path)):
         print("loading sample ids...")
         checkpoint_sampling = torch.load(checkpoint_sampling_path)
         start_sampling_ind = checkpoint_sampling['idx_sample_start']
+        print("************start_sampling_ind***********", start_sampling_ind)
     else:
         start_sampling_ind = 0
         save_checkpoint_sampling(checkpoint_sampling_path, 0, 0)
@@ -83,10 +84,10 @@ def main():
         sample = regimes[sampling_ind]
         sampler = Sampler(cfg, sample)
         sampler.analysis_cluster(idx_fold, type_fold, encoder_path, decoder_path)
-    for regim in regimes:
-        print("doing sampling... ", regim)
-        sampler = Sampler(cfg, regim)
-        sampler.analysis_cluster(idx_fold, type_fold, encoder_path, decoder_path)
+    # for regim in regimes:
+    #     print("doing sampling... ", regim)
+    #     sampler = Sampler(cfg, regim)
+    #     sampler.analysis_cluster(idx_fold, type_fold, encoder_path, decoder_path)
 
 
 if __name__ == "__main__":
