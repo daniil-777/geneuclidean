@@ -234,6 +234,7 @@ class Trainer_Fold():
                 outputs = self.Decoder(feature, captions, lengths)
                 loss = self.criterion(outputs, targets)
                 self.writer.add_scalar("test_loss", loss.item(), step)
+                progress.set_postfix({'loss': loss.item()})
       
 
     def train_epochs(self):
