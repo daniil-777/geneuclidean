@@ -206,7 +206,7 @@ class Sampler():
         if m is None or sentence == '' or sentence.isspace() == True:
             print('invalid')
             # list_smiles_all.append(sentence)
-            return 1
+            return 0
         else:
             print(sentence)
             # smiles.append(sentence)
