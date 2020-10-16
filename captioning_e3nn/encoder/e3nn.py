@@ -114,7 +114,8 @@ class Network(torch.nn.Module):
     def forward(self, features, geometry, mask):
         mask, diff_geo, radii = constants(geometry, mask)
         embedding = self.layers[0]
-        features = torch.tensor(features).to(self.device).long()
+        # features = torch.tensor(features).to(self.device).long()
+        features = torch.tensor(features).clone().detach()
         features = embedding(features).to(self.device)
         features = features.squeeze(2)
         set_of_l_filters = self.layers[1][0].set_of_l_filters

@@ -118,9 +118,10 @@ class Sampler():
         self.idx_fold = split_no
         self.type_fold = type_fold
         self.name_file_stat = self.sampling + "_" + str(self.idx_fold) + "_" + self.type_fold
-        self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "a+")
+        self.path_to_file_stat = os.path.join(self.save_dir_smiles, self.name_file_stat)
+        self.file_statistics = open(self.path_to_file_stat, "a+")
         #the file of the whole stat
-        if (len(open(self.name_file_stat).readlines()) == 0):
+        if (len(open(self.path_to_file_stat).readlines()) == 0):
             self.file_statistics.write("name,fold,type_fold,orig_smile,gen_smile,gen_NP,gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity,orig_NP,orig_logP,orig_sa,orig_qed,orig_weight,frequency,sampling,encoder,decoder" +  "\n")
             self.file_statistics.flush()
         
