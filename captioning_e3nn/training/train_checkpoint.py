@@ -125,6 +125,7 @@ class Trainer_Fold():
             self.split_no = checkpoint['split_no']
         else:
             print("initialising model...")
+            os.makedirs(self.checkpoint_path)
             self.start_epoch = 0
             self.Encoder, self.Decoder = config.get_model(cfg, device=self.device)
             self.encoder_best, self.decoder_best = self.Encoder, self.Decoder
@@ -166,23 +167,28 @@ class Trainer_Fold():
             # writer.add_scalar("training_loss", loss.item(), epoch)
             self.log_file_tensor.write(str(loss.item()) + "\n")
             self.log_file_tensor.flush()
-            # handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
-            # fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
-            # mem = fb_mem_info.used >> 20
+            handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
+            fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
+            mem = fb_mem_info.used >> 20
             # print('GPU memory usage: ', mem)
-            # self.writer.add_scalar('val/gpu_memory', mem, epoch)
+            self.writer.add_scalar('val/gpu_memory', mem, epoch)
             # Print log info
             if i % self.log_step == 0:
                 result = "Split [{}], Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Perplexity: {:5.4f}".format(
                     split_no, epoch, self.num_epochs, i, total_step, loss.item(), np.exp(loss.item())
                 )
-                print(result)
+                # print(result)
                 self.log_file.write(result + "\n")
                 self.log_file.flush()
 
-
+            progress.set_postfix({'epoch': epoch,
+                                  'iteration': i,
+                                  'loss': loss.item(),
+                                  'loss_best': self.loss_best,
+                                  'Perplexity': np.exp(loss.item()),
+                                  'mem': mem})
             if (self.loss_best - loss > 0):
-                print("The best loss " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1))
+                # print("The best loss " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1))
                 self.log_file.write("The best loss " + str(loss.item()) + "; Split-{}-Epoch-{}-Iteration-{}_best.ckpt".format(split_no, epoch + 1, i + 1) + "\n")
                 self.enoder_best = self.Encoder
                 self.decoder_best = self.Decoder
@@ -237,7 +243,7 @@ class Trainer_Fold():
         idx_folds = pickle.load( open(os.path.join(self.idx_file, self.name_file_folds), "rb" ) )
         test_idx = []
         # output memory usage
-        # py3nvml.nvmlInit()
+        py3nvml.nvmlInit()
         # sampling = self.cfg['sampling_params']['sampling']
         # sampler = Sampler(self.cfg, sampling)
  
