@@ -64,15 +64,19 @@ class Trainer_Fold():
         self.idx_file = os.path.join(self.log_path, "idxs")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.save_dir_smiles = os.path.join(self.savedir, "statistics")
-        if not os.path.exists(self.log_path):
-            os.makedirs(self.log_path)
-        if not os.path.exists(self.idx_file):
-            os.makedirs(self.idx_file)
-        if not os.path.exists(self.model_path):
-            os.makedirs(self.model_path)
+        os.makedirs(self.log_path, exist_ok=True)
+        os.makedirs(self.idx_file, exist_ok=True)
+        os.makedirs(self.model_path, exist_ok=True)
+        os.makedirs(self.save_dir_smiles, exist_ok=True)
+        # if not os.path.exists(self.log_path):
+        #     os.makedirs(self.log_path)
+        # if not os.path.exists(self.idx_file):
+        #     os.makedirs(self.idx_file)
+        # if not os.path.exists(self.model_path):
+        #     os.makedirs(self.model_path)
 
-        if not os.path.exists(self.save_dir_smiles):
-            os.makedirs(self.save_dir_smiles)
+        # if not os.path.exists(self.save_dir_smiles):
+        #     os.makedirs(self.save_dir_smiles)
         #log files 
         self.test_idx_file = open(os.path.join(self.idx_file, "test_idx.txt"), "w")
         self.log_file = open(os.path.join(self.log_path, "log.txt"), "w")
@@ -110,7 +114,11 @@ class Trainer_Fold():
             self.vocab = pickle.load(f)
         self.criterion = nn.CrossEntropyLoss()
         self.model_name = 'e3nn'
-        self.checkpoint_path =  os.path.join(self.savedir, 'checkpoints', 'training.pkl')
+        self.checkpoint_path = os.path.join(self.savedir, 'checkpoints')
+        os.makedirs(self.checkpoint_path, exist_ok=True)
+        self.checkpoint_path_training =  os.path.join(self.savedir, 'checkpoints', 'training.pkl')
+        
+        #loading checkpoint
         if (os.path.exists(self.checkpoint_path)):
             checkpoint = torch.load(self.checkpoint_path)
             
@@ -125,7 +133,6 @@ class Trainer_Fold():
             self.split_no = checkpoint['split_no']
         else:
             print("initialising model...")
-            os.makedirs(self.checkpoint_path)
             self.start_epoch = 0
             self.Encoder, self.Decoder = config.get_model(cfg, device=self.device)
             self.encoder_best, self.decoder_best = self.Encoder, self.Decoder
@@ -160,7 +167,6 @@ class Trainer_Fold():
             loss.backward()
             caption_optimizer.step()  #!!! figure out whether we should leave that 
      
-
             name = "training_loss_" + str(split_no + 1)
             self.writer.add_scalar(name, loss.item(), epoch)
 
@@ -182,9 +188,8 @@ class Trainer_Fold():
                 self.log_file.flush()
 
             progress.set_postfix({'epoch': epoch,
-                                  'iteration': i,
                                   'loss': loss.item(),
-                                  'loss_best': self.loss_best,
+                                  'loss_best': self.loss_best.item(),
                                   'Perplexity': np.exp(loss.item()),
                                   'mem': mem})
             if (self.loss_best - loss > 0):
@@ -280,7 +285,7 @@ class Trainer_Fold():
             # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
             #if add masks everywhere call just train_loop
             self.train_loop_mask(loader_train, self.caption_optimizer, self.split_no, epoch, total_step)
-            save_checkpoint(self.checkpoint_path, epoch, self.Encoder, self.Decoder,
+            save_checkpoint(self.checkpoint_path_training, epoch, self.Encoder, self.Decoder,
                             self.encoder_best, self.decoder_best, self.caption_optimizer, self.split_no)
 
             self.encoder_name =  os.path.join(
