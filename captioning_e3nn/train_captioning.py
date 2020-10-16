@@ -70,9 +70,9 @@ def main():
     #             "simple_probabilistic_topk_10"]
     regimes = ["probabilistic", "max"]
     end_sampling_ind = len(regimes)
-    if (os.path.exists(self.checkpoint_path)):
+    if (os.path.exists(checkpoint_sampling_path)):
         print("loading sample ids...")
-        checkpoint_sampling = torch.load(self.checkpoint_path_sampling)
+        checkpoint_sampling = torch.load(checkpoint_sampling_path)
         start_sampling_ind = checkpoint_sampling['idx_sample_start']
     else:
         start_sampling_ind = 0
