@@ -32,6 +32,7 @@ from sampling.sampler import Sampler
 from training.utils import save_checkpoint
 from torch.utils import model_zoo
 
+
 class Trainer_Fold():
     def __init__(self, cfg):
         # model params
@@ -109,7 +110,7 @@ class Trainer_Fold():
             self.vocab = pickle.load(f)
         self.criterion = nn.CrossEntropyLoss()
         self.model_name = 'e3nn'
-        self.checkpoint_path =  os.path.join(self.model_path, 'checkpoint_' + self.model_name + '.pkl')
+        self.checkpoint_path =  os.path.join(self.savedir, 'checkpoints', 'training.pkl')
         if (os.path.exists(self.checkpoint_path)):
             checkpoint = torch.load(self.checkpoint_path)
             
@@ -210,8 +211,8 @@ class Trainer_Fold():
         self.Encoder.eval()
         self.Decoder.eval()
         progress = tqdm(loader)
-                
-        for step, (i, features, geometry, masks, captions, lengths) in enumerate(progress):
+        print("Evaluation starts...") 
+        for step, (features, geometry, masks, captions, lengths) in enumerate(progress):
             with torch.no_grad():
                 features = features.to(self.device)
                 geometry = geometry.to(self.device)
