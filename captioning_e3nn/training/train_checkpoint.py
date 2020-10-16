@@ -119,8 +119,8 @@ class Trainer_Fold():
         self.checkpoint_path_training =  os.path.join(self.savedir, 'checkpoints', 'training.pkl')
         
         #loading checkpoint
-        if (os.path.exists(self.checkpoint_path)):
-            checkpoint = torch.load(self.checkpoint_path)
+        if (os.path.exists(self.checkpoint_path_training)):
+            checkpoint = torch.load(self.checkpoint_path_training)
             
             print("loading model...")
             self.start_epoch = checkpoint['start_epoch'] + 1
