@@ -73,7 +73,7 @@ def main():
     if (os.path.exists(checkpoint_sampling_path)):
         print("loading sample ids...")
         checkpoint_sampling = torch.load(checkpoint_sampling_path)
-        start_sampling_ind = checkpoint_sampling['idx_sample_start']
+        start_sampling_ind = checkpoint_sampling['idx_sample_regime_start']
         print("************start_sampling_ind***********", start_sampling_ind)
     else:
         start_sampling_ind = 0
