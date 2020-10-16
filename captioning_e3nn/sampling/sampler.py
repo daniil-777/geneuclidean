@@ -152,9 +152,9 @@ class Sampler():
             id_abs_protein = idx_to_generate[idx]
             self.generate_smiles(id_abs_protein)
             next_idx = (idx + 1) % end_idx
-            checkpoint_sampling(self.checkpoint_sampling_path, next_idx, idx_sample)
+            save_checkpoint_sampling(self.checkpoint_sampling_path, next_idx, idx_sample)
             if (next_idx == 0):
-                checkpoint_sampling(self.checkpoint_sampling_path, next_idx, idx_sample + 1)
+                save_checkpoint_sampling(self.checkpoint_sampling_path, next_idx, idx_sample + 1)
         
         # for id_protein in idx_to_generate:
         #     self.generate_smiles(id_protein)
