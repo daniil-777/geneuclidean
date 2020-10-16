@@ -189,7 +189,6 @@ class Trainer_Fold():
 
             progress.set_postfix({'epoch': epoch,
                                   'loss': loss.item(),
-                                  'loss_best': self.loss_best.item(),
                                   'Perplexity': np.exp(loss.item()),
                                   'mem': mem})
             if (self.loss_best - loss > 0):
