@@ -326,7 +326,7 @@ class Sampler():
             self.file_statistics.flush()
         else:
             length = self.number_smiles
-            statistics = [length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'],
+            stat_protein = [length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'],
                   length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a']]
             wr = csv.writer(self.file_statistics)
             wr.writerows(list(map(list, zip(*stat_protein))))
