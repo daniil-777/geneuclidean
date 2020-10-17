@@ -24,14 +24,15 @@ model:
     beta: 5
     rad_model: gaussian
     num_embeddings: 6
-    embed: 20
-    l0: 20
-    L: 1
+    embed: 15
+    l0: 15
+    L: 2
     scalar_act_name:  sp
     gate_act_name: sigmoid
     natoms: 286
     mlp_h: 50
     Out: 1
+    output: 100
     aggregation_mode: avg
 
   

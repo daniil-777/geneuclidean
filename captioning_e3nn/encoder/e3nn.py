@@ -61,12 +61,13 @@ def constants(geometry, mask):
 
 class Network(torch.nn.Module):
     def __init__(self,  max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
-                 embed, l0,   L, scalar_act_name, gate_act_name, natoms, mlp_h, Out, aggregation_mode):
+                 embed, l0,   L, scalar_act_name, gate_act_name, natoms, mlp_h, Out, output, aggregation_mode):
         super().__init__()
         self.natoms = natoms #286
         self.ssp = rescaled_act.ShiftedSoftplus(beta = beta)
         self.sp = rescaled_act.Softplus(beta=beta)
         self.l0 = l0
+        self.output = output
         if(scalar_act_name == "sp"):
             scalar_act = self.sp
         
@@ -107,15 +108,15 @@ class Network(torch.nn.Module):
         self.e_out_1 = nn.Linear(mlp_h, mlp_h)
         self.bn_out_1 = nn.BatchNorm1d(natoms)
 
-        self.e_out_2 = nn.Linear(mlp_h, 2 * mlp_h)
+        self.e_out_2 = nn.Linear(mlp_h, self.output)
         self.bn_out_2 = nn.BatchNorm1d(natoms)
         torch.autograd.set_detect_anomaly(True) 
 
     def forward(self, features, geometry, mask):
         mask, diff_geo, radii = constants(geometry, mask)
         embedding = self.layers[0]
-        # features = torch.tensor(features).to(self.device).long()
-        features = torch.tensor(features).clone().detach()
+        features = torch.tensor(features).to(self.device).long()
+        # features = torch.tensor(features).clone().detach()
         features = embedding(features).to(self.device)
         features = features.squeeze(2)
         set_of_l_filters = self.layers[1][0].set_of_l_filters

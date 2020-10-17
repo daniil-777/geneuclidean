@@ -19,30 +19,29 @@ model:
   encoder_kwargs:
     max_rad: 2
     num_basis: 3
-    n_neurons: 90
+    n_neurons: 80
     n_layers: 1
     beta: 5
     rad_model: gaussian
     num_embeddings: 6
-    embed: 15
-    l0: 15
+    embed: 10
+    l0: 10
     L: 1
     scalar_act_name:  sp
     gate_act_name: sigmoid
     natoms: 286
-    mlp_h: 60
+    mlp_h: 40
     Out: 1
-    output: 120
+    output: 500
     aggregation_mode: avg
 
   
-
   decoder: lstm
   decoder_kwargs:
     vocab_size: 32
     vocab_path: ../data/vocab.pkl
-    embed_size: 120
-    hidden_size: 120
+    embed_size: 500
+    hidden_size: 500
     num_layers: 1
     beam_size: 20
 
@@ -60,7 +59,7 @@ model_params:
 
 
 output_parameters: 
-  savedir: ../results/captioning_results/e3nn_1
+  savedir: ../results/captioning_results/e3nn_5
 
 
 sampling_params: 

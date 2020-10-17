@@ -20,7 +20,7 @@ model:
     max_rad: 2
     num_basis: 3
     n_neurons: 80
-    n_layers: 1
+    n_layers: 2
     beta: 5
     rad_model: gaussian
     num_embeddings: 6
@@ -32,6 +32,7 @@ model:
     natoms: 286
     mlp_h: 50
     Out: 1
+    output: 100
     aggregation_mode: avg
 
   

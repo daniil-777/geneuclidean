@@ -32,6 +32,7 @@ model:
     natoms: 286
     mlp_h: 70
     Out: 1
+    output: 140
     aggregation_mode: avg
 
   
