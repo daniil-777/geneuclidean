@@ -59,7 +59,7 @@ model_params:
 
 
 output_parameters: 
-  savedir: ../results/captioning_results/e3nn_5
+  savedir: ../results/captioning_results/e3nn_6
 
 
 sampling_params: 
