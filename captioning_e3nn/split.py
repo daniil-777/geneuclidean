@@ -188,20 +188,33 @@ def main():
     description='Get Splits File'
 )
     parser.add_argument('config', type=str, help='Path to config file.')
+    parser.add_argument('type_fold', type=str, help='type_fold')
 
+    args = parser.parse_args()
+                         
+    cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
+    type_fold = args.type_fold
     args = parser.parse_args()
 
 
-    cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
+    cfg = config.load_config(args.config, 'configurations/config_local/default.yaml')
     
     splitter = Splitter(cfg)
-
-    if(cfg['splitting']['split'] == 'random'):
+    
+    if(type_fold == 'random'):
         splitter._get_random_split()
-    elif(cfg['splitting']['split'] == 'morgan'):
+    elif(type_fold == 'morgan'):
         splitter._ligand_scaffold_split()
-    elif(cfg['splitting']['split'] == 'chain'):
+    elif(type_fold == 'chain'):
         splitter.chain_split()
+
+
+    # if(cfg['splitting']['split'] == 'random'):
+    #     splitter._get_random_split()
+    # elif(cfg['splitting']['split'] == 'morgan'):
+    #     splitter._ligand_scaffold_split()
+    # elif(cfg['splitting']['split'] == 'chain'):
+    #     splitter.chain_split()
 
 if __name__ == "__main__":
     main()
