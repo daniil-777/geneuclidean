@@ -90,8 +90,8 @@ class Splitter:
 
        
     def _get_random_split(self):
-        # data_ids = np.array([i for i in range(self.n_samples)])
-        data_ids = np.array([i for i in range(20)])
+        data_ids = np.array([i for i in range(self.n_samples)])
+        # data_ids = np.array([i for i in range(20)])
         #cross validation
         kf = KFold(n_splits=5, shuffle=True, random_state=2)
         my_list = list(kf.split(data_ids))
