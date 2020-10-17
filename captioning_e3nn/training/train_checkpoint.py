@@ -34,9 +34,10 @@ from torch.utils import model_zoo
 
 
 class Trainer_Fold():
-    def __init__(self, cfg):
+    def __init__(self, cfg, split_no):
         # model params
         self.cfg = cfg
+        self.split_no = split_no
         self.original_stdout = sys.stdout
         #folds data
         self.name_file_folds = cfg['splitting']['file_folds']
@@ -116,11 +117,12 @@ class Trainer_Fold():
         self.model_name = 'e3nn'
         self.checkpoint_path = os.path.join(self.savedir, 'checkpoints')
         os.makedirs(self.checkpoint_path, exist_ok=True)
-        self.checkpoint_path_training =  os.path.join(self.savedir, 'checkpoints', 'training.pkl')
+        self.checkpoint_path_training =  os.path.join(self.savedir, 'checkpoints', str(self.split_no) + '_training.pkl')
 
         self.eval_check_path = os.path.join(self.savedir, 'checkpoints', 'eval.txt')
-        with open(self.eval_check_path, 'w') as file:
-            file.write('0')
+        if not os.path.exists(self.eval_check_path):
+            with open(self.eval_check_path, 'w') as file:
+                file.write('0')
         
         #loading checkpoint
         if (os.path.exists(self.checkpoint_path_training)):
@@ -180,6 +182,7 @@ class Trainer_Fold():
             handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
             fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
             mem = fb_mem_info.used >> 20
+            # mem = 0
             # print('GPU memory usage: ', mem)
             self.writer.add_scalar('val/gpu_memory', mem, epoch)
             # Print log info
@@ -309,6 +312,7 @@ class Trainer_Fold():
                     self.decoder_name,
                 )
         check_eval = open(self.eval_check_path).readlines()[0]
+        print("check_eval", check_eval)
         if check_eval == '0':
             self.eval_loop(loader_test)
         print("Evaluation is done already!")

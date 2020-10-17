@@ -90,8 +90,8 @@ class Splitter:
 
        
     def _get_random_split(self):
-        data_ids = np.array([i for i in range(self.n_samples)])
-   
+        # data_ids = np.array([i for i in range(self.n_samples)])
+        data_ids = np.array([i for i in range(20)])
         #cross validation
         kf = KFold(n_splits=5, shuffle=True, random_state=2)
         my_list = list(kf.split(data_ids))
@@ -181,6 +181,14 @@ class Splitter:
             caption = file.read()
         return caption
         
+    def split(self, type_fold: str):
+        if(type_fold == 'random'):
+            self._get_random_split()
+        elif(type_fold == 'morgan'):
+            self._ligand_scaffold_split()
+        elif(type_fold == 'chain'):
+            self.chain_split()
+
 
 
 def main():

@@ -80,10 +80,8 @@ class Sampler():
         self.tesnorboard_path = self.savedir
         self.log_path = os.path.join(self.savedir, "logs")
         self.idx_file = os.path.join(self.log_path, "idxs")
-        self.checkpoint_sampling_path = os.path.join(self.savedir, "checkpoints", 'sample.pkl')
+        
 
-        
-        
         #encoder/decoder path
         # self.encoder_path = os.path.join(self.savedir, "models", cfg['training_params']['encoder_name']) 
         # self.decoder_path = os.path.join(self.savedir, "models", cfg['training_params']['decoder_name'])
@@ -120,6 +118,7 @@ class Sampler():
         self.name_file_stat = self.sampling + "_" + str(self.type_fold) + "_" + self.idx_fold
         self.path_to_file_stat = os.path.join(self.save_dir_smiles, self.name_file_stat)
         self.file_statistics = open(self.path_to_file_stat, "a+")
+        self.checkpoint_sampling_path = os.path.join(self.savedir, "checkpoints", str(split_no) + '_sample.pkl')
         #the file of the whole stat
         if (len(open(self.path_to_file_stat).readlines()) == 0):
             self.file_statistics.write("name,fold,type_fold,orig_smile,gen_smile,gen_NP,gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity,orig_NP,orig_logP,orig_sa,orig_qed,orig_weight,frequency,sampling,encoder,decoder" +  "\n")

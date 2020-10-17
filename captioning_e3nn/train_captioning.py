@@ -37,6 +37,7 @@ from training.train import Trainer
 from training.train_check_att_vis import Trainer_Attention_Check_Vis
 from training.train_checkpoint import Trainer_Fold
 from sampling.sampler import Sampler
+from split import Splitter
 from training.utils import save_checkpoint_sampling
 
 def main():
@@ -53,9 +54,16 @@ def main():
     idx_fold = args.idx_fold
     savedir = cfg["output_parameters"]["savedir"]
     
+    # get split folds file
+    dir_idx_split = os.path.join(cfg['output_parameters']['savedir'], "logs", "idxs", cfg['splitting']['file_folds'])
+    if not os.path.exists(dir_idx_split):
+        print("doing split...")
+        splitter = Splitter(cfg)
+        splitter.split(type_fold)
 
+    #training + evaluation
     if(cfg['training_params']['mode'] == "no_attention"):
-        trainer = Trainer_Fold(cfg)
+        trainer = Trainer_Fold(cfg, idx_fold)
         trainer.train_epochs()
     elif(cfg['training_params']['mode'] == "attention"):
         trainer = Trainer_Attention_Check_Vis(cfg)
@@ -63,11 +71,12 @@ def main():
     
     encoder_path = os.path.join(savedir, "models", "encoder_best_" + str(idx_fold) + '.ckpt') 
     decoder_path = os.path.join(savedir, "models", "decoder_best_" + str(idx_fold) + '.ckpt') 
-    checkpoint_sampling_path = os.path.join(savedir, "checkpoints", 'sample.pkl')
+    checkpoint_sampling_path = os.path.join(savedir, "checkpoints", str(idx_fold) + '_sample.pkl')
    
     # regimes = ["simple_probabilistic", "max", "temp_sampling", "simple_probabilistic_topk"]
     # regimes = ["beam_1", "beam_3", "beam_10", "max", "temp_sampling_0.7", "probabilistic",
     #             "simple_probabilistic_topk_10"]
+    #sampling
     regimes = ["probabilistic", "max", "beam_1", "beam_3", "beam_10", "temp_sampling_0.8"]
     end_sampling_ind = len(regimes)
     if (os.path.exists(checkpoint_sampling_path)):
