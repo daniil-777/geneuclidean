@@ -81,7 +81,6 @@ class Sampler():
         self.log_path = os.path.join(self.savedir, "logs")
         self.idx_file = os.path.join(self.log_path, "idxs")
         
-
         #encoder/decoder path
         # self.encoder_path = os.path.join(self.savedir, "models", cfg['training_params']['encoder_name']) 
         # self.decoder_path = os.path.join(self.savedir, "models", cfg['training_params']['decoder_name'])
@@ -93,16 +92,6 @@ class Sampler():
 
         if not os.path.exists(self.save_dir_encodings):
             os.makedirs(self.save_dir_encodings)
-
-        self.file_long_proteins = open(os.path.join(self.save_dir_smiles, "exceptions_long.txt"), "w")
-        self.name_all_statistics = cfg['sampling_params']['name_all_stat']
-        self.file_all_stat = open(os.path.join(self.save_dir_smiles, self.name_all_statistics), "w")
-        # self.file_statistics = file_statistics
-    
-        # self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "w")
-        # #the file of the whole stat
-        # self.file_statistics.write("name,fold,type_fold,orig_smile,gen_smile,gen_NP,gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity,orig_NP,orig_logP,orig_sa,orig_qed,orig_weight,frequency,sampling,encoder,decoder" +  "\n")
-        # self.file_statistics.flush()
 
         with open(self.vocab_path, "rb") as f:
             self.vocab = pickle.load(f)
@@ -129,9 +118,6 @@ class Sampler():
         start_ind_protein = checkpoint_sampling['idx_sample_start']
         idx_sample = checkpoint_sampling['idx_sample_regime_start']
         
-        # self.file_statistics.write("name,fold,type_fold,orig_smile,gen_smile,gen_NP,gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity,orig_NP,orig_logP,orig_sa,orig_qed,orig_weight,frequency,sampling,encoder,decoder" +  "\n")
-        # self.file_statistics.flush()
-        # self.encoder_path, self.decoder_path = self._get_model_path()
         self.encoder, self.decoder = config.eval_model_captioning(self.cfg, encoder_path, decoder_path, device = self.device)
         self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(self.idx_fold))
         with (open(self.file_folds, "rb")) as openfile:
@@ -250,9 +236,10 @@ class Sampler():
         if (self.sampling.startswith('beam') == False):
             while (amount_val_smiles < self.number_smiles):
                 end = time.time()
-                print("time elapsed", end - start)
+                # print("time elapsed", end - start)
                 if((end - start) > self.time_waiting):
                     #stop generating if we wait for too long till 50 ligands
+                    self.file_long_proteins = open(os.path.join(self.save_dir_smiles, "exceptions_long.txt"), "w")
                     self.file_long_proteins.write(protein_name + "\n") #write a protein with long time of generating
                     self.file_long_proteins.flush()
                     break
@@ -268,21 +255,17 @@ class Sampler():
                 
                 if (self.sampling == "probabilistic"):
                     sampled_ids = self.decoder.sample_prob(feature)
-                    # sampled_ids = ( sampled_ids[0].cpu().numpy())
                 elif (self.sampling == "max"):
                     sampled_ids = self.decoder.sample_max(feature)
-                    # sampled_ids = ( sampled_ids[0].cpu().numpy())
+                    self.number_smiles = 1
                 elif (self.sampling == "simple_probabilistic"):
                     sampled_ids = self.decoder.simple_prob(feature)
-                    # sampled_ids = ( sampled_ids[0].cpu().numpy())
                 elif (self.sampling.startswith("simple_probabilistic_topk") == True):
                     k = int(self.sampling.split("_")[-1])
                     sampled_ids = self.decoder.simple_prob_topk(feature, k)
-                    # sampled_ids = ( sampled_ids[0].cpu().numpy())
                 elif (self.sampling.startswith("temp_sampling")):
                     temperature = float(self.sampling.split("_")[-1])
                     sampled_ids = self.decoder.sample_temp(feature, temperature)
-                    # sampled_ids = ( sampled_ids[0].cpu().numpy())
                 sampled_ids = ( sampled_ids[0].cpu().numpy())
                 if(type(sampled_ids[0]) != list):
                     idx =  self.printing_smiles(sampled_ids, smiles)
@@ -299,7 +282,7 @@ class Sampler():
                 sampled_ids, alphas  = self.decoder.sample_beam_search(feature, number_beams)
             else:
                 sampled_ids  = self.decoder.sample_beam_search(feature, number_beams)
-            print("sampled-ind", sampled_ids)
+            # print("sampled-ind", sampled_ids)
             if(sampled_ids == 120):
                 amount_val_smiles = 0
             else:
@@ -323,13 +306,13 @@ class Sampler():
             wr = csv.writer(self.file_statistics)
             wr.writerows(list(map(list, zip(*stat_protein))))
             self.file_statistics.flush()
-        else:
-            length = self.number_smiles
-            stat_protein = [length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'],
-                  length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a']]
-            wr = csv.writer(self.file_statistics)
-            wr.writerows(list(map(list, zip(*stat_protein))))
-            self.file_statistics.flush()
+        # else:
+        #     length = self.number_smiles
+        #     stat_protein = [length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'],
+        #           length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a']]
+        #     wr = csv.writer(self.file_statistics)
+        #     wr.writerows(list(map(list, zip(*stat_protein))))
+        #     self.file_statistics.flush()
 
             
 
