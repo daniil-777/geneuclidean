@@ -257,7 +257,7 @@ class Sampler():
                     sampled_ids = self.decoder.sample_prob(feature)
                 elif (self.sampling == "max"):
                     sampled_ids = self.decoder.sample_max(feature)
-                    self.number_smiles = 1
+                    self.number_smiles = 0
                 elif (self.sampling == "simple_probabilistic"):
                     sampled_ids = self.decoder.simple_prob(feature)
                 elif (self.sampling.startswith("simple_probabilistic_topk") == True):
