@@ -104,7 +104,7 @@ class Sampler():
         
         self.idx_fold = split_no
         self.type_fold = type_fold
-        self.name_file_stat = self.sampling + "_" + str(self.type_fold) + "_" + self.idx_fold
+        self.name_file_stat = self.sampling + "_" + str(self.type_fold) + "_" + self.idx_fold + ".csv"
         self.path_to_file_stat = os.path.join(self.save_dir_smiles, self.name_file_stat)
         self.file_statistics = open(self.path_to_file_stat, "a+")
         self.checkpoint_sampling_path = os.path.join(self.savedir, "checkpoints", str(split_no) + '_sample.pkl')
