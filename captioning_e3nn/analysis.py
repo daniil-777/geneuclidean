@@ -1,6 +1,33 @@
+import numpy as np
+from scipy.stats import pearsonr
+import csv
+# from matplotlib import pyplot
+from numpy import mean
+from numpy import std
+import pickle
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
+import os
+import random
+# from captioning_e3nn.Contrib.NP_Score.npscorer_my import processMols
+from rdkit import RDConfig
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+from rdkit import RDConfig
+from rdkit import DataStructs
+from rdkit.Chem import AllChem, QED
+from matplotlib import pyplot
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy import stats
+from sklearn.model_selection import KFold
+import random
+matplotlib.use('TkAgg')
+matplotlib.rcParams.update({'font.size': 14})
+from sklearn.preprocessing import MinMaxScaler
+from matplotlib import cm
+
 
 
 class Tree_Analysis(dict):
@@ -99,10 +126,19 @@ class plot_all():
         for file in self.files:
             if file != ".ipynb_checkpoints" and file != "exceptions_long.txt" and file != "stat_e3nn_prob_0.csv":
                 print("file", file)
-                method = file.split("_")[0]
-                id_fold = file.split("_")[1]
-                print("id_fold", id_fold)
-                name_split = file.split("_")[2][:-4]
+                parts = file.split("_")
+                if (len(parts) < 4):
+                    method = parts[0]
+                    id_fold = parts[-1]
+                    # print("id_fold", id_fold)
+                    name_split = parts[1]
+                    # name_split = parts[1][:-4]
+                else:
+                    method = parts[1] + parts[0]
+                    id_fold = parts[-1]
+                    # print("id_fold", id_fold)
+                    name_split = parts[2]
+                    # name_split = parts[2][:-4]
                 for property_name in self.names_gen_properties:           
                     self.dict_analysis[name_split][property_name][method][id_fold] = self.get_array(file, property_name)
                 for property_name in self.names_orig_properties:
