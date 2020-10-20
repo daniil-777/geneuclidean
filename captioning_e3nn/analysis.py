@@ -69,7 +69,7 @@ class plot_all():
         
 
     def get_random_perm(self):
-        with open("all_smiles_lig.txt") as f:
+        with open("../data/all_smiles_lig.txt") as f:
             list_smiles = f.read().splitlines()
    
         #random permutation
