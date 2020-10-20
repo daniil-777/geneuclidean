@@ -23,8 +23,8 @@ import matplotlib.pyplot as plt
 from scipy import stats
 from sklearn.model_selection import KFold
 import random
-matplotlib.use('TkAgg')
-matplotlib.rcParams.update({'font.size': 14})
+# matplotlib.use('TkAgg')
+# matplotlib.rcParams.update({'font.size': 14})
 from sklearn.preprocessing import MinMaxScaler
 from matplotlib import cm
 
