@@ -76,7 +76,7 @@ class Network(torch.nn.Module):
             gate_act = rescaled_act.sigmoid
 
         Rs = [[(embed, 0)]]
-        if (self.l1 = 0):
+        if (self.l1 == 0):
             Rs_mid = [(mul, l) for l, mul in enumerate([l0])]
         else:
             Rs_mid = [(mul, l) for l, mul in enumerate([l0, l1])]
