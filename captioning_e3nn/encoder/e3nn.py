@@ -61,12 +61,13 @@ def constants(geometry, mask):
 
 class Network(torch.nn.Module):
     def __init__(self,  max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
-                 embed, l0,   L, scalar_act_name, gate_act_name, natoms, mlp_h, Out, output, aggregation_mode):
+                 embed, l0,  l1,  L, scalar_act_name, gate_act_name, natoms, mlp_h, Out, output, aggregation_mode):
         super().__init__()
         self.natoms = natoms #286
         self.ssp = rescaled_act.ShiftedSoftplus(beta = beta)
         self.sp = rescaled_act.Softplus(beta=beta)
         self.l0 = l0
+        self.l1 = l1
         self.output = output
         if(scalar_act_name == "sp"):
             scalar_act = self.sp
@@ -75,7 +76,11 @@ class Network(torch.nn.Module):
             gate_act = rescaled_act.sigmoid
 
         Rs = [[(embed, 0)]]
-        Rs_mid = [(mul, l) for l, mul in enumerate([l0])]
+        if (self.l1 = 0):
+            Rs_mid = [(mul, l) for l, mul in enumerate([l0])]
+        else:
+            Rs_mid = [(mul, l) for l, mul in enumerate([l0, l1])]
+         
         Rs += [Rs_mid] * L
         Rs += [[(mlp_h, 0)]] * Out
         self.Rs = Rs
