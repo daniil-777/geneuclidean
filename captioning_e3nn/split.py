@@ -70,7 +70,7 @@ class Splitter:
         self.loss_best = np.inf
         self.n_samples = len(self.files_refined) - 3
         #output files
-        self.savedir = cfg['output_parameters']['savedir']
+        self.savedir = os.path.join(cfg['output_parameters']['savedir'], cfg['model_params']['model_name'])
         self.tesnorboard_path = self.savedir
         self.model_path = os.path.join(self.savedir, "models")
         self.log_path = os.path.join(self.savedir, "logs")
