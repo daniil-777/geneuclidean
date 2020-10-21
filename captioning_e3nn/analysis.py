@@ -47,7 +47,7 @@ class Tree_Analysis(dict):
 
 class plot_all():
     def __init__(self, cfg):
-        self.path_data = os.path.join(cfg["output_parameters"]["savedir"], "statistics")
+        self.path_data = os.path.join(cfg["output_parameters"]["savedir"], cfg["model_params"]["model_name"], "statistics")
         self.names_gen_properties = ["gen_NP", "gen_weight", "gen_logP", "gen_sa"]
         self.names_orig_properties = ['orig_NP', 'orig_weight', 'orig_logP', 'orig_sa']
         self.files = os.listdir(self.path_data)

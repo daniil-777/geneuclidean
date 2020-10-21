@@ -75,8 +75,8 @@ def main():
     
     # encoder_path = os.path.join(savedir, "models", "encoder_best_" + str(idx_fold) + '.ckpt') 
     # decoder_path = os.path.join(savedir, "models", "decoder_best_" + str(idx_fold) + '.ckpt')
-    encoder_path = os.path.join(savedir, "models", "encoder-" + str(idx_fold) + "-" + str(num_epoches) + '.ckpt') 
-    decoder_path = os.path.join(savedir, "models", "decoder-" + str(idx_fold) + "-" + str(num_epoches) + '.ckpt')
+    encoder_path = os.path.join(savedir, model_name, "models", "encoder-" + str(idx_fold) + "-" + str(num_epoches) + '.ckpt') 
+    decoder_path = os.path.join(savedir, model_name, "models", "decoder-" + str(idx_fold) + "-" + str(num_epoches) + '.ckpt')
     checkpoint_sampling_path = os.path.join(savedir, model_name,  "checkpoints", str(idx_fold) + '_sample.pkl')
    
     # regimes = ["simple_probabilistic", "max", "temp_sampling", "simple_probabilistic_topk"]
