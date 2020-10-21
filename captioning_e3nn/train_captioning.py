@@ -58,7 +58,7 @@ def main():
     num_epoches = cfg["model_params"]["num_epochs"]
     
     # get split folds file
-    dir_idx_split = os.path.join(cfg['output_parameters']['savedir'], "logs", "idxs", cfg['splitting']['file_folds'])
+    dir_idx_split = os.path.join(cfg['output_parameters']['savedir'], cfg['model_params']['model_name'], "logs", "idxs", cfg['splitting']['file_folds'])
     if not os.path.exists(dir_idx_split):
         print("doing split...")
         splitter = Splitter(cfg)
