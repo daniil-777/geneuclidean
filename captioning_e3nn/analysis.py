@@ -146,13 +146,13 @@ class plot_all():
                 self.dict_sim[name_split]["gen_similarity"][id_fold] = self.get_array(file, "gen_similarity")
           
         self.num_splits = len(self.dict_analysis)
-        self.num_methods = len(self.dict_analysis['rand'])
+        self.num_methods = len(self.dict_analysis['random'])
 
 
             
     def plot_similarity(self):
         num_splits = len(self.dict_analysis)
-        num_methods = len(self.dict_analysis['rand'])
+        num_methods = len(self.dict_analysis['random'])
 #         print("num_splits", num_splits)
 #         print("num_methods", num_methods)
         fig, axs = plt.subplots(nrows = 1, ncols = self.num_splits)
