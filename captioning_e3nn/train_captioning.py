@@ -55,10 +55,11 @@ def main():
     type_fold = args.type_fold
     idx_fold = args.idx_fold
     savedir = cfg["output_parameters"]["savedir"]
+    model_name = cfg["model_params"]["model_name"]
     num_epoches = cfg["model_params"]["num_epochs"]
     
     # get split folds file
-    dir_idx_split = os.path.join(cfg['output_parameters']['savedir'], cfg['model_params']['model_name'], "logs", "idxs", cfg['splitting']['file_folds'])
+    dir_idx_split = os.path.join(cfg['output_parameters']['savedir'], model_name,  "logs", "idxs", cfg['splitting']['file_folds'])
     if not os.path.exists(dir_idx_split):
         print("doing split...")
         splitter = Splitter(cfg)
@@ -76,7 +77,7 @@ def main():
     # decoder_path = os.path.join(savedir, "models", "decoder_best_" + str(idx_fold) + '.ckpt')
     encoder_path = os.path.join(savedir, "models", "encoder-" + str(idx_fold) + "-" + str(num_epoches) + '.ckpt') 
     decoder_path = os.path.join(savedir, "models", "decoder-" + str(idx_fold) + "-" + str(num_epoches) + '.ckpt')
-    checkpoint_sampling_path = os.path.join(savedir, "checkpoints", str(idx_fold) + '_sample.pkl')
+    checkpoint_sampling_path = os.path.join(savedir, model_name,  "checkpoints", str(idx_fold) + '_sample.pkl')
    
     # regimes = ["simple_probabilistic", "max", "temp_sampling", "simple_probabilistic_topk"]
     # regimes = ["beam_1", "beam_3", "beam_10", "max", "temp_sampling_0.7", "probabilistic",
