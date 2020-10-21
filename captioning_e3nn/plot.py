@@ -33,6 +33,7 @@ from build_vocab import Vocabulary
 from data_loader import get_loader, Pdb_Dataset, collate_fn, collate_fn_masks
 from analysis import plot_all
 
+
 def main():
     parser = argparse.ArgumentParser(
     description='Train a 3D reconstruction model.'
@@ -42,9 +43,7 @@ def main():
                          
     cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
    
-    path_results = os.path.join(cfg["output_parameters"]["savedir"], "statistics")
-    
-    plot =  plot_all(path_results)
+    plot =  plot_all(cfg)
     plot.run()
 
 

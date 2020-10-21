@@ -46,8 +46,8 @@ class Tree_Analysis(dict):
 
 
 class plot_all():
-    def __init__(self, path_data):
-        self.path_data = path_data
+    def __init__(self, cfg):
+        self.path_data = os.path.join(cfg["output_parameters"]["savedir"], "statistics")
         self.names_gen_properties = ["gen_NP", "gen_weight", "gen_logP", "gen_sa"]
         self.names_orig_properties = ['orig_NP', 'orig_weight', 'orig_logP', 'orig_sa']
         self.files = os.listdir(self.path_data)
@@ -58,10 +58,10 @@ class plot_all():
         self.gen_to_orig = {"gen_NP": 'orig_NP',
                             "gen_weight": 'orig_weight',
                             "gen_logP":  'orig_logP',
-                             "gen_sa": 'orig_sa'}
+                            "gen_sa": 'orig_sa'}
         
         self.colors = ['b', 'r', 'c', 'm', 'k', 'y', 'w']
-        self.path_vis = 'plots'
+        self.path_vis = os.path.join(cfg["output_parameters"]["savedir"], 'results')
         self.path_sim = os.path.join(self.path_vis, 'similarity')
         self.path_prop = os.path.join(self.path_vis, 'properties')
         os.makedirs( self.path_sim, exist_ok=True)
@@ -69,7 +69,7 @@ class plot_all():
         
 
     def get_random_perm(self):
-        with open("../data/all_smiles_lig.txt") as f:
+        with open("all_smiles_lig.txt") as f:
             list_smiles = f.read().splitlines()
    
         #random permutation
@@ -123,8 +123,10 @@ class plot_all():
         return mean
         
     def build_dict(self):
+        methods = []
+        files_exception = [".ipynb_checkpoints", "exceptions_long.csv", "exceptions_long.txt", "stat_e3nn_prob_0.csv", "temp_sampling_0.8_random_0"]
         for file in self.files:
-            if file != ".ipynb_checkpoints" and file != "exceptions_long.csv" and file != "exceptions_long.txt" and file != "stat_e3nn_prob_0.csv":
+            if file not in files_exception:
                 print("file", file)
                 parts = file.split("_")
                 if (len(parts) < 4):
@@ -135,32 +137,42 @@ class plot_all():
                     # name_split = parts[1][:-4]
                 else:
                     method = parts[1] + parts[0]
+                    print("method", method)
                     id_fold = parts[-1]
+                    print("id_fold", id_fold)
                     # print("id_fold", id_fold)
                     name_split = parts[2]
+                    print("name_split", name_split)
                     # name_split = parts[2][:-4]
+                if (method not in methods):
+                    methods.append(method)
                 for property_name in self.names_gen_properties:           
                     self.dict_analysis[name_split][property_name][method][id_fold] = self.get_array(file, property_name)
                 for property_name in self.names_orig_properties:
                     self.dict_orig[name_split][property_name][id_fold] = self.get_array(file, property_name)
-                self.dict_sim[name_split]["gen_similarity"][id_fold] = self.get_array(file, "gen_similarity")
+                self.dict_sim[name_split]["gen_similarity"][method][id_fold] = self.get_array(file, "gen_similarity")
           
         self.num_splits = len(self.dict_analysis)
-        self.num_methods = len(self.dict_analysis['random'])
-
+#         self.num_methods = len(self.dict_analysis['random'])
+        self.num_methods = len(methods)
+        print("num plits", self.num_splits)
+        print("num_methods", self.num_methods)
 
             
     def plot_similarity(self):
-        num_splits = len(self.dict_analysis)
-        num_methods = len(self.dict_analysis['random'])
+#         num_splits = len(self.dict_sim)
+#         num_methods = len(self.dict_sim['random'])
+#         print("num_methods sim", num_methods)
+        
 #         print("num_splits", num_splits)
 #         print("num_methods", num_methods)
         fig, axs = plt.subplots(nrows = 1, ncols = self.num_splits)
         fig.set_figheight(15)
         fig.set_figwidth(40)
-        for id_split, name_split in enumerate(list(self.dict_analysis)):
-            ax_all = axs[id_split]
-            fig1, axs1 = plt.subplots(nrows = 1, ncols = num_methods) #for local file for every fold type split
+        for id_split, name_split in enumerate(list(self.dict_sim)):
+#             ax_all = axs[id_split]
+            ax_all = axs
+            fig1, axs1 = plt.subplots(nrows = 1, ncols = self.num_methods) #for local file for every fold type split
             plt.title = 'Histogram of Shear Strength'
             fig1.set_figheight(15)
             fig1.set_figwidth(40)
@@ -169,7 +181,8 @@ class plot_all():
             plt.xlabel('Similarity')
             pyplot.legend(loc='upper right')
             sns.distplot(self.rand_sim, color='yellow', hist=True, rug=False, label= 'random', ax = ax_all);
-            for id_method, method_name in enumerate(list(self.dict_analysis[name_split])):
+            for id_method, method_name in enumerate(list(self.dict_sim[name_split]['gen_similarity'])):
+                print("sim_method_name - ", method_name)
                 sim_array = self._get_average_sim(method_name, name_split, "gen_similarity")
                 color = self.colors[id_method]
                 color_rand = self.colors[-1]
@@ -237,3 +250,4 @@ class plot_all():
         self.build_dict()
         self.plot_similarity()
         self.plot_properties()
+        
