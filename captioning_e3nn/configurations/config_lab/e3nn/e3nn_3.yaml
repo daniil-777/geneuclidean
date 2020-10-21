@@ -26,6 +26,7 @@ model:
     num_embeddings: 6
     embed: 10
     l0: 10
+    l1: 0
     L: 2
     scalar_act_name:  sp
     gate_act_name: sigmoid
@@ -48,7 +49,7 @@ model:
 
 
 model_params: 
-  model_name: "e3nn"
+  model_name: e3nn_3
   num_epochs: 100
   batch_size: 4
   n_splits: 5
@@ -60,7 +61,7 @@ model_params:
 
 
 output_parameters: 
-  savedir: ../results/captioning_results/e3nn_3
+  savedir: ../results/captioning_results
 
 
 sampling_params: 

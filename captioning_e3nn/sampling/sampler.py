@@ -63,6 +63,7 @@ class Sampler():
         # self.file_folds = os.path.join()
     
         # model params
+        self.model_name = cfg['model_params']['model_name']
         self.num_epochs = cfg['model_params']['num_epochs']
         self.batch_size = cfg['model_params']['batch_size']
         self.learning_rate = cfg['model_params']['learning_rate']
@@ -75,7 +76,7 @@ class Sampler():
         self.save_step = cfg['training_params']['save_step']
         self.vocab_path = cfg['preprocessing']['vocab_path']
         #output files
-        self.savedir = cfg['output_parameters']['savedir']
+        self.savedir = os.path.join(cfg['output_parameters']['savedir'], self.model_name)
         self.save_dir_smiles = os.path.join(self.savedir, "statistics")
         self.tesnorboard_path = self.savedir
         self.log_path = os.path.join(self.savedir, "logs")

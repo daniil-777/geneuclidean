@@ -24,14 +24,14 @@ model:
     beta: 5
     rad_model: gaussian
     num_embeddings: 6
-    embed: 5
-    l0: 5
-    l1: 0
+    embed: 10
+    l0: 10
+    l1: 5
     L: 1
     scalar_act_name:  sp
     gate_act_name: sigmoid
     natoms: 286
-    mlp_h: 100
+    mlp_h: 70
     Out: 1
     output: 1000
     aggregation_mode: avg
@@ -48,7 +48,7 @@ model:
 
 
 model_params: 
-  model_name: e3nn_8
+  model_name: e3nn_9
   num_epochs: 100
   batch_size: 4
   n_splits: 5

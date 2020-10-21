@@ -42,7 +42,7 @@ class Trainer_Fold():
         #folds data
         self.name_file_folds = cfg['splitting']['file_folds']
         self.fold_number = cfg['splitting']['id_fold']
-        
+        self.model_name = cfg['model_params']['model_name']
         self.num_epochs = cfg['model_params']['num_epochs']
         self.batch_size = cfg['model_params']['batch_size']
         self.learning_rate = cfg['model_params']['learning_rate']
@@ -58,7 +58,8 @@ class Trainer_Fold():
         self.loss_best = np.inf
 
         #output files
-        self.savedir = cfg['output_parameters']['savedir']
+        # self.savedir = cfg['output_parameters']['savedir']
+        self.savedir = os.path.join(cfg['output_parameters']['savedir'], self.model_name)
         self.tesnorboard_path = self.savedir
         self.model_path = os.path.join(self.savedir, "models")
         self.log_path = os.path.join(self.savedir, "logs")
@@ -97,11 +98,11 @@ class Trainer_Fold():
             sys.stdout = self.original_stdout
            
         # print(model)
-        self.name_file_stat = cfg["sampling_params"]["name_all_stat"]
-        self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "w")
+        # self.name_file_stat = cfg["sampling_params"]["name_all_stat"]
+        # self.file_statistics = open(os.path.join(self.save_dir_smiles, self.name_file_stat), "w")
         #the file of the whole stat
-        self.file_statistics.write("name,fold,type_fold, orig_smile, gen_smile, gen_NP, gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity, orig_NP, orig_logP, orig_sa, orig_qed, orig_weight, frequency, sampling" + "\n")
-        self.file_statistics.flush()
+        # self.file_statistics.write("name,fold,type_fold, orig_smile, gen_smile, gen_NP, gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity, orig_NP, orig_logP, orig_sa, orig_qed, orig_weight, frequency, sampling" + "\n")
+        # self.file_statistics.flush()
 
         #print all params
         nparameters_enc = sum(p.numel() for p in self.Encoder.parameters())
