@@ -39,6 +39,8 @@ from training.train_checkpoint import Trainer_Fold
 from sampling.sampler import Sampler
 from split import Splitter
 from training.utils import save_checkpoint_sampling
+from analysis import plot_all
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -53,6 +55,7 @@ def main():
     type_fold = args.type_fold
     idx_fold = args.idx_fold
     savedir = cfg["output_parameters"]["savedir"]
+    num_epoches = cfg["model_params"]["num_epochs"]
     
     # get split folds file
     dir_idx_split = os.path.join(cfg['output_parameters']['savedir'], "logs", "idxs", cfg['splitting']['file_folds'])
@@ -69,15 +72,17 @@ def main():
         trainer = Trainer_Attention_Check_Vis(cfg)
         trainer.train_epochs()
     
-    encoder_path = os.path.join(savedir, "models", "encoder_best_" + str(idx_fold) + '.ckpt') 
-    decoder_path = os.path.join(savedir, "models", "decoder_best_" + str(idx_fold) + '.ckpt') 
+    # encoder_path = os.path.join(savedir, "models", "encoder_best_" + str(idx_fold) + '.ckpt') 
+    # decoder_path = os.path.join(savedir, "models", "decoder_best_" + str(idx_fold) + '.ckpt')
+    encoder_path = os.path.join(savedir, "models", "encoder-" + str(idx_fold) + "-" + str(num_epoches) + '.ckpt') 
+    decoder_path = os.path.join(savedir, "models", "decoder-" + str(idx_fold) + "-" + str(num_epoches) + '.ckpt')
     checkpoint_sampling_path = os.path.join(savedir, "checkpoints", str(idx_fold) + '_sample.pkl')
    
     # regimes = ["simple_probabilistic", "max", "temp_sampling", "simple_probabilistic_topk"]
     # regimes = ["beam_1", "beam_3", "beam_10", "max", "temp_sampling_0.7", "probabilistic",
     #             "simple_probabilistic_topk_10"]
     #sampling
-    regimes = ["probabilistic", "max", "beam_1", "beam_3", "beam_10", "temp_sampling_0.8"]
+    regimes = ["probabilistic", "max", "beam_1", "beam_3", "beam_10"]
     end_sampling_ind = len(regimes)
     if (os.path.exists(checkpoint_sampling_path)):
         print("loading sample ids...")
@@ -94,6 +99,9 @@ def main():
         print("*********sample regim*********** ", sample)
         sampler = Sampler(cfg, sample)
         sampler.analysis_cluster(idx_fold, type_fold, encoder_path, decoder_path)
+
+    plot =  plot_all(cfg)
+    plot.run()
     # for regim in regimes:
     #     print("doing sampling... ", regim)
     #     sampler = Sampler(cfg, regim)
