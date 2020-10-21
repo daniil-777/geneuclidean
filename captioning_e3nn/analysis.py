@@ -124,7 +124,7 @@ class plot_all():
         
     def build_dict(self):
         for file in self.files:
-            if file != ".ipynb_checkpoints" and file != "exceptions_long.txt" and file != "stat_e3nn_prob_0.csv":
+            if file != ".ipynb_checkpoints" and file != "exceptions_long.csv" and file != "stat_e3nn_prob_0.csv":
                 print("file", file)
                 parts = file.split("_")
                 if (len(parts) < 4):
