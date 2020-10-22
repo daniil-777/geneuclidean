@@ -312,7 +312,7 @@ class Trainer_Fold():
             self.scheduler.step()
             self.eval_loop(loader_test, epoch)
             save_checkpoint(self.checkpoint_path_training, epoch, self.Encoder, self.Decoder,
-                            self.encoder_best, self.decoder_best, self.caption_optimizer, self.split_no)
+                            self.encoder_best, self.decoder_best, self.caption_optimizer, self.scheduler, self.split_no)
 
             self.encoder_name =  os.path.join(
                         self.model_path, "encoder-{}-{}.ckpt".format(self.split_no, epoch + 1)

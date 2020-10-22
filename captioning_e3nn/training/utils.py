@@ -3,7 +3,7 @@ import torch
 
 
 def save_checkpoint(checkpoint_path, start_epoch, encoder, decoder,
-                    encoder_best, decoder_best, caption_optimizer, split_no):
+                    encoder_best, decoder_best, caption_optimizer, scheduler, split_no):
     """
     Saves model checkpoint.
     :param data_name: base name of processed dataset
