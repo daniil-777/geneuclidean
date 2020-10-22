@@ -60,7 +60,8 @@ class Trainer_Fold():
         #output files
         # self.savedir = cfg['output_parameters']['savedir']
         self.savedir = os.path.join(cfg['output_parameters']['savedir'], self.model_name)
-        self.tesnorboard_path = os.path.join(self.savedir, "logs", "tensorboard_" + self.model_name)
+        self.tesnorboard_path_train = os.path.join(self.savedir, "logs", "tensorboard_" + self.model_name, 'train')
+        self.tesnorboard_path_eval = os.path.join(self.savedir, "logs", "tensorboard_" + self.model_name, 'eval')
         self.model_path = os.path.join(self.savedir, "models")
         self.log_path = os.path.join(self.savedir, "logs")
         self.idx_file = os.path.join(self.log_path, "idxs")
@@ -70,7 +71,8 @@ class Trainer_Fold():
         os.makedirs(self.idx_file, exist_ok=True)
         os.makedirs(self.model_path, exist_ok=True)
         os.makedirs(self.save_dir_smiles, exist_ok=True)
-        os.makedirs(self.tesnorboard_path, exist_ok=True)
+        os.makedirs(self.tesnorboard_path_train, exist_ok=True)
+        os.makedirs(self.tesnorboard_path_eval, exist_ok=True)
         # if not os.path.exists(self.log_path):
         #     os.makedirs(self.log_path)
         # if not os.path.exists(self.idx_file):
@@ -84,7 +86,8 @@ class Trainer_Fold():
         self.test_idx_file = open(os.path.join(self.idx_file, "test_idx.txt"), "w")
         self.log_file = open(os.path.join(self.log_path, "log.txt"), "w")
         self.log_file_tensor = open(os.path.join(self.log_path, "log_tensor.txt"), "w")
-        self.writer = SummaryWriter(self.tesnorboard_path)
+        self.writer_train = SummaryWriter(self.tesnorboard_path_train)
+        self.writer_eval = SummaryWriter(self.tesnorboard_path_eval)
         
         self.Encoder, self.Decoder = config.get_model(cfg, device=self.device)
         self.input = config.get_shape_input(self.cfg)
@@ -139,6 +142,7 @@ class Trainer_Fold():
             self.encoder_best, self.decoder_best = self.Encoder, self.Decoder
             self.caption_optimizer = checkpoint['caption_optimizer']
             self.split_no = checkpoint['split_no']
+            self.scheduler.load_state_dict(checkpoint['scheduler'])
         else:
             print("initialising model...")
             self.start_epoch = 0
@@ -146,6 +150,7 @@ class Trainer_Fold():
             self.encoder_best, self.decoder_best = self.Encoder, self.Decoder
             caption_params = list(self.Encoder.parameters()) + list(self.Decoder.parameters())
             self.caption_optimizer = torch.optim.Adam(caption_params, lr = self.learning_rate)
+            self.scheduler = ExponentialLR(self.caption_optimizer, gamma=0.95)
             self.split_no = self.fold_number
 
 
@@ -176,7 +181,7 @@ class Trainer_Fold():
             caption_optimizer.step()  #!!! figure out whether we should leave that 
      
             name = "training_loss_" + str(split_no + 1)
-            self.writer.add_scalar(name, loss.item(), epoch)
+            self.writer_train.add_scalar(name, loss.item(), epoch)
 
             # writer.add_scalar("training_loss", loss.item(), epoch)
             self.log_file_tensor.write(str(loss.item()) + "\n")
@@ -186,7 +191,7 @@ class Trainer_Fold():
             mem = fb_mem_info.used >> 20
             # mem = 0
             # print('GPU memory usage: ', mem)
-            self.writer.add_scalar('val/gpu_memory', mem, epoch)
+            self.writer_train.add_scalar('val/gpu_memory', mem, epoch)
             # Print log info
             if i % self.log_step == 0:
                 result = "Split [{}], Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Perplexity: {:5.4f}".format(
@@ -243,7 +248,7 @@ class Trainer_Fold():
                 outputs = self.Decoder(feature, captions, lengths)
                 loss = self.criterion(outputs, targets)
                 name = "eval_loss_" + str(self.split_no + 1)
-                self.writer.add_scalar(name, loss.item(), epoch)
+                self.writer_eval.add_scalar(name, loss.item(), epoch)
                 # self.writer.add_scalar("test_loss", loss.item(), step)
                 handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
                 fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
@@ -304,6 +309,7 @@ class Trainer_Fold():
             # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
             #if add masks everywhere call just train_loop
             self.train_loop_mask(loader_train, self.caption_optimizer, self.split_no, epoch, total_step)
+            self.scheduler.step()
             self.eval_loop(loader_test, epoch)
             save_checkpoint(self.checkpoint_path_training, epoch, self.Encoder, self.Decoder,
                             self.encoder_best, self.decoder_best, self.caption_optimizer, self.split_no)
