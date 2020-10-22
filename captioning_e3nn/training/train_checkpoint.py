@@ -141,8 +141,10 @@ class Trainer_Fold():
             self.Decoder.load_state_dict(checkpoint['decoder'])
             self.encoder_best, self.decoder_best = self.Encoder, self.Decoder
             self.caption_optimizer = checkpoint['caption_optimizer']
-            self.split_no = checkpoint['split_no']
+            self.scheduler = ExponentialLR(self.caption_optimizer, gamma=0.95)
             self.scheduler.load_state_dict(checkpoint['scheduler'])
+            self.split_no = checkpoint['split_no']
+         
         else:
             print("initialising model...")
             self.start_epoch = 0
