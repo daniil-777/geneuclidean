@@ -244,7 +244,13 @@ class Trainer_Fold():
                 name = "eval_loss_" + str(self.split_no + 1)
                 self.writer.add_scalar(name, loss.item(), epoch)
                 # self.writer.add_scalar("test_loss", loss.item(), step)
-                progress.set_postfix({'loss_eval': loss.item()})
+                handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
+                fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
+                mem = fb_mem_info.used >> 20
+                progress.set_postfix({'epoch': epoch,
+                                      'l_ev': loss.item(),
+                                      'Perplexity': np.exp(loss.item()),
+                                      'mem': mem})
         # with open(self.eval_check_path, 'w') as file:
         #     file.write('1')
       
