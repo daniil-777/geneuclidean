@@ -21,6 +21,7 @@ def save_checkpoint(checkpoint_path, start_epoch, encoder, decoder,
              'decoder': decoder.state_dict(),
              'caption_optimizer': caption_optimizer,
              'split_no': split_no,
+             'scheduler': scheduler.state_dict(),
            }
 
     torch.save(state, checkpoint_path)
