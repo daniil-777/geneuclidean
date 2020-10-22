@@ -61,7 +61,8 @@ class plot_all():
                             "gen_sa": 'orig_sa'}
         
         self.colors = ['b', 'r', 'c', 'm', 'k', 'y', 'w']
-        self.path_vis = os.path.join(cfg["output_parameters"]["savedir"], 'results')
+        self.model_name = cfg['model_params']['model_name']
+        self.path_vis = os.path.join(cfg["output_parameters"]["savedir"], self.model_name, 'results_' + self.model_name)
         self.path_sim = os.path.join(self.path_vis, 'similarity')
         self.path_prop = os.path.join(self.path_vis, 'properties')
         os.makedirs( self.path_sim, exist_ok=True)

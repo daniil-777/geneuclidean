@@ -60,7 +60,7 @@ class Trainer_Fold():
         #output files
         # self.savedir = cfg['output_parameters']['savedir']
         self.savedir = os.path.join(cfg['output_parameters']['savedir'], self.model_name)
-        self.tesnorboard_path = self.savedir
+        self.tesnorboard_path = os.path.join(self.savedir, "logs", "tensorboard_" + self.model_name)
         self.model_path = os.path.join(self.savedir, "models")
         self.log_path = os.path.join(self.savedir, "logs")
         self.idx_file = os.path.join(self.log_path, "idxs")
@@ -70,6 +70,7 @@ class Trainer_Fold():
         os.makedirs(self.idx_file, exist_ok=True)
         os.makedirs(self.model_path, exist_ok=True)
         os.makedirs(self.save_dir_smiles, exist_ok=True)
+        os.makedirs(self.tesnorboard_path, exist_ok=True)
         # if not os.path.exists(self.log_path):
         #     os.makedirs(self.log_path)
         # if not os.path.exists(self.idx_file):
