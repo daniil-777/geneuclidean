@@ -33,7 +33,7 @@ model:
     natoms: 286
     mlp_h: 25
     Out: 1
-    output: 100
+    output: 500
     aggregation_mode: avg
 
   
@@ -41,9 +41,9 @@ model:
   decoder_kwargs:
     vocab_size: 32
     vocab_path: ../data/vocab.pkl
-    embed_size: 100
-    hidden_size: 100
-    num_layers: 1
+    embed_size: 500
+    hidden_size: 500
+    num_layers: 2
     beam_size: 20
 
 
