@@ -222,14 +222,14 @@ class Trainer_Fold():
         self.log_file_tensor.flush()
 
 
-    def eval_loop(self, loader):
+    def eval_loop(self, loader, epoch):
         """
         Evaluation loop using `model` and data from `loader`.
         """
         self.Encoder.eval()
         self.Decoder.eval()
         progress = tqdm(loader)
-        print("Evaluation starts...") 
+        # print("Evaluation starts...") 
         for step, (features, geometry, masks, captions, lengths) in enumerate(progress):
             with torch.no_grad():
                 features = features.to(self.device)
@@ -241,10 +241,12 @@ class Trainer_Fold():
                 feature = self.Encoder(features, geometry, masks)
                 outputs = self.Decoder(feature, captions, lengths)
                 loss = self.criterion(outputs, targets)
-                self.writer.add_scalar("test_loss", loss.item(), step)
-                progress.set_postfix({'loss': loss.item()})
-        with open(self.eval_check_path, 'w') as file:
-            file.write('1')
+                name = "eval_loss_" + str(self.split_no + 1)
+                self.writer.add_scalar(name, loss.item(), epoch)
+                # self.writer.add_scalar("test_loss", loss.item(), step)
+                progress.set_postfix({'loss_eval': loss.item()})
+        # with open(self.eval_check_path, 'w') as file:
+        #     file.write('1')
       
 
     def train_epochs(self):
@@ -295,6 +297,7 @@ class Trainer_Fold():
             # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
             #if add masks everywhere call just train_loop
             self.train_loop_mask(loader_train, self.caption_optimizer, self.split_no, epoch, total_step)
+            self.eval_loop(loader_test, epoch)
             save_checkpoint(self.checkpoint_path_training, epoch, self.Encoder, self.Decoder,
                             self.encoder_best, self.decoder_best, self.caption_optimizer, self.split_no)
 
@@ -312,11 +315,11 @@ class Trainer_Fold():
                     self.Decoder.state_dict(),
                     self.decoder_name,
                 )
-        check_eval = open(self.eval_check_path).readlines()[0]
-        print("check_eval", check_eval)
-        if check_eval == '0':
-            self.eval_loop(loader_test)
-        print("Evaluation is done already!")
+        # check_eval = open(self.eval_check_path).readlines()[0]
+        # print("check_eval", check_eval)
+        # if check_eval == '0':
+        #     self.eval_loop(loader_test)
+        # print("Evaluation is done already!")
 
         #run sampling for the test indxs
             
