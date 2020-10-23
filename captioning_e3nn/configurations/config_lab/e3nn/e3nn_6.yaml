@@ -39,7 +39,7 @@ model:
   
   decoder: lstm
   decoder_kwargs:
-    vocab_size: 32
+    vocab_size: 52
     vocab_path: ../data/vocab.pkl
     embed_size: 1000
     hidden_size: 1000
