@@ -108,14 +108,13 @@ if __name__ == "__main__":
     
      
     cfg = config.load_config(args.config, 'configurations/config_local/default.yaml')
-    vocab_path = cfg['preprocessing']['vocab_path']
     # with open(vocab_path, "r") as f:
     #     v = pickle.load(f) 
-    v = pickle.load( open( vocab_path, "rb" ) )   
-    print("vocab", v)
+    # v = pickle.load( open( vocab_path, "rb" ) )   
+    # print("vocab", v)
     # build_vocab(cfg)
-    # vocab = build_vocab(cfg)
-    # vocab_path = cfg['preprocessing']['vocab_path']
-    # with open(vocab_path, "wb") as f:
-    #     pickle.dump(vocab, f)
+    vocab = build_vocab(cfg)
+    vocab_path = cfg['preprocessing']['vocab_path']
+    with open(vocab_path, "wb") as f:
+        pickle.dump(vocab, f)
 
