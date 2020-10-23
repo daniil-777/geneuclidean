@@ -107,7 +107,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
      
-    cfg = config.load_config(args.config, 'configurations/config_local/default.yaml')
+    cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
     # with open(vocab_path, "r") as f:
     #     v = pickle.load(f) 
     # v = pickle.load( open( vocab_path, "rb" ) )   
