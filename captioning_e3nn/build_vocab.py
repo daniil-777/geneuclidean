@@ -45,10 +45,20 @@ class Vocabulary(object):
     def __len__(self):
         return len(self.word2idx)
 
+import re
 
-def build_vocab(config):
+def smi_tokenizer(smi):
+    """
+    Tokenize a SMILES molecule or reaction
+    """
+    pattern = "(\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|#|-|\+|\\\\|\/|:|~|@|\?|>|\*|\$|\%[0-9]{2}|[0-9])"
+    regex = re.compile(pattern)
+    tokens = [token for token in regex.findall(smi)]
+    return tokens
+
+def build_vocab(cfg):
     # dir_path = config["preprocessing"]["path_proteins"]
-    dir_path = cfg['preprocessing']['path_proteins']
+    dir_path = cfg['data']['path_refined']
     files_pr = os.listdir(dir_path)
     files_pr.remove(".DS_Store")
     max = 0
@@ -63,11 +73,15 @@ def build_vocab(config):
 
         with open(path_to_smile, "r") as file:
             data = file.read()
-        tokens = [token for token in data]
+            print(data)
+        
+        # tokens = [token for token in data]
+        tokens = smi_tokenizer(data)
         counter.update(tokens)
+    print("counter", counter)
     words = [word for word, cnt in counter.items()]
     vocab = Vocabulary()
-    vocab.add_word("<pad>")
+    # vocab.add_word("pad>")
     vocab.add_word("<start>")
     vocab.add_word("<end>")
 
@@ -86,4 +100,16 @@ def main(args):
 
 
 if __name__ == "__main__":
-    main(args)
+    parser = argparse.ArgumentParser(
+    description='Train a 3D reconstruction model.'
+)
+    parser.add_argument('config', type=str, help='Path to config file.')
+    args = parser.parse_args()
+                         
+    cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
+    # build_vocab(cfg)
+    vocab = build_vocab(cfg)
+    vocab_path = cfg['preprocessing']['vocab_path']
+    with open(vocab_path, "wb") as f:
+        pickle.dump(vocab, f)
+

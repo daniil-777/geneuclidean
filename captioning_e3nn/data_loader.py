@@ -38,7 +38,7 @@ class Pdb_Dataset(Dataset):
         ##################refined files###################
         self.files_refined = os.listdir(self.init_refined)
         self.files_refined.sort()
-        # self.files_refined.remove(".DS_Store")
+        self.files_refined.remove(".DS_Store")
         ##################################################
         self.len_files = len(self.files_refined)
         ###################core files#####################
@@ -66,6 +66,17 @@ class Pdb_Dataset(Dataset):
         return 20
         # return len(self.files_refined) - 3 # from the lab:
 
+    
+    
+    def smi_tokenizer(self, smi):
+        """
+        Tokenize a SMILES molecule or reaction
+        """
+        pattern = "(\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|#|-|\+|\\\\|\/|:|~|@|\?|>|\*|\$|\%[0-9]{2}|[0-9])"
+        regex = re.compile(pattern)
+        tokens = [token for token in regex.findall(smi)]
+        return tokens
+
     def __getitem__(self, idx: int):
         vocab = self.vocab
         all_features, masks = self._get_features_complex(idx)
@@ -73,7 +84,8 @@ class Pdb_Dataset(Dataset):
         all_geometry = self._get_geometry_complex(idx)
         # print("shape all geom", all_geometry.shape)
         caption_raw = self._get_caption(idx)
-        tokens = [token for token in caption_raw]
+        # tokens = [token for token in caption_raw]
+        tokens = self.smi_tokenizer(caption_raw)
         caption = []
         caption.append(vocab("<start>"))
         # print("caption of start", vocab('<start>'))

@@ -141,8 +141,8 @@ class Trainer_Fold():
             self.Decoder.load_state_dict(checkpoint['decoder'])
             self.encoder_best, self.decoder_best = self.Encoder, self.Decoder
             self.caption_optimizer = checkpoint['caption_optimizer']
-            self.scheduler = ExponentialLR(self.caption_optimizer, gamma=0.95)
-            self.scheduler.load_state_dict(checkpoint['scheduler'])
+            # self.scheduler = ExponentialLR(self.caption_optimizer, gamma=0.95)
+            # self.scheduler.load_state_dict(checkpoint['scheduler'])
             self.split_no = checkpoint['split_no']
          
         else:
@@ -152,7 +152,7 @@ class Trainer_Fold():
             self.encoder_best, self.decoder_best = self.Encoder, self.Decoder
             caption_params = list(self.Encoder.parameters()) + list(self.Decoder.parameters())
             self.caption_optimizer = torch.optim.Adam(caption_params, lr = self.learning_rate)
-            self.scheduler = ExponentialLR(self.caption_optimizer, gamma=0.95)
+            # self.scheduler = ExponentialLR(self.caption_optimizer, gamma=0.95)
             self.split_no = self.fold_number
 
 
@@ -314,7 +314,9 @@ class Trainer_Fold():
             self.scheduler.step()
             self.eval_loop(loader_test, epoch)
             save_checkpoint(self.checkpoint_path_training, epoch, self.Encoder, self.Decoder,
-                            self.encoder_best, self.decoder_best, self.caption_optimizer, self.scheduler, self.split_no)
+                            self.encoder_best, self.decoder_best, self.caption_optimizer, self.split_no)
+            # save_checkpoint(self.checkpoint_path_training, epoch, self.Encoder, self.Decoder,
+                            # self.encoder_best, self.decoder_best, self.caption_optimizer, self.scheduler, self.split_no)
 
             self.encoder_name =  os.path.join(
                         self.model_path, "encoder-{}-{}.ckpt".format(self.split_no, epoch + 1)
