@@ -311,7 +311,7 @@ class Trainer_Fold():
             # config.get_train_loop(cfg, loader_train, encoder, decoder,caption_optimizer, split_no, epoch, total_step)
             #if add masks everywhere call just train_loop
             self.train_loop_mask(loader_train, self.caption_optimizer, self.split_no, epoch, total_step)
-            self.scheduler.step()
+            # self.scheduler.step()
             self.eval_loop(loader_test, epoch)
             save_checkpoint(self.checkpoint_path_training, epoch, self.Encoder, self.Decoder,
                             self.encoder_best, self.decoder_best, self.caption_optimizer, self.split_no)
