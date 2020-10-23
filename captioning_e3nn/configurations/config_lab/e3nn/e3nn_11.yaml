@@ -39,7 +39,7 @@ model:
   
   decoder: lstm
   decoder_kwargs:
-    vocab_size: 32
+    vocab_size: 52
     vocab_path: ../data/vocab.pkl
     embed_size: 500
     hidden_size: 500
@@ -48,7 +48,7 @@ model:
 
 
 model_params: 
-  model_name: e3nn_9
+  model_name: e3nn_11
   num_epochs: 100
   batch_size: 4
   n_splits: 5
