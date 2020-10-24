@@ -31,9 +31,9 @@ model:
     scalar_act_name:  sp
     gate_act_name: sigmoid
     natoms: 286
-    mlp_h: 70
+    mlp_h: 50
     Out: 1
-    output: 1000
+    output: 500
     aggregation_mode: avg
 
   
@@ -41,8 +41,8 @@ model:
   decoder_kwargs:
     vocab_size: 52
     vocab_path: ../data/new_vocab.pkl
-    embed_size: 1000
-    hidden_size: 1000
+    embed_size: 500
+    hidden_size: 500
     num_layers: 1
     beam_size: 20
 
