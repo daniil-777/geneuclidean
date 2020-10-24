@@ -18,7 +18,7 @@ model:
   encoder: network1
   encoder_kwargs:
     max_rad: 2
-    num_basis: 3
+    num_basis: 2
     n_neurons: 80
     n_layers: 1
     beta: 5
@@ -31,9 +31,9 @@ model:
     scalar_act_name:  sp
     gate_act_name: sigmoid
     natoms: 286
-    mlp_h: 50
+    mlp_h: 20
     Out: 1
-    output: 500
+    output: 100
     aggregation_mode: avg
 
   
@@ -41,8 +41,8 @@ model:
   decoder_kwargs:
     vocab_size: 52
     vocab_path: ../data/new_vocab.pkl
-    embed_size: 500
-    hidden_size: 500
+    embed_size: 100
+    hidden_size: 100
     num_layers: 1
     beam_size: 20
 
