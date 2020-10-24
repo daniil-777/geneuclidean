@@ -50,7 +50,7 @@ model:
 model_params: 
   model_name: e3nn_17
   num_epochs: 100
-  batch_size: 32
+  batch_size: 25
   n_splits: 5
   num_workers: 1
   learning_rate: 0.0005
