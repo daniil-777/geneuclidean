@@ -31,7 +31,7 @@ model:
     scalar_act_name:  sp
     gate_act_name: sigmoid
     natoms: 286
-    mlp_h: 70
+    mlp_h: 40
     Out: 1
     output: 1000
     aggregation_mode: avg
