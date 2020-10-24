@@ -1,0 +1,61 @@
+training_params:
+  log_step: 10
+  save_step: 1
+  encoder_path: /Volumes/Ubuntu/research_drugs/data/models_17_06/encoder-20-600.ckpt
+  decoder_path: /Volumes/Ubuntu/research_drugs/data/models_17_06/decoder-20-600.ckpt
+model:
+  encoder: se3cnn_resnet_after_se3cnn
+  encoder_kwargs:
+    lat_out: 256
+    nclouds: 2
+    emb_dim: 10
+    neighborradius: 2
+    cloudord: 2
+    cloud_dim: 5
+    natoms: 286
+    nffl: 1
+    ffl1size: 512
+    num_embeddings: 6
+    nradial: 3
+    nbasis: 3
+    rad_neurons : 150
+  decoder: lstm
+  decoder_kwargs:
+    vocab_size: 32
+    embed_size: 256
+    hidden_size: 256
+    num_layers: 1
+
+
+model_params: 
+  model_name: "e3nn"
+  num_epochs: 1
+  batch_size: 4
+  n_splits: 5
+  num_workers: 2
+  learning_rate: 0.001
+  input_channels: 22
+  feature_type: with_labels
+  representations: [(23,), (2, 2), (4, 4), (10,)]
+  network: kenneth
+
+output_parameters: 
+  savedir: /Volumes/Ubuntu/research_drugs/data/logs/
+  path_results: results/casf/tetris_middle_2/
+  path_tesnorboard_output: results/split_casf_2016_15.04_10_-6/tensorboard/tensorboard_manual_2016
+  path_losses_output: losses_predictions/losses_data_2016_1
+  pkd_path: pkd_predictions
+  name_plot: casf_tetris_middle_2
+  output_plots: results/plots/
+
+sampling_params: 
+  sampling: probabilistic
+  sample_id: 15
+  save_dir_smiles: /Volumes/Ubuntu/research_drugs/data/gen_smiles_test
+  number_smiles: 3
+  time_waiting: 25
+  type_fold: O
+  id_fold: 0
+  folds: /Volumes/Ubuntu/research_drugs/data/logs/test_idx_0
+  file_stat: 0_fold_stat.csv
+

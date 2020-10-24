@@ -36,32 +36,75 @@ number_atoms = 22
 class Utils:
     # def __init__(self, path_pocket: str, path_ligand: str):
     def __init__(self, config):
+        self.cfg = cfg
+        self.num_epochs = cfg['model_params']['num_epochs']
+        self.batch_size = cfg['model_params']['batch_size']
+        self.learning_rate = cfg['model_params']['learning_rate']
+        self.num_workers = cfg['model_params']['num_workers']
 
-        self.path_root = config["preprocessing"]["path_root"]
-        self.init_refined = self.path_root + "/data/new_refined/"
+        # training params
+        self.protein_dir = cfg['training_params']['image_dir']
+        self.caption_path = cfg['training_params']['caption_path']
+        self.log_step = cfg['training_params']['log_step']
+        self.save_step = cfg['training_params']['save_step']
+        self.vocab_path = cfg['preprocessing']['vocab_path']
+        self.n_splits = cfg['training_params']['n_splits']
+        self.loss_best = np.inf
 
-        # self.init_refined = path_root + "/data/refined_26.05/"
-        # self.init_refined = path_root + "/data/refined_26.05/"
-        # self.init_casf = path_root + "/core_processed_dataset"
-        self.init_casf = self.path_root + "/data/new_core_2016"
-        # self.init_casf = path_root + "/data/core_26.05"
-        # self.init_test_data = path_root + "/CASF/PDBbind_core_set_v2007.2.lst"
-        self.core_labels_data = (
-            self.path_root + "/data/CASF-2016/power_scoring/CoreSet.dat"
-        )
-        self.refined_labels_data = (
-            self.path_root + "/data/refined-set/index/INDEX_refined_data.2019"
-        )
+        #output files
+        self.savedir = cfg['output_parameters']['savedir']
+        self.tesnorboard_path = self.savedir
+        self.model_path = os.path.join(self.savedir, "models")
+        self.log_path = os.path.join(self.savedir, "logs")
+        self.idx_file = os.path.join(self.log_path, "idxs")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.save_dir_smiles = os.path.join(self.savedir, "statistics")
+        if not os.path.exists(self.log_path):
+            os.makedirs(self.log_path)
+        if not os.path.exists(self.idx_file):
+            os.makedirs(self.idx_file)
+        if not os.path.exists(self.model_path):
+            os.makedirs(self.model_path)
 
-        # self.init_refined = path_pocket
-        # self.init_refined = path_ligand
-        self.files_refined = os.listdir(self.init_refined)
-        self.files_refined.sort()
-        self.files_core = os.listdir(self.init_casf)
-        self.files_core.sort()
-        self.set_atoms = []
-        self.encoding_hot = {}
-        self.encoding_simple = {}
+        if not os.path.exists(self.save_dir_smiles):
+            os.makedirs(self.save_dir_smiles)
+
+        # self.path_root = config["preprocessing"]["path_root"]
+        # self.init_refined = self.path_root + "/data/new_refined/"
+
+        # # self.init_refined = path_root + "/data/refined_26.05/"
+        # # self.init_refined = path_root + "/data/refined_26.05/"
+        # # self.init_casf = path_root + "/core_processed_dataset"
+        # self.init_casf = self.path_root + "/data/new_core_2016"
+        # # self.init_casf = path_root + "/data/core_26.05"
+        # # self.init_test_data = path_root + "/CASF/PDBbind_core_set_v2007.2.lst"
+        # self.core_labels_data = (
+        #     self.path_root + "/data/CASF-2016/power_scoring/CoreSet.dat"
+        # )
+        # self.refined_labels_data = (
+        #     self.path_root + "/data/refined-set/index/INDEX_refined_data.2019"
+        # )
+
+        # # self.init_refined = path_pocket
+        # # self.init_refined = path_ligand
+        # self.files_refined = os.listdir(self.init_refined)
+        # self.files_refined.sort()
+        # self.files_core = os.listdir(self.init_casf)
+        # self.files_core.sort()
+        # self.set_atoms = []
+        # self.encoding_hot = {}
+        # self.encoding_simple = {}
+
+    def _get_random_split(self):
+        files_refined = os.listdir(self.protein_dir)
+        data_ids = np.array([i for i in range(len(files_refined) - 3)])
+        #cross validation
+        kf = KFold(n_splits=5, shuffle=True, random_state=2)
+        my_list = list(kf.split(data_ids))
+
+        #cross validation
+        kf = KFold(n_splits=5, shuffle=True, random_state=2)
+        my_list = list(kf.split(data_ids))
 
     def _get_labels_refined_core(self, path_refined: str, path_core: str):
         """ gives list of labels of refined and core datasets

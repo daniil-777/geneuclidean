@@ -4,6 +4,7 @@ import torch
 from torch import nn as nn
 
 
+
 class Attention_Hac(nn.Module):
     def __init__(self, feature_dim, step_dim, bias=True, **kwargs):
         super(Attention_Hac, self).__init__(**kwargs)

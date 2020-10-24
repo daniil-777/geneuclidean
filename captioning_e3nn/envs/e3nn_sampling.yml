@@ -5,7 +5,6 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - cudatoolkit=10.1
   - matplotlib
   - ninja=1.9.0
   - numpy

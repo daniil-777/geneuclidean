@@ -43,4 +43,5 @@ class Aggregate(nn.Module):
             else:
                 N = input.size(self.axis)
             y = y / N
+        y = y.unsqueeze(2).to(torch.float)
         return y

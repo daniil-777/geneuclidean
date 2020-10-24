@@ -18,19 +18,19 @@ model:
   encoder: network1
   encoder_kwargs:
     max_rad: 2
-    num_basis: 50
+    num_basis: 3
     n_neurons: 80
     n_layers: 2
     beta: 5
     rad_model: gaussian
     num_embeddings: 6
-    embed: 10
-    l0: 10
+    embed: 50
+    l0: 50
     L: 2
     scalar_act_name:  sp
     gate_act_name: sigmoid
     natoms: 286
-    mlp_h: 50
+    mlp_h: 200
     Out: 1
     aggregation_mode: avg
 
@@ -40,8 +40,8 @@ model:
   decoder_kwargs:
     vocab_size: 32
     vocab_path: ../data/vocab.pkl
-    embed_size: 100
-    hidden_size: 100
+    embed_size: 400
+    hidden_size: 400
     num_layers: 1
     beam_size: 20
 

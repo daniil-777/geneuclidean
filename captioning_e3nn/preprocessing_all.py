@@ -306,6 +306,8 @@ if __name__ == "__main__":
         "mlkit",
         "core2016",
     )
+    
+    process.dataset_all()
     process_core.dataset_all()
     # process._get_pockets_all_parallel(5, 5)
     # process.test_protein()

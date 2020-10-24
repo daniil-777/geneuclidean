@@ -181,10 +181,11 @@ class Trainer_Fold():
                 )
                 # print(result)
                 self.encoder_epoch_name =  os.path.join(
-                self.model_path, "encoder_epoch_" + str(epoch) + ".ckpt"
+                        self.model_path, "encoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
                     )
                 self.decoder_epoch_name =  os.path.join(
-                        self.model_path, "decoder_epoch_" + str(epoch) + ".ckpt")
+                        self.model_path, "decoder-{}-{}-{}.ckpt".format(split_no, epoch + 1, i + 1)
+                    )
                 torch.save(
                     encoder.state_dict(),
                     self.encoder_epoch_name,

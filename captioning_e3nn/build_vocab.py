@@ -60,7 +60,7 @@ def build_vocab(cfg):
     # dir_path = config["preprocessing"]["path_proteins"]
     dir_path = cfg['data']['path_refined']
     files_pr = os.listdir(dir_path)
-    # files_pr.remove(".DS_Store") #for my mac
+    files_pr.remove(".DS_Store") #for my mac
     max = 0
     counter = Counter()
     for file in files_pr:
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
      
-    cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
+    cfg = config.load_config(args.config, 'configurations/config_local/default.yaml')
     # with open(vocab_path, "r") as f:
     #     v = pickle.load(f) 
     # v = pickle.load( open( vocab_path, "rb" ) )   

@@ -49,7 +49,7 @@ model:
 
 
 model_params: 
-  model_name: e3nn_2
+  model_name: e3nn_2_b_10
   num_epochs: 100
   batch_size: 10
   n_splits: 5

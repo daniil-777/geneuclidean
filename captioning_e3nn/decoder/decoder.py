@@ -48,6 +48,7 @@ class DecoderRNN(nn.Module):
             captions
         )  # shape [batch_size, padded_length, embed_size]
         # embeddings = embeddings.to(torch.float)
+        # features = features.squeeze(-1)
         embeddings = torch.cat(
             (features.unsqueeze(1), embeddings), 1
         )  # shape [batch_size, padded_length + 1, embed_size]
@@ -56,7 +57,7 @@ class DecoderRNN(nn.Module):
             embeddings, lengths, batch_first=True
         
         )  # shape [packed_length, embed_size]
-        # packed = packed.to(torch.float())
+        # packed = packed.to(torch.double)
         hiddens, _ = self.lstm(packed)
         outputs = self.linear(hiddens[0])  # shape [packed_length, vocab_size]
         return outputs

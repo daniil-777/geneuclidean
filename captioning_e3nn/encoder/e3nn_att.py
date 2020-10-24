@@ -143,7 +143,7 @@ class AttentionE3nn(torch.nn.Module):
             )
             features = act(features)
             features = features * mask.unsqueeze(-1)
-        print("features shape after enc", features.shape)
+        # print("features shape after enc", features.shape)
         
         # out_net = OutputMLPNetwork(kernel_conv=kernel_conv, previous_Rs = self.Rs[-1],
         #                          l0 = self.l0, l1 = 0, L = 1, scalar_act=sp, gate_act=rescaled_act.sigmoid,
@@ -152,7 +152,7 @@ class AttentionE3nn(torch.nn.Module):
         features = features.to(torch.double)
         features = self.attention_hac(features)
         features = self.relu(self.linear(features))
-        print("shape out f", features.shape)
+        # print("shape out f", features.shape)
         # features = self.leakyrelu(self.bn_out_1(self.e_out_1(features))) # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
         # features = self.leakyrelu(self.bn_out_2(self.e_out_2(features)))
 

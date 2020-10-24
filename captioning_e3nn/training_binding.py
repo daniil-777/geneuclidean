@@ -50,7 +50,6 @@ def main():
 
     args = parser.parse_args()
 
-
     cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
     trainer = Trainer_Binding_Fold(cfg)
     trainer.train_epochs()
