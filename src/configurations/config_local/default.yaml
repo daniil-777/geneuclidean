@@ -1,0 +1,15 @@
+data:
+  path: /Volumes/Ubuntu/research_drugs/data/new_refined/
+  vocab_path: /Volumes/Ubuntu/research_drugs/data/vocab_new.pkl
+  path_refined: /Volumes/Ubuntu/research_drugs/data/new_refined
+  selection: filtered
+training_params:
+  image_dir: /Volumes/Ubuntu/research_drugs/data/new_refined
+  caption_path: /Volumes/Ubuntu/research_drugs/data/new_refined
+  model_path: /Volumes/Ubuntu/research_drugs/data/models
+
+preprocessing:
+  vocab_path: /Volumes/Ubuntu/research_drugs/data/vocab_new.pkl
+  path_root: /Volumes/Ubuntu/research_drugs
+  selection: filtered
+  

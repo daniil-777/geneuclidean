@@ -1,0 +1,15 @@
+data:
+  path: ../data/new_refined/
+  vocab_path: ../data/new_vocab.pkl
+  path_refined: ../data/new_refined
+  selection: filtered
+training_params:
+  image_dir: ../data/new_refined
+  caption_path: ../data/new_refined
+  model_path: ../data/models
+
+preprocessing:
+  vocab_path: ../data/new_vocab.pkl
+  path_root: ..
+  selection: filtered
+  
