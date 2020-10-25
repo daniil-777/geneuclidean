@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import ExponentialLR
 
 import argparse
 import sys
-import utils.config
+import utils.config as config
 from rdkit import Chem
 import json
 import os
