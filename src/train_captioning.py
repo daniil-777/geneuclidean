@@ -47,7 +47,7 @@ def main():
     parser.add_argument('idx_fold', type=str, help='Path to config file.')
     args = parser.parse_args()
                          
-    cfg = config.load_config(args.config, 'configurations/config_local/default.yaml')
+    cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
     type_fold = args.type_fold
     idx_fold = args.idx_fold
     savedir = cfg["output_parameters"]["savedir"]
