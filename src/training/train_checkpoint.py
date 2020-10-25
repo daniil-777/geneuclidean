@@ -191,7 +191,7 @@ class Trainer_Fold():
             handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
             fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
             mem = fb_mem_info.used >> 20
-            mem = 0
+            # mem = 0
             # print('GPU memory usage: ', mem)
             self.writer_train.add_scalar('val/gpu_memory', mem, epoch)
             # Print log info
