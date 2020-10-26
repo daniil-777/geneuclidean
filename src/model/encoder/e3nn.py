@@ -61,7 +61,7 @@ def constants(geometry, mask):
 
 class Network(torch.nn.Module):
     def __init__(self,  max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
-                 embed, l0,  l1,  L, scalar_act_name, gate_act_name, natoms, mlp_h, Out, output, aggregation_mode):
+                 embed, l0,  l1,  L, scalar_act_name, gate_act_name, natoms, mlp_h, Out, middle, output, aggregation_mode):
         super().__init__()
         self.natoms = natoms #286
         self.ssp = rescaled_act.ShiftedSoftplus(beta = beta)
@@ -69,6 +69,7 @@ class Network(torch.nn.Module):
         self.l0 = l0
         self.l1 = l1
         self.output = output
+        self.middle = middle
         if(scalar_act_name == "sp"):
             scalar_act = self.sp
         
@@ -110,10 +111,10 @@ class Network(torch.nn.Module):
         self.layers = torch.nn.ModuleList([torch.nn.Embedding(self.num_embeddings, embed, padding_idx=5)])
         self.layers += [make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])]
         self.leakyrelu = nn.LeakyReLU(0.2) # Relu
-        self.e_out_1 = nn.Linear(mlp_h, mlp_h)
+        self.e_out_1 = nn.Linear(mlp_h, self.middle)
         self.bn_out_1 = nn.BatchNorm1d(natoms)
 
-        self.e_out_2 = nn.Linear(mlp_h, self.output)
+        self.e_out_2 = nn.Linear(self.middle, self.output)
         self.bn_out_2 = nn.BatchNorm1d(natoms)
         torch.autograd.set_detect_anomaly(True) 
 
@@ -147,7 +148,8 @@ class Network(torch.nn.Module):
         #                          l0 = self.l0, l1 = 0, L = 1, scalar_act=sp, gate_act=rescaled_act.sigmoid,
         #                           mlp_h = 128, mlp_L = 1, natoms = 286)
         # features = out_net(features, geometry, mask)
-        features = self.leakyrelu(self.bn_out_1(self.e_out_1(features))) # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
+        # features = self.leakyrelu(self.bn_out_1(self.e_out_1(features))) # shape [batch, 2 * cloud_dim * (self.cloud_order ** 2) * nclouds]
+        features = self.leakyrelu(self.bn_out_1(self.e_out_1(features)))
         features = self.leakyrelu(self.bn_out_2(self.e_out_2(features)))
 
         # if self.atomref is not None:
