@@ -1,15 +1,15 @@
 
-if ! [ -d data ]
+if ! [ -d ../../data ]
 then 
    mkdir data
 fi
 
-cd data
+cd ../../data
 
 echo "Retrieving PDBbind refined dataset . . . "
 wget http://www.pdbbind.org.cn/download/pdbbind_v2019_refined.tar.gz
 echo "Extracting refined files . . . "
-tar -xvf pdbbind_v2019_refined.tar.gz -d refined-det
+tar -xvf pdbbind_v2019_refined.tar.gz -d refined-set
 
 rm pdbbind_v2019_refined.tar.gz
 
