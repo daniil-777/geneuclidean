@@ -34,20 +34,20 @@ from evaluation.Contrib.statistics import analysis_to_csv, analysis_to_csv_test
 from training.utils import save_checkpoint_sampling
 
 class Sampler():
-    def __init__(self, cfg, sampling):
-        # model params
-        #sampling params
-        # self.idx_fold = idx_fold
+    def __init__(self, cfg, sampling, Feature_Loader):
         self.cfg = cfg
+        self.Feature_Loader = Feature_Loader
         self.path_root = cfg['preprocessing']['path_root']
         self.init_refined = self.path_root + "/data/new_refined/"
         self.files_refined = os.listdir(self.init_refined)
+        self.files_refined.sort()
+        if (".DS_Store" in self.files_refined):
+            self.files_refined.remove(".DS_Store")
+        
         self.attention = self.cfg['training_params']['mode']
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # self.device = torch.device("cpu")
         self.sampling = sampling
-        # self.sampling = cfg['sampling_params']['sampling']
-
         self.model_encoder =  cfg['model']['encoder']
         print(self.model_encoder)
         self.model_decoder =  cfg['model']['decoder']
@@ -58,10 +58,6 @@ class Sampler():
         #     self.number_smiles = 1
         self.time_waiting = cfg["sampling_params"]["time_waiting"]
         self.type_fold = cfg["sampling_params"]["type_fold"]
-        # self.file_folds = cfg["sampling_params"]["folds"]
-        
-        # self.file_folds = os.path.join()
-    
         # model params
         self.model_name = cfg['model_params']['model_name']
         self.num_epochs = cfg['model_params']['num_epochs']
@@ -81,19 +77,14 @@ class Sampler():
         self.tesnorboard_path = self.savedir
         self.log_path = os.path.join(self.savedir, "logs")
         self.idx_file = os.path.join(self.log_path, "idxs")
-        
         #encoder/decoder path
         # self.encoder_path = os.path.join(self.savedir, "models", cfg['training_params']['encoder_name']) 
         # self.decoder_path = os.path.join(self.savedir, "models", cfg['training_params']['decoder_name'])
         self.save_dir_encodings = os.path.join(self.savedir, "encodings")
         #sampling params
+        os.makedirs(self.save_dir_smiles, exist_ok=True)
+        os.makedirs(self.save_dir_encodings, exist_ok=True)
         
-        if not os.path.exists(self.save_dir_smiles):
-            os.makedirs(self.save_dir_smiles)
-
-        if not os.path.exists(self.save_dir_encodings):
-            os.makedirs(self.save_dir_encodings)
-
         with open(self.vocab_path, "rb") as f:
             self.vocab = pickle.load(f)
 
@@ -102,7 +93,6 @@ class Sampler():
     
     def analysis_cluster(self, split_no, type_fold, encoder_path, decoder_path):
         # encoder, decoder = self._get_model_path(idx_fold)
-        
         self.idx_fold = split_no
         self.type_fold = type_fold
         self.name_file_stat = self.sampling + "_" + str(self.type_fold) + "_" + self.idx_fold + ".csv"
@@ -131,7 +121,6 @@ class Sampler():
             idx_to_generate = np.setdiff1d(idx_all, idx_proteins)
         else:
             idx_to_generate = idx_proteins
-            
         #sampling checkpoint
         end_idx = len(idx_to_generate)
         for idx in range(start_ind_protein, end_idx):
@@ -141,10 +130,6 @@ class Sampler():
             save_checkpoint_sampling(self.checkpoint_sampling_path, next_idx, idx_sample)
             if (next_idx == 0):
                 save_checkpoint_sampling(self.checkpoint_sampling_path, next_idx, idx_sample + 1)
-        
-        # for id_protein in idx_to_generate:
-        #     self.generate_smiles(id_protein)
-
 
     def _get_models(self, idx_fold):
         encoder_path, decoder_path = self._get_model_path(idx_fold)
@@ -158,16 +143,18 @@ class Sampler():
         decoder_path = os.path.join(self.savedir, "models", decoder_name)
         return encoder_path, decoder_path
 
-
     def load_pocket(self, id_protein, transform=None):
         print("loading data of a protein", self.dataset._get_name_protein(id_protein))
-        features, masks = self.dataset._get_features_complex(id_protein)
-        geometry = self.dataset._get_geometry_complex(id_protein)
+        # features, masks = self.dataset._get_features_complex(id_protein)
+        # geometry = self.dataset._get_geometry_complex(id_protein)
+        # features = features.to(self.device).unsqueeze(0)
+        # geometry = geometry.to(self.device).unsqueeze(0)
+        # masks = masks.to(self.device).unsqueeze(0)
+        features, masks, geometry = self.Feature_Loader._get_feat_geo_from_file(id_protein)
         features = features.to(self.device).unsqueeze(0)
         geometry = geometry.to(self.device).unsqueeze(0)
         masks = masks.to(self.device).unsqueeze(0)
         return features, geometry, masks
-
 
     def generate_encodings(self, id):
         #generate features of encoder and writes it to files
@@ -319,7 +306,7 @@ class Sampler():
 
             
 
-    def analysis_all():
+    def analysis_all(self):
         #for every fold takes indicies for the test, generates smiles and builds statistics
         num_folds = 3
         # all_stat = np.empty((1, 8))
@@ -331,8 +318,7 @@ class Sampler():
             for id_protein in idx_proteins:
                 self.generate_smiles(id_protein)
             
-    
-    def test_analysis_all():
+    def test_analysis_all(self):
         #for every fold takes indicies for the test, generates smiles and builds statistics
         num_folds = 3
         all_stat = []
