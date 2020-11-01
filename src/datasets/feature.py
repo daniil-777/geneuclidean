@@ -73,8 +73,8 @@ class Featuring():
            2. padds feat/geo tensors with zeros till the max length
            3. writes resulting tensor to the file
         """
-        # length_max = self._get_length_max()
-        length_max = 150
+        length_max = self._get_length_max()
+        # length_max = 150
         progress = tqdm(range(len(self.files_refined)))
         for id in progress:
             progress.set_postfix({'pdb': self.files_refined[id]})
