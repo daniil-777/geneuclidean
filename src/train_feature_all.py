@@ -50,8 +50,8 @@ def main():
     parser.add_argument('--type_feature', type=str , default='mass_charge', help='type_feature')
     parser.add_argument('--type_filtering', type=str , default = 'all', help='type_filtering')
     parser.add_argument('--h_filterig', type=str , default='without_h', help='h')
-    parser.add_argument('type_fold', type=str, help='type_fold')
-    parser.add_argument('idx_fold', type=str, help='Path to config file.')
+    parser.add_argument('--type_fold', type=str, help='type_fold')
+    parser.add_argument('--idx_fold', type=str, help='Path to config file.')
     args = parser.parse_args()
                          
     cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
