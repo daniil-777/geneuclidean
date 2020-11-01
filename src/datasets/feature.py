@@ -47,7 +47,7 @@ class Featuring():
             self.files_refined.remove(".DS_Store")
         self.files_refined.sort()
         
-        if self.check_featuring():
+        if not self.check_featuring():
             self.max_length = 0
             self.write_filtered_pad_feat_geo()
         else:
