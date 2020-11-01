@@ -11,8 +11,8 @@ from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
 # import dictionary of atoms' types and hot encoders
-from datasets.dictionaries import atom_most_common, dict_atoms_hot, dict_atoms_simple
-from datasets.feature import Featuring
+from src.datasets.dictionaries import atom_most_common, dict_atoms_hot, dict_atoms_simple
+from src.datasets.feature import Featuring
 # number_atoms_unique = 22
 import pickle
 

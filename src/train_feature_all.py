@@ -1,6 +1,6 @@
 
 import argparse
-import utils.config as config
+import src.utils.config as config
 import multiprocessing
 
 import numpy as np
@@ -28,16 +28,16 @@ import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
 from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
-from utils.build_vocab import Vocabulary
-from datasets.data_loader import get_loader, Pdb_Dataset, collate_fn, collate_fn_masks
-from training.train_check_att_vis import Trainer_Attention_Check_Vis
-from training.train_checkpoint import Trainer_Fold
-from training.train_feature import Trainer_Fold_Feature
-from sampling.sampler import Sampler
-from datasets.split import Splitter
-from training.utils import save_checkpoint_sampling
-from evaluation.analysis import plot_all
-from main.src.datasets.feature import Featuring
+from src.utils.build_vocab import Vocabulary
+from src.datasets.data_loader import get_loader, Pdb_Dataset, collate_fn, collate_fn_masks
+from src.training.train_check_att_vis import Trainer_Attention_Check_Vis
+from src.training.train_checkpoint import Trainer_Fold
+from src.training.training_feature import Trainer_Fold_Feature
+from src.sampling.sampler import Sampler
+from src.datasets.split import Splitter
+from src.training.utils import save_checkpoint_sampling
+from src.evaluation.analysis import plot_all
+from src.datasets.feature import Featuring
 
 
 def main():

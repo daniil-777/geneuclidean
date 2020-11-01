@@ -29,9 +29,9 @@ import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
 
 from utils.build_vocab import Vocabulary
-from datasets.data_loader import Pdb_Dataset
-from evaluation.Contrib.statistics import analysis_to_csv, analysis_to_csv_test
-from training.utils import save_checkpoint_sampling
+from src.datasets.data_loader import Pdb_Dataset
+from src.evaluation.Contrib.statistics import analysis_to_csv, analysis_to_csv_test
+from src.training.utils import save_checkpoint_sampling
 
 class Sampler():
     def __init__(self, cfg, sampling, Feature_Loader):
