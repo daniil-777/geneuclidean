@@ -28,7 +28,7 @@ import numpy as np
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
 
-from utils.build_vocab import Vocabulary
+from src.utils.build_vocab import Vocabulary
 from src.datasets.data_loader import Pdb_Dataset
 from src.evaluation.Contrib.statistics import analysis_to_csv, analysis_to_csv_test
 from src.training.utils import save_checkpoint_sampling
@@ -40,9 +40,8 @@ class Sampler():
         self.path_root = cfg['preprocessing']['path_root']
         self.init_refined = self.path_root + "/data/new_refined/"
         self.files_refined = os.listdir(self.init_refined)
+        self.files_refined = [file for file in self.files_refined if file[0].isdigit()]
         self.files_refined.sort()
-        if (".DS_Store" in self.files_refined):
-            self.files_refined.remove(".DS_Store")
         
         self.attention = self.cfg['training_params']['mode']
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -103,7 +102,6 @@ class Sampler():
         if (len(open(self.path_to_file_stat).readlines()) == 0):
             self.file_statistics.write("name,fold,type_fold,orig_smile,gen_smile,gen_NP,gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity,orig_NP,orig_logP,orig_sa,orig_qed,orig_weight,frequency,sampling,encoder,decoder" +  "\n")
             self.file_statistics.flush()
-        
         checkpoint_sampling = torch.load(self.checkpoint_sampling_path)
         print("loading start_ind_protein...")
         start_ind_protein = checkpoint_sampling['idx_sample_start']

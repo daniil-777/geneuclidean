@@ -39,6 +39,7 @@ class Pdb_Dataset_Feature(Dataset):
         # )
         ##################refined files###################
         self.files_refined = os.listdir(self.init_refined)
+        self.files_refined = [file for file in self.files_refined if file[0].isdigit()]
         self.files_refined.sort()
         if (".DS_Store" in self.files_refined):
             self.files_refined.remove(".DS_Store")

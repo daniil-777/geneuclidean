@@ -43,8 +43,7 @@ class Featuring():
         self.h_filterig = h_filterig
         ##################refined files###################
         self.files_refined = os.listdir(self.init_refined)
-        if (".DS_Store" in self.files_refined):
-            self.files_refined.remove(".DS_Store")
+        self.files_refined = [file for file in self.files_refined if file[0].isdigit()]
         self.files_refined.sort()
         
         if not self.check_featuring():
