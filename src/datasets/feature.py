@@ -15,6 +15,7 @@ from moleculekit.tools.atomtyper import prepareProteinForAtomtyping, getFeatures
 from moleculekit.tools.voxeldescriptors import getChannels
 # import dictionary of atoms' types and hot encoders
 from src.datasets.dictionaries import atom_most_common, dict_atoms_hot, dict_atoms_simple, dict_atoms_masses, dict_atoms_charges
+from src.utils.checkpoint import save_checkpoint_feature
 
 # from dict 
 class Featuring():
@@ -45,8 +46,25 @@ class Featuring():
         self.files_refined = os.listdir(self.init_refined)
         self.files_refined = [file for file in self.files_refined if file[0].isdigit()]
         self.files_refined.sort()
+         
+        array_names = [str(radious), self.type_feature, self.type_filtering, self.h_filterig]
+        self.name_checkpoint_features = '_'.join(array_names)
+        os.makedirs(os.path.join(self.path_data, "checkpoints"), exist_ok=True)
+        self.path_checkpoint_features = os.path.join(self.path_data, "checkpoints", self.name_checkpoint_features + ".pkl")
+        if (os.path.exists(self.path_checkpoint_features)):
+            print("loading feature ids...")
+            checkpoint_features = torch.load(self.path_checkpoint_features)
+            self.idx_max_length = checkpoint_features['idx_max_length']
+            self.max_length = checkpoint_features['max_length']
+            self.idx_write = checkpoint_features['idx_write']
+        else:
+            self.idx_max_length = 130
+            self.max_length = 0
+            self.idx_write = 0
+            save_checkpoint_feature(self.path_checkpoint_features, self.idx_max_length, self.max_length, self.idx_write)
         
         if not self.check_featuring():
+            print("calculating max length...")
             self.max_length = 0
             self.write_filtered_pad_feat_geo()
         else:
@@ -74,8 +92,9 @@ class Featuring():
            3. writes resulting tensor to the file
         """
         length_max = self._get_length_max()
+        data_list = range(self.idx_write, len(self.files_refined))
         # length_max = 150
-        progress = tqdm(range(len(self.files_refined)))
+        progress = tqdm(data_list)
         for id in progress:
             progress.set_postfix({'pdb': self.files_refined[id]})
             feat_filt_padded, masks, geo_filt_padded = self._get_features_geo_padded(id, length_max)
@@ -83,6 +102,7 @@ class Featuring():
             torch.save(feat_filt_padded, path_feature)
             torch.save(masks, path_mask)
             torch.save(geo_filt_padded, path_geo)
+            save_checkpoint_feature(self.path_checkpoint_features, len(self.files_refined), self.max_length, id)
         self.write_checkpoint()
 
     def _get_name_save(self, id: int):
@@ -144,7 +164,8 @@ class Featuring():
         Returns:
             [int]: [maximum length]
         """
-        data_list = list(range(len(self.files_refined)))
+        # data_list = list(range(len(self.files_refined)))
+        data_list = range(self.idx_max_length, len(self.files_refined))
         progress = tqdm(data_list)
     
         for pdb_id in progress:
@@ -155,6 +176,7 @@ class Featuring():
             progress.set_postfix({'pdb': self.files_refined[pdb_id],
                                   'length': length,
                                   'max_langth': self.max_length})
+            save_checkpoint_feature(self.path_checkpoint_features, pdb_id, self.max_length, id)
         return self.max_length
 
     def _get_features_geo_filtered(self, id):
@@ -167,11 +189,11 @@ class Featuring():
         """
         features, geometry = self._get_features_geo(id)
         mask = self._get_mask_selected_atoms_pocket(id)
-        print("feat shape", features.shape)
-        print("geo shape", geometry.shape)
-        print("mask shape", len(mask))
+        # print("feat shape", features.shape)
+        # print("geo shape", geometry.shape)
+        # print("mask shape", len(mask))
         features_filtered, geometry_filtered = features[mask, :], geometry[mask, :]
-        print("shape feat_filt", features_filtered.shape)
+        # print("shape feat_filt", features_filtered.shape)
         features_filtered = torch.from_numpy(features_filtered).squeeze()
         geometry_filtered = torch.from_numpy(geometry_filtered).squeeze()
         return features_filtered, geometry_filtered
