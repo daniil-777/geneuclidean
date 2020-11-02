@@ -1,5 +1,7 @@
 import os
 import multiprocessing
+import shutil
+from distutils.dir_util import copy_tree
 from multiprocessing import Pool
 from functools import partial
 import re
@@ -84,6 +86,10 @@ class Featuring():
         #     self.max_length = f.shape[0]
 
     def run_parallel_write(self):
+        self.files_refined = os.listdir(self.init_refined)
+        self.files_refined = [file for file in self.files_refined if file[0].isdigit()]
+        self.files_refined.sort()
+        self.idx_files_refined = list(range(0, len(self.files_refined)))
         with Pool(processes=8) as pool:
             pool.map(self.write_padd_feat_geo, self.idx_files_refined)
         self.write_checkpoint()
@@ -311,16 +317,23 @@ class Featuring():
             [np.array]: [array of pharmacophoric properties [N_atoms, dim_feature]]
         """
         #pocket
-        path_protein, _ = self._get_path(id)
-        protein_name = self.files_refined[id]
-        mol = Molecule(path_protein)
-        mol.filter('protein')
-        mol = prepareProteinForAtomtyping(mol, verbose = False)
+        try:
+            path_protein, _ = self._get_path(id)
+            protein_name = self.files_refined[id]
+            mol = Molecule(path_protein)
+            mol.filter('protein')
+            mol = prepareProteinForAtomtyping(mol, verbose = False)
 
-        features = getChannels(mol, version=2)
-        features = (features[0] > 0).astype(np.float32)
-        features = np.asarray(features[:, :-1])
+            features = getChannels(mol, version=2)
+            features = (features[0] > 0).astype(np.float32)
+            features = np.asarray(features[:, :-1])
         # print("feat shape bio - ", features.shape)
+        except RuntimeError:
+            path_to_exceptions = os.path.join(self.path_data, "exceptions")
+            path_protein_folder = os.path.join(self.init_refined, protein_name)
+            os.makedirs(self.path_to_exceptions, exist_ok=True)
+            copy_tree(path_protein_folder, path_to_exceptions)
+            shutil.rmtree(path_protein_folder)
         return features
     
     def _get_mask_selected_atoms_pocket(
