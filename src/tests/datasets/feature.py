@@ -404,7 +404,7 @@ class Featuring():
             path_protein, path_lig = self._get_path(2)
             mol_pocket = Molecule(path_protein)
             mol_pocket_element = mol_pocket.element
-        return mol_pocket_element
+        return list(set(mol_pocket_element))
 
 
 

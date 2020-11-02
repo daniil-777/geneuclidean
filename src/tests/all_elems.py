@@ -60,7 +60,7 @@ def main():
     parser.add_argument('--idx_fold', type=str, help='idx fold')
     args = parser.parse_args()
                          
-    cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
+    cfg = config.load_config(args.config, 'configurations/config_local/default.yaml')
     type_fold = args.type_fold
     idx_fold = args.idx_fold
     savedir = cfg["output_parameters"]["savedir"]
@@ -69,20 +69,20 @@ def main():
     #features generation
     Feature_gen = Featuring(cfg, args.radious, args.type_feature, args.type_filtering, args.h_filterig)
 
-    def get_unique_elems(pid):
-        all_elems = list(set(Feature_gen._get_all_elem_general(pid)))
-        return list(set(Feature_gen._get_all_elems(pid)))
-
     with Pool(processes=8) as pool:
-        all_elems = pool.map(get_unique_elems, Feature_gen.idx_files_refined)
+        all_elems = pool.map(Feature_gen._get_all_elem_general, Feature_gen.idx_files_refined)
     all_elems = list(set(all_elems))
     print("all_elems - ", all_elems)
-        # with tqdm(total=len(Feature_gen.idx_files_refined)) as pbar:
-        #     for i, res in tqdm(enumerate(pool.imap_unordered(Feature_gen._get_length, Feature_gen.idx_files_refined))):
-        #         all_elems.append(res)
-        #         pbar.update()
-        # all_elems = list(set(all_elems))
-        # print("all_elems - ", all_elems)
+
+    # with Pool(processes=8) as pool:
+    #     all_elems = []
+    #     # all_elems = pool.map(get_unique_elems, Feature_gen.idx_files_refined)
+    #     with tqdm(total=len(Feature_gen.idx_files_refined)) as pbar:
+    #         for i, res in tqdm(enumerate(pool.imap_unordered(Feature_gen._get_length, Feature_gen.idx_files_refined))):
+    #             all_elems.append(res)
+    #             pbar.update()
+    #     all_elems = list(set(all_elems))
+    #     print("all_elems - ", all_elems)
     # for pid in Feature_gen.idx_files_refined:
     #     all_elems = list(set(Feature_gen._get_all_elems(pid)))
     #     # print("all_elems", list(set(all_elems)))
