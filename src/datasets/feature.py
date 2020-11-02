@@ -320,6 +320,7 @@ class Featuring():
         try:
             path_protein, _ = self._get_path(id)
             protein_name = self.files_refined[id]
+            print("processing...", protein_name)
             mol = Molecule(path_protein)
             mol.filter('protein')
             mol = prepareProteinForAtomtyping(mol, verbose = False)
