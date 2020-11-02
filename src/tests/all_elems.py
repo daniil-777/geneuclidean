@@ -60,7 +60,7 @@ def main():
     parser.add_argument('--idx_fold', type=str, help='idx fold')
     args = parser.parse_args()
                          
-    cfg = config.load_config(args.config, 'configurations/config_local/default.yaml')
+    cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
     type_fold = args.type_fold
     idx_fold = args.idx_fold
     savedir = cfg["output_parameters"]["savedir"]
@@ -68,7 +68,7 @@ def main():
     num_epoches = cfg["model_params"]["num_epochs"]
     #features generation
     Feature_gen = Featuring(cfg, args.radious, args.type_feature, args.type_filtering, args.h_filterig)
-    
+
     def get_unique_elems(pid):
         all_elems = list(set(Feature_gen._get_all_elem_general(pid)))
         return list(set(Feature_gen._get_all_elems(pid)))
