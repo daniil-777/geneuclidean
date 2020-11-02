@@ -20,7 +20,7 @@ model:
     encoding: linear
     max_rad: 2
     num_basis: 2
-    n_neurons: 10
+    n_neurons: 80
     n_layers: 1
     beta: 5
     rad_model: gaussian
@@ -31,7 +31,7 @@ model:
     gate_act_name: sigmoid
     middle: 30
     output: 30
-    fc_sizes: "[[40,200], [200, 500]]"
+    fc_sizes: "[[80,200], [200, 500]]"
     aggregation_mode: avg
   
   decoder: lstm

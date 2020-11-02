@@ -20,7 +20,7 @@ model:
     encoding: linear
     max_rad: 2
     num_basis: 2
-    n_neurons: 10
+    n_neurons: 80
     n_layers: 1
     beta: 5
     rad_model: gaussian
