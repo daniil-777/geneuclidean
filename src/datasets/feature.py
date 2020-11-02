@@ -91,6 +91,14 @@ class Featuring():
     def run_parallel_max_length(self):
         with Pool(processes=8) as pool:
             lengthes = pool.map(self._get_length, self.idx_files_refined) 
+        # lengthes = []
+        # with Pool(processes=8) as pool:
+        #     with tqdm(total=len(self.idx_files_refined)) as pbar:
+        #         for i, res in tqdm(enumerate(pool.imap_unordered(self._get_length, self.idx_files_refined))):
+        #             lengthes.append(res)
+        #             pbar.update()
+            # lengthes = list(tqdm.tqdm(pool.imap(self._get_length, self.idx_files_refined), total=len(self.idx_files_refined)))
+            # lengthes = pool.map(self._get_length, self.idx_files_refined) 
         self.max_length = max(lengthes)
         print("********max********* - ", self.max_length)
     
@@ -391,6 +399,22 @@ class Featuring():
             mol_pocket = Molecule(path_protein)
             mol_pocket_element = mol_pocket.element
         return mol_pocket_element
+
+    def _get_all_elem_general(self, protein_id: int):
+        path_protein, _ = self._get_path(protein_id)
+        try:
+            # mol_pocket = Molecule(path_protein)
+            mol_protein = Molecule(path_protein)
+            mol_protein.filter('protein')
+            mol_pocket_element = mol_protein.element
+        except FileNotFoundError:
+            print(protein_id, "   exception")
+            path_protein, path_lig = self._get_path(2)
+            mol_pocket = Molecule(path_protein)
+            mol_pocket_element = mol_pocket.element
+        return mol_pocket_element
+
+
 
  
     def _get_geometry_protein(self, protein_id: int):
