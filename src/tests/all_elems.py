@@ -42,7 +42,7 @@ from src.sampling.sampler import Sampler
 from src.datasets.split import Splitter
 from src.training.utils import save_checkpoint_sampling
 from src.evaluation.analysis import plot_all
-from src.datasets.feature import Featuring
+from src.tests.datasets.feature import Featuring
 import warnings
 warnings.filterwarnings("ignore")
 
