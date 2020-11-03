@@ -36,7 +36,7 @@ model:
   decoder: lstm
   decoder_kwargs:
     vocab_size: 52
-    vocab_path: /Volumes/Ubuntu/research_drugs/data/new_vocab.pkl
+    vocab_path: ../data/new_vocab.pkl
     embed_size: 500
     hidden_size: 500
     num_layers: 1
