@@ -72,10 +72,10 @@ class Featuring():
        
     def run_parallel_write_feat_geo(self):
         print("writing filtered features/geo...")
-        with Pool(processes=2) as pool:
+        with Pool(processes=8) as pool:
             pool.map(self.write_padd_feat_geo, self.idx_files_refined)
         print("max length calculating...")
-        with Pool(processes=2) as pool:
+        with Pool(processes=8) as pool:
             lengthes = pool.map(self._get_max_length_from_files, self.idx_files_refined)
         self.max_length = max(lengthes)
         print("max length - ", self.max_length)
