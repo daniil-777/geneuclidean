@@ -28,6 +28,7 @@ class Featuring():
     def __init__(self, cfg, radious, type_feature, type_filtering, h_filterig):
         """uses cfg file which is given as arg in "python train_captioning.py"
         """
+        print("begin!")
         self.path_root = cfg['preprocessing']['path_root']
         self.path_data = cfg['data']['path']
         self.path_checkpoint = os.path.join(self.path_data,  "preprocess_checkpoint.csv")
@@ -37,7 +38,8 @@ class Featuring():
             print("creating the file...")
             with open(self.path_checkpoint,  "a+") as f:
                 f.write('radious,type_feature,type_filtering,h_filterig'+ "\n")
-        self.init_refined = self.path_root + "/data/new_refined/"
+        # self.init_refined = self.path_root + "/data/new_refined/"
+        self.init_refined = cfg['data']['path_refined']
         self.init_casf = self.path_root + "/data/new_core_2016/"
         self.dict_atoms = dict_atoms_hot
         self.dict_atoms_simple = dict_atoms_simple
@@ -56,34 +58,69 @@ class Featuring():
         # self.idx_files_refined = [0, 1]
         self.max_length = 0
         if not self.check_featuring():
-            print("calculating max length...")
-            self.run_parallel_max_length()
-            print("writing to files...")
-            self.run_parallel_write()
+            # print("staaart!!!!!!!!!!")
+            self.run_parallel_write_feat_geo()
+            # print("calculating max length...")
+            # self.run_parallel_max_length()
+            # print("writing to files...")
+            # self.run_parallel_write()
         else:
-            f, m, g = self._get_feat_geo_from_file(0)
+            # print("nooo!")
+            f, m, g = self._get_feat_geo_from_file(1)
             self.max_length = f.shape[0]
-        # array_names = [str(radious), self.type_feature, self.type_filtering, self.h_filterig]
-        # self.name_checkpoint_features = '_'.join(array_names)
-        # os.makedirs(os.path.join(self.path_data, "checkpoints"), exist_ok=True)
-        # self.path_checkpoint_features = os.path.join(self.path_data, "checkpoints", self.name_checkpoint_features + ".pkl")
-        # if (os.path.exists(self.path_checkpoint_features)):
-        #     print("loading feature ids...")
-        #     checkpoint_features = torch.load(self.path_checkpoint_features)
-        #     self.idx_max_length = checkpoint_features['idx_max_length']
-        #     self.max_length = checkpoint_features['max_length']
-        #     self.idx_write = checkpoint_features['idx_write']
-        # else:
-        #     self.idx_max_length = 130
-        #     self.max_length = 0
-        #     self.idx_write = 0
-        #     save_checkpoint_feature(self.path_checkpoint_features, self.idx_max_length, self.max_length, self.idx_write)
+            print(self.max_length)
+       
+    def run_parallel_write_feat_geo(self):
+        print("writing filtered features/geo...")
+        with Pool(processes=2) as pool:
+            pool.map(self.write_padd_feat_geo, self.idx_files_refined)
+        print("max length calculating...")
+        with Pool(processes=2) as pool:
+            lengthes = pool.map(self._get_max_length_from_files, self.idx_files_refined)
+        self.max_length = max(lengthes)
+        print("max length - ", self.max_length)
+        self.files_refined = os.listdir(self.init_refined)
+        self.files_refined = [file for file in self.files_refined if file[0].isdigit()]
+        self.files_refined.sort()
+        self.idx_files_refined = list(range(0, len(self.files_refined)))
+        print("padding...")
+        with Pool(processes=8) as pool:
+            pool.map(self.files_to_padded, self.idx_files_refined)
+        self.write_checkpoint()
 
-            # self.max_length = 0
-            # self.write_filtered_pad_feat_geo()
-        # else:
-        #     f, m, g = self._get_feat_geo_from_file(0)
-        #     self.max_length = f.shape[0]
+    def write_padd_feat_geo(self, id):
+        feat_filt_padded, geo_filt_padded = self._get_features_geo_filtered(id)
+        path_feature, path_mask, path_geo = self._get_name_save(id)
+        torch.save(feat_filt_padded, path_feature)
+        torch.save(geo_filt_padded, path_geo)
+
+    def _get_max_length_from_files(self, id):
+        path_feature, path_mask, path_geo = self._get_name_save(id)
+        feature_filt = torch.load(path_feature, map_location=torch.device('cpu')).long()
+        length = feature_filt.shape[0]
+        return length
+
+    def files_to_padded(self, id):
+        path_feature, path_mask, path_geo = self._get_name_save(id)
+        feature_filt = torch.load(path_feature, map_location=torch.device('cpu')).long()
+        geo_filt = torch.load(path_geo, map_location=torch.device('cpu')).long()
+        length_padding = self.max_length - feature_filt.shape[0]
+        mask_binary = torch.cat([torch.ones(feature_filt.shape[0]),torch.zeros(length_padding)]).squeeze()
+        feat_filt_padded = F.pad(
+            input=feature_filt,
+            pad=(0, 0, 0, length_padding),
+            mode="constant",
+            value = 0,
+        )
+        geo_filt_padded = F.pad(
+            input=geo_filt,
+            pad=(0, 0, 0,  length_padding),
+            mode="constant",
+            value=99,
+        )
+        torch.save(feat_filt_padded, path_feature)
+        torch.save(mask_binary, path_mask)
+        torch.save(geo_filt_padded, path_geo)
 
     def run_parallel_write(self):
         self.files_refined = os.listdir(self.init_refined)
@@ -107,18 +144,21 @@ class Featuring():
             # lengthes = pool.map(self._get_length, self.idx_files_refined) 
         self.max_length = max(lengthes)
         print("********max********* - ", self.max_length)
-    
+
+    def run_parallel_write_filt_feat_geo(self):
+        features_filt, geo_filt = self._get_features_geo_filtered(id)
+        path_feature, path_mask, path_geo = self._get_name_save(id)
+        torch.save(feat_filt, path_feature)
+        torch.save(masks, path_mask)
+        torch.save(geo_filt_padded, path_geo)
+        with Pool(processes=8) as pool:
+            lengthes = pool.map(self._get_length, self.idx_files_refined)
+
+   
     def _get_length(self, pdb_id):
         features_filt, geo_filt = self._get_features_geo_filtered(pdb_id)
         length = features_filt.shape[0]
         return length
-
-    def write_padd_feat_geo(self, id):
-        feat_filt_padded, masks, geo_filt_padded = self._get_features_geo_padded(id, self.max_length)
-        path_feature, path_mask, path_geo = self._get_name_save(id)
-        torch.save(feat_filt_padded, path_feature)
-        torch.save(masks, path_mask)
-        torch.save(geo_filt_padded, path_geo)
 
     def _get_feat_geo_from_file(self, id):
         """reads torch tensors of feature/geo from files
@@ -332,7 +372,7 @@ class Featuring():
         except RuntimeError:
             path_to_exceptions = os.path.join(self.path_data, "exceptions")
             path_protein_folder = os.path.join(self.init_refined, protein_name)
-            os.makedirs(self.path_to_exceptions, exist_ok=True)
+            os.makedirs(path_to_exceptions, exist_ok=True)
             copy_tree(path_protein_folder, path_to_exceptions)
             shutil.rmtree(path_protein_folder)
         return features
