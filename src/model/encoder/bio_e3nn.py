@@ -7,7 +7,7 @@ from e3nn.radial import CosineBasisModel, GaussianRadialModel, BesselRadialModel
 from e3nn.non_linearities import rescaled_act
 from e3nn.non_linearities.gated_block import GatedBlock
 from e3nn.rsh import spherical_harmonics_xyz
-from model.encoder.base import Aggregate
+from src.model.encoder.base import Aggregate
 import torch.nn.functional as F
 import ast
 
@@ -174,9 +174,9 @@ class Bio_All_Network(torch.nn.Module):
 
 class Bio_Local_Network(Bio_All_Network):
     def __init__(self,  natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
-                 embed,   scalar_act_name, gate_act_name,  middle, output, list_harm, aggregation_mode, fc_sizes):
+                 embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes):
         super(Bio_Local_Network, self).__init__(natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
-                 embed,   scalar_act_name, gate_act_name,  middle, output, list_harm, aggregation_mode, fc_sizes)
+                 embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes)
     
     def forward(self, features, geometry, mask):
         features = self.e3nn_block(features, geometry, mask)

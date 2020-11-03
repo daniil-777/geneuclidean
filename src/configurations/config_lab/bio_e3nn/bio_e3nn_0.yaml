@@ -29,8 +29,6 @@ model:
     list_harm: "[[(10, 0)],[(20, 0)],[(40, 0)]]"
     scalar_act_name:  sp
     gate_act_name: sigmoid
-    middle: 30
-    output: 30
     fc_sizes: "[[80,200], [200, 500]]"
     aggregation_mode: avg
   

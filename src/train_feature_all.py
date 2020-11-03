@@ -71,7 +71,7 @@ def main():
     #features generation
     print("**********Checking features**************")
     Feature_gen = Featuring(cfg, args.radious, args.type_feature, args.type_filtering, args.h_filterig)
-    cfg['model']['encoder_kwargs']['n_atoms'] = Feature_gen.max_length
+    cfg['model']['encoder_kwargs']['natoms'] = Feature_gen.max_length
 
     #training + evaluation
     if(cfg['training_params']['mode'] == "no_attention"):
