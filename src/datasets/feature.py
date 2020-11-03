@@ -55,6 +55,7 @@ class Featuring():
         self.files_refined = [file for file in self.files_refined if file[0].isdigit()]
         self.files_refined.sort()
         self.idx_files_refined = list(range(0, len(self.files_refined)))
+        self.names_bio_exception = []
         # self.idx_files_refined = [0, 1]
         self.max_length = 0
         if not self.check_featuring():
@@ -74,15 +75,20 @@ class Featuring():
         print("writing filtered features/geo...")
         with Pool(processes=8) as pool:
             pool.map(self.write_padd_feat_geo, self.idx_files_refined)
+        for name in self.names_bio_exception:
+            self.delete_files(name)
+            
+        self.files_refined = os.listdir(self.init_refined)
+        self.files_refined = [file for file in self.files_refined if file[0].isdigit()]
+        self.files_refined.sort()
+        self.idx_files_refined = list(range(0, len(self.files_refined)))
+        
         print("max length calculating...")
         with Pool(processes=8) as pool:
             lengthes = pool.map(self._get_max_length_from_files, self.idx_files_refined)
         self.max_length = max(lengthes)
         print("max length - ", self.max_length)
-        self.files_refined = os.listdir(self.init_refined)
-        self.files_refined = [file for file in self.files_refined if file[0].isdigit()]
-        self.files_refined.sort()
-        self.idx_files_refined = list(range(0, len(self.files_refined)))
+        
         print("padding...")
         with Pool(processes=8) as pool:
             pool.map(self.files_to_padded, self.idx_files_refined)
@@ -370,11 +376,8 @@ class Featuring():
             features = np.asarray(features[:, :-1])
         # print("feat shape bio - ", features.shape)
         except RuntimeError:
-            path_to_exceptions = os.path.join(self.path_data, "exceptions")
-            path_protein_folder = os.path.join(self.init_refined, protein_name)
-            os.makedirs(path_to_exceptions, exist_ok=True)
-            copy_tree(path_protein_folder, path_to_exceptions)
-            shutil.rmtree(path_protein_folder)
+            self.names_bio_exception.append(protein_name)
+            features = np.zeros(100, 3)
         return features
     
     def _get_mask_selected_atoms_pocket(
@@ -521,6 +524,12 @@ class Featuring():
         # self.file_checkpoint_data.close()
         return bool_answer
 
+    def delete_files(self, protein_name):
+        path_to_exceptions = os.path.join(self.path_data, "exceptions")
+        path_protein_folder = os.path.join(self.init_refined, protein_name)
+        os.makedirs(path_to_exceptions, exist_ok=True)
+        copy_tree(path_protein_folder, path_to_exceptions)
+        shutil.rmtree(path_protein_folder)
 
 class Batch_prep(Featuring):
     def __init__(self, cfg, radious, type_feature, type_filtering, h_filterig, n_proc=2, mp_pool=None):
