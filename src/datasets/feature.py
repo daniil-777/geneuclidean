@@ -290,6 +290,8 @@ class Featuring():
         """
         features, geometry = self._get_features_geo(pdb_id)
         mask = self._get_mask_selected_atoms_pocket(pdb_id)
+        if mask.shape[0] != features.shape[0]:
+            features = np.zeros((mask.shape[0], 3))
         features_filtered, geometry_filtered = features[mask, :], geometry[mask, :]
         features_filtered = torch.from_numpy(features_filtered).squeeze()
         geometry_filtered = torch.from_numpy(geometry_filtered).squeeze()
