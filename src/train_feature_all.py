@@ -60,6 +60,12 @@ def main():
     model_name = cfg["model_params"]["model_name"] + "_" + args.type_feature + "_" + args.radious + "_" + args.type_filtering + "_" + args.h_filterig
     num_epoches = cfg["model_params"]["num_epochs"]
     
+    #features generation
+    print("**********Checking features**************")
+    Feature_gen = Featuring(cfg, args.radious, args.type_feature, args.type_filtering, args.h_filterig)
+    cfg['model']['encoder_kwargs']['natoms'] = Feature_gen.max_length
+
+
     # get split folds file
     dir_idx_split = os.path.join(cfg['output_parameters']['savedir'], model_name,  "logs", "idxs", cfg['splitting']['file_folds'])
     if not os.path.exists(dir_idx_split):
@@ -67,10 +73,7 @@ def main():
         splitter = Splitter(cfg)
         splitter.split(type_fold)
 
-    #features generation
-    print("**********Checking features**************")
-    Feature_gen = Featuring(cfg, args.radious, args.type_feature, args.type_filtering, args.h_filterig)
-    cfg['model']['encoder_kwargs']['natoms'] = Feature_gen.max_length
+
 
     #training + evaluation
     if(cfg['training_params']['mode'] == "no_attention"):
