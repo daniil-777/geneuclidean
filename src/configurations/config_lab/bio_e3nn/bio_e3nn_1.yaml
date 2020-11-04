@@ -44,7 +44,7 @@ model:
 
 model_params: 
   model_name: bio_e3nn_1
-  num_epochs: 2
+  num_epochs: 100
   batch_size: 20
   n_splits: 5
   num_workers: 1
