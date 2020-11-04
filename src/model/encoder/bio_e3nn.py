@@ -70,6 +70,11 @@ class Bio_All_Network(torch.nn.Module):
         self.ssp = rescaled_act.ShiftedSoftplus(beta = beta)
         self.sp = rescaled_act.Softplus(beta=beta)
         self.embed = embed
+        # if self.type_feature == "mass_charges":
+        #     self.feature_size_2 = 80
+        # elif self.type_feature == "bio_all_properties" or self.type_feature == "bio_properties":
+        #     self.feature_size_2 = 87
+        # self.linear_embed = nn.Linear(self.feature_size_2, self.embed)
         self.list_harm = list_harm
         if(scalar_act_name == "sp"):
             scalar_act = self.sp
@@ -128,9 +133,9 @@ class Bio_All_Network(torch.nn.Module):
             features = embedding(features).to(self.device)
         else:
             # print("feat shape 2", features.shape[2])
-            # features = torch.tensor(features).to(self.device).float()
-            features = torch.tensor(features).to(self.device)
-            linear = nn.Linear(features.shape[2], self.embed)
+            features = torch.tensor(features).to(self.device).float()
+            # features = torch.tensor(features).to(self.device)
+            linear = nn.Linear(features.shape[2], self.embed).to(self.device)
             # features = features.long()
             features = linear(features).to(self.device)
         features = features.squeeze(2)
