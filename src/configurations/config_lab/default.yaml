@@ -1,5 +1,5 @@
 data:
-  path: ../data/new_refined/
+  path: ../data
   vocab_path: ../data/new_vocab.pkl
   path_refined: ../data/new_refined
   selection: filtered
@@ -10,6 +10,7 @@ training_params:
 
 preprocessing:
   vocab_path: ../data/new_vocab.pkl
+  target_path: ../data/new_refined
   path_root: ..
   selection: filtered
   
