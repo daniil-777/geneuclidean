@@ -26,10 +26,10 @@ model:
     rad_model: gaussian
     num_embeddings: 6
     embed: 30
-    list_harm: "[[(30, 0)],[(40, 0)],[(50, 0)]]"
+    list_harm: "[[(15, 0)],[(30, 0)],[(60, 0)]]"
     scalar_act_name:  sp
     gate_act_name: sigmoid
-    fc_sizes: "[[50, 200], [200, 500]]"
+    fc_sizes: "[[60, 200], [200, 500]]"
     aggregation_mode: avg
 
   
@@ -43,7 +43,7 @@ model:
     beam_size: 20
 
 model_params: 
-  model_name: bio_e3nn_3
+  model_name: bio_e3nn_4
   num_epochs: 100
   batch_size: 10
   n_splits: 5
