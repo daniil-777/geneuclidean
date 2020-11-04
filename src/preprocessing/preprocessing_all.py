@@ -312,8 +312,8 @@ if __name__ == "__main__":
     parser.add_argument('--flag', type=str , default=8, help='flag - refined or core')
     args = parser.parse_args()
     cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
-    radious = cfg.radious
-    flag = cfg.flag
+    radious = args.radious
+    flag = args.flag
     preprocessing = Preprocessor(cfg, radious, flag)
     preprocessing.all_to_smi()
 
