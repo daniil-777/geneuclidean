@@ -1,8 +1,10 @@
+import argparse
 import itertools as IT
 import os
 import pickle
 import time
 from distutils.dir_util import copy_tree
+import shutil
 from shutil import copyfile
 from multiprocessing import Pool
 from shutil import copyfile
@@ -13,7 +15,7 @@ from moleculekit.molecule import Molecule
 from moleculekit.smallmol.smallmol import SmallMol
 from openbabel import openbabel
 from scipy import spatial as spatial
-
+from src.utils import config
 # from e3nn import e3nn
 
 
@@ -22,14 +24,18 @@ class Preprocessor:
     Class for preprocessing refined dataset or core dataset CASF
     """
 
-    def __init__(self, init: str, target: str, presision: int, regime: str, flag: str):
-        self.init = init
-        self.target = target
+    def __init__(self, cfg,  presision: int,  flag: str):
+        self.path_root = cfg['preprocessing']['path_root']
+        self.refined_path = self.path_root + "/data/new_refined/"
+        self.files_refined = os.listdir(self.refined_path)
+        self.files_refined = [file for file in self.files_refined if file[0].isdigit()]
+        self.files_refined.sort()
+        self.target = cfg['preprocessing']['target_path']
         self.flag = flag  # refined with 4800 or core datasets with 200 complexes
         # self.files_pdb = os.listdir(self.init)
         # self.files_pdb = self.get_files_pdb
         self.precision = presision
-        self.regime = regime
+
 
     # parallel data processing
     def get_files_pdb(self):
@@ -40,9 +46,10 @@ class Preprocessor:
             files = [file[0:4] for file in files_proteins]
             return files
         elif self.flag == "refined" or self.flag == "core2016":
-            files = os.listdir(self.init)
-            # files = files.sort()
-            return sorted(files)
+            self.files_refined = os.listdir(self.refined_path)
+            self.files_refined = [file for file in self.files_refined if file[0].isdigit()]
+            self.files_refined.sort()
+            return self.files_refined
         else:
             raise ValueError("flag must be refined or core")
 
@@ -57,7 +64,7 @@ class Preprocessor:
             path_pdb = os.path.join("CASF/protein/pdb/", pdb_id + "_protein.pdb")
             return path_pdb
         elif self.flag == "refined" or self.flag == "core2016":
-            path_pdb = os.path.join(self.init, pdb_id, pdb_id + "_protein.pdb")
+            path_pdb = os.path.join(self.refined_path, pdb_id, pdb_id + "_protein.pdb")
             return path_pdb
         else:
             raise ValueError("flag must be refined or core")
@@ -77,7 +84,7 @@ class Preprocessor:
             )
             return path_pdb
         elif self.flag == "refined" or self.flag == "core2016":
-            path_pdb = os.path.join(self.init, pdb_id, pdb_id + "_ligand.mol2")
+            path_pdb = os.path.join(self.refined_path, pdb_id, pdb_id + "_ligand.mol2")
             return path_pdb
         else:
             raise ValueError("flag must be refined or core")
@@ -126,7 +133,7 @@ class Preprocessor:
         for prot in files_pdb:
             self.pdb_to_pocket(prot)
         # with Pool(processes=agents) as pool:
-        #     pool.map(self.pdb_to_pocket, self.files_pdb, chunksize)
+        #     pool.map(self.pdb_to_pocket, self.x, chunksize)
 
     #
     def copy_all_folder(self, pdb_id: str, name_folder_destination):
@@ -151,35 +158,15 @@ class Preprocessor:
             try:
                 # crystall = generateCrystalPacking(i) - why not?
                 crystall = Molecule(pdb_id)
-
-                
                 crystall.filter("protein")
                 crystall.write(
                     os.path.join(self.target, pdb_id,
                                  pdb_id + "_crystall.pdb"),
                     type="pdb",
                 )
-                # init_path_protein = self._get_path_protein_init(pdb_id)
                 init_path_ligand = self._get_path_ligand_init(pdb_id)
                 ligand = Molecule(init_path_ligand)
-                # ligand = Molecule(init_path_ligand)
-                # ligand = ligand.toMolecule()
                 target_path_ligand = os.path.join(self.target, pdb_id, pdb_id + "_ligand.pdb")
-
-                # ligand.filter("name C or name H or name O or name N or name S")
-
-                #attempt to select atoms in ligand
-                # ligand.write(
-                # target_path_ligand,
-                # sel="name C or name H or name O or name N or name S", type="mol2")
-                # sel="(name C)", type="mol2")
-
-                # copyfile(
-                #     init_path_protein,
-                #     os.path.join(self.target, pdb_id,
-                #                  pdb_id + "_protein.pdb"),
-                # )
-                #copy ligand mol2 
                 copyfile(
                     init_path_ligand,
                     os.path.join(self.target, pdb_id, pdb_id + "_ligand.mol2"),
@@ -195,7 +182,6 @@ class Preprocessor:
                     fixHs=True,
                     force_reading=True,
                 )
-                # smallmol.filter("ligand")
                 sm = smallmol.toSMILES()
                 #copy ligand smi
                 with open(
@@ -218,6 +204,34 @@ class Preprocessor:
                 #delete this unlucky file
                 shutil.rmtree(os.path.join(self.target, pdb_id))
            
+    def all_to_smi(self):
+        for idx in range(len(self.files_refined)):
+            name_protein = self.files_refined[idx]
+            self.mol_to_smile(name_protein)
+
+    def mol_to_smile(self, pdb_id):
+        try:
+            init_path_ligand = self._get_path_ligand_init(pdb_id)
+            smallmol = SmallMol(
+                init_path_ligand,
+                removeHs=False,
+                fixHs=True,
+                force_reading=True,
+            )
+            sm = smallmol.toSMILES()
+            #copy ligand smi
+            with open(
+                os.path.join(self.target, pdb_id,
+                                pdb_id + "_ligand.smi"), "w"
+            ) as txt:
+                txt.write(sm)
+            #copy mol2 
+        except ValueError:
+            print("exception!!! - ", pdb_id)
+            # self.copy_all_folder(pdb_id, "exception_core_2016")
+            # #delete this unlucky file
+            # shutil.rmtree(os.path.join(self.target, pdb_id))
+
 
     def mlkit_write_selected_atoms_to_pocket(
         self, id_pdb: str, center_lig: np.array, precision: int
@@ -289,25 +303,41 @@ class Preprocessor:
 
 
 if __name__ == "__main__":
-    current_path = os.path.realpath(os.path.dirname(__file__))
-    # current_path = '/Users/daniil/ETH/research_drugs/'
-    process = Preprocessor(
-        os.path.join(current_path, "data/refined-set"),
-        os.path.join(current_path, "data/new_refined"),
-           8,
-        "mlkit",
-        "refined",
-    )
-  
-    process_core = Preprocessor(
-        os.path.join(current_path, "data/CASF-2016/coreset"),
-        os.path.join(current_path, "data/new_core_2016"),
-        8,
-        "mlkit",
-        "core2016",
-    )
+    parser = argparse.ArgumentParser(
+    description='Train a 3D reconstruction model.'
+)
     
-    process.dataset_all()
-    process_core.dataset_all()
+    parser.add_argument('--config', type=str, help='Path to config file.')
+    parser.add_argument('--radious', type=int , default=8, help='dimension of word embedding vectors')
+    parser.add_argument('--flag', type=str , default=8, help='flag - refined or core')
+    args = parser.parse_args()
+    cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
+    radious = cfg.radious
+    flag = cfg.flag
+    preprocessing = Preprocessor(cfg, radious, flag)
+    preprocessing.all_to_smi()
+
+
+
+    # current_path = os.path.realpath(os.path.dirname(__file__))
+    # # current_path = '/Users/daniil/ETH/research_drugs/'
+    # process = Preprocessor(
+    #     os.path.join(current_path, "data/refined-set"),
+    #     os.path.join(current_path, "data/new_refined"),
+    #        8,
+    #     "mlkit",
+    #     "refined",
+    # )
+  
+    # process_core = Preprocessor(
+    #     os.path.join(current_path, "data/CASF-2016/coreset"),
+    #     os.path.join(current_path, "data/new_core_2016"),
+    #     8,
+    #     "mlkit",
+    #     "core2016",
+    # )
+    
+    # process.dataset_all()
+    # process_core.dataset_all()
     # process._get_pockets_all_parallel(5, 5)
     # process.test_protein()
