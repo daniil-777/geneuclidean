@@ -31,6 +31,7 @@ class Preprocessor:
         self.files_refined = [file for file in self.files_refined if file[0].isdigit()]
         self.files_refined.sort()
         self.target = cfg['preprocessing']['target_path']
+        self.path_data = cfg['data']['path']
         self.flag = flag  # refined with 4800 or core datasets with 200 complexes
         # self.files_pdb = os.listdir(self.init)
         # self.files_pdb = self.get_files_pdb
@@ -210,6 +211,10 @@ class Preprocessor:
             name_protein = self.files_refined[idx]
             self.mol_to_smile(name_protein)
         print("exceptions! - ", self.exceptions_smi)
+        for protein_name in self.exceptions_smi:
+            print("delete, ... ", protein_name)
+            self.delete_files(protein_name)
+
 
     def mol_to_smile(self, pdb_id):
         try:
@@ -302,6 +307,13 @@ class Preprocessor:
                 id_pdb, center_ligand, self.precision
             )
             print("end doing protein, '{0}'".format(id_pdb))
+
+    def delete_files(self, protein_name):
+        path_to_exceptions = os.path.join(self.path_data, "exceptions")
+        path_protein_folder = os.path.join(self.refined_path, protein_name)
+        os.makedirs(path_to_exceptions, exist_ok=True)
+        copy_tree(path_protein_folder, path_to_exceptions)
+        shutil.rmtree(path_protein_folder)
 
 
 
