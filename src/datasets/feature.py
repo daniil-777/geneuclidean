@@ -77,7 +77,7 @@ class Featuring():
             pool.map(self.write_padd_feat_geo, self.idx_files_refined)
         for name in self.names_bio_exception:
             self.delete_files(name)
-            
+
         self.files_refined = os.listdir(self.init_refined)
         self.files_refined = [file for file in self.files_refined if file[0].isdigit()]
         self.files_refined.sort()
@@ -377,7 +377,7 @@ class Featuring():
         # print("feat shape bio - ", features.shape)
         except RuntimeError:
             self.names_bio_exception.append(protein_name)
-            features = np.zeros(100, 3)
+            features = np.zeros((100, 3))
         return features
     
     def _get_mask_selected_atoms_pocket(
