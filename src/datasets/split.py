@@ -61,14 +61,15 @@ class Splitter:
         # training params
         self.protein_dir = cfg['training_params']['image_dir']
         self.files_refined = os.listdir(self.protein_dir)
+        self.files_refined = [file for file in self.files_refined if file[0].isdigit()]
         self.files_refined.sort()
+        self.n_samples = len(self.files_refined)
         self.caption_path = cfg['training_params']['caption_path']
         self.log_step = cfg['training_params']['log_step']
         self.save_step = cfg['training_params']['save_step']
         self.vocab_path = cfg['preprocessing']['vocab_path']
         self.n_splits = cfg['training_params']['n_splits']
         self.loss_best = np.inf
-        self.n_samples = len(self.files_refined) - 3
         #output files
         self.savedir = os.path.join(cfg['output_parameters']['savedir'], cfg['model_params']['model_name'])
         self.tesnorboard_path = self.savedir
@@ -90,8 +91,8 @@ class Splitter:
 
        
     def _get_random_split(self):
-        # data_ids = np.array([i for i in range(self.n_samples)])
-        data_ids = np.array([i for i in range(20)])
+        data_ids = np.array([i for i in range(self.n_samples)])
+        # data_ids = np.array([i for i in range(20)])
         #cross validation
         kf = KFold(n_splits=5, shuffle=True, random_state=2)
         my_list = list(kf.split(data_ids))
