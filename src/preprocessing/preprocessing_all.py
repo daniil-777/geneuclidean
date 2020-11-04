@@ -35,6 +35,7 @@ class Preprocessor:
         # self.files_pdb = os.listdir(self.init)
         # self.files_pdb = self.get_files_pdb
         self.precision = presision
+        self.exceptions_smi = []
 
 
     # parallel data processing
@@ -208,6 +209,7 @@ class Preprocessor:
         for idx in range(len(self.files_refined)):
             name_protein = self.files_refined[idx]
             self.mol_to_smile(name_protein)
+        print("exceptions! - ", self.exceptions_smi)
 
     def mol_to_smile(self, pdb_id):
         try:
@@ -228,6 +230,7 @@ class Preprocessor:
             #copy mol2 
         except ValueError:
             print("exception!!! - ", pdb_id)
+            self.exceptions_smi.append(pdb_id)
             # self.copy_all_folder(pdb_id, "exception_core_2016")
             # #delete this unlucky file
             # shutil.rmtree(os.path.join(self.target, pdb_id))
