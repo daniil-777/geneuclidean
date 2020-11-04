@@ -13,7 +13,6 @@ from torch.optim.lr_scheduler import ExponentialLR
 from tqdm import tqdm
 
 # from utils import Utils
-import argparse
 import sys
 from py3nvml import py3nvml
 
@@ -96,7 +95,7 @@ def main():
     # regimes = ["probabilistic", "max", "beam_1", "beam_3", "beam_10"]
     if "pca" not in file_pipeline_checkpoint.readlines():
         print("*****doing pca********")
-        sampler = Sampler(cfg, 'max')
+        sampler = Sampler(cfg, 'max', Feature_gen)
         sampler.save_encodings_all('test', idx_fold, encoder_path, decoder_path)
         sampler.collect_all_encodings()
         sampler.save_encodings_all('train', idx_fold, encoder_path, decoder_path)
@@ -119,7 +118,7 @@ def main():
     for sampling_ind in range(start_sampling_ind, end_sampling_ind):
         sample = regimes[sampling_ind]
         print("*********sample regim*********** ", sample)
-        sampler = Sampler(cfg, sample)
+        sampler = Sampler(cfg, sample, Feature_gen)
         sampler.analysis_cluster(idx_fold, type_fold, encoder_path, decoder_path)
     
     if "plot" not in file_pipeline_checkpoint.readlines():
