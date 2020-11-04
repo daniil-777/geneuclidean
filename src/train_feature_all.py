@@ -56,8 +56,8 @@ def main():
     cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
     type_fold = args.type_fold
     idx_fold = args.idx_fold
-    savedir = cfg["output_parameters"]["savedir"]
-    model_name = cfg["model_params"]["model_name"]
+    savedir = cfg["output_parameters"]["savedir"] 
+    model_name = cfg["model_params"]["model_name"] + "_" + args.type_feature + "_" + args.radious + "_" + args.type_filtering + "_" + args.h_filterig
     num_epoches = cfg["model_params"]["num_epochs"]
     
     # get split folds file
