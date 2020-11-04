@@ -69,6 +69,11 @@ class Featuring():
             # print("nooo!")
             f, m, g = self._get_feat_geo_from_file(1)
             self.max_length = f.shape[0]
+            self.max_length = 116
+            print("padding...")
+            with Pool(processes=8) as pool:
+                pool.map(self.files_to_padded, self.idx_files_refined)
+            print("padding finished")
             print(self.max_length)
        
     def run_parallel_write_feat_geo(self):
@@ -92,7 +97,9 @@ class Featuring():
         print("padding...")
         with Pool(processes=8) as pool:
             pool.map(self.files_to_padded, self.idx_files_refined)
+        print("padding finished")
         self.write_checkpoint()
+        print("wrote to checkpoint")
 
     def write_padd_feat_geo(self, id):
         feat_filt_padded, geo_filt_padded = self._get_features_geo_filtered(id)
