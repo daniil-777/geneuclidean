@@ -317,6 +317,8 @@ class Featuring():
         elif self.type_feature == "bio_all_properties":
             features_1 = self.mass_charges(id)
             features_2 = self.bio_prop(id)
+            if features_2.shape[1] == 3:
+                features_1 = np.zeros((1, 3))
             features = np.concatenate((features_1, features_2), axis=1)
         geometry = self._get_geometry_protein(id)
         return features, geometry
@@ -386,7 +388,7 @@ class Featuring():
         # print("feat shape bio - ", features.shape)
         except RuntimeError:
             self.names_bio_exception.append(protein_name)
-            features = np.zeros((100, 3))
+            features = np.zeros((1, 3))
         return features
     
     def _get_mask_selected_atoms_pocket(
