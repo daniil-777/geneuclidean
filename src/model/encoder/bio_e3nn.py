@@ -128,7 +128,8 @@ class Bio_All_Network(torch.nn.Module):
             features = embedding(features).to(self.device)
         else:
             # print("feat shape 2", features.shape[2])
-            features = torch.tensor(features).to(self.device).float()
+            # features = torch.tensor(features).to(self.device).float()
+            features = torch.tensor(features).to(self.device)
             linear = nn.Linear(features.shape[2], self.embed)
             # features = features.long()
             features = linear(features).to(self.device)
