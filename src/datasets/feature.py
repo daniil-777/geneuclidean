@@ -382,17 +382,17 @@ class Featuring():
             [np.array]: [array of pharmacophoric properties [N_atoms, dim_feature]]
         """
         #pocket
-        try:
-            path_protein, _ = self._get_path(id)
-            protein_name = self.files_refined[id]
-            print("processing...", protein_name)
-            mol = Molecule(path_protein)
-            mol.filter('protein')
-            mol = prepareProteinForAtomtyping(mol, verbose = False)
+        # try:
+        path_protein, _ = self._get_path(id)
+        protein_name = self.files_refined[id]
+        print("processing...", protein_name)
+        mol = Molecule(path_protein)
+        mol.filter('protein')
+        mol = prepareProteinForAtomtyping(mol, verbose = False)
 
-            features = getChannels(mol, version=2)
-            features = (features[0] > 0).astype(np.float32)
-            features = np.asarray(features[:, :-1])
+        features = getChannels(mol, version=2)
+        features = (features[0] > 0).astype(np.float32)
+        features = np.asarray(features[:, :-1])
         # print("feat shape bio - ", features.shape)
         # except:
         #     self.names_bio_exception.append(protein_name)
@@ -462,18 +462,18 @@ class Featuring():
             [list]: [all elements]
         """
         path_protein, _ = self._get_path(protein_id)
-        try:
+        # try:
             # mol_pocket = Molecule(path_protein)
-            mol_protein = Molecule(path_protein)
-            mol_protein.filter('protein')
-            if (self.type_feature == "bio_properties" or self.type_feature == "bio_all_properties"):
-                mol_protein = prepareProteinForAtomtyping(mol_protein, verbose = False)
-            mol_pocket_element = mol_protein.element
-        except FileNotFoundError:
-            print(protein_id, "   exception")
-            path_protein, path_lig = self._get_path(2)
-            mol_pocket = Molecule(path_protein)
-            mol_pocket_element = mol_pocket.element
+        mol_protein = Molecule(path_protein)
+        mol_protein.filter('protein')
+        if (self.type_feature == "bio_properties" or self.type_feature == "bio_all_properties"):
+            mol_protein = prepareProteinForAtomtyping(mol_protein, verbose = False)
+        mol_pocket_element = mol_protein.element
+        # except FileNotFoundError:
+        #     print(protein_id, "   exception")
+        #     path_protein, path_lig = self._get_path(2)
+        #     mol_pocket = Molecule(path_protein)
+        #     mol_pocket_element = mol_pocket.element
         return mol_pocket_element
 
     def _get_all_elem_general(self, protein_id: int):
