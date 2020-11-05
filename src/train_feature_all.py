@@ -58,6 +58,7 @@ def main():
     idx_fold = args.idx_fold
     savedir = cfg["output_parameters"]["savedir"] 
     model_name = cfg["model_params"]["model_name"] + "_" + args.type_feature + "_" + str(args.radious) + "_" + args.type_filtering + "_" + args.h_filterig
+    cfg["model_params"]["model_name"] = model_name
     num_epoches = cfg["model_params"]["num_epochs"]
     
     #features generation
