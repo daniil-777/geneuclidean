@@ -461,7 +461,7 @@ class Featuring():
             if (self.type_feature == "bio_properties" or self.type_feature == "bio_all_properties"):
                 mol_protein = prepareProteinForAtomtyping(mol_protein, verbose = False)
             mol_pocket_element = mol_protein.element
-        except FileNotFoundError:
+        except FileNotFoundError or AssertionError:
             print(protein_id, "   exception")
             path_protein, path_lig = self._get_path(2)
             mol_pocket = Molecule(path_protein)

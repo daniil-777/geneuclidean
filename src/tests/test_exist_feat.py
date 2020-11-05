@@ -67,6 +67,7 @@ def test_Feature_exists():
 
     #features generation
     print("Checking saved features!")
+    names_prot_exceptions = []
     Feature_gen = Featuring(cfg, args.radious, args.type_feature, args.type_filtering, args.h_filterig)
     for pdbid in Feature_gen.idx_files_refined:
         name_protein = Feature_gen.files_refined[pdbid]
@@ -75,6 +76,8 @@ def test_Feature_exists():
         name_feature = "_".join(array_feat_names) + ".pt"
         if name_feature  not in files:
             print("no! - ", name_protein)
+            names_prot_exceptions.append(name_protein)
+    print(names_prot_exceptions)
 
 if __name__ == "__main__":
     test_Feature_exists()
