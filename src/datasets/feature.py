@@ -61,7 +61,19 @@ class Featuring():
         self.max_length = 0
         if not self.check_featuring():
             # print("staaart!!!!!!!!!!")
-            self.run_parallel_write_feat_geo()
+            print("max length calculating...")
+            with Pool(processes=8) as pool:
+                lengthes = pool.map(self._get_max_length_from_files, self.idx_files_refined)
+            self.max_length = max(lengthes)
+            print("max length - ", self.max_length)
+            
+            print("padding...")
+            with Pool(processes=8) as pool:
+                pool.map(self.files_to_padded, self.idx_files_refined)
+            print("padding finished")
+            self.write_checkpoint()
+            print("wrote to checkpoint")
+            # self.run_parallel_write_feat_geo()
             # print("calculating max length...")
             # self.run_parallel_max_length()
             # print("writing to files...")
@@ -79,9 +91,9 @@ class Featuring():
        
     def run_parallel_write_feat_geo(self):
         print("writing filtered features/geo...")
-        self.files_refined = list_exception
-        self.files_refined.sort()
-        self.idx_files_refined = list(range(0, len(self.files_refined)))
+        # self.files_refined = list_exception
+        # self.files_refined.sort()
+        # self.idx_files_refined = list(range(0, len(self.files_refined)))
         with Pool(processes=8) as pool:
             pool.map(self.write_padd_feat_geo, self.idx_files_refined)
         for name in self.names_bio_exception:

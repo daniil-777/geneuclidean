@@ -123,6 +123,21 @@ class Bio_All_Network(torch.nn.Module):
                        for block_size in self.fc_sizes]
         self.fc_out = nn.Sequential(*self.fc_blocks_out)
 
+    def encoding_block(self, features):
+        # mask, diff_geo, radii = constants(geometry, mask)
+        if self.encoding == "embedding":
+            embedding = self.layers[0]
+            features = torch.tensor(features).to(self.device).long()
+            features = embedding(features).to(self.device)
+        else:
+            features = torch.tensor(features).to(self.device).float()
+            # features = torch.tensor(features).to(self.device)
+            linear = nn.Linear(features.shape[2], self.embed).to(self.device)
+            # features = features.long()
+            features = linear(features).to(self.device)
+        return features
+
+
     def e3nn_block(self, features, geometry, mask):
         # natoms = features.shape[1]
         mask, diff_geo, radii = constants(geometry, mask)
@@ -189,5 +204,64 @@ class Bio_Local_Network(Bio_All_Network):
         features = self.fc_output(features, mask)
         return features # shape ? 
 
+class ResNet_Bio_ALL_Network(Bio_All_Network):
+    def __init__(self,  natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
+                 embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes):
+        super(ResNet_Bio_ALL_Network, self).__init__(natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
+                 embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes)
+
+    def resnet_e3nn_block(self, features, geometry, mask):
+        mask, diff_geo, radii = constants(geometry, mask)
+        features = self.encoding_block(features)
+        set_of_l_filters = self.layers[1][0].set_of_l_filters
+        y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
+        kc, act = self.layers[1]
+        features = kc(
+            features.div(self.avg_n_atoms ** 0.5),
+            diff_geo,
+            mask,
+            y=y,
+            radii=radii,
+            custom_backward=CUSTOM_BACKWARD
+        )
+        features = act(features)
+        for kc, act in self.layers[2:]:
+            if kc.set_of_l_filters != set_of_l_filters:
+                set_of_l_filters = kc.set_of_l_filters
+                y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
+            new_features = kc(
+                features.div(self.avg_n_atoms ** 0.5),
+                diff_geo,
+                mask,
+                y=y,
+                radii=radii,
+                custom_backward=CUSTOM_BACKWARD
+            )
+            new_features = act(new_features)
+            new_features = new_features * mask.unsqueeze(-1)
+            features = features + new_features
+        return features
+
+    def forward(self, features, geometry, mask):
+        features_bio = features[:, :, :7]
+        features_charge = features[:, :, 7:]
+        features_bio = self.resnet_e3nn_block(features_bio, geometry, mask)
+        features_charge = self.resnet_e3nn_block(features_charge, geometry, mask)
+        features = torch.cat([features_bio, features_charge], dim=2)
+        # features = features.float()
+        features = self.fc_output(features, mask)
+        
+        return features
+
 
         
+class ResNet_Bio_Local_Network(ResNet_Bio_ALL_Network):
+    def __init__(self,  natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
+                 embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes):
+        super(ResNet_Bio_Local_Network, self).__init__(natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
+                 embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes)
+
+    def forward(self, features, geometry, mask):
+        features = self.resnet_e3nn_block(features, geometry, mask)
+        features = self.fc_output(features, mask)
+        return features # shape ?
