@@ -43,7 +43,7 @@ model:
     beam_size: 20
 
 model_params: 
-  model_name: bio_e3nn_12
+  model_name: bio_e3nn_13
   num_epochs: 100
   batch_size: 20
   n_splits: 5
