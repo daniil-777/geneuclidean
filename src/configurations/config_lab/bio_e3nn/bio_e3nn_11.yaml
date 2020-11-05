@@ -9,8 +9,8 @@ splitting:
 
 training_params:
   mode: no_attention
-  log_step: 1
-  save_step: 1
+  log_step: 10
+  save_step: 10
   encoder_name: encoder_best_0.ckpt
   decoder_name: decoder_best_0.ckpt
   n_splits: 5
@@ -25,8 +25,8 @@ model:
     beta: 5
     rad_model: gaussian
     num_embeddings: 6
-    embed: 30
-    list_harm: "[[(30, 0)],[(64, 0)]]"
+    embed: 32
+    list_harm: "[[(32, 0)],[(64, 0)]]"
     scalar_act_name:  sp
     gate_act_name: sigmoid
     fc_sizes: "[[64, 64], [64, 100]]"
@@ -45,7 +45,7 @@ model:
 model_params: 
   model_name: bio_e3nn_11
   num_epochs: 100
-  batch_size: 10
+  batch_size: 20
   n_splits: 5
   num_workers: 1
   learning_rate: 0.0005

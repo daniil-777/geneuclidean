@@ -9,8 +9,8 @@ splitting:
 
 training_params:
   mode: no_attention
-  log_step: 1
-  save_step: 1
+  log_step: 10
+  save_step: 10
   encoder_name: encoder_best_0.ckpt
   decoder_name: decoder_best_0.ckpt
   n_splits: 5

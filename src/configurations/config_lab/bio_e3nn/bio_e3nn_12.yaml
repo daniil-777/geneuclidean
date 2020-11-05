@@ -25,11 +25,11 @@ model:
     beta: 5
     rad_model: gaussian
     num_embeddings: 6
-    embed: 32
-    list_harm: "[[(32, 0)],[(64, 0)]]"
+    embed: 64
+    list_harm: "[[(64,0)]]"
     scalar_act_name:  sp
     gate_act_name: sigmoid
-    fc_sizes: "[[64, 64], [64, 300]]"
+    fc_sizes: "[[64, 64], [64, 100]]"
     aggregation_mode: avg
 
   
@@ -37,8 +37,8 @@ model:
   decoder_kwargs:
     vocab_size: 52
     vocab_path: ../data/new_vocab.pkl
-    embed_size: 300
-    hidden_size: 300
+    embed_size: 100
+    hidden_size: 100
     num_layers: 1
     beam_size: 20
 

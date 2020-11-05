@@ -1,5 +1,4 @@
 import multiprocessing
-
 import numpy as np
 from numpy import savetxt
 import torch
@@ -12,7 +11,7 @@ from tqdm import tqdm
 
 import argparse
 import sys
-import utils.config as config
+import src.utils.config as config
 from py3nvml import py3nvml
 
 import json
@@ -26,11 +25,11 @@ import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
 from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
-from utils.build_vocab import Vocabulary
-from datasets.data_loader import get_loader, Pdb_Dataset, collate_fn, collate_fn_masks
-from datasets.data_loader_feature import Pdb_Dataset_Feature
-from sampling.sampler import Sampler
-from training.utils import save_checkpoint
+from src.utils.build_vocab import Vocabulary
+from src.datasets.data_loader import get_loader, Pdb_Dataset, collate_fn, collate_fn_masks
+from src.datasets.data_loader_feature import Pdb_Dataset_Feature
+from src.sampling.sampler import Sampler
+from src.training.utils import save_checkpoint
 from torch.utils import model_zoo
 
 
@@ -176,7 +175,7 @@ class Trainer_Fold_Feature():
             handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
             fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
             mem = fb_mem_info.used >> 20
-            mem = 0
+            # mem = 0
             # print('GPU memory usage: ', mem)
             self.writer_train.add_scalar('val/gpu_memory', mem, epoch)
             # Print log info
