@@ -106,10 +106,14 @@ class Featuring():
         print("wrote to checkpoint")
 
     def write_padd_feat_geo(self, id):
-        feat_filt_padded, geo_filt_padded = self._get_features_geo_filtered(id)
-        path_feature, path_mask, path_geo = self._get_name_save(id)
-        torch.save(feat_filt_padded, path_feature)
-        torch.save(geo_filt_padded, path_geo)
+        try:
+            feat_filt_padded, geo_filt_padded = self._get_features_geo_filtered(id)
+            path_feature, path_mask, path_geo = self._get_name_save(id)
+            torch.save(feat_filt_padded, path_feature)
+            torch.save(geo_filt_padded, path_geo)
+        except:
+            protein_name = self.files_refined[id]
+            self.names_bio_exception.append(protein_name)
 
     def _get_max_length_from_files(self, id):
         path_feature, path_mask, path_geo = self._get_name_save(id)
@@ -390,9 +394,9 @@ class Featuring():
             features = (features[0] > 0).astype(np.float32)
             features = np.asarray(features[:, :-1])
         # print("feat shape bio - ", features.shape)
-        except:
-            self.names_bio_exception.append(protein_name)
-            features = np.zeros((1, 3))
+        # except:
+        #     self.names_bio_exception.append(protein_name)
+        #     features = np.zeros((1, 3))
         return features
     
     def _get_mask_selected_atoms_pocket(
@@ -465,7 +469,7 @@ class Featuring():
             if (self.type_feature == "bio_properties" or self.type_feature == "bio_all_properties"):
                 mol_protein = prepareProteinForAtomtyping(mol_protein, verbose = False)
             mol_pocket_element = mol_protein.element
-        except FileNotFoundError or AssertionError:
+        except FileNotFoundError:
             print(protein_id, "   exception")
             path_protein, path_lig = self._get_path(2)
             mol_pocket = Molecule(path_protein)
