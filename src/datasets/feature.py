@@ -21,6 +21,7 @@ from moleculekit.tools.voxeldescriptors import getChannels
 from src.datasets.dictionaries import atom_most_common, dict_atoms_hot, dict_atoms_simple, dict_atoms_masses, dict_atoms_charges
 from src.utils.checkpoint import save_checkpoint_feature
 import src.utils.config as config
+from src.tests.list_exception import list_exception
 import argparse
 
 # from dict 
@@ -78,6 +79,9 @@ class Featuring():
        
     def run_parallel_write_feat_geo(self):
         print("writing filtered features/geo...")
+        self.files_refined = list_exception
+        self.files_refined.sort()
+        self.idx_files_refined = list(range(0, len(self.files_refined)))
         with Pool(processes=8) as pool:
             pool.map(self.write_padd_feat_geo, self.idx_files_refined)
         for name in self.names_bio_exception:
@@ -386,7 +390,7 @@ class Featuring():
             features = (features[0] > 0).astype(np.float32)
             features = np.asarray(features[:, :-1])
         # print("feat shape bio - ", features.shape)
-        except RuntimeError:
+        except:
             self.names_bio_exception.append(protein_name)
             features = np.zeros((1, 3))
         return features
