@@ -80,8 +80,10 @@ def test_Feature_exists():
             if feature_filt.shape[1] == 3:
                 print("exception! - ", name_protein)
                 names_prot_exceptions.append(name_protein)
+                Feature_gen.delete_files(name_protein)
         else:
             print("no feature! - ", name_protein)
+            Feature_gen.delete_files(name_protein)
     print(names_prot_exceptions)
 
 if __name__ == "__main__":

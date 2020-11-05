@@ -1,4 +1,6 @@
 import os
+import shutil
+from distutils.dir_util import copy_tree
 import multiprocessing
 from multiprocessing import Pool
 from functools import partial
@@ -26,6 +28,7 @@ class Featuring():
     def __init__(self, cfg, radious, type_feature, type_filtering, h_filterig):
         """uses cfg file which is given as arg in "python train_captioning.py"
         """
+        print("feat test!!")
         self.path_root = cfg['preprocessing']['path_root']
         self.path_data = cfg['data']['path']
         self.path_checkpoint = os.path.join(self.path_data,  "preprocess_checkpoint.csv")
@@ -458,6 +461,13 @@ class Featuring():
         bool_answer = (existing_featuring == array_to_check).all(1).any()
         # self.file_checkpoint_data.close()
         return bool_answer
+
+    def delete_files(self, protein_name):
+        path_to_exceptions = os.path.join(self.path_data, "exceptions")
+        path_protein_folder = os.path.join(self.init_refined, protein_name)
+        os.makedirs(path_to_exceptions, exist_ok=True)
+        copy_tree(path_protein_folder, path_to_exceptions)
+        shutil.rmtree(path_protein_folder)
 
 
 class Batch_prep(Featuring):
