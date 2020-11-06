@@ -66,7 +66,6 @@ class Featuring():
                 lengthes = pool.map(self._get_max_length_from_files, self.idx_files_refined)
             self.max_length = max(lengthes)
             print("max length - ", self.max_length)
-            
             print("padding...")
             with Pool(processes=8) as pool:
                 pool.map(self.files_to_padded, self.idx_files_refined)
