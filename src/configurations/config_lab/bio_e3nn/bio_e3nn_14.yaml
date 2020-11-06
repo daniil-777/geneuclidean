@@ -15,7 +15,7 @@ training_params:
   decoder_name: decoder_best_0.ckpt
   n_splits: 5
 model:
-  encoder: resnet_bio_local_net
+  encoder: concat_bio_local_net
   encoder_kwargs:
     encoding: linear
     max_rad: 2
@@ -29,7 +29,7 @@ model:
     list_harm: "[[(32,0)], [(32, 0)]]"
     scalar_act_name:  sp
     gate_act_name: sigmoid
-    fc_sizes: "[[32, 32], [32, 100]]"
+    fc_sizes: "[[64, 64], [64, 100]]"
     aggregation_mode: avg
 
   decoder: lstm
@@ -42,7 +42,7 @@ model:
     beam_size: 20
 
 model_params: 
-  model_name: bio_e3nn_13
+  model_name: bio_e3nn_14
   num_epochs: 100
   batch_size: 20
   n_splits: 5

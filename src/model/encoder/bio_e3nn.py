@@ -267,3 +267,50 @@ class ResNet_Bio_Local_Network(ResNet_Bio_ALL_Network):
         features = self.resnet_e3nn_block(features, geometry, mask)
         features = self.fc_output(features, mask)
         return features # shape ?
+
+class Concat_Bio_Local_Network(ResNet_Bio_ALL_Network):
+    def __init__(self,  natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
+                 embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes):
+        super(Concat_Bio_Local_Network, self).__init__(natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
+                 embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes)
+
+    def concat_e3nn_block(self, features, geometry, mask):
+        features_all = []
+        mask, diff_geo, radii = constants(geometry, mask)
+        features = self.encoding_block(features)
+        set_of_l_filters = self.layers[1][0].set_of_l_filters
+        y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
+        kc, act = self.layers[1]
+        features = kc(
+            features.div(self.natoms ** 0.5),
+            diff_geo,
+            mask,
+            y=y,
+            radii=radii,
+            custom_backward=CUSTOM_BACKWARD
+        )
+        features = act(features)
+        features_all.append(features )
+        for kc, act in self.layers[2:]:
+            if kc.set_of_l_filters != set_of_l_filters:
+                set_of_l_filters = kc.set_of_l_filters
+                y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
+            new_features = kc(
+                features.div(self.natoms ** 0.5),
+                diff_geo,
+                mask,
+                y=y,
+                radii=radii,
+                custom_backward=CUSTOM_BACKWARD
+            )
+            new_features = act(new_features)
+            new_features = new_features * mask.unsqueeze(-1)
+            features_all.append(new_features)
+        features_all = torch.tensor(features_all)
+            # features = features + new_features
+        return features_all
+
+    def forward(self, features, geometry, mask):
+        features = self.concat_e3nn_block(features, geometry, mask)
+        features = self.fc_output(features, mask)
+        return features # shape ?
