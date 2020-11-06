@@ -135,6 +135,8 @@ class Bio_All_Network(torch.nn.Module):
             linear = nn.Linear(features.shape[2], self.embed).to(self.device)
             # features = features.long()
             features = linear(features).to(self.device)
+            features = features.squeeze(2)
+            features = features.double()
         return features
 
 
