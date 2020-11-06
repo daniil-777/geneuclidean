@@ -306,8 +306,8 @@ class Concat_Bio_Local_Network(ResNet_Bio_ALL_Network):
             new_features = act(new_features)
             new_features = new_features * mask.unsqueeze(-1)
             features_all.append(new_features)
-        features_all = torch.tensor(features_all)
-            # features = features + new_features
+        features_all = torch.cat(features_all, 2)
+        # features = features + new_features
         return features_all
 
     def forward(self, features, geometry, mask):
