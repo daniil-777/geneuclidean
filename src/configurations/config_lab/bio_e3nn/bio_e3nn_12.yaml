@@ -25,11 +25,11 @@ model:
     beta: 5
     rad_model: gaussian
     num_embeddings: 6
-    embed: 64
-    list_harm: "[[(64,0)]]"
+    embed: 32
+    list_harm: "[[(32,0)]]"
     scalar_act_name:  sp
     gate_act_name: sigmoid
-    fc_sizes: "[[64, 64], [64, 100]]"
+    fc_sizes: "[[32, 32], [32, 100]]"
     aggregation_mode: avg
 
   

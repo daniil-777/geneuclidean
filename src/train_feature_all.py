@@ -65,6 +65,7 @@ def main():
     print("**********Checking features**************")
     Feature_gen = Featuring(cfg, args.radious, args.type_feature, args.type_filtering, args.h_filterig)
     cfg['model']['encoder_kwargs']['natoms'] = Feature_gen.max_length
+    print("number of atoms: ", cfg['model']['encoder_kwargs']['natoms'])
 
 
     # get split folds file
