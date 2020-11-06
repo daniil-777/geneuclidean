@@ -217,7 +217,7 @@ class ResNet_Bio_ALL_Network(Bio_All_Network):
         y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
         kc, act = self.layers[1]
         features = kc(
-            features.div(self.avg_n_atoms ** 0.5),
+            features.div(self.natoms ** 0.5),
             diff_geo,
             mask,
             y=y,
