@@ -56,7 +56,7 @@ class Trainer_Fold_Feature():
         self.vocab_path = cfg['preprocessing']['vocab_path']
         self.n_splits = cfg['training_params']['n_splits']
         self.loss_best = np.inf
-        self.global_tensorboard_path = os.path.join(self.savedir, "tensorboard")
+        self.global_tensorboard_path = os.path.join(cfg['output_parameters']['savedir'], "tensorboard")
         os.makedirs(self.global_tensorboard_path, exist_ok=True)
         #output files
         # self.savedir = cfg['output_parameters']['savedir']
