@@ -39,11 +39,11 @@ model:
     vocab_path: ../data/new_vocab.pkl
     embed_size: 512
     hidden_size: 512
-    num_layers: 1
+    num_layers: 2
     beam_size: 20
 
 model_params: 
-  model_name: bio_net_19
+  model_name: bio_net_20
   num_epochs: 100
   batch_size: 10
   n_splits: 5
