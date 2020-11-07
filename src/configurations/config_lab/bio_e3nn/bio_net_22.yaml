@@ -18,15 +18,15 @@ model:
   encoder: bio_net
   encoder_kwargs:
     encoding: linear
-    max_rad: 2
+    max_rad: 4
     num_basis: 2
     n_neurons: 100
     n_layers: 2
     beta: 5
     rad_model: gaussian
     num_embeddings: 6
-    embed: 10
-    list_harm: "[[(10, 0)], [(64, 0)]]"
+    embed: 32
+    list_harm: "[[(32, 0)], [(64, 0)]]"
     scalar_act_name:  sp
     gate_act_name: sigmoid
     fc_sizes: "[[128, 128], [128, 256], [256, 512]]"
@@ -40,12 +40,12 @@ model:
     embed_size: 512
     hidden_size: 512
     num_layers: 2
-    beam_size: 20
+    beam_size: 10
 
 model_params: 
-  model_name: bio_net_21
+  model_name: bio_net_22
   num_epochs: 100
-  batch_size: 20
+  batch_size: 10
   n_splits: 5
   num_workers: 1
   learning_rate: 0.0005
