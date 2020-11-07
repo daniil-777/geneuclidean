@@ -15,37 +15,36 @@ training_params:
   decoder_name: decoder_best_0.ckpt
   n_splits: 5
 model:
-  encoder: bio_net
+  encoder: concat_bio_local_net
   encoder_kwargs:
     encoding: linear
     max_rad: 2
     num_basis: 2
     n_neurons: 100
-    n_layers: 2
+    n_layers: 1
     beta: 5
     rad_model: gaussian
     num_embeddings: 6
-    embed: 16
-    list_harm: "[[(16, 0)], [(64, 0)]]"
+    embed: 25
+    list_harm: "[[(25,0)], [(25, 0)]]"
     scalar_act_name:  sp
     gate_act_name: sigmoid
-    fc_sizes: "[[64, 64], [128, 256], [256, 512]]"
+    fc_sizes: "[[50, 50], [50, 500]]"
     aggregation_mode: avg
 
-  
   decoder: lstm
   decoder_kwargs:
     vocab_size: 52
     vocab_path: ../data/new_vocab.pkl
-    embed_size: 1024
-    hidden_size: 1024
+    embed_size: 500
+    hidden_size: 500
     num_layers: 1
     beam_size: 20
 
 model_params: 
-  model_name: bio_net_19
+  model_name: bio_concat_17
   num_epochs: 100
-  batch_size: 10
+  batch_size: 20
   n_splits: 5
   num_workers: 1
   learning_rate: 0.0005
