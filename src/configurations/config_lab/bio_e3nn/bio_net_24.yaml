@@ -29,7 +29,7 @@ model:
     list_harm: "[[(40, 0)]]"
     scalar_act_name:  sp
     gate_act_name: sigmoid
-    fc_sizes: "[[128, 128], [128, 256], [256, 512]]"
+    fc_sizes: "[[80, 80], [128, 256], [256, 512]]"
     aggregation_mode: avg
 
   
