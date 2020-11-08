@@ -26,7 +26,7 @@ model:
     rad_model: gaussian
     num_embeddings: 6
     embed: 16
-    list_harm: "[[(16, 0)], [(16, 0), (16, 1)],[(64, 0)]]"
+    list_harm: "[[(16, 0)], [(16, 1)],[(64, 0)]]"
     scalar_act_name:  sp
     gate_act_name: sigmoid
     fc_sizes: "[[128, 128], [128, 256], [256, 512]]"
