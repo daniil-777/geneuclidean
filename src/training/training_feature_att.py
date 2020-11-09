@@ -162,9 +162,7 @@ class Trainer_Fold_Feature_Attention():
             scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0]
             targets = pack_padded_sequence(targets, decode_lengths, batch_first=True)[0]
             loss = self.criterion(scores, targets)
-            if (self.loss_mode == "usual"):
-                pass
-            elif (self.loss_mode == "double_stochastic"):
+            if (self.loss_mode == "double_stochastic"):
                 loss += self.alpha_c * ((1 - alphas.sum(dim = 1)) ** 2).mean() 
             self.Decoder.zero_grad()
             self.Encoder.zero_grad()
@@ -231,7 +229,7 @@ class Trainer_Fold_Feature_Attention():
                 targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
                 # Forward, backward and optimize
                 feature = self.Encoder(features, geometry, masks)
-                outputs = self.Decoder(feature, captions, lengths)
+                outputs, _, _, _ = self.Decoder(feature, captions, lengths)
                 loss = self.criterion(outputs, targets)
                 name = "eval_loss_" + str(self.split_no + 1)
                 self.writer_eval.add_scalar(name, loss.item(), epoch)
