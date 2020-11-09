@@ -124,7 +124,6 @@ class MyDecoderWithAttention_Vis(nn.Module):
         )  # linear layer to find scores over vocabulary
         self.init_weights()  # initialize some layers with the uniform distribution
         self.vocab_path = vocab_path
-        self.beam_size = beam_size
         with open(self.vocab_path, "rb") as f:
             self.vocab = pickle.load(f)
  
