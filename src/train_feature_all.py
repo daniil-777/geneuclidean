@@ -30,6 +30,7 @@ from torch.utils.tensorboard import SummaryWriter
 from src.utils.build_vocab import Vocabulary
 from src.datasets.data_loader import get_loader, Pdb_Dataset, collate_fn, collate_fn_masks
 from src.training.train_check_att_vis import Trainer_Attention_Check_Vis
+from src.training.training_feature_att import Trainer_Fold_Feature_Attention
 from src.training.train_checkpoint import Trainer_Fold
 from src.training.training_feature import Trainer_Fold_Feature
 from src.sampling.sampler import Sampler
@@ -82,7 +83,7 @@ def main():
         trainer = Trainer_Fold_Feature(cfg, idx_fold)
         trainer.train_epochs(Feature_gen)
     elif(cfg['training_params']['mode'] == "attention"):
-        trainer = Trainer_Attention_Check_Vis(cfg)
+        trainer = Trainer_Fold_Feature_Attention(cfg, idx_fold)
         trainer.train_epochs()
     
     # encoder_path = os.path.join(savedir, "models", "encoder_best_" + str(idx_fold) + '.ckpt') 
