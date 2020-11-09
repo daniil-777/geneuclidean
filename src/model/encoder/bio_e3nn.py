@@ -197,7 +197,7 @@ class Bio_All_Network(torch.nn.Module):
 class Bio_Vis_All_Network(Bio_All_Network):
     def __init__(self,  natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
                  embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes):
-        super(Bio_Local_Network, self).__init__(natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
+        super(Bio_Vis_All_Network, self).__init__(natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
                  embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes)
     
     def forward(self, features, geometry, mask):
