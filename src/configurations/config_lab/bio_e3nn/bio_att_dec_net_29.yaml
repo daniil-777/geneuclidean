@@ -33,16 +33,16 @@ model:
     fc_sizes: "[[128, 128], [128, 256], [256, 512]]"
     aggregation_mode: avg
 
-  
   decoder: lstm_attention_vis
   decoder_kwargs:
+    attention_dim: 512
+    embed_dim: 512
+    encoder_dim: 512
+    decoder_dim: 512
     vocab_size: 52
     vocab_path: ../data/new_vocab.pkl
-    embed_size: 512
-    hidden_size: 512
-    num_layers: 1
-    beam_size: 20
-
+    dropout: 0.5
+ 
 model_params: 
   model_name: bio_att_dec_net_29
   num_epochs: 100

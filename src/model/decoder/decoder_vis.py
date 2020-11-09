@@ -76,12 +76,11 @@ class MyDecoderWithAttention_Vis(nn.Module):
         self,
         attention_dim,
         embed_dim,
+        encoder_dim,
         decoder_dim,
         vocab_size,
-        vocab_path,
-        encoder_dim=512,
+        vocab_path, 
         dropout=0.5,
-        beam_size=3,
         device=DEVICE,
     ):
         """
