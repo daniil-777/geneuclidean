@@ -226,11 +226,12 @@ class Trainer_Fold_Feature_Attention():
                 geometry = geometry.to(self.device)
                 captions = captions.to(self.device)
                 masks = masks.to(self.device)
-                targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
-                # Forward, backward and optimize
                 feature = self.Encoder(features, geometry, masks)
-                outputs, _, _, _ = self.Decoder(feature, captions, lengths)
-                loss = self.criterion(outputs, targets)
+                scores, caps_sorted, decode_lengths, alphas = self.Decoder(feature, captions, lengths)
+                targets = caps_sorted[:, 1:]
+                scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0]
+                targets = pack_padded_sequence(targets, decode_lengths, batch_first=True)[0]
+                loss = self.criterion(scores, targets)
                 name = "eval_loss_" + str(self.split_no + 1)
                 self.writer_eval.add_scalar(name, loss.item(), epoch)
                 # self.writer.add_scalar("test_loss", loss.item(), step)
