@@ -16,7 +16,7 @@ training_params:
   decoder_name: decoder_best_0.ckpt
   n_splits: 5
 model:
-  encoder: bio_net
+  encoder: bio_vis_net
   encoder_kwargs:
     encoding: linear
     max_rad: 2
