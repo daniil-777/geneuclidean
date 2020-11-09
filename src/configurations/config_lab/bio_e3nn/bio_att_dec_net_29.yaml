@@ -41,7 +41,6 @@ model:
     decoder_dim: 512
     vocab_size: 52
     vocab_path: ../data/new_vocab.pkl
-    dropout: 0.5
  
 model_params: 
   model_name: bio_att_dec_net_29

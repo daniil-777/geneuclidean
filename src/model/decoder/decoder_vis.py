@@ -80,7 +80,6 @@ class MyDecoderWithAttention_Vis(nn.Module):
         decoder_dim,
         vocab_size,
         vocab_path, 
-        dropout=0.5,
         device=DEVICE,
     ):
         """
@@ -98,14 +97,12 @@ class MyDecoderWithAttention_Vis(nn.Module):
         self.embed_dim = embed_dim
         self.decoder_dim = decoder_dim
         self.vocab_size = vocab_size
-        self.dropout = dropout
         self.max_seg_length = MAX_Length
         self.attention = My_attention(
             encoder_dim, decoder_dim, attention_dim
         )  # attention network
 
         self.embedding = nn.Embedding(vocab_size, embed_dim)  # embedding layer
-        self.dropout = nn.Dropout(p=self.dropout)
         self.decode_step = nn.LSTMCell(
             embed_dim + encoder_dim, decoder_dim, bias=True
         )  # decoding LSTMCell
