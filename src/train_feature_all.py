@@ -84,7 +84,7 @@ def main():
         trainer.train_epochs(Feature_gen)
     elif(cfg['training_params']['mode'] == "attention"):
         trainer = Trainer_Fold_Feature_Attention(cfg, idx_fold)
-        trainer.train_epochs()
+        trainer.train_epochs(Feature_gen)
     
     # encoder_path = os.path.join(savedir, "models", "encoder_best_" + str(idx_fold) + '.ckpt') 
     # decoder_path = os.path.join(savedir, "models", "decoder_best_" + str(idx_fold) + '.ckpt')
