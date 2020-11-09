@@ -1,0 +1,70 @@
+preprocessing:
+  mask: True
+  collate_fn: masks
+  natoms: 286
+splitting:
+  split: random
+  file_folds: test_split_e3nn
+  id_fold: 0
+
+training_params:
+  mode: no_attention
+  log_step: 10
+  save_step: 10
+  encoder_name: encoder_best_0.ckpt
+  decoder_name: decoder_best_0.ckpt
+  n_splits: 5
+model:
+  encoder: bio_net
+  encoder_kwargs:
+    encoding: linear
+    max_rad: 0.5
+    num_basis: 2
+    n_neurons: 200
+    n_layers: 2
+    beta: 5
+    rad_model: gaussian
+    num_embeddings: 6
+    embed: 16
+    list_harm: "[[(16, 0)], [(64, 0)]]"
+    scalar_act_name:  sp
+    gate_act_name: sigmoid
+    fc_sizes: "[[128, 128], [128, 256], [256, 512]]"
+    aggregation_mode: avg
+
+  
+  decoder: lstm
+  decoder_kwargs:
+    vocab_size: 52
+    vocab_path: ../data/new_vocab.pkl
+    embed_size: 512
+    hidden_size: 512
+    num_layers: 1
+    beam_size: 20
+
+model_params: 
+  model_name: bio_net_28
+  num_epochs: 100
+  batch_size: 10
+  n_splits: 5
+  num_workers: 1
+  learning_rate: 0.0005
+  input_channels: 22
+  feature_type: with_labels
+  representations: [(23,), (2, 2), (4, 4), (10,)]
+
+output_parameters: 
+  savedir: ../results/captioning_results
+
+
+sampling_params: 
+  sampling: probabilistic
+  sample_id: 15
+  number_smiles: 30
+  time_waiting: 300
+  type_fold: random
+  id_fold: 0
+  folds: ../results/captioning_results/e3nn_1/logs/idx/test_idx_0
+  file_stat: 0_fold_stat.csv
+  sampling_data: test
+  name_all_stat: stat_e3nn_prob_0.csv
