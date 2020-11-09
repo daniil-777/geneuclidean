@@ -194,6 +194,23 @@ class Bio_All_Network(torch.nn.Module):
         features = self.fc_output(features, mask)
         return features # shape ? 
 
+class Bio_Vis_All_Network(Bio_All_Network):
+    def __init__(self,  natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
+                 embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes):
+        super(Bio_Local_Network, self).__init__(natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
+                 embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes)
+    
+    def forward(self, features, geometry, mask):
+        features_bio = features[:, :, :7]
+        features_charge = features[:, :, 7:]
+        features_bio = self.e3nn_block(features_bio, geometry, mask)
+        features_charge = self.e3nn_block(features_charge, geometry, mask)
+        features = torch.cat([features_bio, features_charge], dim=2)
+        features = self.fc_out(features)
+        # features = features.squeeze(1)
+        features = features.double()
+        return features # shape ? 
+
 
 class Bio_Local_Network(Bio_All_Network):
     def __init__(self,  natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
