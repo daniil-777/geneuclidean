@@ -43,7 +43,7 @@ model:
     beam_size: 20
 
 model_params: 
-  model_name: bio_net_19
+  model_name: bio_net_no_bn_33
   num_epochs: 100
   batch_size: 10
   n_splits: 5
