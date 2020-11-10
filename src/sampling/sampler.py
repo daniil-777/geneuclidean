@@ -79,7 +79,7 @@ class Sampler():
         #encoder/decoder path
         # self.encoder_path = os.path.join(self.savedir, "models", cfg['training_params']['encoder_name']) 
         # self.decoder_path = os.path.join(self.savedir, "models", cfg['training_params']['decoder_name'])
-        self.save_dir_encodings = os.path.join(self.savedir, "encodings")
+        self.save_dir_encodings = os.path.join(self.savedir, "encodings", self.model_name)
         #sampling params
         os.makedirs(self.save_dir_smiles, exist_ok=True)
         os.makedirs(self.save_dir_encodings, exist_ok=True)
@@ -241,6 +241,9 @@ class Sampler():
                 
                 if (self.sampling == "probabilistic"):
                     sampled_ids = self.decoder.sample_prob(feature)
+                    # if self.cfg["training_params"]["mode"] != "attention":
+                    #     sampled_ids = self.decoder.sample_prob(feature)
+                    # else:
                 elif (self.sampling == "max"):
                     sampled_ids = self.decoder.sample_max(feature)
                     self.number_smiles = 0
@@ -301,9 +304,6 @@ class Sampler():
         #     self.file_statistics.flush()
 
             
-
-            
-
     def analysis_all(self):
         #for every fold takes indicies for the test, generates smiles and builds statistics
         num_folds = 3
