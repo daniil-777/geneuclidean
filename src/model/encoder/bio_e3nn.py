@@ -119,9 +119,15 @@ class Bio_All_Network(torch.nn.Module):
                 nn.BatchNorm1d(self.natoms),
                 self.leakyrelu
             )
+        def fc_out_block_no_bn(in_f, out_f):
+            return nn.Sequential(
+                nn.Linear(in_f, out_f),
+                self.leakyrelu
+            )
         self.fc_blocks_out = [fc_out_block(block_size[0], block_size[1]) 
                        for block_size in self.fc_sizes]
         self.fc_out = nn.Sequential(*self.fc_blocks_out)
+
 
     def encoding_block(self, features):
         # mask, diff_geo, radii = constants(geometry, mask)
@@ -192,6 +198,38 @@ class Bio_All_Network(torch.nn.Module):
         features = torch.cat([features_bio, features_charge], dim=2)
         # features = features.float()
         features = self.fc_output(features, mask)
+        return features # shape ? 
+
+class Bio_All_Network_no_batch(Bio_All_Network):
+    def __init__(self,  natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
+                 embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes):
+        super(Bio_All_Network_no_batch, self).__init__(natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
+                 embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes)
+        def fc_out_block_no_bn(in_f, out_f):
+            return nn.Sequential(
+                nn.Linear(in_f, out_f),
+                self.leakyrelu
+            )
+
+        self.fc_blocks_out = [fc_out_block_no_bn(block_size[0], block_size[1]) 
+                       for block_size in self.fc_sizes]
+        self.fc_out = nn.Sequential(*self.fc_blocks_out)
+
+    def fc_output_no_bn(self, features, mask):
+        features = self.fc_out(features)
+        features = self.atom_pool(features, mask)
+        features = features.squeeze(1)
+        features = features.double()
+        return features
+
+    def forward(self, features, geometry, mask):
+        features_bio = features[:, :, :7]
+        features_charge = features[:, :, 7:]
+        features_bio = self.e3nn_block(features_bio, geometry, mask)
+        features_charge = self.e3nn_block(features_charge, geometry, mask)
+        features = torch.cat([features_bio, features_charge], dim=2)
+        # features = features.float()
+        features = self.fc_output_no_bn(features, mask)
         return features # shape ? 
 
 class Bio_Vis_All_Network(Bio_All_Network):

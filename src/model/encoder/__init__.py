@@ -7,7 +7,7 @@ from src.model.encoder.binding_e3nn import Binding_Network
 from src.model.encoder.e3nn_res import ResNetwork
 from src.model.encoder.pointnet_e3nn import PointNetAllNetwork
 from src.model.encoder.e3nn_att import AttentionE3nn
-from src.model.encoder.bio_e3nn import Bio_All_Network, Bio_Vis_All_Network, Bio_Local_Network, ResNet_Bio_ALL_Network, ResNet_Bio_Local_Network, Concat_Bio_Local_Network
+from src.model.encoder.bio_e3nn import Bio_All_Network, Bio_All_Network_no_batch, Bio_Vis_All_Network, Bio_Local_Network, ResNet_Bio_ALL_Network, ResNet_Bio_Local_Network, Concat_Bio_Local_Network
 
 encoder_dict = {
     'network1': Network,
@@ -22,6 +22,7 @@ encoder_dict = {
     'se3cnn_geo_feat_resnet': Encoder_Resnet_feat_geom_se3ACN,
     'pointnet_geo': PointNet_Geo_AllNetwork,
     'bio_net': Bio_All_Network,
+    'bio_net_no_bn': Bio_All_Network_no_batch,
     'bio_vis_net': Bio_Vis_All_Network,
     'bio_local_net': Bio_Local_Network,
     'resnet_bio_net': ResNet_Bio_ALL_Network,
