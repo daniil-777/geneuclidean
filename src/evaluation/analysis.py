@@ -1,33 +1,25 @@
-import numpy as np
-from scipy.stats import pearsonr
 import csv
-# from matplotlib import pyplot
-from numpy import mean
-from numpy import std
+import os
 import pickle
-import pandas as pd
+import random
+
 import matplotlib
 import matplotlib.pyplot as plt
-import os
-import random
-# from captioning_e3nn.Contrib.NP_Score.npscorer_my import processMols
-from rdkit import RDConfig
-from rdkit import Chem
-from rdkit.Chem import Descriptors
-from rdkit import RDConfig
-from rdkit import DataStructs
-from rdkit.Chem import AllChem, QED
-from matplotlib import pyplot
+import numpy as np
+import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
+from matplotlib import cm, pyplot
+# from matplotlib import pyplot
+from numpy import mean, std
+# from captioning_e3nn.Contrib.NP_Score.npscorer_my import processMols
+from rdkit import Chem, DataStructs, RDConfig
+from rdkit.Chem import QED, AllChem, Descriptors
 from scipy import stats
+from scipy.stats import pearsonr
 from sklearn.model_selection import KFold
-import random
 # matplotlib.use('TkAgg')
 # matplotlib.rcParams.update({'font.size': 14})
 from sklearn.preprocessing import MinMaxScaler
-from matplotlib import cm
-
 
 
 class Tree_Analysis(dict):
@@ -46,10 +38,12 @@ class Tree_Analysis(dict):
 
 
 class plot_all():
-    def __init__(self, cfg):
+    def __init__(self, cfg, epoch):
         self.path_data = os.path.join(cfg["output_parameters"]["savedir"], cfg["model_params"]["model_name"], "statistics")
         self.names_gen_properties = ["gen_NP", "gen_weight", "gen_logP", "gen_sa"]
         self.names_orig_properties = ['orig_NP', 'orig_weight', 'orig_logP', 'orig_sa']
+        self.num_epochs = cfg['model_params']['num_epochs']
+        self.epoch = epoch
         self.files = os.listdir(self.path_data)
         self.dict_analysis = Tree_Analysis()
         self.dict_orig = Tree_Analysis()
@@ -86,7 +80,8 @@ class plot_all():
 
     def get_array(self, file: str, name: str):
         data = pd.read_csv(os.path.join(self.path_data, file))
-        array = data[name].to_list()
+        array = data.loc[data['epoch_no'] ==  self.epoch, name].to_list()
+        # array = data[name].to_list()
         return array
     
     
@@ -133,17 +128,12 @@ class plot_all():
                 if (len(parts) < 4):
                     method = parts[0]
                     id_fold = parts[-1]
-                    # print("id_fold", id_fold)
                     name_split = parts[1]
-                    # name_split = parts[1][:-4]
                 else:
                     method = parts[1] + parts[0]
-                    print("method", method)
                     id_fold = parts[-1]
-                    print("id_fold", id_fold)
                     # print("id_fold", id_fold)
                     name_split = parts[2]
-                    print("name_split", name_split)
                     # name_split = parts[2][:-4]
                 if (method not in methods):
                     methods.append(method)
@@ -209,13 +199,11 @@ class plot_all():
                 ax_all.set_title(name_split)
                 ax_all.legend(loc='upper right')
                 ax1.legend(loc='upper right')
-            name = name_split + "_sim.pdf"
+            name = name_split + "_epoch_" + str(self.epoch) + "_sim.pdf"
             plt.savefig(os.path.join(self.path_sim, name), dpi = 600)
         name_all = "sim_all.pdf"
         fig.savefig(os.path.join(self.path_sim, name_all), dpi=600)
         
-                
-                
     def plot_properties(self):
         num_splits = len(self.dict_analysis)
         #iterate over random/chain/scaffold split

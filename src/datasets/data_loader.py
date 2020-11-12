@@ -1,6 +1,7 @@
 import os
-from functools import partial
 import re
+from functools import partial
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -11,7 +12,8 @@ from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
 # import dictionary of atoms' types and hot encoders
-from datasets.dictionaries import atom_most_common, dict_atoms_hot, dict_atoms_simple
+from datasets.dictionaries import (atom_most_common, dict_atoms_hot,
+                                   dict_atoms_simple)
 
 # number_atoms_unique = 22
 
@@ -37,6 +39,7 @@ class Pdb_Dataset(Dataset):
         # )
         ##################refined files###################
         self.files_refined = os.listdir(self.init_refined)
+        self.files_refined = [file for file in self.files_refined if file[0].isdigit()]
         self.files_refined.sort()
         # self.files_refined.remove(".DS_Store")
         ##################################################
@@ -472,9 +475,3 @@ if __name__ == "__main__":
     DATA_PATH = "/Volumes/Ubuntu"
     featuriser = Pdb_Dataset(DATA_PATH)
     lengthes = featuriser._get_length_padding("refined")
-    # plt.title("Hist of features length")
-    # plt.xlabel("Length")
-    # plt.ylabel("Number of PDB")
-    # plt.hist(lengthes)
-    # plt.show()
-    # plt.savefig("Hist_lenhth_refined", dpi=150)

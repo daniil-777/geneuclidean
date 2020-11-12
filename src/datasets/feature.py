@@ -1,28 +1,34 @@
-import os
+import argparse
 import multiprocessing
+import os
+import re
 import shutil
 from distutils.dir_util import copy_tree
-from multiprocessing import Pool
 from functools import partial
-import re
+from multiprocessing import Pool
+
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn.functional as F
 from matplotlib import pyplot as plt
 from moleculekit.molecule import Molecule
-import pandas as pd
+from moleculekit.tools.atomtyper import (getFeatures,
+                                         prepareProteinForAtomtyping)
+from moleculekit.tools.voxeldescriptors import getChannels
 # from moleculekit.smallmol.smallmol import SmallMol
 from torch import nn
-from tqdm import tqdm
 from torch.utils.data import DataLoader, Dataset
-from moleculekit.tools.atomtyper import prepareProteinForAtomtyping, getFeatures
-from moleculekit.tools.voxeldescriptors import getChannels
-# import dictionary of atoms' types and hot encoders
-from src.datasets.dictionaries import atom_most_common, dict_atoms_hot, dict_atoms_simple, dict_atoms_masses, dict_atoms_charges
-from src.utils.checkpoint import save_checkpoint_feature
+from tqdm import tqdm
+
 import src.utils.config as config
+# import dictionary of atoms' types and hot encoders
+from src.datasets.dictionaries import (atom_most_common, dict_atoms_charges,
+                                       dict_atoms_hot, dict_atoms_masses,
+                                       dict_atoms_simple)
 from src.tests.list_exception import list_exception
-import argparse
+from src.utils.checkpoint import save_checkpoint_feature
+
 
 # from dict 
 class Featuring():
@@ -34,12 +40,10 @@ class Featuring():
         self.path_data = cfg['data']['path']
         self.path_checkpoint = os.path.join(self.path_data,  "preprocess_checkpoint.csv")
         self.file_checkpoint_data = open(self.path_checkpoint,  "a+").close()
-        # self.file_checkpoint_data.close()
         if (len(open(self.path_checkpoint).readlines()) == 0):
             print("creating the file...")
             with open(self.path_checkpoint,  "a+") as f:
                 f.write('radious,type_feature,type_filtering,h_filterig'+ "\n")
-        # self.init_refined = self.path_root + "/data/new_refined/"
         self.init_refined = cfg['data']['path_refined']
         self.init_casf = self.path_root + "/data/new_core_2016/"
         self.dict_atoms = dict_atoms_hot
@@ -57,42 +61,15 @@ class Featuring():
         self.files_refined.sort()
         self.idx_files_refined = list(range(0, len(self.files_refined)))
         self.names_bio_exception = []
-        # self.idx_files_refined = [0, 1]
         self.max_length = 0
         if not self.check_featuring():
-            # print("staaart!!!!!!!!!!")
-            print("max length calculating...")
-            with Pool(processes=8) as pool:
-                lengthes = pool.map(self._get_max_length_from_files, self.idx_files_refined)
-            self.max_length = max(lengthes)
-            print("max length - ", self.max_length)
-            print("padding...")
-            with Pool(processes=8) as pool:
-                pool.map(self.files_to_padded, self.idx_files_refined)
-            print("padding finished")
-            self.write_checkpoint()
-            print("wrote to checkpoint")
-            # self.run_parallel_write_feat_geo()
-            # print("calculating max length...")
-            # self.run_parallel_max_length()
-            # print("writing to files...")
-            # self.run_parallel_write()
+            self.run_parallel_write_feat_geo()
         else:
-            # print("nooo!")
             f, m, g = self._get_feat_geo_from_file(1)
             self.max_length = f.shape[0]
-            # self.max_length = 116
-            # print("padding...")
-            # with Pool(processes=8) as pool:
-            #     pool.map(self.files_to_padded, self.idx_files_refined)
-            # print("padding finished")
-            # print(self.max_length)
        
     def run_parallel_write_feat_geo(self):
         print("writing filtered features/geo...")
-        # self.files_refined = list_exception
-        # self.files_refined.sort()
-        # self.idx_files_refined = list(range(0, len(self.files_refined)))
         with Pool(processes=8) as pool:
             pool.map(self.write_padd_feat_geo, self.idx_files_refined)
         for name in self.names_bio_exception:

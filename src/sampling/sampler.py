@@ -79,7 +79,7 @@ class Sampler():
         #encoder/decoder path
         # self.encoder_path = os.path.join(self.savedir, "models", cfg['training_params']['encoder_name']) 
         # self.decoder_path = os.path.join(self.savedir, "models", cfg['training_params']['decoder_name'])
-        self.save_dir_encodings = os.path.join(self.savedir, "encodings", self.model_name)
+        self.save_dir_encodings = os.path.join(cfg['output_parameters']['savedir'], "encodings", self.model_name)
         #sampling params
         os.makedirs(self.save_dir_smiles, exist_ok=True)
         os.makedirs(self.save_dir_encodings, exist_ok=True)
@@ -88,46 +88,64 @@ class Sampler():
             self.vocab = pickle.load(f)
 
         self.dataset = Pdb_Dataset(cfg, self.vocab)
+        self.path_checkpoint_evaluator = os.path.join(self.savedir, "checkpoints", "checkpoint_evaluator.csv")
+        if os.path.exists(self.path_checkpoint_evaluator):
+            self.data_checkpoint = pd.read_csv(self.path_checkpoint_evaluator)
        
     
-    def analysis_cluster(self, split_no, type_fold, encoder_path, decoder_path):
+    def analysis_cluster(self, split_no, epoch_no, type_fold, encoder_path, decoder_path):
         # encoder, decoder = self._get_model_path(idx_fold)
         self.idx_fold = split_no
         self.type_fold = type_fold
-        self.name_file_stat = self.sampling + "_" + str(self.type_fold) + "_" + self.idx_fold + ".csv"
+        self.epoch_no = epoch_no
+        self.name_file_stat = self.sampling + "_" + str(self.type_fold) + "_" + str(self.idx_fold) + ".csv"
         self.path_to_file_stat = os.path.join(self.save_dir_smiles, self.name_file_stat)
         self.file_statistics = open(self.path_to_file_stat, "a+")
         self.checkpoint_sampling_path = os.path.join(self.savedir, "checkpoints", str(split_no) + '_sample.pkl')
         #the file of the whole stat
         if (len(open(self.path_to_file_stat).readlines()) == 0):
-            self.file_statistics.write("name,fold,type_fold,orig_smile,gen_smile,gen_NP,gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity,orig_NP,orig_logP,orig_sa,orig_qed,orig_weight,frequency,sampling,encoder,decoder" +  "\n")
+            self.file_statistics.write("name,fold,epoch_no, type_fold,orig_smile,gen_smile,gen_NP,gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity,orig_NP,orig_logP,orig_sa,orig_qed,orig_weight,frequency,sampling,encoder,decoder" +  "\n")
             self.file_statistics.flush()
-        checkpoint_sampling = torch.load(self.checkpoint_sampling_path)
+        # checkpoint_sampling = torch.load(self.checkpoint_sampling_path)
         print("loading start_ind_protein...")
-        start_ind_protein = checkpoint_sampling['idx_sample_start']
-        idx_sample = checkpoint_sampling['idx_sample_regime_start']
-        
+        # start_ind_protein = checkpoint_sampling['idx_sample_start']
+        start_ind_protein = self.data_checkpoint.loc[(self.data_checkpoint['type_fold'] == self.type_fold) & (self.data_checkpoint['sampling'] == self.sampling), 'start_pdb']
+        # idx_sample = checkpoint_sampling['idx_sample_regime_start']
         self.encoder, self.decoder = config.eval_model_captioning(self.cfg, encoder_path, decoder_path, device = self.device)
-        self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(self.idx_fold))
+        # self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(self.idx_fold))
+        self.file_folds = os.path.join(self.idx_file, self.type_fold)
         with (open(self.file_folds, "rb")) as openfile:
             idx_proteins = pickle.load(openfile)
+            train_idx, test_idx = idx_proteins[self.idx_fold]
+            print("train idx , - ", train_idx)
+            print("test idx , - ", test_idx)
         # idx_proteins = [1,2,3,4]
         files_refined = os.listdir(self.protein_dir)
         idx_all = [i for i in range(len(files_refined) - 3)]
         #take indx of proteins in the training set
         if (self.sampling_data == "train"):
-            idx_to_generate = np.setdiff1d(idx_all, idx_proteins)
+            # idx_to_generate = np.setdiff1d(idx_all, idx_proteins)
+            idx_to_generate = train_idx
         else:
-            idx_to_generate = idx_proteins
+            # idx_to_generate = idx_proteins
+            idx_to_generate = test_idx
+            
         #sampling checkpoint
         end_idx = len(idx_to_generate)
-        for idx in range(start_ind_protein, end_idx):
+        for idx in range(int(start_ind_protein), end_idx):
             id_abs_protein = idx_to_generate[idx]
             self.generate_smiles(id_abs_protein)
             next_idx = (idx + 1) % end_idx
-            save_checkpoint_sampling(self.checkpoint_sampling_path, next_idx, idx_sample)
+            print("next_ind!!!! - ", next_idx)
+            print("end_ind!! - ", end_idx)
+            print("ind!!! - ", idx)
+            
+            self.data_checkpoint.loc[(self.data_checkpoint['type_fold'] == self.type_fold) & (self.data_checkpoint['sampling'] == self.sampling), 'start_pdb'] = next_idx
+            # save_checkpoint_sampling(self.checkpoint_sampling_path, next_idx, idx_sample)
             if (next_idx == 0):
-                save_checkpoint_sampling(self.checkpoint_sampling_path, next_idx, idx_sample + 1)
+                self.data_checkpoint.loc[(self.data_checkpoint['type_fold'] == self.type_fold) & (self.data_checkpoint['sampling'] == self.sampling), 'start_rec_epoch'] = epoch_no + 1
+                # save_checkpoint_sampling(self.checkpoint_sampling_path, next_idx, idx_sample + 1)
+            self.data_checkpoint.to_csv(self.path_checkpoint_evaluator, index=False)
 
     def _get_models(self, idx_fold):
         encoder_path, decoder_path = self._get_model_path(idx_fold)
@@ -246,7 +264,7 @@ class Sampler():
                     # else:
                 elif (self.sampling == "max"):
                     sampled_ids = self.decoder.sample_max(feature)
-                    self.number_smiles = 0
+                    self.number_smiles = 1
                 elif (self.sampling == "simple_probabilistic"):
                     sampled_ids = self.decoder.simple_prob(feature)
                 elif (self.sampling.startswith("simple_probabilistic_topk") == True):
@@ -284,8 +302,9 @@ class Sampler():
             raise ValueError("Unknown sampling...")
         
         if (amount_val_smiles > 0):
-            # save_dir_analysis = os.path.join(save_dir_smiles, str(id_fold), protein_name)
-            stat_protein = analysis_to_csv(smiles,  protein_name, self.idx_fold, self.type_fold) #get the list of lists of statistics
+            # print("stat write!!!")
+            # save_dir_analysis = os.path.join(save_dir_smiles, str(self.idx_fold), protein_name)
+            stat_protein = analysis_to_csv(smiles,  protein_name, self.idx_fold, self.type_fold, self.epoch_no) #get the list of lists of statistics
             # stat_protein = np.transpose(np.vstack((stat_protein, np.asarray(amount_val_smiles * [amount_val_smiles /iter]))))
             stat_protein.append(amount_val_smiles * [amount_val_smiles /iter])
             stat_protein.append(amount_val_smiles * [self.sampling])
@@ -295,13 +314,15 @@ class Sampler():
             wr = csv.writer(self.file_statistics)
             wr.writerows(list(map(list, zip(*stat_protein))))
             self.file_statistics.flush()
-        # else:
-        #     length = self.number_smiles
-        #     stat_protein = [length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'],
-        #           length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a']]
-        #     wr = csv.writer(self.file_statistics)
-        #     wr.writerows(list(map(list, zip(*stat_protein))))
-        #     self.file_statistics.flush()
+        else:
+            length = self.number_smiles
+            print("length, - ", length)
+            stat_protein = [length * ['a'], length * ['a'], length * [str(self.epoch_no)], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'],
+                  length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a']]
+            wr = csv.writer(self.file_statistics)
+            wr.writerows(list(map(list, zip(*stat_protein))))
+            self.file_statistics.flush()
+            print("end of stat!")
 
             
     def analysis_all(self):
@@ -336,28 +357,38 @@ class Sampler():
         df.to_csv(os.path.join(save_dir_smiles, "all_stat_new.csv"))
     
 
-    def save_encodings_all(self, mode, split, encoder_path, decoder_path):
+    def save_encodings_all(self, mode, split_no, encoder_path, decoder_path):
         r'''For every protein id in rain/test generates feature and saves it
         '''
         self.mode_split = mode
+        self.type_fold = self.cfg["sampling_params"]["type_fold"]
         self.folder_save = os.path.join(self.save_dir_encodings, mode)
         if not os.path.exists(self.folder_save):
             os.makedirs(self.folder_save )
 
         self.encoder, self.decoder = config.eval_model_captioning(self.cfg, encoder_path, decoder_path, device = self.device)
-        #writes encodings to .pt files
-        self.file_folds = os.path.join(self.idx_file, "test_idx_" + str(split))
-        idx_all = [i for i in range(len(self.files_refined) - 3)]
-        with (open(self.file_folds, "rb")) as openfile:
-            idx_test = pickle.load(openfile)
+
+        idx_folds = pickle.load(open(os.path.join(self.idx_file, self.type_fold), "rb" ) )
+        train_id, test_id = idx_folds[split_no]
         if (mode == "test"):
-            idx_proteins_gen = idx_test
+            idx_proteins_gen = test_id
         else:
-        #take indx of proteins in the training set
-            idx_proteins_gen = np.setdiff1d(idx_all, idx_test)
-        # for id_protein in idx_train:
+            idx_proteins_gen = train_id
+
         for id_protein in idx_proteins_gen:    
             self.generate_encodings(id_protein)
+
+        files_encodings =  os.listdir(self.folder_save)
+        all_encodings = []
+        for file_enc in files_encodings:
+            if(file_enc[0].isdigit()):
+                path_to_enc = os.path.join(self.folder_save, file_enc)
+                enc_from_torch = torch.load(path_to_enc, map_location=torch.device('cpu')).view(-1).detach().numpy() 
+                # print(type(enc_from_torch))
+                all_encodings.append(enc_from_torch)
+        all_encodings = np.asarray(all_encodings)
+        name = str(self.mode_split) + "_" + str(split_no) + "_" + str(self.type_fold)+ '_' + self.model_name + "_all_encodings.csv"
+        np.savetxt(os.path.join(self.save_dir_encodings, name), all_encodings, delimiter=',') 
 
     def collect_all_encodings(self):
         r''' Writes all saved features to 1 file
@@ -368,7 +399,7 @@ class Sampler():
             if(file_enc[0].isdigit()):
                 path_to_enc = os.path.join(self.folder_save, file_enc)
                 enc_from_torch = torch.load(path_to_enc, map_location=torch.device('cpu')).view(-1).detach().numpy() 
-                print(type(enc_from_torch))
+                # print(type(enc_from_torch))
                 all_encodings.append(enc_from_torch)
         all_encodings = np.asarray(all_encodings)
         name = str(self.mode_split) + "_all_encodings.csv"
