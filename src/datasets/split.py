@@ -50,6 +50,7 @@ class Splitter:
     # def __init__(self, path_pocket: str, path_ligand: str):
     def __init__(self, cfg):
         self.cfg = cfg
+        self.type_fold = cfg["sampling_params"]["type_fold"]
         self.name_file_folds = cfg['splitting']['file_folds']
         self.num_epochs = cfg['model_params']['num_epochs']
         self.batch_size = cfg['model_params']['batch_size']
@@ -96,7 +97,7 @@ class Splitter:
         #cross validation
         kf = KFold(n_splits=5, shuffle=True, random_state=2)
         my_list = list(kf.split(data_ids))
-        with open(os.path.join(self.idx_file, self.name_file_folds), 'wb') as fp:
+        with open(os.path.join(self.idx_file, self.type_fold), 'wb') as fp:
             pickle.dump(my_list, fp)
 
     def _ligand_scaffold_split(self):
@@ -122,12 +123,12 @@ class Splitter:
             indices_test = np.where(labels == split_no)[0]
             splits.append((indices_train, indices_test))
         splits = np.asarray(splits)
-        with open(os.path.join(self.idx_file, self.name_file_folds), 'wb') as fp:
+        with open(os.path.join(self.idx_file, self.type_fold), 'wb') as fp:
             pickle.dump(splits, fp)
         return splits
 
     def chain_split(self):
-        self.files_refined = self.files_refined[:-3]
+        # self.files_refined = self.files_refined[:-3]
         with open(self.file_prot_chain, 'r') as file: 
             lines = file.read().splitlines()
         words_all = []
@@ -165,7 +166,7 @@ class Splitter:
                 split_refined.append(id_orig)
             split_refined_all.append(split_refined)
 
-        with open(os.path.join(self.idx_file, self.name_file_folds), 'wb') as fp:
+        with open(os.path.join(self.idx_file, self.type_fold), 'wb') as fp:
             pickle.dump(split_refined_all, fp)
     
 
