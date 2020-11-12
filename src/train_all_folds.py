@@ -113,8 +113,8 @@ def main():
   
 
     #Evaluation
-    # regimes = ["probabilistic", "max", "beam_1", "beam_3", "beam_10"]
-    regimes = ["probabilistic"]
+    regimes = ["probabilistic", "max", "beam_3", "beam_10"]
+    # regimes = ["probabilistic"]
     print("Evaluation starts!...")
     for regim in regimes:
         evaluator = Evaluator(cfg, regim, type_fold, Feature_gen)
