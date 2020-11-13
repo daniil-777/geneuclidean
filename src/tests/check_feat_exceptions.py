@@ -46,12 +46,7 @@ import shutil
 from distutils.dir_util import copy_tree
 
 
-def delete_files(self, protein_name):
-    path_to_exceptions = os.path.join(self.path_data, "exceptions")
-    path_protein_folder = os.path.join(self.init_refined, protein_name)
-    os.makedirs(path_to_exceptions, exist_ok=True)
-    copy_tree(path_protein_folder, path_to_exceptions)
-    shutil.rmtree(path_protein_folder)
+
 
 
 def test_Feature_exists():
@@ -71,6 +66,7 @@ def test_Feature_exists():
     cfg = config.load_config(args.config, 'configurations/config_lab/default.yaml')
     type_fold = args.type_fold
     idx_fold = args.idx_fold
+    path_data = cfg['data']['path']
     savedir = cfg["output_parameters"]["savedir"]
     model_name = cfg["model_params"]["model_name"]
     num_epoches = cfg["model_params"]["num_epochs"]
@@ -82,6 +78,12 @@ def test_Feature_exists():
     files_refined = [file for file in files_refined if file[0].isdigit()]
     files_refined.sort()
     idx_files_refined = list(range(0, len(files_refined)))
+    def delete_files(protein_name):
+        path_to_exceptions = os.path.join(path_data, "exceptions")
+        path_protein_folder = os.path.join(init_refined, protein_name)
+        os.makedirs(path_to_exceptions, exist_ok=True)
+        copy_tree(path_protein_folder, path_to_exceptions)
+        shutil.rmtree(path_protein_folder)
 
     #features generation
     print("Checking saved features!")
