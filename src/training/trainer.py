@@ -30,7 +30,7 @@ from src.training.utils import save_checkpoint
 from src.utils.build_vocab import Vocabulary
 
 
-class Trainer_Fold_Feature_Attention():
+class Trainer_Fold_Feature():
     def __init__(self, cfg, split_no):
         # model params
         self.cfg = cfg
@@ -53,7 +53,6 @@ class Trainer_Fold_Feature_Attention():
         self.save_step = cfg['training_params']['save_step']
         self.vocab_path = cfg['preprocessing']['vocab_path']
         self.n_splits = cfg['training_params']['n_splits']
-        self.loss_mode = cfg['training_params']['loss_mode']
         self.loss_best = np.inf
         self.global_tensorboard_path = os.path.join(cfg['output_parameters']['savedir'], "tensorboard")
         os.makedirs(self.global_tensorboard_path, exist_ok=True)
@@ -149,31 +148,35 @@ class Trainer_Fold_Feature_Attention():
         self.Decoder.train()
         progress = tqdm(loader)
         for i, (features, geometry, masks, captions, lengths) in enumerate(progress):
+            # Set mini-batch dataset
             features = features.to(self.device)
             geometry = geometry.to(self.device)
             captions = captions.to(self.device)
             masks = masks.to(self.device)
+            targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
+
             caption_optimizer.zero_grad()
+            # Forward, backward and optimize
             feature = self.Encoder(features, geometry, masks)
-            scores, caps_sorted, decode_lengths, alphas = self.Decoder(feature, captions, lengths)
-        # Since we decoded starting with <start>, the targets are all words after <start>, up to <end>
-            targets = caps_sorted[:, 1:]
-            scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0]
-            targets = pack_padded_sequence(targets, decode_lengths, batch_first=True)[0]
-            loss = self.criterion(scores, targets)
-            if (self.loss_mode == "double_stochastic"):
-                loss += self.alpha_c * ((1 - alphas.sum(dim = 1)) ** 2).mean() 
+            outputs = self.Decoder(feature, captions, lengths)
+
+            loss = self.criterion(outputs, targets)
+            # scheduler.step(loss)
+
             self.Decoder.zero_grad()
             self.Encoder.zero_grad()
             loss.backward()
             caption_optimizer.step()  #!!! figure out whether we should leave that 
             name = "training_loss_" + str(split_no + 1)
             self.writer_train.add_scalar(name, loss.item(), epoch)
+            # writer.add_scalar("training_loss", loss.item(), epoch)
             self.log_file_tensor.write(str(loss.item()) + "\n")
             self.log_file_tensor.flush()
-            handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
-            fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
-            mem = fb_mem_info.used >> 20
+            # handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
+            # fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
+            # mem = fb_mem_info.used >> 20
+            mem = 0
+            # print('GPU memory usage: ', mem)
             self.writer_train.add_scalar('val/gpu_memory', mem, epoch)
             # Print log info
             if i % self.log_step == 0:
@@ -225,19 +228,18 @@ class Trainer_Fold_Feature_Attention():
                 geometry = geometry.to(self.device)
                 captions = captions.to(self.device)
                 masks = masks.to(self.device)
+                targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
+                # Forward, backward and optimize
                 feature = self.Encoder(features, geometry, masks)
-                scores, caps_sorted, decode_lengths, alphas = self.Decoder(feature, captions, lengths)
-                targets = caps_sorted[:, 1:]
-                scores = pack_padded_sequence(scores, decode_lengths, batch_first=True)[0]
-                targets = pack_padded_sequence(targets, decode_lengths, batch_first=True)[0]
-                loss = self.criterion(scores, targets)
+                outputs = self.Decoder(feature, captions, lengths)
+                loss = self.criterion(outputs, targets)
                 name = "eval_loss_" + str(self.split_no + 1)
                 self.writer_eval.add_scalar(name, loss.item(), epoch)
                 # self.writer.add_scalar("test_loss", loss.item(), step)
-                handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
-                fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
-                mem = fb_mem_info.used >> 20
-                # mem = 20
+                # handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
+                # fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
+                # mem = fb_mem_info.used >> 20
+                mem = 20
                 progress.set_postfix({'epoch': epoch,
                                       'l_ev': loss.item(),
                                       'Perplexity': np.exp(loss.item()),
@@ -247,7 +249,7 @@ class Trainer_Fold_Feature_Attention():
       
 
     def train_epochs(self, Feature_loader):
-        py3nvml.nvmlInit() # output memory usage
+        # py3nvml.nvmlInit() # output memory usage
         featuriser = Pdb_Dataset_Feature(self.cfg, Feature_loader)
         files_refined = os.listdir(self.protein_dir)
         #cross validation
@@ -299,9 +301,3 @@ class Trainer_Fold_Feature_Attention():
                     self.Decoder.state_dict(),
                     self.decoder_name,
                 )
-
-
-       
-
-
-

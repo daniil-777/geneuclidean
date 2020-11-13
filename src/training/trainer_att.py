@@ -299,9 +299,3 @@ class Trainer_Fold_Feature_Attention():
                     self.Decoder.state_dict(),
                     self.decoder_name,
                 )
-
-
-       
-
-
-
