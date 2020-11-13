@@ -42,6 +42,17 @@ from src.training.utils import save_checkpoint_sampling
 from src.evaluation.analysis import plot_all
 from src.tests.datasets.feature import Featuring
 import warnings
+import shutil
+from distutils.dir_util import copy_tree
+
+
+def delete_files(self, protein_name):
+    path_to_exceptions = os.path.join(self.path_data, "exceptions")
+    path_protein_folder = os.path.join(self.init_refined, protein_name)
+    os.makedirs(path_to_exceptions, exist_ok=True)
+    copy_tree(path_protein_folder, path_to_exceptions)
+    shutil.rmtree(path_protein_folder)
+
 
 def test_Feature_exists():
     parser = argparse.ArgumentParser(
@@ -63,27 +74,35 @@ def test_Feature_exists():
     savedir = cfg["output_parameters"]["savedir"]
     model_name = cfg["model_params"]["model_name"]
     num_epoches = cfg["model_params"]["num_epochs"]
+    path_root = cfg['preprocessing']['path_root']
+    init_refined = path_root + "/data/new_refined/"
 
+    ##################refined files###################
+    files_refined = os.listdir(init_refined)
+    files_refined = [file for file in files_refined if file[0].isdigit()]
+    files_refined.sort()
+    idx_files_refined = list(range(0, len(files_refined)))
 
     #features generation
     print("Checking saved features!")
     names_prot_exceptions = []
-    Feature_gen = Featuring(cfg, args.radious, args.type_feature, args.type_filtering, args.h_filterig)
-    for pdbid in Feature_gen.idx_files_refined:
-        name_protein = Feature_gen.files_refined[pdbid]
-        files = os.listdir(os.path.join(Feature_gen.init_refined, name_protein))
+    # Feature_gen = Featuring(cfg, args.radious, args.type_feature, args.type_filtering, args.h_filterig)
+    for pdbid in idx_files_refined:
+        name_protein = files_refined[pdbid]
+        files = os.listdir(os.path.join(init_refined, name_protein))
         array_feat_names = [name_protein, "feature", "r", str(args.radious), args.type_feature, args.type_filtering, args.h_filterig]
         name_feature = "_".join(array_feat_names) + ".pt"
         if name_feature in files:
-            path_feat = os.path.join(Feature_gen.init_refined, name_protein, name_feature)
-            feature_filt = torch.load(path_feat, map_location=torch.device('cpu')).long()
-            if feature_filt.shape[1] == 3:
-                print("exception! - ", name_protein)
-                names_prot_exceptions.append(name_protein)
-                Feature_gen.delete_files(name_protein)
+            pass
+            # path_feat = os.path.join(init_refined, name_protein, name_feature)
+            # feature_filt = torch.load(path_feat, map_location=torch.device('cpu')).long()
+            # if feature_filt.shape[1] == 3:
+            #     print("exception! - ", name_protein)
+            #     names_prot_exceptions.append(name_protein)
+                # Feature_gen.delete_files(name_protein)
         else:
             print("no feature! - ", name_protein)
-            Feature_gen.delete_files(name_protein)
+            # delete_files(name_protein)
     print(names_prot_exceptions)
 
 if __name__ == "__main__":
