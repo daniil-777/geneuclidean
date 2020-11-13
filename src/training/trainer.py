@@ -172,10 +172,10 @@ class Trainer_Fold_Feature():
             # writer.add_scalar("training_loss", loss.item(), epoch)
             self.log_file_tensor.write(str(loss.item()) + "\n")
             self.log_file_tensor.flush()
-            # handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
-            # fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
-            # mem = fb_mem_info.used >> 20
-            mem = 0
+            handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
+            fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
+            mem = fb_mem_info.used >> 20
+            # mem = 0
             # print('GPU memory usage: ', mem)
             self.writer_train.add_scalar('val/gpu_memory', mem, epoch)
             # Print log info
@@ -236,10 +236,10 @@ class Trainer_Fold_Feature():
                 name = "eval_loss_" + str(self.split_no + 1)
                 self.writer_eval.add_scalar(name, loss.item(), epoch)
                 # self.writer.add_scalar("test_loss", loss.item(), step)
-                # handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
-                # fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
-                # mem = fb_mem_info.used >> 20
-                mem = 20
+                handle = py3nvml.nvmlDeviceGetHandleByIndex(0)
+                fb_mem_info = py3nvml.nvmlDeviceGetMemoryInfo(handle)
+                mem = fb_mem_info.used >> 20
+                # mem = 20
                 progress.set_postfix({'epoch': epoch,
                                       'l_ev': loss.item(),
                                       'Perplexity': np.exp(loss.item()),
@@ -249,7 +249,7 @@ class Trainer_Fold_Feature():
       
 
     def train_epochs(self, Feature_loader):
-        # py3nvml.nvmlInit() # output memory usage
+        py3nvml.nvmlInit() # output memory usage
         featuriser = Pdb_Dataset_Feature(self.cfg, Feature_loader)
         files_refined = os.listdir(self.protein_dir)
         #cross validation
