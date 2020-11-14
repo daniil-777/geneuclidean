@@ -20,13 +20,13 @@ model:
     encoding: linear
     max_rad: 1
     num_basis: 2
-    n_neurons: 200
+    n_neurons: 150
     n_layers: 2
     beta: 5
     rad_model: gaussian
     num_embeddings: 6
-    embed: 60
-    list_harm: "[[(60, 0)], [(60, 0)]]"
+    embed: 50
+    list_harm: "[[(50, 0)], [(50, 0)]]"
     scalar_act_name:  sp
     gate_act_name: sigmoid
     fc_sizes: "[[60, 60], [60, 160]]"
