@@ -21,7 +21,7 @@ model:
     max_rad: 1
     num_basis: 2
     n_neurons: 150
-    n_layers: 2
+    n_layers: 1
     beta: 5
     rad_model: gaussian
     num_embeddings: 6
