@@ -19,14 +19,14 @@ model:
   encoder_kwargs:
     encoding: linear
     max_rad: 1
-    num_basis: 2
+    num_basis: 3
     n_neurons: 150
-    n_layers: 1
+    n_layers: 2
     beta: 5
     rad_model: gaussian
     num_embeddings: 6
-    embed: 50
-    list_harm: "[[(50, 0)], [(50, 0)]]"
+    embed: 40
+    list_harm: "[[(40, 0)], [(40, 0)]]"
     scalar_act_name:  sp
     gate_act_name: sigmoid
     fc_sizes: "[[50, 50], [50, 160]]"
