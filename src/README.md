@@ -33,7 +33,7 @@ git clone https://gitlab.ethz.ch/rethink/geneuclidean.git
 ```
 Then change the branch to captioning
 ```
-git checkout captioning
+git checkout main
 ```
 Run
 ```
@@ -43,7 +43,6 @@ To activate the dedicated environment:
 ```
 conda activate e3nn_sampling
 ```
-
 ## Preprocessing
 
 To download the dataset run:
@@ -60,26 +59,58 @@ python preprocessing_all.py
 ## Files Architecture
 When you have installed all dependencies and obtained the preprocessed data, you are ready to run our pretrained models and train new models from scratch.
 
-### Directory layout                  
-    ├── src                     # Source files 
-    ├── img                     # Images for README 
-    ├── report                  # Main captioning_repor.pdf 
-    └── General_readme.md
 
-### Source files
+### Directory layout
 
     ├── ...
-    ├── src                 
-    │   ├── model ├── encoder    #models for encoder
-                  ├── decoder    #models for decoder         
-    │   ├── training             #train classes
-    │   ├── sampling             #sampling classes
-    |   ├── visualisation        #visualisation code
-    |   ├── data
-    |   ├── train_captioning.py  #script to run all pipeline    
-    │ 
+    ├── src
+        ├── configurations 
+                  ├──bash               #bash scripts for Leonard
+                  ├──config_lab         #config files for the cluster/gpu env
+                  ├──config_local       #config files for local machines (CPU only)  
+        ├── datasets                    #data loader / feature loader scripts
+        ├── evaluation                  #statistics of  uniquness/novelty/validity & properties distributions              
+        ├── model ├── encoder           #models for encoder
+                  ├── decoder           #models for decoder   
+        ├── preprocessing               #preprocessing to get initial data  
+        ├── sampling                    #sampling classes
+        ├── scripts                     #scripts to get environment e3nn_sampling
+        ├── tests                       #tests for classes/ data structure
+        ├── training                    #train classes
+        ├── utils                       #helper functions
+        ├── visualisation               #code for visualisation / movie in Pymol
+        ├── data
+        ├── train_all_folds.py          #script to run all pipeline for captioning 
+        ├── train_binding.py            #script to run training for binding   
+        ├── tran_one_fold.py            #script to run all pipeline for captioning for 1 fold
+    
     └── ...
 
+```math
+\begin{table}
+\begin{center}
+\begin{tabular}{ |l|l|l|l| } 
+ \hline
+  Hyperparameter & Minimum & Maximum & Optimal \\
+ \hline
+ Batch Size & 4 & 25 & 15 \\
+ Learning Rate & 0.0005 & 0.01 & 0.005\\
+ Size of Embedding &  5 & 80 & 40 \\
+ Representation & $L_{0}$ & $L_{0}$ and $L_{1}$  & $L_{0}$ \\
+ Radial Basis & $\psi_{G}$,$\psi_{C}$, $\psi_{B}$ & $\psi_{G}$,$\psi_{C}$, $\psi_{B}$ & $\psi_{G}$\\
+ Number of Radial Basis & 2 & 100 & 3\\
+ Radial Maximum & 0.3 & 2 & 0.5 \& 2\\
+ Radial MLP Layers & 1 & 2 & 2\\
+ Radial MLP Neurons & 80 & 80 & 80 \\
+ Num layers LSTM & 1 & 2 & 1 \\
+ \hline
+ Number of Params & 1000 & 5000000 & 1000000 \\
+  \hline
+\end{tabular}
+ \caption{The ranges of hyperparameters for the random hyperparameter search are written in this table}\label{thelabel}
+\end{center}
+\end{table}
+```
 ## Encoder
 
 ### E3nn
