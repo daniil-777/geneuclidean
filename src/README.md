@@ -132,7 +132,7 @@ You can find a table of optimal hyperparameters from empirical study below:
 |concat_bio_local_net | bio_local_net with concaenation of different e3nn convolutions |
 |pointnetall | pointnet (deep resnet) model |
 |att_e3nn | attention in the end model |
-|binding_e3nn | bio_net for binding 9regression tasks)| 
+|binding_e3nn | bio_net for binding (regression tasks)| 
 
 ## Decoder
 |Model Encoder		| Description|
