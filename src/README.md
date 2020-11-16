@@ -6,21 +6,23 @@ Pocket is encoded using Euclidean Neural Networks. Then features are given to Ls
 1. [Installation](#Installation)
 2. [Preprocessing](#Preprocessing)
 3. [Files Architecture](#Files-Architecture)
+4. [Training](#Training)
+5. [Hyperparameters](#Hyperparameters)
 3. [Encoder](#Encoder)
-    1. [E3nn](#E3nn)
+    <!-- 1. [E3nn](#E3nn)
     2. [E3nn + Pointnet](#E3nn-+-Pointnet)
-    3. [E3nn + Attention](#E3nn-+-Attention)
+    3. [E3nn + Attention](#E3nn-+-Attention) -->
 4. [Decoder](#Decoder)
-    1. [LSTM](#LSTM)
-    2. [Attention](#Attention)
-5. [Training](#Training)
-6. [Sampling](#Sampling)
+    <!-- 1. [LSTM](#LSTM)
+    2. [Attention](#Attention) -->
+
+<!-- 6. [Sampling](#Sampling)
     1. [Max Sampling](#Max-Sampling)
     2. [Random Sampling](#Random-Sampling)
     3. [Beam Search](#Beam-Search)
     4. [Temperature Sampling](#Temperature-Sampling)
     5. [Topk Sampling](#Topk-Sampling)
-7. [Fine-Tuning](#Fine-Tuning)
+7. [Fine-Tuning](#Fine-Tuning) -->
 8. [Author](#Author)
 
 
@@ -86,36 +88,60 @@ When you have installed all dependencies and obtained the preprocessed data, you
     
     └── ...
 
-```math
-\begin{table}
-\begin{center}
-\begin{tabular}{ |l|l|l|l| } 
- \hline
-  Hyperparameter & Minimum & Maximum & Optimal \\
- \hline
- Batch Size & 4 & 25 & 15 \\
- Learning Rate & 0.0005 & 0.01 & 0.005\\
- Size of Embedding &  5 & 80 & 40 \\
- Representation & $L_{0}$ & $L_{0}$ and $L_{1}$  & $L_{0}$ \\
- Radial Basis & $\psi_{G}$,$\psi_{C}$, $\psi_{B}$ & $\psi_{G}$,$\psi_{C}$, $\psi_{B}$ & $\psi_{G}$\\
- Number of Radial Basis & 2 & 100 & 3\\
- Radial Maximum & 0.3 & 2 & 0.5 \& 2\\
- Radial MLP Layers & 1 & 2 & 2\\
- Radial MLP Neurons & 80 & 80 & 80 \\
- Num layers LSTM & 1 & 2 & 1 \\
- \hline
- Number of Params & 1000 & 5000000 & 1000000 \\
-  \hline
-\end{tabular}
- \caption{The ranges of hyperparameters for the random hyperparameter search are written in this table}\label{thelabel}
-\end{center}
-\end{table}
+
+## Training
+### Training Locally
+To run the pipeline you can simply run:
 ```
+python train_all_folds.py --loc=local --config=configurations/config_local/bio_e3nn/bio_e3nn_13.yaml --radious=8 --type_feature=mass_charges  --type_filtering=all --h_filterig=h --type_fold=chain
+```
+
+Parameters:
+* *loc*: (local or lab) the env without and with GPU (cluster)
+* *config*: the path to the model config file
+* *radious*: the radious of the sphere to capture pocket's atoms
+* *type_feature* (hot_simple / mass_charges / bio_properties / bio_all_properties): the type of feature to load for the training
+* *h_filterig* (h / -h): h to remove hydrogens, -h t leave hydrogens
+* *type_fold* (random / morgan / chain): the type of data split
+
+
+### Training on cluster
+```
+bsub -n 8 -W 24:00 -R "rusage[mem=10000,ngpus_excl_p=1]"  -oo logs/hot_simple_bio_local_net_33  python train_all_folds.py --loc=lab --config=configurations/config_lab/bio_e3nn/bio_local_net_33.yaml --radious=8 --type_feature=hot_simple  --type_filtering=all --h_filterig=h --type_fold=random
+```
+
+### Multiple jobs on cluster
+Run simply:
+```
+bash configurations/bash/file.sh
+```
+## Hyperparameters
+You can find a table of hyperparameters with commnets below:
+![](images/hyp_comments.png)
+You can find a table of optimal hyperparameters from empirical study below:
+![](images/hyp_opt.png)
 ## Encoder
 
-### E3nn
+|Model Encoder		| Description|
+| --- | ---  |
+|bio_net | The model takes hybrid type of inputs. Usual baseline e3nn model | 
+|bio_local_net | The model takes one type of inputs. Usual baseline e3nn model |
+|bio_net_no_bn | bion_net model without batch normalisation |
+|bio_vis_net | bio_net model without flattenning output. For decoder with attention |
+|resnet_bio_local_net | bio_local_net with residual connections|
+|concat_bio_local_net | bio_local_net with concaenation of different e3nn convolutions |
+|pointnetall | pointnet (deep resnet) model |
+|att_e3nn | attention in the end model |
+|binding_e3nn | bio_net for binding 9regression tasks)| 
 
-### E3nn + Pointnet
+## Decoder
+|Model Encoder		| Description|
+| --- | ---  |
+|lstm | lstm model |
+|lstm_attention | lstm_atttention model |
+<!-- ### E3nn -->
+
+<!-- ### E3nn + Pointnet
 
 ### E3nn + Attention
 ## Decoder
@@ -132,20 +158,20 @@ When you have installed all dependencies and obtained the preprocessed data, you
 ### Random-Sampling
 ### Beam-Search
 ### Temperature Sampling
-## Fine-Tuning
+## Fine-Tuning -->
 
 ## Author
-
-# Models
+Daniil Emtsev (demtsev@student.ethz.ch)
+<!-- # Models
 Model without attention. Every LSTM gets a previous hidden state and embedded caption.
 ![](images/model_without_attention.png)
 
 Model with attention. Every LSTM gets a previous hidden state and embedded caption with attention-weighted-feature vector. On the illustration white parts of the image mean weighted features whee the Decoder should pay attention to generate the next word
-![](images/model_attention_grey.png)
+![](images/model_attention_grey.png) -->
 
 
 
-#### 2. Download the dataset
+<!-- #### 2. Download the dataset
 
 ```
 bash getDataset.sh 
@@ -175,7 +201,7 @@ python sampling.py configuration/config.json
 
 #### 5. Results
 
-Results (plots of train/test loss and scatter plots of predicted/target pkd) should be saved in the folder /results
+Results (plots of train/test loss and scatter plots of predicted/target pkd) should be saved in the folder /results -->
 
 
 
