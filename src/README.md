@@ -55,7 +55,7 @@ To activate the dedicated environment:
 ```
 conda activate e3nn_sampling
 ```
-## Preprocessing
+## Preprocessing<a name="Preprocessing"></a>
 
 To download the dataset run:
 
@@ -68,11 +68,11 @@ To run preprocessing script:
 python preprocessing_all.py
 ```
 
-## Files Architecture
+## Files Architecture<a name="Files-Architecture"></a>
 When you have installed all dependencies and obtained the preprocessed data, you are ready to run our pretrained models and train new models from scratch.
 
 
-### Directory layout
+### Directory layout<a name="Directory-layout"></a>
 
     ├── ...
     ├── src
@@ -99,8 +99,8 @@ When you have installed all dependencies and obtained the preprocessed data, you
     └── ...
 
 
-## Training
-### Training Locally
+## Training<a name="Training"></a>
+### Training Locally<a name="Training-Locally"></a>
 To run the pipeline you can simply run:
 ```
 python train_all_folds.py --loc=local --config=configurations/config_local/bio_e3nn/bio_e3nn_13.yaml --radious=8 --type_feature=mass_charges  --type_filtering=all --h_filterig=h --type_fold=chain
@@ -115,17 +115,17 @@ Parameters:
 * *type_fold* (random / morgan / chain): the type of data split
 
 
-### Training on cluster
+### Training on cluster<a name="Training-on-cluster"></a>
 ```
 bsub -n 8 -W 24:00 -R "rusage[mem=10000,ngpus_excl_p=1]"  -oo logs/hot_simple_bio_local_net_33  python train_all_folds.py --loc=lab --config=configurations/config_lab/bio_e3nn/bio_local_net_33.yaml --radious=8 --type_feature=hot_simple  --type_filtering=all --h_filterig=h --type_fold=random
 ```
 
-### Checkpoints
+### Checkpoints<a name="Checkpoints"></a>
 During training you will have checkpoints to track the progress of pipeline:
 * *folds.csv* contains inf about folds and type of split 
 * *checkpoint_evaluation.csv* contains inf about conducted experiments and corresponding type of split, fold, epoch, id of sampled pdb
 
-### Data Strcuture of results
+### Data Strcuture of results<a name="Data-Strcuture-of-results"></a>
 During training you will have the following structure for your model:
 The name of current model is: **model_name** _ **type_feature** _ **radious_type** _ **filtering** _ **h_filterig**
 
@@ -141,17 +141,17 @@ The layout of your model file (in the folder /results/captioning_results/model_n
     ├──../tensorboard            #tain /eval losses for every epoch and type of split. Also memory consumption
 
 
-### Multiple jobs on cluster
+### Multiple jobs on cluster<a name="Multiple-jobs-on-cluster"></a>
 Run simply:
 ```
 bash configurations/bash/file.sh
 ```
-## Hyperparameters
+## Hyperparameters<a name="Hyperparameters"></a>
 You can find a table of hyperparameters with commnets below:
 ![](images/hyp_comments.png)
 You can find a table of optimal hyperparameters from empirical study below:
 ![](images/hyp_opt.png)
-## Encoder
+## Encoder<a name="Encoder"></a>
 
 |Model Encoder		| Description| File (/model/encoder/...) |
 | --- | ---  | --- |
@@ -166,7 +166,7 @@ You can find a table of optimal hyperparameters from empirical study below:
 |binding_e3nn | bio_net for binding (regression tasks)|  [binding_e3nn.py](model/encoder/binding_e3nn.py)  |
 
 
-## Decoder
+## Decoder<a name="Decoder"></a>
 |Model Encoder		| Description| File (/model/decoder/...) |
 | --- | ---  | --- |
 |lstm | lstm model | [decoder.py](model/decoder/decoder.py)  |
@@ -192,7 +192,7 @@ You can find a table of optimal hyperparameters from empirical study below:
 ### Temperature Sampling
 ## Fine-Tuning -->
 
-## Author
+## Author<a name="Author"></a>
 Daniil Emtsev (demtsev@student.ethz.ch)
 <!-- # Models
 Model without attention. Every LSTM gets a previous hidden state and embedded caption.
