@@ -1,3 +1,9 @@
+![repo version](https://img.shields.io/badge/Version-v.%201.0-green)
+![python version](https://img.shields.io/badge/python-v.%203.6.8-blue)
+![pytorch](https://img.shields.io/badge/pytorch-v.%201.0.0-orange)
+![license](https://img.shields.io/badge/license-CC_BY_4.0-yellow)
+
+
 # Captioning
 The goal of this project is to generate smiles for ligands using pocket information.
 Pocket is encoded using Euclidean Neural Networks. Then features are given to Lstm to generate smiles. This is similar to the image captioning task. There are two implemeted options: decoder without and with attention.
@@ -30,7 +36,7 @@ Pocket is encoded using Euclidean Neural Networks. Then features are given to Ls
 8. [Author](#Author)
 
 
-## Installation
+## Installation<a name="Installation"></a>
 
 This repository can be cloned with the following command:
 
