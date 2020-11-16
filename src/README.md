@@ -7,6 +7,10 @@ Pocket is encoded using Euclidean Neural Networks. Then features are given to Ls
 2. [Preprocessing](#Preprocessing)
 3. [Files Architecture](#Files-Architecture)
 4. [Training](#Training)
+   1. [Training Locally](#Training-Locally)
+   2. [Training on cluster](#Training-on-cluster)
+   3. [Checkpoints](#Checkpoints)
+   4. [Multiple jobs on cluster](#Multiple-jobs-on-cluster)
 5. [Hyperparameters](#Hyperparameters)
 3. [Encoder](#Encoder)
     <!-- 1. [E3nn](#E3nn)
@@ -110,6 +114,27 @@ Parameters:
 bsub -n 8 -W 24:00 -R "rusage[mem=10000,ngpus_excl_p=1]"  -oo logs/hot_simple_bio_local_net_33  python train_all_folds.py --loc=lab --config=configurations/config_lab/bio_e3nn/bio_local_net_33.yaml --radious=8 --type_feature=hot_simple  --type_filtering=all --h_filterig=h --type_fold=random
 ```
 
+### Checkpoints
+During training you will have checkpoints to track the progress of pipeline:
+* *folds.csv* contains inf about folds and type of split 
+* *checkpoint_evaluation.csv* contains inf about conducted experiments and corresponding type of split, fold, epoch, id of sampled pdb
+
+### Data Strcuture of results
+During training you will have the following structure for your model:
+The name of current model is: **model_name** _ **type_feature** _ **radious_type** _ **filtering** _ **h_filterig**
+
+The layout of your model file (in the folder /results/captioning_results/model_name):
+
+    ├──checkpoints
+        ├──training              #checkpoints of encoder model on different folds and types of folds
+        ├──folds.csv             #checkpoint of current epoch/fold of the model 
+        ├──eval_checkpoint.csv   #checkpoint during evaluation (current fold, epoch and id of pdb)
+    ├──logs                      #indexes of split
+    ├──models                    #encoder / decoder torch saved models forr different epoches/folds splits
+    ├──statistics                #distributions of similarity/phama properties
+    ├──../tensorboard            #tain /eval losses for every epoch and type of split. Also memory consumption
+
+
 ### Multiple jobs on cluster
 Run simply:
 ```
@@ -122,23 +147,24 @@ You can find a table of optimal hyperparameters from empirical study below:
 ![](images/hyp_opt.png)
 ## Encoder
 
-|Model Encoder		| Description|
-| --- | ---  |
-|bio_net | The model takes hybrid type of inputs. Usual baseline e3nn model | 
-|bio_local_net | The model takes one type of inputs. Usual baseline e3nn model |
-|bio_net_no_bn | bion_net model without batch normalisation |
-|bio_vis_net | bio_net model without flattenning output. For decoder with attention |
-|resnet_bio_local_net | bio_local_net with residual connections|
-|concat_bio_local_net | bio_local_net with concaenation of different e3nn convolutions |
-|pointnetall | pointnet (deep resnet) model |
-|att_e3nn | attention in the end model |
-|binding_e3nn | bio_net for binding (regression tasks)| 
+|Model Encoder		| Description| File (/model/encoder/...) |
+| --- | ---  | --- |
+|bio_net | The model takes hybrid type of inputs. Usual baseline e3nn model | [bio_e3nn.py](model/encoder/bio_e3nn.py) |
+|bio_local_net | The model takes one type of inputs. Usual baseline e3nn model | [bio_e3nn.py](model/encoder/bio_e3nn.py)|
+|bio_net_no_bn | bion_net model without batch normalisation | [bio_e3nn.py](model/encoder/bio_e3nn.py) |
+|bio_vis_net | bio_net model without flattenning output. For decoder with attention | [bio_e3nn.py](model/encoder/bio_e3nn.py) |
+|resnet_bio_local_net | bio_local_net with residual connections| [bio_e3nn.py](model/encoder/bio_e3nn.py) |
+|concat_bio_local_net | bio_local_net with concaenation of different e3nn convolutions | [bio_e3nn.py](model/encoder/bio_e3nn.py) |
+|pointnetall | pointnet (deep resnet) model | [e3nn_res.py](model/encoder/e3nn_res.py) |
+|att_e3nn | attention in the end model | [e3nn_att.py](model/encoder/e3nn_att.py) |
+|binding_e3nn | bio_net for binding (regression tasks)|  [binding_e3nn.py](model/encoder/binding_e3nn.py)  |
+
 
 ## Decoder
-|Model Encoder		| Description|
-| --- | ---  |
-|lstm | lstm model |
-|lstm_attention | lstm_atttention model |
+|Model Encoder		| Description| File (/model/decoder/...) |
+| --- | ---  | --- |
+|lstm | lstm model | [decoder.py](model/decoder/decoder.py)  |
+|lstm_attention | lstm_atttention model | [decoder_vis.py](model/decoder/decoder_vis.py) |
 <!-- ### E3nn -->
 
 <!-- ### E3nn + Pointnet
