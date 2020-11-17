@@ -113,9 +113,9 @@ def main():
   
 
     #Evaluation
-    range_epochs = [1, 10, cfg['model_params']['num_epochs']]
+    range_epochs = [1, 10, num_epoches]
     # regimes = ["probabilistic", "max", "beam_3", "beam_10"]
-    regimes = ['beam_10']
+    regimes = ['beam_5']
     # regimes = ["probabilistic"]
     print("Evaluation starts!...")
     for regim in regimes:
@@ -125,8 +125,9 @@ def main():
 
     #Plot similarities & Mol dostributions
     if "plot" not in file_pipeline_checkpoint.readlines():
-        plot =  plot_all(cfg, num_epoches - 1)
-        plot.run()
+        for epoch in range_epochs:
+            plot =  plot_all(cfg, epoch)
+            plot.run()
         #plot for every epoch
         # for epoch in range(num_epoches):
         #     plot =  plot_all(cfg, num_epoches - 1)
