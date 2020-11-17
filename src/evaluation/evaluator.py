@@ -31,7 +31,7 @@ from src.utils.checkpoint import Checkpoint_Eval
 
 
 class Evaluator():
-    def __init__(self, cfg, sampling, type_fold, Feature_Loader):
+    def __init__(self, cfg, sampling, type_fold, epochs_array, Feature_Loader):
         self.cfg = cfg
         self.Feature_Loader = Feature_Loader
         self.type_fold = type_fold
@@ -46,6 +46,9 @@ class Evaluator():
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # self.device = torch.device("cpu")
         self.sampling = sampling
+        self.epochs_array = epochs_array
+        self.num_epochs = len(self.epochs_array)
+        # print("num of epoches", self.num_epochs)
         self.model_encoder =  cfg['model']['encoder']
         # print(self.model_encoder)
         self.model_decoder =  cfg['model']['decoder']
@@ -60,7 +63,7 @@ class Evaluator():
         self.time_waiting = cfg["sampling_params"]["time_waiting"]
         # model params
         self.model_name = cfg['model_params']['model_name']
-        self.num_epochs = cfg['model_params']['num_epochs']
+        # self.num_epochs = cfg['model_params']['num_epochs']
         self.batch_size = cfg['model_params']['batch_size']
         self.learning_rate = cfg['model_params']['learning_rate']
         self.num_workers = cfg['model_params']['num_workers']
@@ -114,6 +117,7 @@ class Evaluator():
             self.novel = np.load(self.path_novel, allow_pickle=True)
             self.valid = np.load(self.path_valid, allow_pickle=True)
             self.unique = np.load(self.path_unique, allow_pickle=True)
+            # print("shape of unique array first- ", self.unique.shape)
 
     def run_evaluation(self):
         self.record_all_mol()
@@ -122,25 +126,28 @@ class Evaluator():
     def record_all_mol(self):
         for idx_fold in range(self.start_rec_fold, self._n_folds):
             for epoch in range(self.start_rec_epoch, self.num_epochs):
+                epoch_absolute = self.epochs_array[epoch]
                 encoder_path = os.path.join(self.savedir,  "models", "encoder-" + str(idx_fold) + "-" + str(epoch + 1) + '-' + str(self.type_fold) + '.ckpt') 
                 decoder_path = os.path.join(self.savedir, "models", "decoder-" + str(idx_fold) + "-" + str(epoch + 1) + '-' + str(self.type_fold) + '.ckpt')
                 # print("encoder_path!!", encoder_path)
                 sampler = Sampler(self.cfg, self.sampling, self.Feature_Loader)
-                sampler.analysis_cluster(idx_fold, epoch, self.type_fold, encoder_path, decoder_path)
+                sampler.analysis_cluster(idx_fold, epoch_absolute, self.type_fold, encoder_path, decoder_path)
                 self.checkpoint_evaluation.write_record_checkpoint(idx_fold + 1, epoch + 1)
 
 
     def evaluate_all_mol(self):
         for idx_fold in range(self.start_eval_fold, self._n_folds):
             for epoch in range(self.start_eval_epoch, self.num_epochs):
+                epoch_absolute = self.epochs_array[epoch]
                 self.name_file_stat = self.sampling + "_" + str(self.type_fold) + "_" + str(idx_fold) + ".csv"
                 file_mols = pd.read_csv(os.path.join(self.save_dir_smiles, self.name_file_stat))
                 # print("file_mols, - ", file_mols)
-                mol = file_mols.loc[file_mols['epoch_no'] == str(epoch), 'gen_smile'].to_list()
+                mol = file_mols.loc[file_mols['epoch_no'] == str(epoch_absolute), 'gen_smile'].to_list()
                 number_mols = len(mol) 
                 # print("mol!!, ", mol)
                 # Compute unique molecules
-                self.unique[idx_fold, epoch] = len(set(mol)) / number_mols
+                # print("shape of unique array - ", self.unique.shape)
+                self.unique[idx_fold, epoch] = len(set(mol)) / (number_mols + 1)
                 # Remove duplicates
                 mol = np.array(list(set(mol)))
                 number_mols = mol.shape[0] 
@@ -150,7 +157,7 @@ class Evaluator():
                     if not self.check_valid(m):
                         to_delete.append(k)
                 valid_mol = np.delete(mol, to_delete)
-                self.valid[idx_fold, epoch] = len(valid_mol) / number_mols
+                self.valid[idx_fold, epoch] = len(valid_mol) / (number_mols + 1)
 
 
                 # Compute molecules unequal to training data
@@ -182,11 +189,20 @@ class Evaluator():
 
         # PLot
         plt.figure(1)
-        plt.errorbar(np.arange(1, self.num_epochs + 1), mean_unique, yerr=std_unique, capsize=3, label='unique')
-        plt.errorbar(np.arange(1, self.num_epochs + 1), mean_valid, yerr=std_valid, capsize=3,
+        array_epoches = np.asarray(self.epochs_array)
+        # print("array_epoches, - ", array_epoches)
+        plt.errorbar(array_epoches, mean_unique, yerr=std_unique, capsize=3, label='unique')
+        plt.errorbar(array_epoches, mean_valid, yerr=std_valid, capsize=3,
                      label='valid & unique')
-        plt.errorbar(np.arange(1, self.num_epochs + 1), mean_novel, yerr=std_novel, capsize=3,
+        plt.errorbar(array_epoches, mean_novel, yerr=std_novel, capsize=3,
                      label='novel, valid & unique', linestyle=':')
+
+
+        # plt.errorbar(np.arange(1, self.num_epochs + 1), mean_unique, yerr=std_unique, capsize=3, label='unique')
+        # plt.errorbar(np.arange(1, self.num_epochs + 1), mean_valid, yerr=std_valid, capsize=3,
+        #              label='valid & unique')
+        # plt.errorbar(np.arange(1, self.num_epochs + 1), mean_novel, yerr=std_novel, capsize=3,
+        #              label='novel, valid & unique', linestyle=':')
       
         plt.yticks(np.arange(0, 110, step=10))
         plt.legend(loc=3)

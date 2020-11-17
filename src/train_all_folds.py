@@ -113,11 +113,13 @@ def main():
   
 
     #Evaluation
-    regimes = ["probabilistic", "max", "beam_3", "beam_10"]
+    range_epochs = [1, 10, cfg['model_params']['num_epochs']]
+    # regimes = ["probabilistic", "max", "beam_3", "beam_10"]
+    regimes = ['beam_10']
     # regimes = ["probabilistic"]
     print("Evaluation starts!...")
     for regim in regimes:
-        evaluator = Evaluator(cfg, regim, type_fold, Feature_gen)
+        evaluator = Evaluator(cfg, regim, type_fold, range_epochs, Feature_gen)
         print("start run evaluation!...")
         evaluator.run_evaluation()
 
