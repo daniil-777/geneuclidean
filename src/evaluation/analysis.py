@@ -1,14 +1,19 @@
+import matplotlib
+from matplotlib import cm, pyplot
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+matplotlib.rcParams.update({'font.size': 10})
+
 import csv
 import os
 import pickle
 import random
 
-import matplotlib
-import matplotlib.pyplot as plt
+
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from matplotlib import cm, pyplot
+
 # from matplotlib import pyplot
 from numpy import mean, std
 # from captioning_e3nn.Contrib.NP_Score.npscorer_my import processMols
@@ -17,8 +22,7 @@ from rdkit.Chem import QED, AllChem, Descriptors
 from scipy import stats
 from scipy.stats import pearsonr
 from sklearn.model_selection import KFold
-matplotlib.use('TkAgg')
-matplotlib.rcParams.update({'font.size': 10})
+
 from sklearn.preprocessing import MinMaxScaler
 
 
