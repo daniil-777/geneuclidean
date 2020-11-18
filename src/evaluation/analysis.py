@@ -1,7 +1,8 @@
 import matplotlib
-from matplotlib import cm, pyplot
 matplotlib.use('TkAgg')
+from matplotlib import cm, pyplot
 import matplotlib.pyplot as plt
+
 matplotlib.rcParams.update({'font.size': 10})
 
 import csv
