@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
 from matplotlib import cm, pyplot
 import matplotlib.pyplot as plt
 
