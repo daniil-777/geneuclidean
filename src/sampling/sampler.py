@@ -104,7 +104,7 @@ class Sampler():
         self.checkpoint_sampling_path = os.path.join(self.savedir, "checkpoints", str(split_no) + '_sample.pkl')
         #the file of the whole stat
         if (len(open(self.path_to_file_stat).readlines()) == 0):
-            self.file_statistics.write("name,fold,epoch_no, type_fold,orig_smile,gen_smile,gen_NP,gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity,orig_NP,orig_logP,orig_sa,orig_qed,orig_weight,frequency,sampling,encoder,decoder" +  "\n")
+            self.file_statistics.write("name,fold,epoch_no,type_fold,orig_smile,gen_smile,gen_NP,gen_logP,gen_sa,gen_qed,gen_weight,gen_similarity,orig_NP,orig_logP,orig_sa,orig_qed,orig_weight,frequency,sampling,encoder,decoder" +  "\n")
             self.file_statistics.flush()
         # checkpoint_sampling = torch.load(self.checkpoint_sampling_path)
         print("loading start_ind_protein...")
@@ -136,9 +136,9 @@ class Sampler():
             id_abs_protein = idx_to_generate[idx]
             self.generate_smiles(id_abs_protein)
             next_idx = (idx + 1) % end_idx
-            print("next_ind!!!! - ", next_idx)
-            print("end_ind!! - ", end_idx)
-            print("ind!!! - ", idx)
+            # print("next_ind!!!! - ", next_idx)
+            # print("end_ind!! - ", end_idx)
+            # print("ind!!! - ", idx)
             
             self.data_checkpoint.loc[(self.data_checkpoint['type_fold'] == self.type_fold) & (self.data_checkpoint['sampling'] == self.sampling), 'start_pdb'] = next_idx
             # save_checkpoint_sampling(self.checkpoint_sampling_path, next_idx, idx_sample)
@@ -316,13 +316,13 @@ class Sampler():
             self.file_statistics.flush()
         else:
             length = self.number_smiles
-            print("length, - ", length)
+            # print("length, - ", length)
             stat_protein = [length * ['a'], length * ['a'], length * [str(self.epoch_no)], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'],
                   length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a'], length * ['a']]
             wr = csv.writer(self.file_statistics)
             wr.writerows(list(map(list, zip(*stat_protein))))
             self.file_statistics.flush()
-            print("end of stat!")
+            # print("end of stat!")
 
             
     def analysis_all(self):
