@@ -209,7 +209,7 @@ class Evaluator():
         plt.yticks(np.arange(0, 110, step=10))
         plt.legend(loc=3)
         plt.ylim(0, 105)
-        plt.title('SMILES at ' + str(self.sampling) + ', ' + str(self.type_fold))
+        plt.title('SMILES at ' + str(self.sampling) + ' sampling, ' + str(self.type_fold) + ' split')
         plt.ylabel('% SMILES')
         plt.xlabel('Epoch')
         path_save = os.path.join(self.path_plot, self.sampling + '_' + 'novel_valid_unique_molecules.png')
