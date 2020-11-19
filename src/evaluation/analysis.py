@@ -86,6 +86,7 @@ class plot_all():
     def get_array(self, file: str, name: str):
         data = pd.read_csv(os.path.join(self.path_data, file))
         array = data.loc[data['epoch_no'] ==  self.epoch, name].to_list()
+        array = [elem for elem in array if elem != 'a']
         # array = data[name].to_list()
         return array
     
@@ -113,6 +114,7 @@ class plot_all():
         all_l = list(self.dict_sim[name_split][property_mol][method].values())
         self.allign_dict(all_l)
         lst = np.asarray(all_l)
+        print("lst", lst)
         mean = np.mean(lst, axis = 0)
         return mean
     
@@ -161,8 +163,10 @@ class plot_all():
         fig.set_figheight(15)
         fig.set_figwidth(40)
         for id_split, name_split in enumerate(list(self.dict_sim)):
-            ax_all = axs[id_split]
-            # ax_all = axs
+            if self.num_splits > 1:
+                ax_all = axs[id_split]
+            else:
+                ax_all = axs
             fig1, axs1 = plt.subplots(nrows = 1, ncols = self.num_methods) #for local file for every fold type split
             plt.title = 'Histogram of Shear Strength'
             fig1.set_figheight(7)
@@ -177,7 +181,10 @@ class plot_all():
                 sim_array = self._get_average_sim(method_name, name_split, "gen_similarity")
                 color = self.colors[id_method]
                 color_rand = self.colors[-1]
-                ax1 = axs1[id_method]                
+                if (self.num_methods > 1):
+                    ax1 = axs1[id_method] 
+                else:
+                    ax1 = axs1             
                 mean_sim = mean(sim_array)
                 mean_sim_rand = mean(self.rand_sim)
                 
