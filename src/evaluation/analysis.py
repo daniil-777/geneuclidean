@@ -149,6 +149,7 @@ class plot_all():
                 self.dict_sim[name_split]["gen_similarity"][method][id_fold] = self.get_array(file, "gen_similarity")
           
         self.num_splits = len(self.dict_analysis)
+        # print("num_splits, - ", self.num_splits)
 #         self.num_methods = len(self.dict_analysis['random'])
         self.num_methods = len(methods)
         print("num plits", self.num_splits)
@@ -160,8 +161,8 @@ class plot_all():
         fig.set_figheight(15)
         fig.set_figwidth(40)
         for id_split, name_split in enumerate(list(self.dict_sim)):
-#             ax_all = axs[id_split]
-            ax_all = axs
+            ax_all = axs[id_split]
+            # ax_all = axs
             fig1, axs1 = plt.subplots(nrows = 1, ncols = self.num_methods) #for local file for every fold type split
             plt.title = 'Histogram of Shear Strength'
             fig1.set_figheight(7)
@@ -170,7 +171,7 @@ class plot_all():
             plt.ylabel('Density')
             plt.xlabel('Similarity')
             pyplot.legend(loc='upper right')
-            sns.distplot(self.rand_sim, color='green', hist=True, rug=False, label= 'Shuffled pairs', ax = ax_all);
+            sns.distplot(self.rand_sim, color='green', hist=True, rug=False, label= 'Shuffled pairs', ax = ax_all)
             for id_method, method_name in enumerate(list(self.dict_sim[name_split]['gen_similarity'])):
                 print("sim_method_name - ", method_name)
                 sim_array = self._get_average_sim(method_name, name_split, "gen_similarity")
