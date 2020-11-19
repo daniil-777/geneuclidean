@@ -48,7 +48,8 @@ class Evaluator():
         self.sampling = sampling
         self.epochs_array = epochs_array
         self.num_epochs = len(self.epochs_array)
-        # print("num of epoches", self.num_epochs)
+        print("epoches array - ", self.epochs_array)
+        print("num of epoches", self.num_epochs)
         self.model_encoder =  cfg['model']['encoder']
         # print(self.model_encoder)
         self.model_decoder =  cfg['model']['decoder']
@@ -205,7 +206,7 @@ class Evaluator():
         #              label='valid & unique')
         # plt.errorbar(np.arange(1, self.num_epochs + 1), mean_novel, yerr=std_novel, capsize=3,
         #              label='novel, valid & unique', linestyle=':')
-      
+        
         plt.yticks(np.arange(0, 110, step=10))
         plt.legend(loc=3)
         plt.ylim(0, 105)
