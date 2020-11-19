@@ -190,7 +190,9 @@ class Evaluator():
         # PLot
         plt.figure(1)
         array_epoches = np.asarray(self.epochs_array)
-        # print("array_epoches, - ", array_epoches)
+        print("array_epoches shape, - ", array_epoches.shape)
+        print("mean_unique shape, - ", mean_unique.shape)
+        print("std_unique shape, - ", std_unique.shape)
         plt.errorbar(array_epoches, mean_unique, yerr=std_unique, capsize=3, label='unique')
         plt.errorbar(array_epoches, mean_valid, yerr=std_valid, capsize=3,
                      label='valid & unique')
