@@ -127,8 +127,8 @@ class Evaluator():
         for idx_fold in range(self.start_rec_fold, self._n_folds):
             for epoch in range(self.start_rec_epoch, self.num_epochs):
                 epoch_absolute = self.epochs_array[epoch]
-                encoder_path = os.path.join(self.savedir,  "models", "encoder-" + str(idx_fold) + "-" + str(epoch + 1) + '-' + str(self.type_fold) + '.ckpt') 
-                decoder_path = os.path.join(self.savedir, "models", "decoder-" + str(idx_fold) + "-" + str(epoch + 1) + '-' + str(self.type_fold) + '.ckpt')
+                encoder_path = os.path.join(self.savedir,  "models", "encoder-" + str(idx_fold) + "-" + str(epoch_absolute) + '-' + str(self.type_fold) + '.ckpt') 
+                decoder_path = os.path.join(self.savedir, "models", "decoder-" + str(idx_fold) + "-" + str(epoch_absolute) + '-' + str(self.type_fold) + '.ckpt')
                 # print("encoder_path!!", encoder_path)
                 sampler = Sampler(self.cfg, self.sampling, self.Feature_Loader)
                 sampler.analysis_cluster(idx_fold, epoch_absolute, self.type_fold, encoder_path, decoder_path)

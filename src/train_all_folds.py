@@ -113,9 +113,9 @@ def main():
   
 
     #Evaluation
-    range_epochs = [1, 10, num_epoches]
+    range_epochs = [num_epoches]
     # regimes = ["probabilistic", "max", "beam_3", "beam_10"]
-    regimes = ['beam_5']
+    regimes = ['beam_3']
     # regimes = ["probabilistic"]
     print("Evaluation starts!...")
     for regim in regimes:
