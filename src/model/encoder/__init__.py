@@ -8,6 +8,8 @@ from src.model.encoder.e3nn_res import ResNetwork
 from src.model.encoder.pointnet_e3nn import PointNetAllNetwork
 from src.model.encoder.e3nn_att import AttentionE3nn
 from src.model.encoder.bio_e3nn import Bio_All_Network, Bio_All_Network_no_batch, Bio_Vis_All_Network, Bio_Local_Network, ResNet_Bio_ALL_Network, ResNet_Bio_Local_Network, Concat_Bio_Local_Network
+from src.model.encoder.bio_e3nn_res import ResNet_Out_Local_Network
+
 
 encoder_dict = {
     'network1': Network,
@@ -27,5 +29,6 @@ encoder_dict = {
     'bio_local_net': Bio_Local_Network,
     'resnet_bio_net': ResNet_Bio_ALL_Network,
     'resnet_bio_local_net': ResNet_Bio_Local_Network,
-    'concat_bio_local_net': Concat_Bio_Local_Network
+    'concat_bio_local_net': Concat_Bio_Local_Network,
+    'res_out_local_net': ResNet_Out_Local_Network
 }

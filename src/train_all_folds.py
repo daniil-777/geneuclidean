@@ -93,7 +93,7 @@ def main():
         splitter.split(type_fold)
 
     #training + validation + pca
-    for idx_fold in range(start_idx_fold, 5):
+    for idx_fold in range(start_idx_fold, 2):
         print("Doing Train/Val on the fold - ",idx_fold)
         if(cfg['training_params']['mode'] == "no_attention"):
             trainer = Trainer_Fold_Feature(cfg, idx_fold)
@@ -115,7 +115,8 @@ def main():
     #Evaluation
     range_epochs = [num_epoches]
     # regimes = ["probabilistic", "max", "beam_3", "beam_10"]
-    regimes = ['max', 'beam_5']
+    # regimes = ['max', 'beam_2']
+    regimes = ['beam_2']
     # regimes = ["probabilistic"]
     print("Evaluation starts!...")
     for regim in regimes:
