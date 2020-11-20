@@ -16,7 +16,6 @@ training_params:
   n_splits: 5
 
 
-  
 model:
   encoder: resnet_bio_local_net
   encoder_kwargs:
@@ -28,11 +27,11 @@ model:
     beta: 5
     rad_model: gaussian
     num_embeddings: 24
-    embed: 40
-    list_harm: "[[(40, 0)], [(80, 0)]]"
+    embed: 50
+    list_harm: "[[(50, 0)], [(50, 0)]]"
     scalar_act_name:  sp
     gate_act_name: sigmoid
-    fc_sizes: "[[80, 80], [80, 160],[160, 320]]"
+    fc_sizes: "[[50, 100], [100, 200],[200, 400]]"
     aggregation_mode: avg
 
   
