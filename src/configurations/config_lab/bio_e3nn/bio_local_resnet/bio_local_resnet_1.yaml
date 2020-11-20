@@ -23,10 +23,10 @@ model:
     max_rad: 2
     num_basis: 3
     n_neurons: 50
-    n_layers: 1
+    n_layers: 2
     beta: 5
     rad_model: gaussian
-    num_embeddings: 22
+    num_embeddings: 24
     embed: 50
     list_harm: "[[(50, 0)], [(50, 0)]]"
     scalar_act_name:  sp

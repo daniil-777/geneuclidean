@@ -26,12 +26,12 @@ model:
     n_layers: 1
     beta: 5
     rad_model: gaussian
-    num_embeddings: 22
-    embed: 50
-    list_harm: "[[(50, 0)], [(50, 0)]]"
+    num_embeddings: 24
+    embed: 35
+    list_harm: "[[(35, 0)], [(35, 0)]]"
     scalar_act_name:  sp
     gate_act_name: sigmoid
-    fc_sizes: "[[50, 50], [50, 100], [100, 200],[200, 400]]"
+    fc_sizes: "[[35, 35], [35, 100], [100, 200],[200, 400]]"
     aggregation_mode: avg
 
   

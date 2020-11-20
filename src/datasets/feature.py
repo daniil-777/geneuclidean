@@ -70,8 +70,9 @@ class Featuring():
        
     def run_parallel_write_feat_geo(self):
         print("writing filtered features/geo...")
-        with Pool(processes=8) as pool:
+        with Pool(processes=2) as pool:
             pool.map(self.write_padd_feat_geo, self.idx_files_refined)
+        print("exception...!", self.names_bio_exception)
         for name in self.names_bio_exception:
             self.delete_files(name)
 
@@ -89,9 +90,7 @@ class Featuring():
         print("padding...")
         with Pool(processes=8) as pool:
             pool.map(self.files_to_padded, self.idx_files_refined)
-        print("padding finished")
         self.write_checkpoint()
-        print("wrote to checkpoint")
 
     def write_padd_feat_geo(self, id):
         try:
@@ -110,8 +109,11 @@ class Featuring():
         return length
 
     def files_to_padded(self, id):
+
         path_feature, path_mask, path_geo = self._get_name_save(id)
         feature_filt = torch.load(path_feature, map_location=torch.device('cpu')).long()
+        if len(list(feature_filt.size())) == 1:
+            feature_filt = feature_filt.unsqueeze(1)
         geo_filt = torch.load(path_geo, map_location=torch.device('cpu')).long()
         length_padding = self.max_length - feature_filt.shape[0]
         mask_binary = torch.cat([torch.ones(feature_filt.shape[0]),torch.zeros(length_padding)]).squeeze()
@@ -121,12 +123,15 @@ class Featuring():
             mode="constant",
             value = 0,
         )
+
+        
         geo_filt_padded = F.pad(
             input=geo_filt,
             pad=(0, 0, 0,  length_padding),
             mode="constant",
             value=99,
         )
+
         torch.save(feat_filt_padded, path_feature)
         torch.save(mask_binary, path_mask)
         torch.save(geo_filt_padded, path_geo)
@@ -304,7 +309,9 @@ class Featuring():
             [np.asarray]: [arrays of feature, geometry for a given pdb id]
         """
         #creates featues/geo tensors for all atoms in protein
-        if self.type_feature == "hot_simple":
+        if self.type_feature == "atom_number":
+            features = self.number_atom(id)
+        elif self.type_feature == "hot_simple":
             features = self.hot_enc(id)
         elif self.type_feature == "mass_charges":
             features = self.mass_charges(id)
@@ -324,6 +331,13 @@ class Featuring():
         elems = self._get_all_elems(id)
         features = [self.atom_to_hot_vector(elem) for elem in elems]
         features = np.asarray(features)
+        return features
+    
+    def number_atom(self, id):
+        elems = self._get_all_elems(id)
+        features = [self.dict_atoms_simple[elem] for elem in elems]
+        features = np.asarray(features)
+        features = np.expand_dims(features, axis=1)
         return features
 
     def atom_to_hot_vector(self, elem: str):
