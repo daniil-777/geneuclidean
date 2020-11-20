@@ -70,7 +70,7 @@ class Featuring():
        
     def run_parallel_write_feat_geo(self):
         print("writing filtered features/geo...")
-        with Pool(processes=2) as pool:
+        with Pool(processes=8) as pool:
             pool.map(self.write_padd_feat_geo, self.idx_files_refined)
         print("exception...!", self.names_bio_exception)
         for name in self.names_bio_exception:
