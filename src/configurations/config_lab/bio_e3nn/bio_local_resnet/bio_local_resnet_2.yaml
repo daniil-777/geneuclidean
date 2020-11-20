@@ -15,9 +15,8 @@ training_params:
   decoder_name: decoder_best_0.ckpt
   n_splits: 5
 
-
 model:
-  encoder: resnet_bio_local_net
+  encoder: bio_local_net
   encoder_kwargs:
     encoding: embedding
     max_rad: 2
