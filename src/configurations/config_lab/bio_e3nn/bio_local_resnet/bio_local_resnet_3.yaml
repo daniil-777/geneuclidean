@@ -21,8 +21,8 @@ model:
   encoder_kwargs:
     encoding: embedding
     max_rad: 2
-    num_basis: 3
-    n_neurons: 80
+    num_basis: 4
+    n_neurons: 100
     n_layers: 2
     beta: 5
     rad_model: gaussian
