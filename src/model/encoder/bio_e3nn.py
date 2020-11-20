@@ -109,7 +109,7 @@ class Bio_All_Network(torch.nn.Module):
             act = GatedBlock(Rs_out, scalar_act, gate_act)
             kc = self.kernel_conv(Rs_in, act.Rs_in)
             return torch.nn.ModuleList([kc, act])
-        self.layers = torch.nn.ModuleList([torch.nn.Embedding(self.num_embeddings, embed, padding_idx=5)])
+        self.layers = torch.nn.ModuleList([torch.nn.Embedding(self.num_embeddings, embed, self.num_embeddings - 1)])
         self.layers += [make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])]
         self.leakyrelu = nn.LeakyReLU(0.2) # Relu
         torch.autograd.set_detect_anomaly(True) 
