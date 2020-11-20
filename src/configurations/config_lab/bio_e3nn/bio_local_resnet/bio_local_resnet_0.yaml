@@ -22,7 +22,7 @@ model:
     encoding: embedding
     max_rad: 2
     num_basis: 3
-    n_neurons: 80
+    n_neurons: 40
     n_layers: 2
     beta: 5
     rad_model: gaussian
