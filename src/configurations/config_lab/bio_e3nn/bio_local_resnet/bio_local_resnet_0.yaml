@@ -46,7 +46,7 @@ model:
 
 model_params: 
   model_name: bio_local_resnet_0
-  num_epochs: 70
+  num_epochs: 40
   batch_size: 5
   n_splits: 5
   num_workers: 1
