@@ -1,0 +1,69 @@
+preprocessing:
+  mask: True
+  collate_fn: masks
+  natoms: 286
+splitting:
+  split: random
+  file_folds: test_split_e3nn
+  id_fold: 0
+
+training_params:
+  mode: no_attention
+  log_step: 10
+  save_step: 10
+  encoder_name: encoder_best_0.ckpt
+  decoder_name: decoder_best_0.ckpt
+  n_splits: 5
+
+model:
+  encoder: res_out_local_net
+  encoder_kwargs:
+    encoding: embedding
+    max_rad: 2
+    num_basis: 3
+    n_neurons: 80
+    n_layers: 2
+    beta: 5
+    rad_model: gaussian
+    num_embeddings: 24
+    embed: 24
+    list_harm: "[[(24, 0)], [(35, 0)]]"
+    scalar_act_name:  sp
+    gate_act_name: sigmoid
+    fc_sizes: "[[35, 70], [70, 140], [140, 280],[280, 400]]"
+    aggregation_mode: avg
+
+  
+  decoder: lstm
+  decoder_kwargs:
+    vocab_size: 52
+    vocab_path: ../data/new_vocab.pkl
+    embed_size: 400
+    hidden_size: 400
+    num_layers: 1
+    beam_size: 20
+
+model_params: 
+  model_name: res_out_local_net_0
+  num_epochs: 70
+  batch_size: 5
+  n_splits: 5
+  num_workers: 1
+  learning_rate: 0.005
+
+
+output_parameters: 
+  savedir: ../results/captioning_results
+
+
+sampling_params: 
+  number_smiles: 30
+  time_waiting: 300
+  type_fold: random
+  id_fold: 0
+  folds: ../results/captioning_results/e3nn_1/logs/idx/test_idx_0
+  file_stat: 0_fold_stat.csv
+  sampling_data: test
+  name_all_stat: stat_e3nn_prob_0.csv
+
+
