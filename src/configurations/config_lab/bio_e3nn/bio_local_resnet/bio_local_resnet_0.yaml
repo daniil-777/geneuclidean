@@ -22,16 +22,16 @@ model:
     encoding: embedding
     max_rad: 2
     num_basis: 3
-    n_neurons: 50
-    n_layers: 1
+    n_neurons: 80
+    n_layers: 2
     beta: 5
     rad_model: gaussian
-    num_embeddings: 22
-    embed: 50
-    list_harm: "[[(50, 0)], [(50, 0)]]"
+    num_embeddings: 24
+    embed: 24
+    list_harm: "[[(24, 0)], [(24, 0)]]"
     scalar_act_name:  sp
     gate_act_name: sigmoid
-    fc_sizes: "[[50, 50], [50, 100], [100, 200],[200, 400]]"
+    fc_sizes: "[[24, 24], [24, 100], [100, 200],[200, 400]]"
     aggregation_mode: avg
 
   
