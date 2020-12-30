@@ -150,7 +150,19 @@ bash configurations/bash/file.sh
 You can find a table of hyperparameters with commnets below:
 ![](images/hyp_comments.png)
 You can find a table of optimal hyperparameters from empirical study below:
-![](images/hyp_opt.png)
+| Hyperparameter         | Minimum                           | Maximum                           | Optimal    |
+|------------------------|-----------------------------------|-----------------------------------|------------|
+| Batch Size             | 4                                 | 25                                | 15         |
+| Learning Rate          | 0.0005                            | 0.01                              | 0.005      |
+| Size of Embedding      | 5                                 | 80                                | 40         |
+| Representation         | $L_{0}$                           | $L_{0}$ and $L_{1}$               | $L_{0}$    |
+| Radial Basis           | $\psi_{G}$,$\psi_{C}$, $\psi_{B}$ | $\psi_{G}$,$\psi_{C}$, $\psi_{B}$ | $\psi_{G}$ |
+| Number of Radial Basis | 2                                 | 100                               | 3          |
+| Radial Maximum         | 0.3                               | 2                                 | 0.5 \& 2   |
+| Radial MLP Layers      | 1                                 | 2                                 | 2          |
+| Radial MLP Neurons     | 80                                | 80                                | 80         |
+| Num layers LSTM        | 1                                 | 2                                 | 1          |
+| Number of Params       | 1000                              | 5000000                           | 1000000    |
 ## Encoder<a name="Encoder"></a>
 
 |Model Encoder		| Description| File (/model/encoder/...) |
