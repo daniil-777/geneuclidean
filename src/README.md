@@ -147,8 +147,46 @@ Run simply:
 bash configurations/bash/file.sh
 ```
 ## Hyperparameters<a name="Hyperparameters"></a>
+
+
 You can find a table of hyperparameters with commnets below:
-![](images/hyp_comments.png)
+| **Params Cathegory** | **Params**        | **Comments**                                                   |
+|:---------------------|:------------------|:---------------------------------------------------------------|
+| Data                 | path              | Path to PDB data                                               |
+|                      | vocab\_path       | Path to tokens vocab                                           |
+|                      | loc               | loc or lab - environment without/with GPU                      |
+| Preprocessing        | type feature      | hot/bin vectors with/without mass/pharm. prop.                 |
+|                      | type filtering    | all/most fequent atoms                                         |
+|                      | h filterig        | filter/not filter hydrogens                                    |
+|                      | type fold         | radom/morgan/chain                                             |
+|                      | mask              | load mask for dummy atoms in data loader                       |
+| Encoder Model        | encoding          | embedding or linear layer                                      |
+|                      | max\_rad          | max radious of e3nn convolution                                |
+|                      | num\_basis        | number of basus func in e3nn convolution                       |
+|                      | n\_neurons        | number of neurons in e3nn convolution                          |
+|                      | n\_layers         | number of layers in e3nn convolution                           |
+|                      | beta              | coeffinient in Gated block                                     |
+|                      | rad\_model        | gaus or cos or puasson                                         |
+|                      | embed             | dim of embedding layer                                         |
+|                      | list\_harm        | List of tuples of harm : \[\[(16, 0)\], \[(80, 0), (80, 1)\]\] |
+|                      | scalar\_act\_name | activation func                                                |
+|                      | gate\_act\_name   | act function of gated block                                    |
+|                      | fc\_sizes         | list of fc layers (MLP) : \[\[80, 80\], \[80, 160\]\]          |
+|                      | aggregation\_mode | average or max                                                 |
+|                      | vocab\_size       | the number of keys in smiles dictionary                        |
+|                      | vocab\_path       | path to the vocab                                              |
+|                      | embed\_dim        | The dim to embed caption                                       |
+|                      | hidden\_size      | Hidden size of LSTM block                                      |
+|                      | encoder\_dim      | The dim of encoder output                                      |
+|                      | decoder\_dim      | The dim of decoder                                             |
+|                      | attention\_dim    | The dim of attention head                                      |
+| Training             | Learning Rate     | The step of gradient descent                                   |
+|                      | Attention         | Choise of trainer - without or with attention                  |
+|                      | log\_step         | Numbe of steps to save checkpoint                              |
+| Sampling Params      | number\_smiles    | The abount of smiles to sample                                 |
+|                      | time\_waiting     | The maximum time to sample from pdb id                         |
+
+<!-- ![](images/hyp_comments.png) -->
 You can find a table of optimal hyperparameters from empirical study below:
 | Hyperparameter         | Minimum                           | Maximum                           | Optimal    |
 |------------------------|-----------------------------------|-----------------------------------|------------|
