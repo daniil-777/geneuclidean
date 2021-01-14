@@ -62,6 +62,8 @@ def constants(geometry, mask):
 
 
 class ResNet_Out_Local_Network(Bio_All_Network):
+    """Bio_Local_Network with residual connection between the first layer and features after all layers of e3nn convolution
+    """
     def __init__(self,  natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
                  embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes):
         super(ResNet_Out_Local_Network, self).__init__(natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,

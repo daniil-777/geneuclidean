@@ -14,12 +14,11 @@ import ast
 
 CUSTOM_BACKWARD = False
 
-
-
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def create_kernel_conv(cutoff, n_bases, n_neurons, n_layers, act, radial_model):
+    #choice of radial model depending on the kind of basis functions
     if radial_model == "cosine":
         RadialModel = partial(
             CosineBasisModel,
@@ -62,19 +61,37 @@ def constants(geometry, mask):
 
 
 class Bio_All_Network(torch.nn.Module):
+    """network to predict atom-wise features from pocket atoms.
+       Takes pharmacophoric and atom type (charge) features
+        Args:
+            natoms (int): max number of atoms
+            encoding (string): type of encoding
+            max_rad (float): radious of protein pocket
+            num_basis (int): number of basis functions in radial convolution model
+            n_neurons (int): number of neurons in convolution model
+            n_layers (int): number of layers in convolution model
+            beta (int): normalisation coefficient in convolution model
+            rad_model (string): type of radial convolution model: gaussian, laplassian or ...
+            num_embeddings (int): number of embeddings in embedding layer
+            embed (int): type of embedding
+            scalar_act_name (string): name for the scalar activation function
+            gate_act_name (string): name for the gated block
+            list_harm (string): list of harmonics dim
+            aggregation_mode (string): mode for pooling: avg or max
+            fc_sizes (string): list of output fc layers dimension
+
+        Returns:
+            [type]: [description]
+        """
     def __init__(self,  natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
                  embed, scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes):
+
         super().__init__()
         self.natoms = natoms
         self.encoding = encoding
         self.ssp = rescaled_act.ShiftedSoftplus(beta = beta)
         self.sp = rescaled_act.Softplus(beta=beta)
         self.embed = embed
-        # if self.type_feature == "mass_charges":
-        #     self.feature_size_2 = 80
-        # elif self.type_feature == "bio_all_properties" or self.type_feature == "bio_properties":
-        #     self.feature_size_2 = 87
-        # self.linear_embed = nn.Linear(self.feature_size_2, self.embed)
         self.list_harm = list_harm
         if(scalar_act_name == "sp"):
             scalar_act = self.sp
@@ -86,7 +103,6 @@ class Bio_All_Network(torch.nn.Module):
         Rs += ast.literal_eval(self.list_harm)
         self.Rs = Rs
         self.fc_sizes = ast.literal_eval(fc_sizes)
-        # print("RS, ", self.Rs)
         self.device = DEVICE
         if aggregation_mode == "sum":
             self.atom_pool =  Aggregate(axis=1, mean=False)
@@ -148,15 +164,12 @@ class Bio_All_Network(torch.nn.Module):
 
 
     def e3nn_block(self, features, geometry, mask):
-        # natoms = features.shape[1]
         mask, diff_geo, radii = constants(geometry, mask)
         if self.encoding == "embedding":
-            # print("embedding!")
             embedding = self.layers[0]
             features = torch.tensor(features).to(self.device).long()
             features = embedding(features).to(self.device)
         else:
-            # print("feat shape 2", features.shape[2])
             features = torch.tensor(features).to(self.device).float()
             # features = torch.tensor(features).to(self.device)
             linear = nn.Linear(features.shape[2], self.embed).to(self.device)
@@ -185,6 +198,7 @@ class Bio_All_Network(torch.nn.Module):
         return features
 
     def fc_output(self, features, mask):
+        #chain of MLP and pooling in the end
         features = self.fc_out(features)
         features = self.atom_pool(features, mask)
         features = features.squeeze(1)
@@ -192,16 +206,18 @@ class Bio_All_Network(torch.nn.Module):
         return features
 
     def forward(self, features, geometry, mask):
-        features_bio = features[:, :, :7]
-        features_charge = features[:, :, 7:]
-        features_bio = self.e3nn_block(features_bio, geometry, mask)
-        features_charge = self.e3nn_block(features_charge, geometry, mask)
-        features = torch.cat([features_bio, features_charge], dim=2)
+        features_bio = features[:, :, :7] #take pharma features
+        features_charge = features[:, :, 7:] #take charges (atom type)
+        features_bio = self.e3nn_block(features_bio, geometry, mask) #output after neural net on pharma features
+        features_charge = self.e3nn_block(features_charge, geometry, mask) #output after neural net on atom type features
+        features = torch.cat([features_bio, features_charge], dim=2) #concat
         # features = features.float()
-        features = self.fc_output(features, mask)
+        features = self.fc_output(features, mask) #apply MLP and pooling in the end
         return features # shape ? 
 
 class Bio_All_Network_no_batch(Bio_All_Network):
+    """Bio_All_Network without batch normalisaation in output fully connected layers  
+    """
     def __init__(self,  natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
                  embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes):
         super(Bio_All_Network_no_batch, self).__init__(natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
@@ -234,6 +250,8 @@ class Bio_All_Network_no_batch(Bio_All_Network):
         return features # shape ? 
 
 class Bio_Vis_All_Network(Bio_All_Network):
+    """Bio_All_Network without pooling in output fully connected layers  
+    """
     def __init__(self,  natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
                  embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes):
         super(Bio_Vis_All_Network, self).__init__(natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
@@ -252,6 +270,8 @@ class Bio_Vis_All_Network(Bio_All_Network):
 
 
 class Bio_Local_Network(Bio_All_Network):
+    """Takes one type of features (just atom types or pharmocophoric features) and calculates atom-wise features
+    """
     def __init__(self,  natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
                  embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes):
         super(Bio_Local_Network, self).__init__(natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
@@ -263,6 +283,8 @@ class Bio_Local_Network(Bio_All_Network):
         return features # shape ? 
 
 class ResNet_Bio_ALL_Network(Bio_All_Network):
+    """Bio_All_Network with residual connection between the first layer and features after all layers of e3nn convolution
+    """
     def __init__(self,  natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
                  embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes):
         super(ResNet_Bio_ALL_Network, self).__init__(natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
@@ -315,6 +337,8 @@ class ResNet_Bio_ALL_Network(Bio_All_Network):
 
         
 class ResNet_Bio_Local_Network(ResNet_Bio_ALL_Network):
+    """Bio_Local_Network with residual connection between the first layer and features after all layers of e3nn convolution
+    """
     def __init__(self,  natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
                  embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes):
         super(ResNet_Bio_Local_Network, self).__init__(natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
@@ -326,6 +350,8 @@ class ResNet_Bio_Local_Network(ResNet_Bio_ALL_Network):
         return features # shape ?
 
 class Concat_Bio_Local_Network(ResNet_Bio_ALL_Network):
+    """Bio_Local_Network where all features in e3nn conv layers ae concatenated together
+    """
     def __init__(self,  natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
                  embed,   scalar_act_name, gate_act_name,  list_harm, aggregation_mode, fc_sizes):
         super(Concat_Bio_Local_Network, self).__init__(natoms, encoding, max_rad, num_basis, n_neurons, n_layers, beta, rad_model, num_embeddings,
@@ -363,7 +389,7 @@ class Concat_Bio_Local_Network(ResNet_Bio_ALL_Network):
             new_features = act(new_features)
             new_features = new_features * mask.unsqueeze(-1)
             features_all.append(new_features)
-        features_all = torch.cat(features_all, 2)
+        features_all = torch.cat(features_all, 2) #concatenation of all features
         # features = features + new_features
         return features_all
 
