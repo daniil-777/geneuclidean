@@ -2,7 +2,9 @@
 
 PYTHON ?= .venv/bin/python
 UV ?= uv
-CONFIG ?= configs/default.yaml
+CONFIG ?= configs/geneuclidean_v2_painn.yaml
+PRETRAIN_CONFIG ?= configs/pretrain_zinc.yaml
+CHECKPOINT ?= runs/geneuclidean_v2_painn/best.pt
 
 help:
 	@echo "GenEuclidean v2.0 — Available Make targets:"
@@ -39,16 +41,16 @@ test-equivariance:
 	$(PYTHON) -m pytest -m equivariance -v
 
 data:
-	$(PYTHON) -m geneuclidean.cli data prepare --config $(CONFIG)
+	$(PYTHON) -m geneuclidean.cli prepare --config $(CONFIG)
 
 pretrain:
-	$(PYTHON) -m geneuclidean.cli pretrain --config $(CONFIG)
+	$(PYTHON) -m geneuclidean.cli pretrain --config $(PRETRAIN_CONFIG)
 
 train:
 	$(PYTHON) -m geneuclidean.cli train --config $(CONFIG)
 
 eval:
-	$(PYTHON) -m geneuclidean.cli eval --config $(CONFIG)
+	$(PYTHON) -m geneuclidean.cli evaluate --checkpoint $(CHECKPOINT) --split test
 
 clean:
 	rm -rf .pytest_cache .mypy_cache .ruff_cache htmlcov .coverage .coverage.* coverage.xml dist build src/*.egg-info
