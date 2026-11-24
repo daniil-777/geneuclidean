@@ -1,0 +1,158 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "geneuclidean"
+version = "2.0.0"
+description = "SE(3)/E(3)-equivariant 3D protein pocket-conditioned de novo molecular generation and binding affinity prediction"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [{ name = "Daniil Emtsev" }]
+keywords = [
+    "drug-design",
+    "de-novo-generation",
+    "equivariant-neural-networks",
+    "e3nn",
+    "painn",
+    "protein-ligand",
+    "cheminformatics",
+    "binding-affinity",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Chemistry",
+]
+dependencies = [
+    # CRITICAL: pin rdkit <2026.9 to avoid ARM64 MurckoDecompose RuntimeError ("bad any cast")
+    "rdkit>=2026.3,<2026.9",
+    "torch>=2.2",
+    "e3nn>=0.5",
+    "selfies>=2.1",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "pandas>=2.1",
+    "scikit-learn>=1.4",
+    "biopython>=1.83",
+    "networkx>=3.2",
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+    "pyyaml>=6.0",
+    "pydantic>=2.0",
+    "tqdm>=4.66",
+    "typer>=0.12",
+    "rich>=13.7",
+    "requests>=2.31",
+    "certifi>=2024.0",
+]
+
+[project.optional-dependencies]
+docking = [
+    "meeko>=0.8",
+    "gemmi>=0.7.5",
+]
+safe = [
+    "safe-mol>=0.2",
+]
+pyg = [
+    "torch-geometric>=2.5",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "types-PyYAML>=6.0",
+    "types-requests>=2.31",
+]
+all = [
+    "geneuclidean[docking,safe,pyg,dev]",
+]
+
+[project.scripts]
+geneuclidean = "geneuclidean.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["geneuclidean*"]
+
+[tool.setuptools.package-data]
+geneuclidean = ["py.typed"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/geneuclidean/cli.py" = ["B008"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+packages = ["geneuclidean"]
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = [
+    "Bio.*",
+    "e3nn.*",
+    "gemmi.*",
+    "matplotlib.*",
+    "meeko.*",
+    "networkx.*",
+    "pandas.*",
+    "rdkit.*",
+    "requests.*",
+    "safe.*",
+    "scipy.*",
+    "seaborn.*",
+    "selfies.*",
+    "sklearn.*",
+    "torch_geometric.*",
+    "tqdm.*",
+    "yaml.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+markers = [
+    "equivariance: E(3)/SE(3) rotational, translational, and permutation equivariance tests",
+    "slow: slow integration or end-to-end training tests",
+]
+filterwarnings = [
+    "ignore:.*torch\\.jit\\.script.*is deprecated.*:FutureWarning",
+    "ignore::FutureWarning:e3nn.*",
+]
+
+[tool.coverage.run]
+source = ["geneuclidean"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true

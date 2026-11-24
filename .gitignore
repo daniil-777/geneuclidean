@@ -1,0 +1,49 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python caches & compiled bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# OS & editor files
+.DS_Store
+.AppleDouble
+.LSOverride
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing, linting, type checking & coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# Build & packaging artifacts
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Large local datasets, binaries, training runs & checkpoints
+data/raw/
+data/processed/
+runs/
+checkpoints/
+bin/
+
+# Local thesis PDF (preserved locally, excluded from git)
+Report_denovo.pdf
+
+# Explicitly keep versioned metadata & benchmark artifacts tracked
+!data/metadata/*.csv
+!results/figures/*.png
+!results/tables/*.json

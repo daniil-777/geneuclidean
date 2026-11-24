@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Lint, Typecheck & Test (Python 3.12)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12 && uv venv --python 3.12
+
+      - name: Install CPU PyTorch and package with dev dependencies
+        run: |
+          uv pip install --python .venv/bin/python \
+            --index-url https://download.pytorch.org/whl/cpu \
+            "torch>=2.2"
+          uv pip install --python .venv/bin/python -e ".[dev]"
+
+      - name: Lint with ruff
+        run: .venv/bin/ruff check src tests
+
+      - name: Check formatting with ruff
+        run: .venv/bin/ruff format --check src tests
+
+      - name: Typecheck with mypy
+        run: .venv/bin/mypy src
+
+      - name: Run unit & E(3)/SE(3) equivariance test suite
+        run: |
+          .venv/bin/pytest \
+            --cov=geneuclidean \
+            --cov-report=term-missing \
+            --cov-report=xml
