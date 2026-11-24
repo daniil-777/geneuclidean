@@ -309,9 +309,12 @@ def _strip_optimizer_from_best_ckpt(best_ckpt_path: Path) -> None:
 
 
 def _extract_best_history_row(history: Sequence[dict[str, Any]]) -> dict[str, Any]:
-    """Return the epoch history row corresponding to the lowest ``val_objective``."""
+    """Return the epoch history row corresponding to the saved ``best.pt`` checkpoint."""
     if not history:
         return {}
+    best_flagged = [row for row in history if row.get("is_best") is True]
+    if best_flagged:
+        return best_flagged[-1]
     return min(history, key=lambda row: float(row.get("val_objective", float("inf"))))
 
 
@@ -387,8 +390,13 @@ def _run_stage2(
     )
 
     trainer = PocketTrainer(model=model, cfg=cfg, tokenizer=tokenizer, device=device)
-    resume_path = out_dir / "last.pt"
-    resume_from = resume_path if (args.resume and resume_path.is_file()) else None
+    resume_from: Path | None = None
+    if args.resume is not None:
+        candidate = out_dir / "last.pt" if args.resume == "auto" else Path(args.resume)
+        if candidate.is_file():
+            resume_from = candidate
+        elif args.resume != "auto":
+            raise FileNotFoundError(f"Requested --resume checkpoint not found: {candidate}")
 
     t0 = time.perf_counter()
     fit_res = trainer.fit(
@@ -817,8 +825,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--resume",
-        action="store_true",
-        help="Resume an interrupted Stage-2 run from last.pt if present.",
+        nargs="?",
+        const="auto",
+        default=None,
+        help="Resume an interrupted Stage-2 run from last.pt (or an explicit checkpoint path).",
     )
     parser.add_argument(
         "--keep-last-ckpt",

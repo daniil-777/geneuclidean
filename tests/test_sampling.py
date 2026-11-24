@@ -1141,18 +1141,70 @@ def test_trainer_vocab_mismatch_and_elbo_val_objective(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="missing 'tok_emb.weight'"):
         PocketTrainer(model=good_model, cfg=cfg_missing, tokenizer=tokenizer, device="cpu")
 
-    # 4. val_objective includes fixed-weight CVAE ELBO term (kl_max_beta * val_kl_loss)
+    # 4. val_objective uses per-dim CVAE ELBO term + scale-invariant CLIP (1 - val_clip_r5)
     cfg_elbo = cfg.model_copy(deep=True)
     cfg_elbo.cvae.enabled = True
     cfg_elbo.cvae.kl_max_beta = 0.3
-    cfg_elbo.multitask.use_pkd_head = False
-    cfg_elbo.multitask.use_clip_head = False
-    cfg_elbo.multitask.use_prop_head = False
+    cfg_elbo.cvae.latent_dim = 64
+    cfg_elbo.multitask.use_pkd_head = True
+    cfg_elbo.multitask.use_clip_head = True
+    cfg_elbo.multitask.use_prop_head = True
+    cfg_elbo.multitask.lambda_pkd = 0.5
+    cfg_elbo.multitask.lambda_clip = 0.3
+    cfg_elbo.multitask.lambda_prop = 0.2
     trainer = PocketTrainer(model=good_model, cfg=cfg_elbo, tokenizer=tokenizer, device="cpu")
     val_metrics = trainer.evaluate([_make_pocket_batch(batch_size=4, seed=5)])
-    expected_obj = val_metrics["val_lm_loss"] + 0.3 * val_metrics["val_kl_loss"]
+    expected_obj = (
+        val_metrics["val_lm_loss"]
+        + 0.3 * val_metrics["val_kl_loss"] / 64.0
+        + 0.5 * val_metrics["val_pkd_loss"]
+        + 0.3 * (1.0 - val_metrics["val_clip_r5"])
+        + 0.2 * val_metrics["val_prop_loss"]
+    )
     assert val_metrics["val_kl_loss"] > 0.0
     assert val_metrics["val_objective"] == pytest.approx(expected_obj, rel=1e-6)
+
+    # 5. Resuming from a v1 checkpoint resets best_val_objective and re-anchors LR to new epochs
+    cfg_v1 = cfg_elbo.model_copy(deep=True)
+    cfg_v1.train.epochs = 6
+    cfg_v1.train.freeze_decoder_epochs = 0
+    tr_v1 = PocketTrainer(
+        model=_ToyPocketModel(vocab_size=tokenizer.vocab_size, d_model=32),
+        cfg=cfg_v1,
+        tokenizer=tokenizer,
+        device="cpu",
+    )
+    batch = _make_pocket_batch(batch_size=4, seed=9)
+    res_v1 = tr_v1.fit([batch], [batch], output_dir=tmp_path / "resume_v1")
+    ckpt_v1_path = Path(res_v1["last_ckpt_path"])
+    raw_v1 = torch.load(ckpt_v1_path, map_location="cpu", weights_only=False)
+    assert raw_v1["val_objective_version"] == 2
+    # Simulate a legacy v1 checkpoint at epoch 2 with artificially low old best_val_objective
+    raw_v1.pop("val_objective_version")
+    raw_v1["current_epoch"] = 2
+    raw_v1["global_step"] = 2
+    raw_v1["best_val_objective"] = -999.0
+    torch.save(raw_v1, ckpt_v1_path)
+
+    cfg_v2 = cfg_elbo.model_copy(deep=True)
+    cfg_v2.train.epochs = 4
+    cfg_v2.train.freeze_decoder_epochs = 0
+    tr_v2 = PocketTrainer(
+        model=_ToyPocketModel(vocab_size=tokenizer.vocab_size, d_model=32),
+        cfg=cfg_v2,
+        tokenizer=tokenizer,
+        device="cpu",
+    )
+    res_v2 = tr_v2.fit(
+        [batch],
+        [batch],
+        output_dir=tmp_path / "resume_v2",
+        resume_from=ckpt_v1_path,
+    )
+    assert tr_v2.current_epoch == 4
+    assert math.isfinite(res_v2["best_val_objective"])
+    assert res_v2["best_val_objective"] > 0.0
+    assert Path(res_v2["best_ckpt_path"]).is_file()
 
 
 def test_cvae_refine_handles_value_error_ligand_encoder_fallback() -> None:

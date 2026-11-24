@@ -23,6 +23,7 @@ def build_cosine_warmup_scheduler(
     total_steps: int,
     warmup_ratio: float = 0.08,
     min_lr_ratio: float = 0.05,
+    last_epoch: int = -1,
 ) -> LambdaLR:
     """Build a linear-warmup + cosine-decay learning rate scheduler.
 
@@ -31,6 +32,7 @@ def build_cosine_warmup_scheduler(
         total_steps: Total number of optimization steps.
         warmup_ratio: Fraction of total steps used for linear warmup.
         min_lr_ratio: Floor multiplier at the end of cosine decay.
+        last_epoch: Step index for resuming an existing schedule (``-1`` for fresh start).
 
     Returns:
         Configured ``LambdaLR`` scheduler.
@@ -46,7 +48,7 @@ def build_cosine_warmup_scheduler(
         cosine = 0.5 * (1.0 + math.cos(math.pi * progress))
         return float(min_lr_ratio + (1.0 - min_lr_ratio) * cosine)
 
-    return LambdaLR(optimizer, lr_lambda=lr_lambda)
+    return LambdaLR(optimizer, lr_lambda=lr_lambda, last_epoch=last_epoch)
 
 
 def _build_adamw_param_groups(

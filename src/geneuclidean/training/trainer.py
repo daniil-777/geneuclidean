@@ -112,6 +112,9 @@ def _is_decoder_backbone_param(name: str) -> bool:
     return not any(keyword in lower for keyword in _CROSS_ATTN_KEYWORDS)
 
 
+VAL_OBJECTIVE_VERSION: int = 2
+
+
 class PocketTrainer:
     """Stage-2 trainer for 3D pocket-conditioned molecular generation and affinity prediction.
 
@@ -319,6 +322,7 @@ class PocketTrainer:
             "current_epoch": self.current_epoch,
             "global_step": self.global_step,
             "best_val_objective": self.best_val_objective,
+            "val_objective_version": VAL_OBJECTIVE_VERSION,
             "history": list(self.history),
         }
 
@@ -336,7 +340,11 @@ class PocketTrainer:
             self.scheduler.load_state_dict(state["scheduler_state_dict"])
         self.current_epoch = int(state.get("current_epoch", 0))
         self.global_step = int(state.get("global_step", 0))
-        self.best_val_objective = float(state.get("best_val_objective", float("inf")))
+        ckpt_obj_version = int(state.get("val_objective_version", 1))
+        if ckpt_obj_version != VAL_OBJECTIVE_VERSION:
+            self.best_val_objective = float("inf")
+        else:
+            self.best_val_objective = float(state.get("best_val_objective", float("inf")))
         raw_history = state.get("history", [])
         self.history = list(raw_history) if isinstance(raw_history, list) else []
 
@@ -543,15 +551,31 @@ class PocketTrainer:
         pkd_pearson, pkd_rmse = _compute_pearson_and_rmse(pkd_preds, pkd_targets)
         clip_r1, clip_r5 = _compute_clip_recall(clip_pockets, clip_ligands)
 
-        # Cycle-invariant ELBO + multi-task validation objective (fixed kl_max_beta)
+        # Cycle- and calibration-invariant validation selection objective (v2):
+        # normalizes fixed-weight CVAE KL by latent_dim and replaces uncalibrated
+        # val_clip_loss with scale-invariant retrieval error (1 - val_clip_r5).
         val_objective = val_lm_loss
         if self.cfg.cvae.enabled and self.cfg.cvae.kl_max_beta > 0.0:
-            val_objective += self.cfg.cvae.kl_max_beta * val_kl_loss
-        if self.cfg.multitask.use_pkd_head and self.cfg.multitask.lambda_pkd > 0.0:
+            val_objective += (
+                self.cfg.cvae.kl_max_beta * val_kl_loss / float(max(1, self.cfg.cvae.latent_dim))
+            )
+        if (
+            self.cfg.multitask.use_pkd_head
+            and self.cfg.multitask.lambda_pkd > 0.0
+            and math.isfinite(val_pkd_loss)
+        ):
             val_objective += self.cfg.multitask.lambda_pkd * val_pkd_loss
-        if self.cfg.multitask.use_clip_head and self.cfg.multitask.lambda_clip > 0.0:
-            val_objective += self.cfg.multitask.lambda_clip * val_clip_loss
-        if self.cfg.multitask.use_prop_head and self.cfg.multitask.lambda_prop > 0.0:
+        if (
+            self.cfg.multitask.use_clip_head
+            and self.cfg.multitask.lambda_clip > 0.0
+            and math.isfinite(clip_r5)
+        ):
+            val_objective += self.cfg.multitask.lambda_clip * (1.0 - clip_r5)
+        if (
+            self.cfg.multitask.use_prop_head
+            and self.cfg.multitask.lambda_prop > 0.0
+            and math.isfinite(val_prop_loss)
+        ):
             val_objective += self.cfg.multitask.lambda_prop * val_prop_loss
 
         return {
@@ -599,6 +623,7 @@ class PocketTrainer:
 
         if self.optimizer is None:
             self.optimizer = self.build_optimizer()
+        base_group_lrs = [float(g["lr"]) for g in self.optimizer.param_groups]
         if self.scheduler is None:
             self.scheduler = build_cosine_warmup_scheduler(
                 self.optimizer,
@@ -608,6 +633,15 @@ class PocketTrainer:
 
         if resume_from is not None:
             self.load_checkpoint(resume_from)
+            # Re-anchor cosine schedule cleanly to the current cfg.train.epochs horizon
+            for group, base_lr in zip(self.optimizer.param_groups, base_group_lrs, strict=True):
+                group["initial_lr"] = base_lr
+            self.scheduler = build_cosine_warmup_scheduler(
+                self.optimizer,
+                total_steps=total_steps,
+                warmup_ratio=self.cfg.train.warmup_ratio,
+                last_epoch=self.global_step,
+            )
 
         start_epoch = self.current_epoch + 1
         file_mode = "a" if resume_from is not None and history_path.exists() else "w"
