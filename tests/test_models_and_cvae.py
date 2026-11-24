@@ -467,3 +467,56 @@ def test_empty_edge_graph_single_atom_edge_case(
     if out.vec_emb is not None:
         assert torch.isfinite(out.vec_emb).all()
         assert out.vec_emb[~mask].abs().max().item() == 0.0
+
+
+@pytest.mark.skipif(
+    not torch.backends.mps.is_available(),
+    reason="MPS-only regression test for SDPA dropout with frozen decoder self-attention",
+)
+def test_mps_frozen_decoder_self_attention_dropout_regression() -> None:
+    """Verify MPS forward+backward succeeds with dropout>0 and frozen decoder backbone."""
+    torch.manual_seed(42)
+    dev = torch.device("mps")
+    cfg = _make_cfg(encoder_arch="painn", decoder_arch="transformer")
+    cfg.decoder.dropout = 0.1
+    model = GenEuclideanModel(cfg).to(dev).train()
+
+    # Freeze decoder self-attention/embedding/FFN backbone exactly like freeze_decoder_epochs.
+    for name, param in model.named_parameters():
+        if name.startswith("decoder.") and "cross_" not in name.lower():
+            param.requires_grad = False
+
+    coords = torch.randn((2, 16, 3), device=dev, dtype=torch.float32) * 2.0
+    node_feats = torch.randn((2, 16, 52), device=dev, dtype=torch.float32)
+    atom_mask = torch.ones((2, 16), dtype=torch.bool, device=dev)
+    input_ids = torch.randint(1, 48, (2, 10), device=dev)
+    target_ids = torch.randint(1, 48, (2, 10), device=dev)
+    ligand_fp = (torch.rand((2, 128), device=dev) > 0.7).float()
+
+    out = model(
+        {
+            "coords": coords,
+            "node_feats": node_feats,
+            "atom_mask": atom_mask,
+            "input_ids": input_ids,
+            "ligand_fp": ligand_fp,
+        },
+        cfg_drop=True,
+    )
+    assert torch.isfinite(out.logits).all()
+
+    loss = F.cross_entropy(out.logits.reshape(-1, 48), target_ids.reshape(-1))
+    loss.backward()
+
+    # Frozen token embedding receives no grad; trainable encoder & cross-attn receive finite grads.
+    assert model.decoder.token_emb.weight.grad is None
+    enc_grads = [p.grad for p in model.encoder.parameters() if p.grad is not None]
+    assert len(enc_grads) > 0
+    assert all(torch.isfinite(g).all() for g in enc_grads)
+    cross_grads = [
+        p.grad
+        for n, p in model.decoder.named_parameters()
+        if "cross_" in n.lower() and p.grad is not None
+    ]
+    assert len(cross_grads) > 0
+    assert all(torch.isfinite(g).all() for g in cross_grads)

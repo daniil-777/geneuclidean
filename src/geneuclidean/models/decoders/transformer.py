@@ -124,14 +124,30 @@ class CausalSelfAttention(nn.Module):
 
         q, k = apply_rope(q, k, cos, sin)
 
-        attn_out = F.scaled_dot_product_attention(
-            q,
-            k,
-            v,
-            attn_mask=None,
-            dropout_p=self.dropout_p if self.training else 0.0,
-            is_causal=True,
-        )
+        dropout_p = self.dropout_p if self.training else 0.0
+        if (
+            q.device.type == "mps"
+            and dropout_p > 0.0
+            and not (q.requires_grad or k.requires_grad or v.requires_grad)
+        ):
+            scale = 1.0 / math.sqrt(self.head_dim)
+            scores = torch.matmul(q, k.transpose(-2, -1)) * scale
+            causal_mask = torch.triu(
+                torch.ones((seq_len, seq_len), dtype=torch.bool, device=q.device),
+                diagonal=1,
+            )
+            scores = scores.masked_fill(causal_mask, float("-inf"))
+            attn_probs = F.dropout(torch.softmax(scores, dim=-1), p=dropout_p, training=True)
+            attn_out = torch.matmul(attn_probs, v)
+        else:
+            attn_out = F.scaled_dot_product_attention(
+                q,
+                k,
+                v,
+                attn_mask=None,
+                dropout_p=dropout_p,
+                is_causal=True,
+            )
         merged = attn_out.transpose(1, 2).contiguous().view(batch_size, seq_len, self.d_model)
         out: Tensor = self.resid_dropout(self.o_proj(merged))
         return out
