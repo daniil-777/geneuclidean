@@ -1,0 +1,94 @@
+name: geneuclidean-v2-painn
+description: Model 3 Flagship — PaiNN-SE3 + Pretrained RoPE/SwiGLU Transformer + Pocket CVAE + MultiTask (pKd/DrugCLIP/Props) + CFG
+
+data:
+  raw_dir: data/raw
+  processed_dir: data/processed
+  metadata_dir: data/metadata
+  pocket_cutoff: 10.0
+  graph_cutoff: 5.5
+  max_neighbors: 24
+  max_pocket_atoms: 384
+  representation: smiles
+  randomize_smiles: true
+  max_seq_len: 128
+  split_type: lp_pdbbind
+  coord_jitter_std: 0.10
+  atom_drop_prob: 0.05
+
+encoder:
+  arch: painn
+  node_in_dim: 52
+  hidden_dim: 192
+  vector_dim: 64
+  out_dim: 256
+  num_layers: 4
+  num_rbf: 24
+  cutoff: 5.5
+  e3nn_lmax: 1
+  use_se3_chirality: true
+  dropout: 0.1
+
+cvae:
+  enabled: true
+  latent_dim: 64
+  num_latent_tokens: 4
+  kl_max_beta: 0.3
+  kl_cycles: 4
+  free_bits: 0.25
+
+decoder:
+  arch: transformer
+  vocab_size: 96
+  d_model: 256
+  n_heads: 8
+  n_layers: 6
+  d_ff: 688
+  max_seq_len: 128
+  dropout: 0.1
+  use_cross_attn: true
+  gated_cross_attn: true
+  cfg_drop_prob: 0.15
+
+multitask:
+  use_pkd_head: true
+  use_clip_head: true
+  use_prop_head: true
+  lambda_pkd: 0.5
+  lambda_clip: 0.3
+  lambda_prop: 0.2
+  clip_dim: 128
+  ligand_fp_dim: 1024
+
+train:
+  seed: 42
+  device: auto
+  batch_size: 32
+  epochs: 40
+  lr: 0.0005
+  encoder_lr: 0.0005
+  decoder_lr: 0.00015
+  weight_decay: 0.01
+  grad_clip: 1.0
+  warmup_ratio: 0.08
+  label_smoothing: 0.05
+  freeze_decoder_epochs: 2
+  num_workers: 0
+  pretrained_decoder_ckpt: runs/pretrain_zinc/best_prior.pt
+  output_dir: runs/geneuclidean_v2_painn
+
+sampling:
+  strategy: min_p
+  num_samples: 64
+  max_len: 120
+  temperature: 1.05
+  min_p: 0.08
+  top_p: 0.92
+  top_k: 30
+  cfg_scale: 1.75
+  latent_temp: 1.0
+  beam_width: 16
+  num_beam_groups: 8
+  diversity_penalty: 0.7
+  repetition_penalty: 1.05
+  syntax_guardrails: false
