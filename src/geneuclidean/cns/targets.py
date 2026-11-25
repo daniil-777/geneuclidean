@@ -44,6 +44,7 @@ from geneuclidean.data.featurizer import (
 
 DEFAULT_CNS_STRUCTURES_DIR = Path("data/cns_neuro/structures")
 DEFAULT_V4_STRUCTURES_DIR = Path("data/cns_neuro.nosync/v4_expansion/structures")
+DEFAULT_TS_CIRCUIT_STRUCTURES_DIR = Path("data/cns_neuro.nosync/ts_circuit_expansion/structures")
 RCSB_DOWNLOAD_URL = "https://files.rcsb.org/download"
 
 DiseaseArea = Literal["tourette", "schizophrenia", "psychiatry", "alzheimer", "counter"]
@@ -1599,10 +1600,23 @@ def get_cns_target(identifier: str) -> CNSTargetSpec:
     """Look up a ``CNSTargetSpec`` by target ID, gene symbol, ChEMBL ID, or UniProt ID."""
     key = identifier.strip().upper()
     resolved = _TARGET_ALIAS_MAP.get(key)
-    if resolved is None:
-        valid = ", ".join(sorted(ALL_CNS_TARGET_REGISTRY.keys()))
-        raise KeyError(f"Unknown CNS target {identifier!r}. Registered targets: {valid}")
-    return ALL_CNS_TARGET_REGISTRY[resolved]
+    if resolved is not None:
+        return ALL_CNS_TARGET_REGISTRY[resolved]
+    # Clean optional fallback into the 4 verified Tourette CSTC / GABAergic expansion targets
+    # without altering CNS_TARGET_REGISTRY (12), V4_EXPANSION_TARGET_REGISTRY (12), or
+    # ALL_CNS_TARGET_REGISTRY (31) counts.
+    from geneuclidean.cns.tourette_circuit import (
+        TOURETTE_CIRCUIT_EXPANSION_REGISTRY,
+        get_tourette_circuit_target,
+    )
+
+    try:
+        return get_tourette_circuit_target(identifier)
+    except KeyError:
+        valid = ", ".join(
+            sorted(set(ALL_CNS_TARGET_REGISTRY.keys()) | set(TOURETTE_CIRCUIT_EXPANSION_REGISTRY))
+        )
+        raise KeyError(f"Unknown CNS target {identifier!r}. Registered targets: {valid}") from None
 
 
 def list_cns_targets(
@@ -1611,13 +1625,16 @@ def list_cns_targets(
     disease_area: str | None = None,
     include_v4: bool = False,
     include_counters: bool = False,
+    include_ts_circuit: bool = False,
 ) -> list[CNSTargetSpec]:
-    """Return curated human CNS target specs with 100% v3.1 backward compatibility.
+    """Return curated human CNS target specs with 100% v3.1 & v4.0 backward compatibility.
 
     - Called with no arguments (``list_cns_targets()``), returns the 12 core v3.1 targets.
     - Pass ``include_v4=True`` or ``disease_area=...`` (``"tourette"``, ``"schizophrenia"``,
       ``"psychiatry"``, ``"alzheimer"``, ``"counter"``, or ``"all"``) to query the expanded
       24-target Tri-Disorder Human CNS Atlas (plus optional matched counter-targets).
+    - Pass ``include_ts_circuit=True`` to also append the 4 verified Tourette CSTC Basal
+      Ganglia & GABAergic expansion targets (``GABRA5``, ``GAT1``, ``ADORA2A``, ``GRM5``).
     """
     use_v4 = include_v4 or (disease_area is not None)
     if include_counters or (disease_area is not None and disease_area.strip().lower() == "counter"):
@@ -1626,6 +1643,11 @@ def list_cns_targets(
         pool = list(TRI_DISORDER_TARGET_REGISTRY.values())
     else:
         pool = list(CNS_TARGET_REGISTRY.values())
+
+    if include_ts_circuit:
+        from geneuclidean.cns.tourette_circuit import TOURETTE_CIRCUIT_EXPANSION_REGISTRY
+
+        pool.extend(TOURETTE_CIRCUIT_EXPANSION_REGISTRY.values())
 
     if disease_area is not None and disease_area.strip():
         area = disease_area.strip().lower()
@@ -1668,10 +1690,13 @@ def find_local_pocket_files(
     spec = get_cns_target(target_id)
     root = Path(structures_dir)
     candidate_roots = [root]
-    # When using the default v3.1 directory, also search v4_expansion/structures automatically
-    # without breaking offline CI isolation when callers pass a custom tmp_path structures_dir.
-    if root == DEFAULT_CNS_STRUCTURES_DIR and DEFAULT_V4_STRUCTURES_DIR.exists():
-        candidate_roots.append(DEFAULT_V4_STRUCTURES_DIR)
+    # When using the default v3.1 directory, also search v4_expansion & ts_circuit_expansion
+    # automatically without breaking offline CI isolation when callers pass a custom tmp_path.
+    if root == DEFAULT_CNS_STRUCTURES_DIR:
+        if DEFAULT_V4_STRUCTURES_DIR.exists():
+            candidate_roots.append(DEFAULT_V4_STRUCTURES_DIR)
+        if DEFAULT_TS_CIRCUIT_STRUCTURES_DIR.exists():
+            candidate_roots.append(DEFAULT_TS_CIRCUIT_STRUCTURES_DIR)
 
     candidate_pdbs = (pdb_id.strip().upper(),) if pdb_id else spec.all_pdb_ids
 
@@ -1880,6 +1905,7 @@ __all__ = [
     "ALL_CNS_TARGET_REGISTRY",
     "CNS_TARGET_REGISTRY",
     "DEFAULT_CNS_STRUCTURES_DIR",
+    "DEFAULT_TS_CIRCUIT_STRUCTURES_DIR",
     "DEFAULT_V4_STRUCTURES_DIR",
     "RCSB_DOWNLOAD_URL",
     "TRI_DISORDER_TARGET_REGISTRY",
