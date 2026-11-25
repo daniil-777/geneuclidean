@@ -1,4 +1,5 @@
-# Virtual environments
+# Virtual environments (unslashed to ignore both dirs and .nosync symlinks)
+.venv
 .venv/
 venv/
 env/
@@ -34,11 +35,21 @@ build/
 .eggs/
 
 # Large local datasets, binaries, training runs & checkpoints
+# (unslashed entries ignore both real directories and macOS .nosync symlinks)
+data/raw
 data/raw/
+data/processed
 data/processed/
+runs
 runs/
+checkpoints
 checkpoints/
+bin
 bin/
+
+# macOS iCloud Drive .nosync local runtime directories and symlinks
+*.nosync
+*.nosync/
 
 # Local thesis PDF (preserved locally, excluded from git)
 Report_denovo.pdf
