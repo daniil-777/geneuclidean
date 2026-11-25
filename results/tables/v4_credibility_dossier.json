@@ -1,0 +1,451 @@
+{
+  "schema_version": "geneuclidean-v4.0-fda-ema-credibility-dossier",
+  "generated_at_utc": "2026-11-25T22:55:29+00:00",
+  "model_identity": {
+    "name": "GenEuclidean v4.0 Tri-Disorder Discovery Suite (v4.0_SAFE-GPT-87M)",
+    "version": "4.0.0",
+    "runtime_python": "3.12.12",
+    "runtime_platform": "macOS-27.3-arm64-arm-64bit"
+  },
+  "regulatory_alignment": [
+    "FDA Draft Guidance: Considerations for the Use of AI to Support Regulatory Decision-Making (Docket FDA-2024-D-4689, Jan 2025)",
+    "Joint FDA-EMA 10 Guiding Principles of Good AI Practice in Drug Development (Jan 2026)",
+    "FDA Modernization Acts 2.0/3.0 & NAMs Preclinical Safety Roadmap (2025-2026)"
+  ],
+  "step_1_question_of_interest": "Can 3D SE(3)-equivariant pocket-conditioned generation paired with calibrated scaffold-CV ADMET/Avoid-ome oracles, Split-Conformal UQ, and industrial MedChem triage prioritize novel, synthesizable, CNS-penetrant lead hypotheses?",
+  "step_2_context_of_use": {
+    "statement": "Exploratory preclinical in silico hypothesis generation, 3D pocket-conditioned lead prioritization, and CNS ADMET/Avoid-ome triage (NON-REGULATORY). All candidate molecules and oracle predictions are research hypotheses requiring chemical synthesis, functional pharmacology, SafetyScreen44/CiPA profiling, and GLP preclinical validation before clinical translation.",
+    "regulatory_submission_status": "Non-regulatory exploratory preclinical hypothesis generation",
+    "orthogonal_experimental_evidence_required": 1,
+    "human_in_the_loop_required": 1
+  },
+  "step_3_model_risk_assessment": {
+    "decision_consequence": "Low (exploratory preclinical triage; no direct clinical dosing decision)",
+    "model_influence": "Moderate (prioritizes molecules for medicinal-chemistry review & wet-lab synthesis)",
+    "overall_risk_tier": "Low-to-Moderate (Preclinical Research Decision Support \u2014 Non-Regulatory)",
+    "primary_risk_mitigations": [
+      "Hard MedChem structural triage & reagent quarantine (PAINS/BRENK/NIH/Lilly/DCU=0.0)",
+      "Multiplicative safety-gated reward eliminating compensatory ADMET-sink bleed",
+      "Zero-leakage 5-fold Bemis-Murcko scaffold CV with Platt calibration & Split-Conformal 90% UQ",
+      "ECFP4 Tanimoto Applicability Domain enforcement & OOD probability damping",
+      "Mandatory wet-lab synthesis, functional assay, SafetyScreen44, and GLP validation gate"
+    ]
+  },
+  "step_4_credibility_assessment_plan": {
+    "data_splitting": "5-fold Bemis-Murcko scaffold-disjoint cross-validation (strictly 0 overlapping scaffolds)",
+    "probability_calibration": "Nested scaffold-disjoint Platt sigmoid calibration (target ECE <= 0.05)",
+    "uncertainty_quantification": "Distribution-free finite-sample Split-Conformal prediction sets (alpha=0.10, >=90% coverage)",
+    "applicability_domain": "Bit-packed 1024-bit ECFP4 nearest-neighbor Tanimoto >= 0.30",
+    "structural_hygiene": "RDKit PAINS + BRENK + NIH + Lilly-inspired demerits <= 100 + coupling-reagent quarantine",
+    "physics_verification": "Held-out AutoDock Vina redocking RMSD (<= 2.0 A), PoseBusters validity, and 3D anchor contacts"
+  },
+  "step_5_provenance_and_execution": {
+    "artifact_sha256_ledger": {
+      "v4_24target_qsar_joblib": {
+        "path": "data/cns_neuro.nosync/v4_24target_qsar.joblib",
+        "exists": 1,
+        "size_bytes": 60142885,
+        "sha256": "692d519cc0caedcfea1fcf7727191d3ebd1fbf453953e287cbfcc7d9ad5c043a"
+      },
+      "v4_admet_avoidome_oracles_joblib": {
+        "path": "data/cns_neuro.nosync/v4_admet_avoidome_oracles.joblib",
+        "exists": 1,
+        "size_bytes": 50715744,
+        "sha256": "b776c884fe9d4a9b8bd9871bdded741bda205969bb6d212555c6a2fd546c8818"
+      },
+      "v4_gate1_expansion_redocking_json": {
+        "path": "results/tables/v4_gate1_expansion_redocking.json",
+        "exists": 1,
+        "size_bytes": 55038,
+        "sha256": "0b6942f5c58826791e2ca3ad786145cb14ae7048fbbcd232392a6e43ef24cea2"
+      },
+      "v4_gpmolformer_adapter": {
+        "path": "runs_local.nosync/geneuclidean_v4_tri_disorder/v4_gpmolformer_aligned/best_adapter.pt",
+        "exists": 1,
+        "size_bytes": 20880084,
+        "sha256": "47a521f56004f6a5f48d107d01bbbc0cd6055d10bfd368102b622c6030f30bed"
+      },
+      "v4_llm_head_to_head_json": {
+        "path": "results/tables/v4_llm_head_to_head.json",
+        "exists": 1,
+        "size_bytes": 428307,
+        "sha256": "39732a1d197bc60a45c72ebd51f15476d0fa93a79a909a131b93f21404723257"
+      },
+      "v4_novomolgen157m_adapter": {
+        "path": "runs_local.nosync/geneuclidean_v4_tri_disorder/v4_novomolgen157m_aligned/best_adapter.pt",
+        "exists": 1,
+        "size_bytes": 35575950,
+        "sha256": "a64ba8a1bfc5033571193ead26ac9765d01a4d1d9dfd2e8a860d92ffedb3526a"
+      },
+      "v4_safegpt_adapter": {
+        "path": "runs_local.nosync/geneuclidean_v4_tri_disorder/v4_safegpt_aligned/best_adapter.pt",
+        "exists": 1,
+        "size_bytes": 23121022,
+        "sha256": "f8f1ac55da0f36e9104176fd67788ebe1035578a200f242ada483604fa33b948"
+      },
+      "v4_tri_disorder_docking_json": {
+        "path": "results/tables/v4_tri_disorder_docking.json",
+        "exists": 1,
+        "size_bytes": 715473,
+        "sha256": "595372729a87f58f7f99488485aaf3ef3dcd26d7865dac514a5b7bfd4aa52d0b"
+      },
+      "v4_tri_disorder_qsar_cv_json": {
+        "path": "results/tables/v4_tri_disorder_qsar_cv.json",
+        "exists": 1,
+        "size_bytes": 19452,
+        "sha256": "4ed4a0dd4787c92264ee7e997441ce2a30ea23564a30af9f13d4293fdf469d98"
+      },
+      "v4_tri_disorder_splits_json": {
+        "path": "results/tables/v4_tri_disorder_splits.json",
+        "exists": 1,
+        "size_bytes": 18628,
+        "sha256": "d9d0013f07ee6ed84d7ec6d555e06912897581fdbb378ea0d6d5e42d95e1dca5"
+      }
+    },
+    "n_tracked_artifacts": 10,
+    "deterministic_seeding": 1
+  },
+  "step_6_validation_results_and_deviations": {
+    "admet_scaffold_cv": {
+      "bbb": {
+        "n_samples": 7802,
+        "n_unique_scaffolds": 2437,
+        "scaffold_leakage_groups": 0,
+        "oof_roc_auc": 0.9157229253658763,
+        "oof_pr_auc": 0.9468839515656489,
+        "oof_brier_score": 0.11193944051550843,
+        "oof_ece": 0.034214546325527034,
+        "calibration_method": "sigmoid"
+      },
+      "pgp": {
+        "n_samples": 1212,
+        "n_unique_scaffolds": 700,
+        "scaffold_leakage_groups": 0,
+        "oof_roc_auc": 0.9263941130609621,
+        "oof_pr_auc": 0.9417827596434228,
+        "oof_brier_score": 0.10450079930778203,
+        "oof_ece": 0.022169750900282916,
+        "calibration_method": "sigmoid"
+      },
+      "herg": {
+        "n_samples": 13268,
+        "n_unique_scaffolds": 6016,
+        "scaffold_leakage_groups": 0,
+        "oof_roc_auc": 0.8519551955559111,
+        "oof_pr_auc": 0.8551052849910306,
+        "oof_brier_score": 0.1570500814683426,
+        "oof_ece": 0.01772957783331181,
+        "calibration_method": "sigmoid"
+      },
+      "mdr1_efflux": {
+        "n_samples": 2642,
+        "n_unique_scaffolds": 2318,
+        "scaffold_leakage_groups": 0,
+        "oof_roc_auc": 0.8605432712234604,
+        "oof_pr_auc": 0.8166372230979381,
+        "oof_brier_score": 0.15018264560399042,
+        "oof_ece": 0.025566795826747722,
+        "calibration_method": "sigmoid"
+      },
+      "hlm_clearance": {
+        "n_samples": 3087,
+        "n_unique_scaffolds": 2658,
+        "scaffold_leakage_groups": 0,
+        "oof_roc_auc": 0.8234744038573518,
+        "oof_pr_auc": 0.7482412852234643,
+        "oof_brier_score": 0.16491947314505634,
+        "oof_ece": 0.021273543866331342,
+        "calibration_method": "sigmoid"
+      },
+      "cyp2d6": {
+        "n_samples": 13089,
+        "n_unique_scaffolds": 8006,
+        "scaffold_leakage_groups": 0,
+        "oof_roc_auc": 0.8732521303255875,
+        "oof_pr_auc": 0.7008754621825379,
+        "oof_brier_score": 0.09561370785192119,
+        "oof_ece": 0.01081468045657877,
+        "calibration_method": "sigmoid"
+      },
+      "cyp3a4": {
+        "n_samples": 12299,
+        "n_unique_scaffolds": 7662,
+        "scaffold_leakage_groups": 0,
+        "oof_roc_auc": 0.8948318721105065,
+        "oof_pr_auc": 0.8594565975894561,
+        "oof_brier_score": 0.12923005564803733,
+        "oof_ece": 0.01163320389631825,
+        "calibration_method": "sigmoid"
+      },
+      "dili": {
+        "n_samples": 474,
+        "n_unique_scaffolds": 343,
+        "scaffold_leakage_groups": 0,
+        "oof_roc_auc": 0.8117255376726962,
+        "oof_pr_auc": 0.7618185607260495,
+        "oof_brier_score": 0.19086217054214077,
+        "oof_ece": 0.12927977927210366,
+        "calibration_method": "sigmoid"
+      },
+      "ames": {
+        "n_samples": 7255,
+        "n_unique_scaffolds": 2836,
+        "scaffold_leakage_groups": 0,
+        "oof_roc_auc": 0.8386126309396648,
+        "oof_pr_auc": 0.8420218046425043,
+        "oof_brier_score": 0.16973206871968824,
+        "oof_ece": 0.07661464965434735,
+        "calibration_method": "sigmoid"
+      },
+      "htr2b_avoid": {
+        "n_samples": 3472,
+        "n_unique_scaffolds": 1797,
+        "scaffold_leakage_groups": 0,
+        "oof_roc_auc": 0.9155697854063581,
+        "oof_pr_auc": 0.9040740131975039,
+        "oof_brier_score": 0.11520820509454302,
+        "oof_ece": 0.02513392436022012,
+        "calibration_method": "sigmoid"
+      },
+      "hrh1_avoid": {
+        "n_samples": 2358,
+        "n_unique_scaffolds": 1430,
+        "scaffold_leakage_groups": 0,
+        "oof_roc_auc": 0.9461501495279636,
+        "oof_pr_auc": 0.9518031571843176,
+        "oof_brier_score": 0.08979444635943404,
+        "oof_ece": 0.023704614104148983,
+        "calibration_method": "sigmoid"
+      },
+      "chrm3_avoid": {
+        "n_samples": 4098,
+        "n_unique_scaffolds": 2381,
+        "scaffold_leakage_groups": 0,
+        "oof_roc_auc": 0.9747926651122654,
+        "oof_pr_auc": 0.9784199720674224,
+        "oof_brier_score": 0.05610128554678777,
+        "oof_ece": 0.017177018444221766,
+        "calibration_method": "sigmoid"
+      }
+    },
+    "conformal_uq": {
+      "bbb": {
+        "alpha": 0.1,
+        "target_coverage": 0.9,
+        "empirical_coverage": 0.8986157395539606,
+        "singleton_rate": 0.8663163291463727,
+        "ambiguous_rate": 0.13368367085362728,
+        "avg_set_size": 1.1336836708536273,
+        "nested_fold_coverage_mean": 0.8722087255046895,
+        "nested_fold_avg_set_size_mean": 1.075618604116362,
+        "nested_fold_ambiguous_rate_mean": 0.07561860411636198,
+        "deployed_q_hat": 0.6499473389175661
+      },
+      "pgp": {
+        "alpha": 0.1,
+        "target_coverage": 0.9,
+        "empirical_coverage": 0.8952145214521452,
+        "singleton_rate": 0.9117161716171617,
+        "ambiguous_rate": 0.08828382838283828,
+        "avg_set_size": 1.0882838283828382,
+        "nested_fold_coverage_mean": 0.8811957963473116,
+        "nested_fold_avg_set_size_mean": 1.0634969220827808,
+        "nested_fold_ambiguous_rate_mean": 0.07093153759820425,
+        "deployed_q_hat": 0.5847101428834464
+      },
+      "herg": {
+        "alpha": 0.1,
+        "target_coverage": 0.9,
+        "empirical_coverage": 0.8998341875188424,
+        "singleton_rate": 0.6781730479348809,
+        "ambiguous_rate": 0.3218269520651191,
+        "avg_set_size": 1.3218269520651191,
+        "nested_fold_coverage_mean": 0.8907118840879402,
+        "nested_fold_avg_set_size_mean": 1.2964241189752341,
+        "nested_fold_ambiguous_rate_mean": 0.29642411897523413,
+        "deployed_q_hat": 0.6956085748886577
+      },
+      "mdr1_efflux": {
+        "alpha": 0.1,
+        "target_coverage": 0.9,
+        "empirical_coverage": 0.9004542013626041,
+        "singleton_rate": 0.7077971233913701,
+        "ambiguous_rate": 0.2922028766086298,
+        "avg_set_size": 1.2922028766086298,
+        "nested_fold_coverage_mean": 0.8981998625193333,
+        "nested_fold_avg_set_size_mean": 1.2812711233316147,
+        "nested_fold_ambiguous_rate_mean": 0.28127112333161486,
+        "deployed_q_hat": 0.6943055272581928
+      },
+      "hlm_clearance": {
+        "alpha": 0.1,
+        "target_coverage": 0.9,
+        "empirical_coverage": 0.9002267573696145,
+        "singleton_rate": 0.6362163913184321,
+        "ambiguous_rate": 0.36378360868156784,
+        "avg_set_size": 1.3637836086815678,
+        "nested_fold_coverage_mean": 0.9034649336753159,
+        "nested_fold_avg_set_size_mean": 1.3705779610076945,
+        "nested_fold_ambiguous_rate_mean": 0.3705779610076946,
+        "deployed_q_hat": 0.7012785920562472
+      },
+      "cyp2d6": {
+        "alpha": 0.1,
+        "target_coverage": 0.9,
+        "empirical_coverage": 0.899610359844144,
+        "singleton_rate": 0.9397203758881504,
+        "ambiguous_rate": 0.060279624111849645,
+        "avg_set_size": 1.0602796241118497,
+        "nested_fold_coverage_mean": 0.9022069660879254,
+        "nested_fold_avg_set_size_mean": 1.0650904221764435,
+        "nested_fold_ambiguous_rate_mean": 0.06509042217644344,
+        "deployed_q_hat": 0.6022468082384815
+      },
+      "cyp3a4": {
+        "alpha": 0.1,
+        "target_coverage": 0.9,
+        "empirical_coverage": 0.8998292544109278,
+        "singleton_rate": 0.793560452069274,
+        "ambiguous_rate": 0.20643954793072608,
+        "avg_set_size": 1.2064395479307262,
+        "nested_fold_coverage_mean": 0.9017805506237251,
+        "nested_fold_avg_set_size_mean": 1.2118858879113394,
+        "nested_fold_ambiguous_rate_mean": 0.2118858879113395,
+        "deployed_q_hat": 0.6555153645524667
+      },
+      "dili": {
+        "alpha": 0.1,
+        "target_coverage": 0.9,
+        "empirical_coverage": 0.8924050632911392,
+        "singleton_rate": 0.5147679324894515,
+        "ambiguous_rate": 0.48523206751054854,
+        "avg_set_size": 1.4852320675105486,
+        "nested_fold_coverage_mean": 0.8839865621500559,
+        "nested_fold_avg_set_size_mean": 1.4285106382978723,
+        "nested_fold_ambiguous_rate_mean": 0.42851063829787234,
+        "deployed_q_hat": 0.7253985532055521
+      },
+      "ames": {
+        "alpha": 0.1,
+        "target_coverage": 0.9,
+        "empirical_coverage": 0.9000689179875948,
+        "singleton_rate": 0.6195727084769125,
+        "ambiguous_rate": 0.3804272915230875,
+        "avg_set_size": 1.3804272915230875,
+        "nested_fold_coverage_mean": 0.9171605789110957,
+        "nested_fold_avg_set_size_mean": 1.4445210199862164,
+        "nested_fold_ambiguous_rate_mean": 0.44452101998621646,
+        "deployed_q_hat": 0.688438524107011
+      },
+      "htr2b_avoid": {
+        "alpha": 0.1,
+        "target_coverage": 0.9,
+        "empirical_coverage": 0.9000576036866359,
+        "singleton_rate": 0.8533986175115207,
+        "ambiguous_rate": 0.14660138248847926,
+        "avg_set_size": 1.1466013824884793,
+        "nested_fold_coverage_mean": 0.8980370285903841,
+        "nested_fold_avg_set_size_mean": 1.1445707295834802,
+        "nested_fold_ambiguous_rate_mean": 0.1445707295834802,
+        "deployed_q_hat": 0.6488503294263596
+      },
+      "hrh1_avoid": {
+        "alpha": 0.1,
+        "target_coverage": 0.9,
+        "empirical_coverage": 0.8999151823579304,
+        "singleton_rate": 0.9550466497031382,
+        "ambiguous_rate": 0.04495335029686175,
+        "avg_set_size": 1.0449533502968618,
+        "nested_fold_coverage_mean": 0.9083999064377991,
+        "nested_fold_avg_set_size_mean": 1.0716749433228974,
+        "nested_fold_ambiguous_rate_mean": 0.0729461297635755,
+        "deployed_q_hat": 0.5785043007980815
+      },
+      "chrm3_avoid": {
+        "alpha": 0.1,
+        "target_coverage": 0.9,
+        "empirical_coverage": 0.8987310883357735,
+        "singleton_rate": 0.9489995119570522,
+        "ambiguous_rate": 0.0,
+        "avg_set_size": 0.9489995119570522,
+        "nested_fold_coverage_mean": 0.8818925518925518,
+        "nested_fold_avg_set_size_mean": 0.9277706304535573,
+        "nested_fold_ambiguous_rate_mean": 0.0,
+        "deployed_q_hat": 0.37040366903993727
+      }
+    },
+    "applicability_domain": {
+      "metric": "Nearest-neighbor 1024-bit ECFP4 Tanimoto similarity to training set",
+      "in_domain_threshold": 0.3,
+      "ood_policy": "Out-of-domain predictions (AD Tanimoto < 0.30) are explicitly flagged and linearly damped toward a neutral 0.50 prior during reward optimization (ad_damp=True).",
+      "best_v4_arm": "v4.0_SAFE-GPT-87M",
+      "generated_24target_in_domain_core_rate": 0.8168272769457245,
+      "generated_24target_min_ad_mean": 0.34997124796938256,
+      "conformal_singleton_rate_mean": 0.8584913878932697
+    },
+    "physics_gate1": {
+      "expansion_16_complexes": {
+        "n_complexes": 16,
+        "n_new_primary": 12,
+        "n_ad_counter_targets": 4,
+        "pass_top1_le_2p0A_count": 9,
+        "pass_top1_le_2p0A_rate": 0.5625,
+        "pass_best3_le_2p0A_count": 11,
+        "pass_best3_le_2p0A_rate": 0.6875,
+        "pass_best3_le_2p5A_count": 11,
+        "median_top1_rmsd_across_16": 1.633,
+        "median_best3_rmsd_across_16": 1.399,
+        "mean_plif_tanimoto_across_16": 0.5918,
+        "mean_posebusters_pass_rate": 1.0,
+        "mean_top1_anchor_recovery_rate": 0.8333,
+        "mean_best3_anchor_recovery_rate": 0.9583,
+        "mean_vina_affinity": -9.172,
+        "mean_le": 0.3741,
+        "cofactors_verified": {
+          "MAOB_2V5Z_FAD": 1,
+          "MAOA_2Z5X_FAD": 1,
+          "NLRP3_9GU4_ADP": 1,
+          "PDE1B_5UOY_ZN_MG": 1
+        }
+      },
+      "held_out_24target_docking": {
+        "n_ok": 120,
+        "mean_vina_dg": -6.518,
+        "best_vina_dg": -10.291,
+        "mean_le": 0.5079,
+        "mean_plif": 0.311,
+        "posebusters_pass_rate": 0.9917,
+        "anchor_top1_rate": 0.2333,
+        "anchor_any_mode_rate": 0.4667
+      }
+    },
+    "known_limitations_and_deviations": [
+      "Strictly exploratory in silico research tool; NOT qualified for regulatory IND safety waivers.",
+      "TDC Pgp_Broccatelli measures P-gp inhibition rather than transcellular substrate efflux; v4.0 adds Biogen MDR1-MDCK Efflux Ratio (ER >= 2.0) as primary efflux oracle.",
+      "TDC DILI has modest dataset size (N=475) and serves as an advisory hepatotoxicity screen.",
+      "Automated Bemis-Murcko / ECFP4 scaffold-hop checks do NOT adjudicate Markush patent claims.",
+      "Equilibrium docking scores (AutoDock Vina) do not measure binding kinetics (k_off / residence time) or biased GPCR signaling; Tier-2/3 co-folding, FEP/OpenFE, and wet-lab BRET/SPR are required."
+    ]
+  },
+  "step_7_lifecycle_maintenance": {
+    "drift_monitoring_triggers": {
+      "min_in_domain_rate": 0.7,
+      "max_calibration_ece": 0.05,
+      "min_conformal_empirical_coverage": 0.85
+    },
+    "retraining_and_change_control": "Re-verify 0-scaffold-leakage CV, Platt ECE, Split-Conformal coverage, and offline unit tests before promoting any updated oracle artifact or target pocket."
+  },
+  "fda_ema_10_principles_checklist": {
+    "1_human_centric_by_design": 1,
+    "2_risk_based_approach": 1,
+    "3_adherence_to_standards": 1,
+    "4_clear_context_of_use": 1,
+    "5_multidisciplinary_expertise": 1,
+    "6_data_governance_and_provenance": 1,
+    "7_model_design_and_reproducibility": 1,
+    "8_risk_based_performance_uq_and_ad": 1,
+    "9_lifecycle_management": 1,
+    "10_clear_essential_information": 1
+  },
+  "human_in_the_loop_boundary": "MANDATORY HUMAN-IN-THE-LOOP & NON-CLINICAL BOUNDARY: GenEuclidean outputs are strictly in silico computational hypotheses and are NOT clinically validated medicines, regulatory filings, or medical advice. Every shortlisted series must undergo medicinal-chemistry review, formal Markush/CAS MARPAT patent-attorney FTO clearance, retrosynthetic route verification, and experimental wet-lab potency, selectivity, DMPK, and toxicology testing."
+}

@@ -1,0 +1,1915 @@
+{
+  "schema_version": "geneuclidean-v4.0-gate1-expansion-redocking",
+  "protocol": {
+    "box_mode": "tight_per_axis (clamp(span_i + 6.0, 14.0, 22.0) A)",
+    "protonation": "deterministic physiological pH 7.4",
+    "seeds": [
+      42,
+      137,
+      2026
+    ],
+    "exhaustiveness": 8,
+    "num_confs": 32,
+    "max_ring_confs": 3,
+    "unbiased_2d_to_3d": 1
+  },
+  "summary": {
+    "n_complexes": 16,
+    "n_new_primary": 12,
+    "n_ad_counter_targets": 4,
+    "pass_top1_le_2p0A_count": 9,
+    "pass_top1_le_2p0A_rate": 0.5625,
+    "pass_best3_le_2p0A_count": 11,
+    "pass_best3_le_2p0A_rate": 0.6875,
+    "pass_best3_le_2p5A_count": 11,
+    "median_top1_rmsd_across_16": 1.633,
+    "median_best3_rmsd_across_16": 1.399,
+    "mean_plif_tanimoto_across_16": 0.5918,
+    "mean_posebusters_pass_rate": 1.0,
+    "mean_top1_anchor_recovery_rate": 0.8333,
+    "mean_best3_anchor_recovery_rate": 0.9583,
+    "mean_vina_affinity": -9.172,
+    "mean_le": 0.3741,
+    "cofactors_verified": {
+      "MAOB_2V5Z_FAD": 1,
+      "MAOA_2Z5X_FAD": 1,
+      "NLRP3_9GU4_ADP": 1,
+      "PDE1B_5UOY_ZN_MG": 1
+    }
+  },
+  "complexes": {
+    "CHRM1": {
+      "target_id": "CHRM1",
+      "pdb_id": "9UCP",
+      "disease_area": "schizophrenia",
+      "is_counter_target": 0,
+      "expected_cofactors": [],
+      "retained_hetatms_in_pocket": [],
+      "canonical_anchors": [
+        "ASP105",
+        "TYR364",
+        "TRP338"
+      ],
+      "expected_anchor_kinds": [
+        "salt_bridge",
+        "hbond",
+        "cation_pi",
+        "pi_stacking"
+      ],
+      "median_top1_core_rmsd": 0.482,
+      "median_best3_core_rmsd": 0.482,
+      "best3_anchor_recovery_rate": 1.0,
+      "elapsed_sec": 16.38,
+      "pocket_pdb": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/9UCP_CHRM1_IXO_pocket.pdb",
+      "native_ligand_sdf": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/9UCP_CHRM1_IXO_lig.sdf",
+      "canonical_smiles": "C[N+](C)(C)CC#CCOC1=NOCC1",
+      "smiles_ph74": "C[N+](C)(C)CC#CCOC1=NOCC1",
+      "box": {
+        "center": [
+          139.964,
+          135.729,
+          141.738
+        ],
+        "size": [
+          14.0,
+          14.0,
+          14.0
+        ],
+        "native_span_xyz": [
+          3.449,
+          6.163,
+          6.976
+        ],
+        "mode": "tight_per_axis"
+      },
+      "seeds": [
+        42,
+        137,
+        2026
+      ],
+      "median_top1_rmsd": 1.055,
+      "median_best3_rmsd": 1.055,
+      "median_best_all_rmsd": 1.055,
+      "median_vina_affinity": -6.801,
+      "median_le": 0.4858,
+      "mean_top1_plif_tanimoto": 0.8214,
+      "top1_posebusters_pass_rate": 1.0,
+      "top1_anchor_recovery_rate": 1.0,
+      "status": "PASS_TOP1",
+      "seeds_detail": [
+        {
+          "seed": 42,
+          "success": 1,
+          "top1_rmsd": 1.058,
+          "best3_rmsd": 1.058,
+          "best_all_rmsd": 1.058,
+          "top1_core_rmsd": 0.507,
+          "best3_core_rmsd": 0.507,
+          "top1_vina_affinity": -6.778,
+          "top1_le": 0.4841,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.8571,
+          "best3_plif_tanimoto": 0.8571,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 7,
+          "error": null
+        },
+        {
+          "seed": 137,
+          "success": 1,
+          "top1_rmsd": 1.055,
+          "best3_rmsd": 1.055,
+          "best_all_rmsd": 1.055,
+          "top1_core_rmsd": 0.482,
+          "best3_core_rmsd": 0.482,
+          "top1_vina_affinity": -6.801,
+          "top1_le": 0.4858,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.8571,
+          "best3_plif_tanimoto": 0.8571,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 7,
+          "error": null
+        },
+        {
+          "seed": 2026,
+          "success": 1,
+          "top1_rmsd": 1.046,
+          "best3_rmsd": 1.046,
+          "best_all_rmsd": 1.046,
+          "top1_core_rmsd": 0.452,
+          "best3_core_rmsd": 0.452,
+          "top1_vina_affinity": -6.833,
+          "top1_le": 0.4881,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.75,
+          "best3_plif_tanimoto": 0.75,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 5,
+          "error": null
+        }
+      ]
+    },
+    "HTR1A": {
+      "target_id": "HTR1A",
+      "pdb_id": "9VJE",
+      "disease_area": "schizophrenia",
+      "is_counter_target": 0,
+      "expected_cofactors": [],
+      "retained_hetatms_in_pocket": [],
+      "canonical_anchors": [
+        "ASP116",
+        "TYR390"
+      ],
+      "expected_anchor_kinds": [
+        "salt_bridge",
+        "hbond"
+      ],
+      "median_top1_core_rmsd": null,
+      "median_best3_core_rmsd": null,
+      "best3_anchor_recovery_rate": 1.0,
+      "elapsed_sec": 262.07,
+      "pocket_pdb": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/9VJE_HTR1A_YLX_pocket.pdb",
+      "native_ligand_sdf": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/9VJE_HTR1A_YLX_lig.sdf",
+      "canonical_smiles": "O=C1CC2(CCCC2)CC(=O)N1CCCCN1CCN(c2ncccn2)CC1",
+      "smiles_ph74": "O=C1CC2(CCCC2)CC(=O)N1CCCC[NH+]1CCN(c2ncccn2)CC1",
+      "box": {
+        "center": [
+          142.01,
+          156.341,
+          181.374
+        ],
+        "size": [
+          18.43,
+          14.0,
+          14.0
+        ],
+        "native_span_xyz": [
+          12.43,
+          6.867,
+          5.829
+        ],
+        "mode": "tight_per_axis"
+      },
+      "seeds": [
+        42,
+        137,
+        2026
+      ],
+      "median_top1_rmsd": 1.481,
+      "median_best3_rmsd": 1.383,
+      "median_best_all_rmsd": 1.247,
+      "median_vina_affinity": -9.107,
+      "median_le": 0.3252,
+      "mean_top1_plif_tanimoto": 0.6444,
+      "top1_posebusters_pass_rate": 1.0,
+      "top1_anchor_recovery_rate": 1.0,
+      "status": "PASS_TOP1",
+      "seeds_detail": [
+        {
+          "seed": 42,
+          "success": 1,
+          "top1_rmsd": 1.108,
+          "best3_rmsd": 0.714,
+          "best_all_rmsd": 0.714,
+          "top1_core_rmsd": null,
+          "best3_core_rmsd": null,
+          "top1_vina_affinity": -10.022,
+          "top1_le": 0.3579,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.6667,
+          "best3_plif_tanimoto": 0.6,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 137,
+          "success": 1,
+          "top1_rmsd": 1.55,
+          "best3_rmsd": 1.534,
+          "best_all_rmsd": 1.247,
+          "top1_core_rmsd": null,
+          "best3_core_rmsd": null,
+          "top1_vina_affinity": -9.039,
+          "top1_le": 0.3228,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.6667,
+          "best3_plif_tanimoto": 0.6667,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 2026,
+          "success": 1,
+          "top1_rmsd": 1.481,
+          "best3_rmsd": 1.383,
+          "best_all_rmsd": 1.383,
+          "top1_core_rmsd": null,
+          "best3_core_rmsd": null,
+          "top1_vina_affinity": -9.107,
+          "top1_le": 0.3252,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.6,
+          "best3_plif_tanimoto": 0.7857,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        }
+      ]
+    },
+    "GLYT1": {
+      "target_id": "GLYT1",
+      "pdb_id": "9J8D",
+      "disease_area": "schizophrenia",
+      "is_counter_target": 0,
+      "expected_cofactors": [],
+      "retained_hetatms_in_pocket": [],
+      "canonical_anchors": [
+        "SER317",
+        "TYR62",
+        "CYS421"
+      ],
+      "expected_anchor_kinds": [
+        "hbond",
+        "pi_stacking",
+        "halogen_bond"
+      ],
+      "median_top1_core_rmsd": 0.771,
+      "median_best3_core_rmsd": 0.771,
+      "best3_anchor_recovery_rate": 1.0,
+      "elapsed_sec": 143.35,
+      "pocket_pdb": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/9J8D_GLYT1_A1EBX_pocket.pdb",
+      "native_ligand_sdf": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/9J8D_GLYT1_A1EBX_lig.sdf",
+      "canonical_smiles": "C[C@@H](Oc1ccc(S(C)(=O)=O)cc1C(=O)N1C[C@@H]2C[C@]2(c2cc(C(F)(F)F)on2)C1)C(F)(F)F",
+      "smiles_ph74": "C[C@@H](Oc1ccc(S(C)(=O)=O)cc1C(=O)N1C[C@@H]2C[C@]2(c2cc(C(F)(F)F)on2)C1)C(F)(F)F",
+      "box": {
+        "center": [
+          99.89,
+          110.677,
+          108.073
+        ],
+        "size": [
+          18.132,
+          15.116,
+          16.527
+        ],
+        "native_span_xyz": [
+          12.132,
+          9.116,
+          10.527
+        ],
+        "mode": "tight_per_axis"
+      },
+      "seeds": [
+        42,
+        137,
+        2026
+      ],
+      "median_top1_rmsd": 1.044,
+      "median_best3_rmsd": 1.044,
+      "median_best_all_rmsd": 1.044,
+      "median_vina_affinity": -9.623,
+      "median_le": 0.283,
+      "mean_top1_plif_tanimoto": 0.5291,
+      "top1_posebusters_pass_rate": 1.0,
+      "top1_anchor_recovery_rate": 1.0,
+      "status": "PASS_TOP1",
+      "seeds_detail": [
+        {
+          "seed": 42,
+          "success": 1,
+          "top1_rmsd": 1.027,
+          "best3_rmsd": 1.027,
+          "best_all_rmsd": 1.027,
+          "top1_core_rmsd": 0.766,
+          "best3_core_rmsd": 0.766,
+          "top1_vina_affinity": -9.623,
+          "top1_le": 0.283,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.5714,
+          "best3_plif_tanimoto": 0.5714,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 137,
+          "success": 1,
+          "top1_rmsd": 1.044,
+          "best3_rmsd": 1.044,
+          "best_all_rmsd": 1.044,
+          "top1_core_rmsd": 0.78,
+          "best3_core_rmsd": 0.78,
+          "top1_vina_affinity": -9.63,
+          "top1_le": 0.2832,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.5714,
+          "best3_plif_tanimoto": 0.5714,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 2026,
+          "success": 1,
+          "top1_rmsd": 1.082,
+          "best3_rmsd": 1.082,
+          "best_all_rmsd": 1.082,
+          "top1_core_rmsd": 0.771,
+          "best3_core_rmsd": 0.771,
+          "top1_vina_affinity": -9.55,
+          "top1_le": 0.2809,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.4444,
+          "best3_plif_tanimoto": 0.4444,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 9,
+          "error": null
+        }
+      ]
+    },
+    "MGLL": {
+      "target_id": "MGLL",
+      "pdb_id": "9F8D",
+      "disease_area": "tourette",
+      "is_counter_target": 0,
+      "expected_cofactors": [],
+      "retained_hetatms_in_pocket": [],
+      "canonical_anchors": [
+        "SER122",
+        "ALA51",
+        "MET123"
+      ],
+      "expected_anchor_kinds": [
+        "hbond"
+      ],
+      "median_top1_core_rmsd": 0.706,
+      "median_best3_core_rmsd": 0.706,
+      "best3_anchor_recovery_rate": 1.0,
+      "elapsed_sec": 172.5,
+      "pocket_pdb": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/9F8D_MGLL_A1IA1_pocket.pdb",
+      "native_ligand_sdf": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/9F8D_MGLL_A1IA1_lig.sdf",
+      "canonical_smiles": "O=C1COc2ccc(C(=O)N3CCC(c4c[nH]c5ccc(Cl)cc45)CC3)cc2N1",
+      "smiles_ph74": "O=C1COc2ccc(C(=O)N3CCC(c4c[nH]c5ccc(Cl)cc45)CC3)cc2N1",
+      "box": {
+        "center": [
+          -36.079,
+          -20.671,
+          -5.752
+        ],
+        "size": [
+          20.74,
+          14.0,
+          15.24
+        ],
+        "native_span_xyz": [
+          14.74,
+          2.68,
+          9.24
+        ],
+        "mode": "tight_per_axis"
+      },
+      "seeds": [
+        42,
+        137,
+        2026
+      ],
+      "median_top1_rmsd": 0.707,
+      "median_best3_rmsd": 0.707,
+      "median_best_all_rmsd": 0.707,
+      "median_vina_affinity": -11.497,
+      "median_le": 0.3964,
+      "mean_top1_plif_tanimoto": 0.5919,
+      "top1_posebusters_pass_rate": 1.0,
+      "top1_anchor_recovery_rate": 1.0,
+      "status": "PASS_TOP1",
+      "seeds_detail": [
+        {
+          "seed": 42,
+          "success": 1,
+          "top1_rmsd": 0.707,
+          "best3_rmsd": 0.707,
+          "best_all_rmsd": 0.707,
+          "top1_core_rmsd": 0.706,
+          "best3_core_rmsd": 0.706,
+          "top1_vina_affinity": -11.497,
+          "top1_le": 0.3964,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.7143,
+          "best3_plif_tanimoto": 0.7143,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 137,
+          "success": 1,
+          "top1_rmsd": 2.732,
+          "best3_rmsd": 1.187,
+          "best_all_rmsd": 1.187,
+          "top1_core_rmsd": 2.111,
+          "best3_core_rmsd": 1.177,
+          "top1_vina_affinity": -11.074,
+          "top1_le": 0.3819,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.4615,
+          "best3_plif_tanimoto": 0.5,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 2026,
+          "success": 1,
+          "top1_rmsd": 0.621,
+          "best3_rmsd": 0.621,
+          "best_all_rmsd": 0.621,
+          "top1_core_rmsd": 0.628,
+          "best3_core_rmsd": 0.628,
+          "top1_vina_affinity": -11.563,
+          "top1_le": 0.3987,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.6,
+          "best3_plif_tanimoto": 0.6,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        }
+      ]
+    },
+    "PDE1B": {
+      "target_id": "PDE1B",
+      "pdb_id": "5UOY",
+      "disease_area": "tourette",
+      "is_counter_target": 0,
+      "expected_cofactors": [],
+      "retained_hetatms_in_pocket": [
+        "MG",
+        "ZN"
+      ],
+      "canonical_anchors": [
+        "GLN421",
+        "HIS373"
+      ],
+      "expected_anchor_kinds": [
+        "hbond",
+        "pi_stacking"
+      ],
+      "median_top1_core_rmsd": 0.648,
+      "median_best3_core_rmsd": 0.648,
+      "best3_anchor_recovery_rate": 1.0,
+      "elapsed_sec": 306.11,
+      "pocket_pdb": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/5UOY_PDE1B_8HM_pocket.pdb",
+      "native_ligand_sdf": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/5UOY_PDE1B_8HM_lig.sdf",
+      "canonical_smiles": "COc1ccc(Cn2c(=O)n3ncnc3c3c4c(sc32)CN(CC2CCOCC2)CC4)cc1",
+      "smiles_ph74": "COc1ccc(Cn2c(=O)n3ncnc3c3c4c(sc32)C[NH+](CC2CCOCC2)CC4)cc1",
+      "box": {
+        "center": [
+          -17.252,
+          -21.324,
+          -22.964
+        ],
+        "size": [
+          15.109,
+          14.0,
+          16.426
+        ],
+        "native_span_xyz": [
+          9.109,
+          7.24,
+          10.426
+        ],
+        "mode": "tight_per_axis"
+      },
+      "seeds": [
+        42,
+        137,
+        2026
+      ],
+      "median_top1_rmsd": 0.656,
+      "median_best3_rmsd": 0.656,
+      "median_best_all_rmsd": 0.656,
+      "median_vina_affinity": -9.41,
+      "median_le": 0.2852,
+      "mean_top1_plif_tanimoto": 0.8963,
+      "top1_posebusters_pass_rate": 1.0,
+      "top1_anchor_recovery_rate": 1.0,
+      "status": "PASS_TOP1",
+      "seeds_detail": [
+        {
+          "seed": 42,
+          "success": 1,
+          "top1_rmsd": 0.69,
+          "best3_rmsd": 0.69,
+          "best_all_rmsd": 0.69,
+          "top1_core_rmsd": 0.684,
+          "best3_core_rmsd": 0.684,
+          "top1_vina_affinity": -9.485,
+          "top1_le": 0.2874,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.8,
+          "best3_plif_tanimoto": 0.8,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 137,
+          "success": 1,
+          "top1_rmsd": 0.58,
+          "best3_rmsd": 0.58,
+          "best_all_rmsd": 0.58,
+          "top1_core_rmsd": 0.592,
+          "best3_core_rmsd": 0.592,
+          "top1_vina_affinity": -9.41,
+          "top1_le": 0.2852,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.8889,
+          "best3_plif_tanimoto": 0.8889,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 2026,
+          "success": 1,
+          "top1_rmsd": 0.656,
+          "best3_rmsd": 0.656,
+          "best_all_rmsd": 0.656,
+          "top1_core_rmsd": 0.648,
+          "best3_core_rmsd": 0.648,
+          "top1_vina_affinity": -9.237,
+          "top1_le": 0.2799,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 1.0,
+          "best3_plif_tanimoto": 1.0,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        }
+      ]
+    },
+    "GPR52": {
+      "target_id": "GPR52",
+      "pdb_id": "8HMP",
+      "disease_area": "schizophrenia",
+      "is_counter_target": 0,
+      "expected_cofactors": [],
+      "retained_hetatms_in_pocket": [],
+      "canonical_anchors": [
+        "CYS40",
+        "ASP38",
+        "GLU191"
+      ],
+      "expected_anchor_kinds": [
+        "hbond"
+      ],
+      "median_top1_core_rmsd": 3.146,
+      "median_best3_core_rmsd": 1.185,
+      "best3_anchor_recovery_rate": 0.3333,
+      "elapsed_sec": 186.36,
+      "pocket_pdb": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/8HMP_GPR52_EN6_pocket.pdb",
+      "native_ligand_sdf": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/8HMP_GPR52_EN6_lig.sdf",
+      "canonical_smiles": "Cc1nn(-c2cccc3cc(Cc4cccc(C(F)(F)F)c4)sc23)c(CO)c1C(=O)NCCO",
+      "smiles_ph74": "Cc1nn(-c2cccc3cc(Cc4cccc(C(F)(F)F)c4)sc23)c(CO)c1C(=O)NCCO",
+      "box": {
+        "center": [
+          119.86,
+          133.215,
+          165.759
+        ],
+        "size": [
+          16.179,
+          14.0,
+          17.793
+        ],
+        "native_span_xyz": [
+          10.179,
+          5.478,
+          11.793
+        ],
+        "mode": "tight_per_axis"
+      },
+      "seeds": [
+        42,
+        137,
+        2026
+      ],
+      "median_top1_rmsd": 5.264,
+      "median_best3_rmsd": 1.545,
+      "median_best_all_rmsd": 1.545,
+      "median_vina_affinity": -10.896,
+      "median_le": 0.3205,
+      "mean_top1_plif_tanimoto": 0.4211,
+      "top1_posebusters_pass_rate": 1.0,
+      "top1_anchor_recovery_rate": 0.0,
+      "status": "PASS_TOP3",
+      "seeds_detail": [
+        {
+          "seed": 42,
+          "success": 1,
+          "top1_rmsd": 5.264,
+          "best3_rmsd": 1.531,
+          "best_all_rmsd": 1.531,
+          "top1_core_rmsd": 3.146,
+          "best3_core_rmsd": 1.169,
+          "top1_vina_affinity": -10.823,
+          "top1_le": 0.3183,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.4211,
+          "best3_plif_tanimoto": 0.6667,
+          "top1_anchor_recovered": 0,
+          "best3_anchor_recovered": 0,
+          "n_ring_confs": 1,
+          "n_modes": 8,
+          "error": null
+        },
+        {
+          "seed": 137,
+          "success": 1,
+          "top1_rmsd": 5.265,
+          "best3_rmsd": 1.583,
+          "best_all_rmsd": 1.583,
+          "top1_core_rmsd": 3.137,
+          "best3_core_rmsd": 1.214,
+          "top1_vina_affinity": -10.896,
+          "top1_le": 0.3205,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.4211,
+          "best3_plif_tanimoto": 0.6,
+          "top1_anchor_recovered": 0,
+          "best3_anchor_recovered": 0,
+          "n_ring_confs": 1,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 2026,
+          "success": 1,
+          "top1_rmsd": 5.263,
+          "best3_rmsd": 1.545,
+          "best_all_rmsd": 1.545,
+          "top1_core_rmsd": 3.154,
+          "best3_core_rmsd": 1.185,
+          "top1_vina_affinity": -10.917,
+          "top1_le": 0.3211,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.4211,
+          "best3_plif_tanimoto": 0.5882,
+          "top1_anchor_recovered": 0,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 7,
+          "error": null
+        }
+      ]
+    },
+    "ACHE": {
+      "target_id": "ACHE",
+      "pdb_id": "4EY7",
+      "disease_area": "alzheimer",
+      "is_counter_target": 0,
+      "expected_cofactors": [],
+      "retained_hetatms_in_pocket": [],
+      "canonical_anchors": [
+        "PHE295",
+        "TRP86",
+        "TRP286",
+        "TYR337"
+      ],
+      "expected_anchor_kinds": [
+        "hbond",
+        "pi_stacking",
+        "cation_pi"
+      ],
+      "median_top1_core_rmsd": 1.011,
+      "median_best3_core_rmsd": 0.329,
+      "best3_anchor_recovery_rate": 1.0,
+      "elapsed_sec": 173.78,
+      "pocket_pdb": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/4EY7_ACHE_E20_pocket.pdb",
+      "native_ligand_sdf": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/4EY7_ACHE_E20_lig.sdf",
+      "canonical_smiles": "COc1cc2c(cc1OC)C(=O)[C@H](CC1CCN(Cc3ccccc3)CC1)C2",
+      "smiles_ph74": "COc1cc2c(cc1OC)C(=O)[C@H](CC1CC[NH+](Cc3ccccc3)CC1)C2",
+      "box": {
+        "center": [
+          -14.108,
+          -43.833,
+          27.67
+        ],
+        "size": [
+          19.341,
+          14.0,
+          16.355
+        ],
+        "native_span_xyz": [
+          13.341,
+          5.279,
+          10.355
+        ],
+        "mode": "tight_per_axis"
+      },
+      "seeds": [
+        42,
+        137,
+        2026
+      ],
+      "median_top1_rmsd": 0.975,
+      "median_best3_rmsd": 0.39,
+      "median_best_all_rmsd": 0.39,
+      "median_vina_affinity": -11.813,
+      "median_le": 0.4219,
+      "mean_top1_plif_tanimoto": 0.7889,
+      "top1_posebusters_pass_rate": 1.0,
+      "top1_anchor_recovery_rate": 1.0,
+      "status": "PASS_TOP1",
+      "seeds_detail": [
+        {
+          "seed": 42,
+          "success": 1,
+          "top1_rmsd": 0.975,
+          "best3_rmsd": 0.975,
+          "best_all_rmsd": 0.975,
+          "top1_core_rmsd": 1.011,
+          "best3_core_rmsd": 1.011,
+          "top1_vina_affinity": -11.785,
+          "top1_le": 0.4209,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 1.0,
+          "best3_plif_tanimoto": 1.0,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 137,
+          "success": 1,
+          "top1_rmsd": 0.39,
+          "best3_rmsd": 0.39,
+          "best_all_rmsd": 0.39,
+          "top1_core_rmsd": 0.329,
+          "best3_core_rmsd": 0.329,
+          "top1_vina_affinity": -11.869,
+          "top1_le": 0.4239,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.9,
+          "best3_plif_tanimoto": 0.9,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 2026,
+          "success": 1,
+          "top1_rmsd": 8.901,
+          "best3_rmsd": 0.337,
+          "best_all_rmsd": 0.337,
+          "top1_core_rmsd": 8.14,
+          "best3_core_rmsd": 0.264,
+          "top1_vina_affinity": -11.813,
+          "top1_le": 0.4219,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.4667,
+          "best3_plif_tanimoto": 0.8182,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        }
+      ]
+    },
+    "OGA": {
+      "target_id": "OGA",
+      "pdb_id": "9BA8",
+      "disease_area": "alzheimer",
+      "is_counter_target": 0,
+      "expected_cofactors": [],
+      "retained_hetatms_in_pocket": [],
+      "canonical_anchors": [
+        "ASP285",
+        "ASP174",
+        "ASN280"
+      ],
+      "expected_anchor_kinds": [
+        "salt_bridge",
+        "hbond"
+      ],
+      "median_top1_core_rmsd": 3.304,
+      "median_best3_core_rmsd": 2.665,
+      "best3_anchor_recovery_rate": 1.0,
+      "elapsed_sec": 196.79,
+      "pocket_pdb": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/9BA8_OGA_A1AKM_pocket.pdb",
+      "native_ligand_sdf": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/9BA8_OGA_A1AKM_lig.sdf",
+      "canonical_smiles": "CC(=O)Nc1nc(F)c(CN2CC[C@H](OCc3noc(C)n3)C[C@@H]2C)s1",
+      "smiles_ph74": "CC(=O)Nc1nc(F)c(C[NH+]2CC[C@H](OCc3noc(C)n3)C[C@@H]2C)s1",
+      "box": {
+        "center": [
+          -50.88,
+          43.854,
+          -16.914
+        ],
+        "size": [
+          20.722,
+          14.266,
+          14.0
+        ],
+        "native_span_xyz": [
+          14.722,
+          8.266,
+          6.031
+        ],
+        "mode": "tight_per_axis"
+      },
+      "seeds": [
+        42,
+        137,
+        2026
+      ],
+      "median_top1_rmsd": 3.218,
+      "median_best3_rmsd": 2.806,
+      "median_best_all_rmsd": 2.638,
+      "median_vina_affinity": -7.307,
+      "median_le": 0.281,
+      "mean_top1_plif_tanimoto": 0.511,
+      "top1_posebusters_pass_rate": 1.0,
+      "top1_anchor_recovery_rate": 1.0,
+      "status": "DIAGNOSTIC_WARN",
+      "seeds_detail": [
+        {
+          "seed": 42,
+          "success": 1,
+          "top1_rmsd": 3.218,
+          "best3_rmsd": 2.806,
+          "best_all_rmsd": 2.205,
+          "top1_core_rmsd": 3.304,
+          "best3_core_rmsd": 2.665,
+          "top1_vina_affinity": -7.307,
+          "top1_le": 0.281,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.4706,
+          "best3_plif_tanimoto": 0.5294,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 137,
+          "success": 1,
+          "top1_rmsd": 4.074,
+          "best3_rmsd": 3.845,
+          "best_all_rmsd": 2.698,
+          "top1_core_rmsd": 3.893,
+          "best3_core_rmsd": 3.512,
+          "top1_vina_affinity": -7.826,
+          "top1_le": 0.301,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.5,
+          "best3_plif_tanimoto": 0.5,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 2026,
+          "success": 1,
+          "top1_rmsd": 2.638,
+          "best3_rmsd": 2.638,
+          "best_all_rmsd": 2.638,
+          "top1_core_rmsd": 2.446,
+          "best3_core_rmsd": 2.446,
+          "top1_vina_affinity": -7.177,
+          "top1_le": 0.276,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.5625,
+          "best3_plif_tanimoto": 0.5625,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        }
+      ]
+    },
+    "NLRP3": {
+      "target_id": "NLRP3",
+      "pdb_id": "9GU4",
+      "disease_area": "alzheimer",
+      "is_counter_target": 0,
+      "expected_cofactors": [
+        "ADP"
+      ],
+      "retained_hetatms_in_pocket": [
+        "ADP"
+      ],
+      "canonical_anchors": [
+        "ARG578",
+        "GLU629",
+        "ALA228"
+      ],
+      "expected_anchor_kinds": [
+        "salt_bridge",
+        "hbond"
+      ],
+      "median_top1_core_rmsd": 2.798,
+      "median_best3_core_rmsd": 2.542,
+      "best3_anchor_recovery_rate": 1.0,
+      "elapsed_sec": 92.49,
+      "pocket_pdb": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/9GU4_NLRP3_A1IPJ_pocket.pdb",
+      "native_ligand_sdf": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/9GU4_NLRP3_A1IPJ_lig.sdf",
+      "canonical_smiles": "CCN1CCC[C@@H](Nc2ccc(-c3c(C)cc(C(F)(F)F)cc3O)nn2)C1",
+      "smiles_ph74": "CC[NH+]1CCC[C@@H](Nc2ccc(-c3c(C)cc(C(F)(F)F)cc3O)nn2)C1",
+      "box": {
+        "center": [
+          17.215,
+          35.494,
+          -6.361
+        ],
+        "size": [
+          15.436,
+          16.033,
+          14.717
+        ],
+        "native_span_xyz": [
+          9.436,
+          10.033,
+          8.717
+        ],
+        "mode": "tight_per_axis"
+      },
+      "seeds": [
+        42,
+        137,
+        2026
+      ],
+      "median_top1_rmsd": 3.389,
+      "median_best3_rmsd": 2.534,
+      "median_best_all_rmsd": 2.184,
+      "median_vina_affinity": -9.793,
+      "median_le": 0.3627,
+      "mean_top1_plif_tanimoto": 0.4816,
+      "top1_posebusters_pass_rate": 1.0,
+      "top1_anchor_recovery_rate": 1.0,
+      "status": "DIAGNOSTIC_WARN",
+      "seeds_detail": [
+        {
+          "seed": 42,
+          "success": 1,
+          "top1_rmsd": 3.389,
+          "best3_rmsd": 3.028,
+          "best_all_rmsd": 1.311,
+          "top1_core_rmsd": 2.798,
+          "best3_core_rmsd": 2.96,
+          "top1_vina_affinity": -9.793,
+          "top1_le": 0.3627,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.4706,
+          "best3_plif_tanimoto": 0.625,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 137,
+          "success": 1,
+          "top1_rmsd": 4.135,
+          "best3_rmsd": 2.184,
+          "best_all_rmsd": 2.184,
+          "top1_core_rmsd": 3.656,
+          "best3_core_rmsd": 1.699,
+          "top1_vina_affinity": -10.026,
+          "top1_le": 0.3713,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.4118,
+          "best3_plif_tanimoto": 0.4706,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 2,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 2026,
+          "success": 1,
+          "top1_rmsd": 3.33,
+          "best3_rmsd": 2.534,
+          "best_all_rmsd": 2.534,
+          "top1_core_rmsd": 2.774,
+          "best3_core_rmsd": 2.542,
+          "top1_vina_affinity": -9.571,
+          "top1_le": 0.3545,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.5625,
+          "best3_plif_tanimoto": 0.4706,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 9,
+          "error": null
+        }
+      ]
+    },
+    "MAOB": {
+      "target_id": "MAOB",
+      "pdb_id": "2V5Z",
+      "disease_area": "alzheimer",
+      "is_counter_target": 0,
+      "expected_cofactors": [
+        "FAD"
+      ],
+      "retained_hetatms_in_pocket": [
+        "FAD"
+      ],
+      "canonical_anchors": [
+        "GLN206",
+        "TYR435",
+        "TYR398"
+      ],
+      "expected_anchor_kinds": [
+        "hbond",
+        "pi_stacking"
+      ],
+      "median_top1_core_rmsd": 0.922,
+      "median_best3_core_rmsd": 0.883,
+      "best3_anchor_recovery_rate": 1.0,
+      "elapsed_sec": 38.65,
+      "pocket_pdb": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/2V5Z_MAOB_SAG_pocket.pdb",
+      "native_ligand_sdf": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/2V5Z_MAOB_SAG_lig.sdf",
+      "canonical_smiles": "C[C@H](NCc1ccc(OCc2cccc(F)c2)cc1)C(N)=O",
+      "smiles_ph74": "C[C@H]([NH2+]Cc1ccc(OCc2cccc(F)c2)cc1)C(N)=O",
+      "box": {
+        "center": [
+          51.886,
+          156.453,
+          28.559
+        ],
+        "size": [
+          15.062,
+          16.929,
+          14.987
+        ],
+        "native_span_xyz": [
+          9.062,
+          10.929,
+          8.987
+        ],
+        "mode": "tight_per_axis"
+      },
+      "seeds": [
+        42,
+        137,
+        2026
+      ],
+      "median_top1_rmsd": 1.784,
+      "median_best3_rmsd": 1.598,
+      "median_best_all_rmsd": 1.598,
+      "median_vina_affinity": -9.898,
+      "median_le": 0.4499,
+      "mean_top1_plif_tanimoto": 0.5023,
+      "top1_posebusters_pass_rate": 1.0,
+      "top1_anchor_recovery_rate": 1.0,
+      "status": "PASS_TOP1",
+      "seeds_detail": [
+        {
+          "seed": 42,
+          "success": 1,
+          "top1_rmsd": 1.778,
+          "best3_rmsd": 1.598,
+          "best_all_rmsd": 1.598,
+          "top1_core_rmsd": 0.922,
+          "best3_core_rmsd": 0.883,
+          "top1_vina_affinity": -9.946,
+          "top1_le": 0.4521,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.4615,
+          "best3_plif_tanimoto": 0.4286,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 7,
+          "error": null
+        },
+        {
+          "seed": 137,
+          "success": 1,
+          "top1_rmsd": 1.784,
+          "best3_rmsd": 0.896,
+          "best_all_rmsd": 0.896,
+          "top1_core_rmsd": 0.903,
+          "best3_core_rmsd": 0.856,
+          "top1_vina_affinity": -9.898,
+          "top1_le": 0.4499,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.5455,
+          "best3_plif_tanimoto": 0.6,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 7,
+          "error": null
+        },
+        {
+          "seed": 2026,
+          "success": 1,
+          "top1_rmsd": 1.787,
+          "best3_rmsd": 1.603,
+          "best_all_rmsd": 1.603,
+          "top1_core_rmsd": 0.93,
+          "best3_core_rmsd": 0.901,
+          "top1_vina_affinity": -9.862,
+          "top1_le": 0.4483,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.5,
+          "best3_plif_tanimoto": 0.4286,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 8,
+          "error": null
+        }
+      ]
+    },
+    "GSK3B": {
+      "target_id": "GSK3B",
+      "pdb_id": "7SXJ",
+      "disease_area": "alzheimer",
+      "is_counter_target": 0,
+      "expected_cofactors": [],
+      "retained_hetatms_in_pocket": [],
+      "canonical_anchors": [
+        "VAL135",
+        "ASP133",
+        "LYS85"
+      ],
+      "expected_anchor_kinds": [
+        "hbond"
+      ],
+      "median_top1_core_rmsd": 0.352,
+      "median_best3_core_rmsd": 0.352,
+      "best3_anchor_recovery_rate": 1.0,
+      "elapsed_sec": 56.92,
+      "pocket_pdb": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/7SXJ_GSK3B_6VL_pocket.pdb",
+      "native_ligand_sdf": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/7SXJ_GSK3B_6VL_lig.sdf",
+      "canonical_smiles": "CC[C@@]1(c2ccccc2)C2=C(CC(C)(C)CC2=O)Nc2n[nH]cc21",
+      "smiles_ph74": "CC[C@@]1(c2ccccc2)C2=C(CC(C)(C)CC2=O)Nc2n[nH]cc21",
+      "box": {
+        "center": [
+          12.926,
+          -8.861,
+          33.309
+        ],
+        "size": [
+          14.0,
+          14.0,
+          14.0
+        ],
+        "native_span_xyz": [
+          6.46,
+          5.699,
+          7.57
+        ],
+        "mode": "tight_per_axis"
+      },
+      "seeds": [
+        42,
+        137,
+        2026
+      ],
+      "median_top1_rmsd": 0.371,
+      "median_best3_rmsd": 0.371,
+      "median_best_all_rmsd": 0.371,
+      "median_vina_affinity": -7.607,
+      "median_le": 0.317,
+      "mean_top1_plif_tanimoto": 1.0,
+      "top1_posebusters_pass_rate": 1.0,
+      "top1_anchor_recovery_rate": 1.0,
+      "status": "PASS_TOP1",
+      "seeds_detail": [
+        {
+          "seed": 42,
+          "success": 1,
+          "top1_rmsd": 0.371,
+          "best3_rmsd": 0.371,
+          "best_all_rmsd": 0.371,
+          "top1_core_rmsd": 0.352,
+          "best3_core_rmsd": 0.352,
+          "top1_vina_affinity": -7.608,
+          "top1_le": 0.317,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 1.0,
+          "best3_plif_tanimoto": 1.0,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 137,
+          "success": 1,
+          "top1_rmsd": 0.381,
+          "best3_rmsd": 0.381,
+          "best_all_rmsd": 0.381,
+          "top1_core_rmsd": 0.36,
+          "best3_core_rmsd": 0.36,
+          "top1_vina_affinity": -7.607,
+          "top1_le": 0.317,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 1.0,
+          "best3_plif_tanimoto": 1.0,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 2026,
+          "success": 1,
+          "top1_rmsd": 0.366,
+          "best3_rmsd": 0.366,
+          "best_all_rmsd": 0.366,
+          "top1_core_rmsd": 0.341,
+          "best3_core_rmsd": 0.341,
+          "top1_vina_affinity": -7.601,
+          "top1_le": 0.3167,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 1.0,
+          "best3_plif_tanimoto": 1.0,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        }
+      ]
+    },
+    "BACE1": {
+      "target_id": "BACE1",
+      "pdb_id": "6EQM",
+      "disease_area": "alzheimer",
+      "is_counter_target": 0,
+      "expected_cofactors": [],
+      "retained_hetatms_in_pocket": [],
+      "canonical_anchors": [
+        "ASP32",
+        "ASP228",
+        "GLY230"
+      ],
+      "expected_anchor_kinds": [
+        "salt_bridge",
+        "hbond"
+      ],
+      "median_top1_core_rmsd": 0.497,
+      "median_best3_core_rmsd": 0.497,
+      "best3_anchor_recovery_rate": 1.0,
+      "elapsed_sec": 154.07,
+      "pocket_pdb": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/6EQM_BACE1_BUH_pocket.pdb",
+      "native_ligand_sdf": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/6EQM_BACE1_BUH_lig.sdf",
+      "canonical_smiles": "C[C@@]1(c2nc(NC(=O)c3ncc(C(F)(F)F)cc3Cl)ccc2F)CO[C@@](C)(C(F)(F)F)C(N)=N1",
+      "smiles_ph74": "C[C@@]1(c2nc(NC(=O)c3ncc(C(F)(F)F)cc3Cl)ccc2F)CO[C@@](C)(C(F)(F)F)C(N)=[NH+]1",
+      "box": {
+        "center": [
+          28.124,
+          76.542,
+          19.23
+        ],
+        "size": [
+          14.157,
+          17.31,
+          14.15
+        ],
+        "native_span_xyz": [
+          8.157,
+          11.31,
+          8.15
+        ],
+        "mode": "tight_per_axis"
+      },
+      "seeds": [
+        42,
+        137,
+        2026
+      ],
+      "median_top1_rmsd": 0.781,
+      "median_best3_rmsd": 0.781,
+      "median_best_all_rmsd": 0.781,
+      "median_vina_affinity": -10.272,
+      "median_le": 0.3021,
+      "mean_top1_plif_tanimoto": 0.6667,
+      "top1_posebusters_pass_rate": 1.0,
+      "top1_anchor_recovery_rate": 1.0,
+      "status": "PASS_TOP1",
+      "seeds_detail": [
+        {
+          "seed": 42,
+          "success": 1,
+          "top1_rmsd": 0.781,
+          "best3_rmsd": 0.781,
+          "best_all_rmsd": 0.781,
+          "top1_core_rmsd": 0.497,
+          "best3_core_rmsd": 0.497,
+          "top1_vina_affinity": -10.272,
+          "top1_le": 0.3021,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.6667,
+          "best3_plif_tanimoto": 0.6667,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 137,
+          "success": 1,
+          "top1_rmsd": 0.775,
+          "best3_rmsd": 0.775,
+          "best_all_rmsd": 0.775,
+          "top1_core_rmsd": 0.474,
+          "best3_core_rmsd": 0.474,
+          "top1_vina_affinity": -10.351,
+          "top1_le": 0.3044,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.6667,
+          "best3_plif_tanimoto": 0.6667,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 2,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 2026,
+          "success": 1,
+          "top1_rmsd": 0.785,
+          "best3_rmsd": 0.785,
+          "best_all_rmsd": 0.785,
+          "top1_core_rmsd": 0.53,
+          "best3_core_rmsd": 0.53,
+          "top1_vina_affinity": -10.198,
+          "top1_le": 0.2999,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.6667,
+          "best3_plif_tanimoto": 0.6667,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 2,
+          "n_modes": 9,
+          "error": null
+        }
+      ]
+    },
+    "BCHE": {
+      "target_id": "BCHE",
+      "pdb_id": "4BDS",
+      "disease_area": "counter",
+      "is_counter_target": 1,
+      "expected_cofactors": [],
+      "retained_hetatms_in_pocket": [],
+      "canonical_anchors": [
+        "TRP82",
+        "HIS438",
+        "GLU197"
+      ],
+      "expected_anchor_kinds": [
+        "hbond",
+        "pi_stacking",
+        "cation_pi"
+      ],
+      "median_top1_core_rmsd": 4.907,
+      "median_best3_core_rmsd": 2.493,
+      "best3_anchor_recovery_rate": 1.0,
+      "elapsed_sec": 27.89,
+      "pocket_pdb": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/4BDS_BCHE_THA_pocket.pdb",
+      "native_ligand_sdf": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/4BDS_BCHE_THA_lig.sdf",
+      "canonical_smiles": "Nc1c2c(nc3ccccc13)CCCC2",
+      "smiles_ph74": "Nc1c2c(nc3ccccc13)CCCC2",
+      "box": {
+        "center": [
+          132.994,
+          116.014,
+          41.214
+        ],
+        "size": [
+          14.0,
+          14.0,
+          14.0
+        ],
+        "native_span_xyz": [
+          3.76,
+          6.08,
+          5.048
+        ],
+        "mode": "tight_per_axis"
+      },
+      "seeds": [
+        42,
+        137,
+        2026
+      ],
+      "median_top1_rmsd": 4.741,
+      "median_best3_rmsd": 2.716,
+      "median_best_all_rmsd": 0.399,
+      "median_vina_affinity": -8.051,
+      "median_le": 0.5367,
+      "mean_top1_plif_tanimoto": 0.9333,
+      "top1_posebusters_pass_rate": 1.0,
+      "top1_anchor_recovery_rate": 1.0,
+      "status": "DIAGNOSTIC_WARN",
+      "seeds_detail": [
+        {
+          "seed": 42,
+          "success": 1,
+          "top1_rmsd": 4.741,
+          "best3_rmsd": 0.437,
+          "best_all_rmsd": 0.399,
+          "top1_core_rmsd": 4.907,
+          "best3_core_rmsd": 0.442,
+          "top1_vina_affinity": -8.051,
+          "top1_le": 0.5367,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 1.0,
+          "best3_plif_tanimoto": 1.0,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 137,
+          "success": 1,
+          "top1_rmsd": 4.741,
+          "best3_rmsd": 2.716,
+          "best_all_rmsd": 0.352,
+          "top1_core_rmsd": 4.906,
+          "best3_core_rmsd": 2.493,
+          "top1_vina_affinity": -8.054,
+          "top1_le": 0.5369,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 1.0,
+          "best3_plif_tanimoto": 1.0,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 2026,
+          "success": 1,
+          "top1_rmsd": 4.757,
+          "best3_rmsd": 4.757,
+          "best_all_rmsd": 0.436,
+          "top1_core_rmsd": 4.923,
+          "best3_core_rmsd": 4.923,
+          "top1_vina_affinity": -7.982,
+          "top1_le": 0.5321,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.8,
+          "best3_plif_tanimoto": 0.8,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        }
+      ]
+    },
+    "MAOA": {
+      "target_id": "MAOA",
+      "pdb_id": "2Z5X",
+      "disease_area": "counter",
+      "is_counter_target": 1,
+      "expected_cofactors": [
+        "FAD"
+      ],
+      "retained_hetatms_in_pocket": [
+        "FAD"
+      ],
+      "canonical_anchors": [
+        "PHE208",
+        "TYR407",
+        "TYR444",
+        "GLN215"
+      ],
+      "expected_anchor_kinds": [
+        "hbond",
+        "pi_stacking"
+      ],
+      "median_top1_core_rmsd": 4.487,
+      "median_best3_core_rmsd": 1.367,
+      "best3_anchor_recovery_rate": 1.0,
+      "elapsed_sec": 11.88,
+      "pocket_pdb": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/2Z5X_MAOA_HRM_pocket.pdb",
+      "native_ligand_sdf": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/2Z5X_MAOA_HRM_lig.sdf",
+      "canonical_smiles": "COc1ccc2c(c1)[nH]c1c(C)nccc12",
+      "smiles_ph74": "COc1ccc2c(c1)[nH]c1c(C)nccc12",
+      "box": {
+        "center": [
+          40.582,
+          26.931,
+          -14.54
+        ],
+        "size": [
+          14.0,
+          14.0,
+          14.0
+        ],
+        "native_span_xyz": [
+          7.626,
+          4.059,
+          5.476
+        ],
+        "mode": "tight_per_axis"
+      },
+      "seeds": [
+        42,
+        137,
+        2026
+      ],
+      "median_top1_rmsd": 5.79,
+      "median_best3_rmsd": 1.415,
+      "median_best_all_rmsd": 1.415,
+      "median_vina_affinity": -8.612,
+      "median_le": 0.5383,
+      "mean_top1_plif_tanimoto": 0.4848,
+      "top1_posebusters_pass_rate": 1.0,
+      "top1_anchor_recovery_rate": 1.0,
+      "status": "PASS_TOP3",
+      "seeds_detail": [
+        {
+          "seed": 42,
+          "success": 1,
+          "top1_rmsd": 5.79,
+          "best3_rmsd": 1.415,
+          "best_all_rmsd": 1.415,
+          "top1_core_rmsd": 4.487,
+          "best3_core_rmsd": 1.367,
+          "top1_vina_affinity": -8.622,
+          "top1_le": 0.5389,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.4545,
+          "best3_plif_tanimoto": 0.5,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 7,
+          "error": null
+        },
+        {
+          "seed": 137,
+          "success": 1,
+          "top1_rmsd": 5.79,
+          "best3_rmsd": 1.413,
+          "best_all_rmsd": 1.413,
+          "top1_core_rmsd": 4.487,
+          "best3_core_rmsd": 1.365,
+          "top1_vina_affinity": -8.599,
+          "top1_le": 0.5374,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.5455,
+          "best3_plif_tanimoto": 0.5,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 2026,
+          "success": 1,
+          "top1_rmsd": 5.783,
+          "best3_rmsd": 1.417,
+          "best_all_rmsd": 1.417,
+          "top1_core_rmsd": 4.482,
+          "best3_core_rmsd": 1.367,
+          "top1_vina_affinity": -8.612,
+          "top1_le": 0.5383,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.4545,
+          "best3_plif_tanimoto": 0.5,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 7,
+          "error": null
+        }
+      ]
+    },
+    "CDK2": {
+      "target_id": "CDK2",
+      "pdb_id": "6Q4G",
+      "disease_area": "counter",
+      "is_counter_target": 1,
+      "expected_cofactors": [],
+      "retained_hetatms_in_pocket": [],
+      "canonical_anchors": [
+        "LEU83",
+        "GLU81",
+        "LYS33"
+      ],
+      "expected_anchor_kinds": [
+        "hbond"
+      ],
+      "median_top1_core_rmsd": 5.656,
+      "median_best3_core_rmsd": 4.829,
+      "best3_anchor_recovery_rate": 1.0,
+      "elapsed_sec": 23.72,
+      "pocket_pdb": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/6Q4G_CDK2_HJK_pocket.pdb",
+      "native_ligand_sdf": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/6Q4G_CDK2_HJK_lig.sdf",
+      "canonical_smiles": "Nc1nc(-c2cccc(CC(=O)O)c2)c2nc[nH]c2n1",
+      "smiles_ph74": "Nc1nc(-c2cccc(CC(=O)[O-])c2)c2nc[nH]c2n1",
+      "box": {
+        "center": [
+          -0.562,
+          -6.365,
+          -25.341
+        ],
+        "size": [
+          14.0,
+          14.0,
+          14.822
+        ],
+        "native_span_xyz": [
+          5.845,
+          7.05,
+          8.822
+        ],
+        "mode": "tight_per_axis"
+      },
+      "seeds": [
+        42,
+        137,
+        2026
+      ],
+      "median_top1_rmsd": 6.743,
+      "median_best3_rmsd": 6.393,
+      "median_best_all_rmsd": 2.693,
+      "median_vina_affinity": -7.49,
+      "median_le": 0.3745,
+      "mean_top1_plif_tanimoto": 0.1242,
+      "top1_posebusters_pass_rate": 1.0,
+      "top1_anchor_recovery_rate": 0.3333,
+      "status": "DIAGNOSTIC_WARN",
+      "seeds_detail": [
+        {
+          "seed": 42,
+          "success": 1,
+          "top1_rmsd": 6.743,
+          "best3_rmsd": 2.664,
+          "best_all_rmsd": 2.664,
+          "top1_core_rmsd": 5.656,
+          "best3_core_rmsd": 2.655,
+          "top1_vina_affinity": -7.49,
+          "top1_le": 0.3745,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.0909,
+          "best3_plif_tanimoto": 0.625,
+          "top1_anchor_recovered": 0,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 137,
+          "success": 1,
+          "top1_rmsd": 6.72,
+          "best3_rmsd": 6.393,
+          "best_all_rmsd": 2.693,
+          "top1_core_rmsd": 5.654,
+          "best3_core_rmsd": 4.829,
+          "top1_vina_affinity": -7.505,
+          "top1_le": 0.3752,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.1818,
+          "best3_plif_tanimoto": 0.1667,
+          "top1_anchor_recovered": 1,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 2026,
+          "success": 1,
+          "top1_rmsd": 6.754,
+          "best3_rmsd": 6.4,
+          "best_all_rmsd": 2.855,
+          "top1_core_rmsd": 5.666,
+          "best3_core_rmsd": 4.834,
+          "top1_vina_affinity": -7.465,
+          "top1_le": 0.3732,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.1,
+          "best3_plif_tanimoto": 0.1818,
+          "top1_anchor_recovered": 0,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 1,
+          "n_modes": 9,
+          "error": null
+        }
+      ]
+    },
+    "BACE2": {
+      "target_id": "BACE2",
+      "pdb_id": "7D5B",
+      "disease_area": "counter",
+      "is_counter_target": 1,
+      "expected_cofactors": [],
+      "retained_hetatms_in_pocket": [],
+      "canonical_anchors": [
+        "ASP48",
+        "ASP241",
+        "GLY243"
+      ],
+      "expected_anchor_kinds": [
+        "salt_bridge",
+        "hbond"
+      ],
+      "median_top1_core_rmsd": 7.464,
+      "median_best3_core_rmsd": 3.214,
+      "best3_anchor_recovery_rate": 1.0,
+      "elapsed_sec": 116.82,
+      "pocket_pdb": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/7D5B_BACE2_66F_pocket.pdb",
+      "native_ligand_sdf": "data/cns_neuro.nosync/v4_expansion/structures/clean_pockets/7D5B_BACE2_66F_lig.sdf",
+      "canonical_smiles": "CN1C(N)=N[C@](C)(c2cc(NC(=O)c3ccc(F)cn3)ccc2F)CS1(=O)=O",
+      "smiles_ph74": "CN1C(N)=[NH+][C@](C)(c2cc(NC(=O)c3ccc(F)cn3)ccc2F)CS1(=O)=O",
+      "box": {
+        "center": [
+          21.341,
+          -8.62,
+          -17.581
+        ],
+        "size": [
+          14.0,
+          15.645,
+          14.0
+        ],
+        "native_span_xyz": [
+          7.224,
+          9.645,
+          7.717
+        ],
+        "mode": "tight_per_axis"
+      },
+      "seeds": [
+        42,
+        137,
+        2026
+      ],
+      "median_top1_rmsd": 7.64,
+      "median_best3_rmsd": 3.559,
+      "median_best_all_rmsd": 2.377,
+      "median_vina_affinity": -8.572,
+      "median_le": 0.3061,
+      "mean_top1_plif_tanimoto": 0.0714,
+      "top1_posebusters_pass_rate": 1.0,
+      "top1_anchor_recovery_rate": 0.0,
+      "status": "DIAGNOSTIC_WARN",
+      "seeds_detail": [
+        {
+          "seed": 42,
+          "success": 1,
+          "top1_rmsd": 7.692,
+          "best3_rmsd": 3.592,
+          "best_all_rmsd": 1.064,
+          "top1_core_rmsd": 7.496,
+          "best3_core_rmsd": 3.244,
+          "top1_vina_affinity": -8.572,
+          "top1_le": 0.3061,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.0714,
+          "best3_plif_tanimoto": 0.2857,
+          "top1_anchor_recovered": 0,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 137,
+          "success": 1,
+          "top1_rmsd": 7.64,
+          "best3_rmsd": 3.541,
+          "best_all_rmsd": 2.377,
+          "top1_core_rmsd": 7.464,
+          "best3_core_rmsd": 3.2,
+          "top1_vina_affinity": -8.596,
+          "top1_le": 0.307,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.0714,
+          "best3_plif_tanimoto": 0.2857,
+          "top1_anchor_recovered": 0,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        },
+        {
+          "seed": 2026,
+          "success": 1,
+          "top1_rmsd": 7.627,
+          "best3_rmsd": 3.559,
+          "best_all_rmsd": 3.552,
+          "top1_core_rmsd": 7.448,
+          "best3_core_rmsd": 3.214,
+          "top1_vina_affinity": -8.567,
+          "top1_le": 0.306,
+          "top1_posebusters_passed": 1,
+          "top1_plif_tanimoto": 0.0714,
+          "best3_plif_tanimoto": 0.2857,
+          "top1_anchor_recovered": 0,
+          "best3_anchor_recovered": 1,
+          "n_ring_confs": 3,
+          "n_modes": 9,
+          "error": null
+        }
+      ]
+    }
+  },
+  "elapsed_sec": 708.88
+}
