@@ -207,6 +207,12 @@ def test_llm_config_defaults_validation_and_v3_yaml_configs(tmp_path: Path) -> N
         assert loaded.llm.phase_a_epochs == ep_a
         assert loaded.llm.phase_b_epochs == ep_b
         assert loaded.llm.v2_pocket_ckpt == "runs/geneuclidean_v2_painn/best.pt"
+        assert loaded.data.randomize_smiles is False
+        assert loaded.sampling.repetition_penalty == 1.0
+        assert loaded.sampling.cfg_scale == 1.3
+        assert loaded.sampling.temperature == 0.85
+        assert loaded.sampling.min_p == 0.08
+        assert loaded.sampling.max_len == 120
 
 
 def test_tokenization_masking_and_dynamic_smiles_randomization() -> None:

@@ -102,6 +102,7 @@ _V2_MODEL_ORDER: tuple[str, ...] = (
 _V3_MODEL_ORDER: tuple[str, ...] = (
     "qwen25",
     "gpt2zinc",
+    "gpmolformer_iter1_rand",
     "gpmolformer",
     "gpmolformer_dpo",
     "gpt2zinc_dpo",
@@ -109,6 +110,7 @@ _V3_MODEL_ORDER: tuple[str, ...] = (
 )
 
 _V3_DISPLAY_NAMES: dict[str, str] = {
+    "gpmolformer_iter1_rand": "GenEuclidean v3 (GP-MoLFormer Iter-1 Rand)",
     "gpmolformer": "GenEuclidean v3 (PaiNN-SE3 + GP-MoLFormer-Uniq)",
     "gpt2zinc": "GenEuclidean v3 (PaiNN-SE3 + GPT2-ZINC-87M)",
     "qwen25": "GenEuclidean v3 (PaiNN-SE3 + Qwen2.5-0.5B)",
@@ -549,6 +551,9 @@ def _run_cfg_and_h2l_sweep(
     n_pockets: int,
     num_samples: int,
     max_new_tokens: int,
+    temperature: float,
+    min_p: float,
+    repetition_penalty: float,
     seed: int,
 ) -> dict[str, Any]:
     """Run CFG scale sweep (w = 1.0, 1.3, 1.6, 2.0) + Hit-to-Lead CVAE seed refinement."""
@@ -560,7 +565,7 @@ def _run_cfg_and_h2l_sweep(
         ("CFG w=1.3", 1.3, 1.0, False),
         ("CFG w=1.6", 1.6, 1.0, False),
         ("CFG w=2.0", 2.0, 1.0, False),
-        ("Hit-to-Lead CVAE", 1.6, 0.5, True),
+        ("Hit-to-Lead CVAE", 1.3, 0.5, True),
     ]
 
     rows: list[dict[str, Any]] = []
@@ -587,13 +592,13 @@ def _run_cfg_and_h2l_sweep(
                 num_samples=num_samples,
                 max_new_tokens=max_new_tokens,
                 strategy=cfg.sampling.strategy,
-                temperature=cfg.sampling.temperature,
-                min_p=cfg.sampling.min_p,
+                temperature=temperature,
+                min_p=min_p,
                 top_p=cfg.sampling.top_p,
                 top_k=cfg.sampling.top_k,
                 cfg_scale=w_cfg,
                 latent_temp=l_temp,
-                repetition_penalty=cfg.sampling.repetition_penalty,
+                repetition_penalty=repetition_penalty,
                 seed_ligand_fp=seed_fp,
                 batch_size=num_samples,
                 seed=seed + 10_000 * s_idx + p_idx,
@@ -674,10 +679,11 @@ def evaluate_single_v3_model(
     num_samples: int,
     max_pockets: int,
     attention_pockets: int,
-    max_new_tokens: int,
+    max_new_tokens: int | None,
     cfg_scale_override: float | None,
     temperature_override: float | None,
     min_p_override: float | None,
+    repetition_penalty_override: float | None = None,
     seed: int,
     run_cfg_sweep: bool,
     sweep_pockets: int,
@@ -695,6 +701,9 @@ def evaluate_single_v3_model(
     test_native = {pid: str(records[pid]["canonical_smiles"]) for pid in test_ids if pid in records}
     sample_pids = list(test_ids[:max_pockets]) if max_pockets > 0 else list(test_ids)
 
+    eff_max_tokens = (
+        int(max_new_tokens) if max_new_tokens is not None else int(cfg.sampling.max_len)
+    )
     eff_cfg_scale = (
         float(cfg_scale_override)
         if cfg_scale_override is not None
@@ -706,6 +715,11 @@ def evaluate_single_v3_model(
         else cfg.sampling.temperature
     )
     eff_min_p = float(min_p_override) if min_p_override is not None else cfg.sampling.min_p
+    eff_rep_penalty = (
+        float(repetition_penalty_override)
+        if repetition_penalty_override is not None
+        else cfg.sampling.repetition_penalty
+    )
     eff_latent_temp = cfg.sampling.latent_temp if cfg.cvae.enabled else 0.0
 
     per_pocket_matched: dict[str, list[str]] = {}
@@ -716,8 +730,8 @@ def evaluate_single_v3_model(
 
     print(
         f"[v3:{short_name}] Sampling {len(sample_pids)} pockets x {num_samples} mols "
-        f"(backbone={llm_cfg.backbone_id}, cfg={eff_cfg_scale}, T={eff_temp}, min_p={eff_min_p}) "
-        f"on {device}...",
+        f"(backbone={llm_cfg.backbone_id}, cfg={eff_cfg_scale}, T={eff_temp}, "
+        f"min_p={eff_min_p}, rp={eff_rep_penalty}, max_tok={eff_max_tokens}) on {device}...",
         flush=True,
     )
 
@@ -736,7 +750,7 @@ def evaluate_single_v3_model(
             pocket_out,
             atom_mask_dev,
             num_samples=num_samples,
-            max_new_tokens=max_new_tokens,
+            max_new_tokens=eff_max_tokens,
             strategy=cfg.sampling.strategy,
             temperature=eff_temp,
             min_p=eff_min_p,
@@ -744,7 +758,7 @@ def evaluate_single_v3_model(
             top_k=cfg.sampling.top_k,
             cfg_scale=eff_cfg_scale,
             latent_temp=eff_latent_temp,
-            repetition_penalty=cfg.sampling.repetition_penalty,
+            repetition_penalty=eff_rep_penalty,
             batch_size=num_samples,
             seed=seed + idx,
         )
@@ -753,7 +767,7 @@ def evaluate_single_v3_model(
             pocket_out,
             atom_mask_dev,
             num_samples=num_samples,
-            max_new_tokens=max_new_tokens,
+            max_new_tokens=eff_max_tokens,
             strategy=cfg.sampling.strategy,
             temperature=eff_temp,
             min_p=eff_min_p,
@@ -761,7 +775,7 @@ def evaluate_single_v3_model(
             top_k=cfg.sampling.top_k,
             cfg_scale=0.0,
             latent_temp=0.0,
-            repetition_penalty=cfg.sampling.repetition_penalty,
+            repetition_penalty=eff_rep_penalty,
             batch_size=num_samples,
             seed=seed + 100_000 + idx,
         )
@@ -866,7 +880,7 @@ def evaluate_single_v3_model(
             pocket_out,
             atom_mask_dev,
             num_samples=4,
-            max_new_tokens=max_new_tokens,
+            max_new_tokens=eff_max_tokens,
             strategy=cfg.sampling.strategy,
             temperature=eff_temp,
             min_p=eff_min_p,
@@ -874,7 +888,7 @@ def evaluate_single_v3_model(
             top_k=cfg.sampling.top_k,
             cfg_scale=eff_cfg_scale,
             latent_temp=0.0,
-            repetition_penalty=cfg.sampling.repetition_penalty,
+            repetition_penalty=eff_rep_penalty,
             batch_size=4,
             seed=seed + 200_000 + idx,
         )
@@ -965,7 +979,10 @@ def evaluate_single_v3_model(
             device=device,
             n_pockets=sweep_pockets,
             num_samples=num_samples,
-            max_new_tokens=max_new_tokens,
+            max_new_tokens=eff_max_tokens,
+            temperature=eff_temp,
+            min_p=eff_min_p,
+            repetition_penalty=eff_rep_penalty,
             seed=seed,
         )
 
@@ -1184,8 +1201,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--max-new-tokens",
         type=int,
-        default=96,
-        help="Maximum generated tokens per molecule.",
+        default=None,
+        help="Override max generated tokens per molecule (defaults to cfg.sampling.max_len=120).",
     )
     parser.add_argument(
         "--cfg-scale", type=float, default=None, help="Override CFG guidance scale."
@@ -1194,6 +1211,18 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--temperature", type=float, default=None, help="Override sampling temperature."
     )
     parser.add_argument("--min-p", type=float, default=None, help="Override min-p threshold.")
+    parser.add_argument(
+        "--repetition-penalty",
+        type=float,
+        default=None,
+        help="Override repetition penalty (defaults to cfg.sampling.repetition_penalty=1.0).",
+    )
+    parser.add_argument(
+        "--output-tag",
+        type=str,
+        default=None,
+        help="Optional output filename tag (writes eval_v3_<tag>.json & samples_v3_<tag>.json).",
+    )
     parser.add_argument(
         "--cfg-sweep",
         action="store_true",
@@ -1243,12 +1272,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"No v3 adapter checkpoints found under {args.runs_dir}.", flush=True)
 
     for short_name, adapter_ckpt in runs:
-        out_eval = args.output_dir / f"eval_v3_{short_name}.json"
+        out_name = (
+            args.output_tag
+            if (args.output_tag and len(runs) == 1)
+            else (f"{short_name}_{args.output_tag}" if args.output_tag else short_name)
+        )
+        out_eval = args.output_dir / f"eval_v3_{out_name}.json"
         if args.resume_skip and out_eval.is_file():
-            print(f"[v3:{short_name}] Skipping (already exists at {out_eval})", flush=True)
+            print(f"[v3:{out_name}] Skipping (already exists at {out_eval})", flush=True)
             continue
         evaluate_single_v3_model(
-            short_name,
+            out_name,
             adapter_ckpt,
             records=records,
             train_ids=train_ids,
@@ -1264,6 +1298,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             cfg_scale_override=args.cfg_scale,
             temperature_override=args.temperature,
             min_p_override=args.min_p,
+            repetition_penalty_override=args.repetition_penalty,
             seed=args.seed,
             run_cfg_sweep=args.cfg_sweep,
             sweep_pockets=args.sweep_pockets,

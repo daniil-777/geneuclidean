@@ -1246,10 +1246,11 @@ def run_llm_rpo_dpo(
     grad_accum_steps: int = 8,
     min_margin: float = 0.05,
     max_pairs_per_pocket: int = 8,
-    max_new_tokens: int = 96,
+    max_new_tokens: int | None = None,
     cfg_scale: float | None = None,
     temperature: float | None = None,
     min_p: float | None = None,
+    repetition_penalty: float | None = None,
     seed: int | None = None,
     preference_pairs: Sequence[PreferencePair] | None = None,
     save_dir: str | Path | None = None,
@@ -1281,9 +1282,13 @@ def run_llm_rpo_dpo(
     model = model.to(eff_device)
     meta = _get_backbone_meta(model)
 
+    eff_max_tokens = cfg.sampling.max_len if max_new_tokens is None else int(max_new_tokens)
     eff_cfg_scale = cfg.sampling.cfg_scale if cfg_scale is None else float(cfg_scale)
     eff_temp = cfg.sampling.temperature if temperature is None else float(temperature)
     eff_min_p = cfg.sampling.min_p if min_p is None else float(min_p)
+    eff_rep_penalty = (
+        cfg.sampling.repetition_penalty if repetition_penalty is None else float(repetition_penalty)
+    )
     eff_accum = max(1, int(grad_accum_steps))
     eff_sft_weight = max(0.0, float(sft_nll_weight))
 
@@ -1319,7 +1324,7 @@ def run_llm_rpo_dpo(
                 pocket_out,
                 atom_mask,
                 num_samples=int(samples_per_pocket),
-                max_new_tokens=int(max_new_tokens),
+                max_new_tokens=eff_max_tokens,
                 strategy=cfg.sampling.strategy,
                 temperature=eff_temp,
                 min_p=eff_min_p,
@@ -1327,7 +1332,7 @@ def run_llm_rpo_dpo(
                 top_k=cfg.sampling.top_k,
                 cfg_scale=eff_cfg_scale,
                 latent_temp=cfg.sampling.latent_temp,
-                repetition_penalty=cfg.sampling.repetition_penalty,
+                repetition_penalty=eff_rep_penalty,
                 batch_size=int(samples_per_pocket),
                 seed=eff_seed + step_idx,
             )
