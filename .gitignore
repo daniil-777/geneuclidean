@@ -54,7 +54,18 @@ bin/
 # Local thesis PDF (preserved locally, excluded from git)
 Report_denovo.pdf
 
-# Explicitly keep versioned metadata & benchmark artifacts tracked
+# Large model weights, embeddings, and raw per-pocket sample dumps
+*.pt
+*.npz
+results/tables/samples_*.json
+results/tables/pocket_embeddings_*.npz
+
+# Explicitly keep versioned metadata & compact benchmark artifacts tracked
 !data/metadata/*.csv
 !results/figures/*.png
-!results/tables/*.json
+!results/tables/model_comparison.csv
+!results/tables/model_comparison.md
+!results/tables/decoding_ablation.csv
+!results/tables/decoding_ablation.json
+!results/tables/docking_*.json
+!results/tables/eval_*.json

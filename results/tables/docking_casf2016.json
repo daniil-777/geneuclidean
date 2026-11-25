@@ -1,0 +1,5172 @@
+{
+  "samples_file": "results/tables/samples_geneuclidean_v2_painn.json",
+  "model_name": "geneuclidean_v2_painn",
+  "split": "casf2016",
+  "n_pockets": 30,
+  "top_k_per_pocket": 5,
+  "exhaustiveness": 4,
+  "n_ligands_docked": 148,
+  "vina_affinity_mean": -7.321641891891891,
+  "vina_affinity_median": -7.411,
+  "vina_affinity_std": 1.360327921565611,
+  "vina_affinity_best": -11.546,
+  "native_vina_affinity_mean": -8.166310344827586,
+  "high_affinity_rate": 0.34265734265734266,
+  "strain_energy_mean": 78.06296453212885,
+  "zero_clash_rate": 0.9459459459459459,
+  "posebusters_pass_rate": 0.9391891891891891,
+  "elapsed_sec": 342.53006366602494,
+  "per_pocket": [
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 16.429745241987117,
+      "strain_energy_median": 20.124833253221993,
+      "mol_volume_mean": 159.41600000000005,
+      "mol_volume_std": 17.624213888851898,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -4.538,
+      "vina_affinity_mean": -5.7574,
+      "vina_affinity_std": 0.3142550556474789,
+      "vina_affinity_best": -6.293,
+      "vina_affinities": [
+        -5.337,
+        -6.293,
+        -5.588,
+        -5.782,
+        -5.787
+      ],
+      "high_affinity_rate": 1.0,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "CCC(=O)c1cccc2cc[nH]c12",
+          "success": 1,
+          "vina_affinity": -5.337,
+          "all_affinities": [
+            -5.337,
+            -5.329,
+            -4.848,
+            -4.835,
+            -4.78,
+            -4.405,
+            -4.214,
+            -4.142,
+            -3.917
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.011782379053255299,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8176090336011548,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C(O)/C=C/c1c[nH]c2ccccc12",
+          "success": 1,
+          "vina_affinity": -6.293,
+          "all_affinities": [
+            -6.293,
+            -5.618,
+            -5.528,
+            -5.396,
+            -5.253,
+            -5.073,
+            -3.889,
+            -3.862,
+            -3.505
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.009306486559598981,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.70373101692799,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "[NH3+]Cc1ccc2[nH]ccc2c1",
+          "success": 1,
+          "vina_affinity": -5.588,
+          "all_affinities": [
+            -5.588,
+            -5.109,
+            -4.767,
+            -4.678,
+            -4.265,
+            -3.994,
+            -3.87,
+            -3.713,
+            -3.592
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0019285204758772156,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8070693280856265,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "c1ccc(-c2c[nH]c3ccccc23)cc1",
+          "success": 1,
+          "vina_affinity": -5.782,
+          "all_affinities": [
+            -5.782,
+            -5.774,
+            -5.694,
+            -5.673,
+            -5.335,
+            -5.134,
+            -5.105,
+            -5.074,
+            -4.747
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0027253006349753084,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.2342292791048046,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "[H]/N=C(/N)c1cccc(C)c1",
+          "success": 1,
+          "vina_affinity": -5.787,
+          "all_affinities": [
+            -5.787,
+            -5.317,
+            -5.201,
+            -4.94,
+            -4.692,
+            -4.608,
+            -4.387,
+            -4.202,
+            -3.763
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.007489206897911993,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8626019731433536,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "1uto"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 44.17396594765562,
+      "strain_energy_median": 36.20660519376108,
+      "mol_volume_mean": 216.2576,
+      "mol_volume_std": 39.33267584896812,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -7.209,
+      "vina_affinity_mean": -6.4468000000000005,
+      "vina_affinity_std": 0.5519218785299237,
+      "vina_affinity_best": -7.327,
+      "vina_affinities": [
+        -7.327,
+        -5.839,
+        -6.375,
+        -6.767,
+        -5.926
+      ],
+      "high_affinity_rate": 0.2,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "O=C(c1cccc(-c2nn[nH]n2)c1)N1CCCCC1",
+          "success": 1,
+          "vina_affinity": -7.327,
+          "all_affinities": [
+            -7.327,
+            -7.12,
+            -6.379,
+            -6.334,
+            -6.255,
+            -5.998,
+            -5.848,
+            -5.802,
+            -5.799
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.011597824240756616,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.817970527400405,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "[NH3+]CCc1nc2ccc(Br)cc2[nH]1",
+          "success": 1,
+          "vina_affinity": -5.839,
+          "all_affinities": [
+            -5.839,
+            -5.782,
+            -5.564,
+            -5.143,
+            -5.125,
+            -4.9,
+            -4.788,
+            -4.705,
+            -4.643
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0026389525927314472,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8906678095385088,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "NC(=O)c1c(F)cccc1-c1nccs1",
+          "success": 1,
+          "vina_affinity": -6.375,
+          "all_affinities": [
+            -6.375,
+            -6.203,
+            -5.173,
+            -5.114,
+            -4.981,
+            -4.925,
+            -4.886,
+            -4.739,
+            -4.644
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.01434000797407823,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.86867450097067,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "C[C@@H]([NH3+])c1nc2ccc(Oc3ccccc3C(=O)O)cc2n1C",
+          "success": 1,
+          "vina_affinity": -6.767,
+          "all_affinities": [
+            -6.767,
+            -6.636,
+            -6.61,
+            -6.483,
+            -6.339,
+            -6.324,
+            -5.951,
+            -5.907,
+            -5.837
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.014882455651082038,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.6991888950325356,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "[NH3+]C[C@@H]1CN(c2cccc(Cl)c2)CC[NH2+]1",
+          "success": 1,
+          "vina_affinity": -5.926,
+          "all_affinities": [
+            -5.926,
+            -5.532,
+            -5.395,
+            -5.141,
+            -5.013,
+            -4.944,
+            -4.937,
+            -4.788,
+            -4.608
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0010657788348865105,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.823058418821101,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "1bcu"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 11.757110334129212,
+      "strain_energy_median": 14.346055099971181,
+      "mol_volume_mean": 134.43680000000003,
+      "mol_volume_std": 18.67359074629195,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -5.865,
+      "vina_affinity_mean": -5.847,
+      "vina_affinity_std": 0.43936089948924684,
+      "vina_affinity_best": -6.625,
+      "vina_affinities": [
+        -6.625,
+        -5.568,
+        -5.977,
+        -5.349,
+        -5.716
+      ],
+      "high_affinity_rate": 0.4,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "O=c1[nH]c(=O)c2ccccc2[nH]1",
+          "success": 1,
+          "vina_affinity": -6.625,
+          "all_affinities": [
+            -6.625,
+            -6.335,
+            -6.278,
+            -5.865,
+            -5.296,
+            -5.038,
+            -4.892,
+            -4.872,
+            -4.391
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.00045835553249863603,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.9051269808592806,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C(O)c1ccccc1",
+          "success": 1,
+          "vina_affinity": -5.568,
+          "all_affinities": [
+            -5.568,
+            -5.54,
+            -4.801,
+            -4.167,
+            -3.849,
+            -3.82,
+            -3.752,
+            -3.618,
+            -3.379
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0008057371844095718,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.860865251103341,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "OCc1nc2ccccc2[nH]1",
+          "success": 1,
+          "vina_affinity": -5.977,
+          "all_affinities": [
+            -5.977,
+            -5.89,
+            -5.484,
+            -5.197,
+            -4.846,
+            -4.564,
+            -3.6,
+            -3.187
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.004275654557800906,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7508025078724487,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "c1ccc2ncccc2c1",
+          "success": 1,
+          "vina_affinity": -5.349,
+          "all_affinities": [
+            -5.349,
+            -5.114,
+            -5.068,
+            -4.248,
+            -3.656,
+            -3.626,
+            -3.564,
+            -3.476,
+            -3.344
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.000468014686648921,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.062842105173415,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "C/C(=C\\c1ccccc1O)C[NH3+]",
+          "success": 1,
+          "vina_affinity": -5.716,
+          "all_affinities": [
+            -5.716,
+            -5.632,
+            -5.16,
+            -5.137,
+            -4.846,
+            -4.531,
+            -4.232,
+            -4.201,
+            -4.134
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.006075176286439443,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8212444615923378,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "1c5z"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 48.9379379824367,
+      "strain_energy_median": 53.008580502072334,
+      "mol_volume_mean": 306.20320000000004,
+      "mol_volume_std": 54.03704722650935,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -7.565,
+      "vina_affinity_mean": -8.4226,
+      "vina_affinity_std": 0.45068330344045343,
+      "vina_affinity_best": -9.007,
+      "vina_affinities": [
+        -8.484,
+        -7.631,
+        -9.007,
+        -8.624,
+        -8.367
+      ],
+      "high_affinity_rate": 1.0,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "O=C(N[C@H]1C(=O)N(c2ccccc2)[C@@H](CO)[C@H]1O)c1ccccc1",
+          "success": 1,
+          "vina_affinity": -8.484,
+          "all_affinities": [
+            -8.484,
+            -7.925,
+            -7.731,
+            -7.652,
+            -7.081,
+            -6.881,
+            -6.825,
+            -6.694,
+            -6.612
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.011596762325890908,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.942690100240011,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C1NCC[C@@H]1NS(=O)(=O)c1ccc(F)cc1",
+          "success": 1,
+          "vina_affinity": -7.631,
+          "all_affinities": [
+            -7.631,
+            -7.466,
+            -7.333,
+            -7.268,
+            -7.108,
+            -6.928,
+            -6.696,
+            -6.58,
+            -6.521
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.005152197052842311,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8123480188238994,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C1[C@@H]2C[C@@H](CO)[C@@H](O)[C@H](O)[C@@H]2ON1CCc1ccn(Cc2ccccc2)n1",
+          "success": 1,
+          "vina_affinity": -9.007,
+          "all_affinities": [
+            -9.007,
+            -8.691,
+            -8.525,
+            -8.39,
+            -8.254,
+            -8.246,
+            -8.205,
+            -7.921,
+            -7.79
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.009374016603759028,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.9594382046291496,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C(CCC1CCCCC1)N[C@@H]1C[C@H](O)CN(Cc2c[nH]cn2)C1=O",
+          "success": 1,
+          "vina_affinity": -8.624,
+          "all_affinities": [
+            -8.624,
+            -8.051,
+            -7.844,
+            -7.783,
+            -7.622,
+            -7.491,
+            -7.384,
+            -7.212,
+            -7.195
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.003093065414056073,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.9196091533011512,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "COc1ccc2c(c1)[C@H](OCC(=O)c1ccc(OC)c(OC)c1)[C@@H](O)[C@H](O)C2",
+          "success": 1,
+          "vina_affinity": -8.367,
+          "all_affinities": [
+            -8.367,
+            -7.934,
+            -7.89,
+            -7.883,
+            -7.825,
+            -7.562,
+            -7.493,
+            -7.476,
+            -7.415
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.006609211567278513,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.9722335607918136,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "2wbg"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 59.979878683056484,
+      "strain_energy_median": 51.75983186398943,
+      "mol_volume_mean": 305.85760000000005,
+      "mol_volume_std": 19.62152900871897,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -8.287,
+      "vina_affinity_mean": -9.2958,
+      "vina_affinity_std": 0.3216715094626817,
+      "vina_affinity_best": -9.64,
+      "vina_affinities": [
+        -9.64,
+        -8.775,
+        -9.155,
+        -9.624,
+        -9.285
+      ],
+      "high_affinity_rate": 1.0,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "N#Cc1cccc(C(=O)Nc2cc(C(F)(F)F)nn2-c2cccc(O)c2)c1",
+          "success": 1,
+          "vina_affinity": -9.64,
+          "all_affinities": [
+            -9.64,
+            -9.544,
+            -9.443,
+            -9.299,
+            -9.119,
+            -8.911,
+            -8.852,
+            -8.583,
+            -8.332
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.08527647084053003,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.9905969750046997,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C1CN(Cc2cnc3cccnn23)[C@@](c2cc(F)ccc2F)(C(F)F)N1",
+          "success": 1,
+          "vina_affinity": -8.775,
+          "all_affinities": [
+            -8.775,
+            -8.628,
+            -8.527,
+            -8.173,
+            -7.955,
+            -7.442,
+            -7.375,
+            -7.372,
+            -6.412
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.008459339249008324,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.9557112310180886,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cc1cccc(S(=O)(=O)NCc2cccc3ccn(C(C)C)c23)c1C",
+          "success": 1,
+          "vina_affinity": -9.155,
+          "all_affinities": [
+            -9.155,
+            -9.127,
+            -9.049,
+            -8.808,
+            -8.761,
+            -8.677,
+            -8.498,
+            -8.426,
+            -8.197
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.020369594794568152,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.005390304133641,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Nc1nc(Nc2ccc(Cl)cc2)nc2nc([C@H]3CCCO3)cn12",
+          "success": 1,
+          "vina_affinity": -9.624,
+          "all_affinities": [
+            -9.624,
+            -9.203,
+            -9.146,
+            -9.071,
+            -7.535
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0029019691518847868,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.972172593965899,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CC(C)n1ncc2cc(N[C@@H]3CC[C@@H]([NH3+])c4ccccc43)sc2c1=O",
+          "success": 1,
+          "vina_affinity": -9.285,
+          "all_affinities": [
+            -9.285,
+            -9.277,
+            -9.173,
+            -9.101,
+            -7.547,
+            -6.988
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.024501676605311662,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.0069544529093992,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "1q8t"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 39.05650601145925,
+      "strain_energy_median": 38.48574854210008,
+      "mol_volume_mean": 153.3744,
+      "mol_volume_std": 27.379413650405304,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -7.42,
+      "vina_affinity_mean": -7.170999999999999,
+      "vina_affinity_std": 0.5907953960551825,
+      "vina_affinity_best": -8.164,
+      "vina_affinities": [
+        -8.164,
+        -7.244,
+        -6.428,
+        -6.736,
+        -7.283
+      ],
+      "high_affinity_rate": 0.2,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "[NH3+][C@@H](Cc1c[nH]c2c(=O)[nH]cnc12)C(=O)O",
+          "success": 1,
+          "vina_affinity": -8.164,
+          "all_affinities": [
+            -8.164,
+            -8.07,
+            -7.659,
+            -7.416,
+            -6.588
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.012865884196917032,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7151202799371794,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C(O)c1ccc(O)cc1",
+          "success": 1,
+          "vina_affinity": -7.244,
+          "all_affinities": [
+            -7.244,
+            -6.491,
+            -5.797,
+            -5.613,
+            -4.307
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0006252932592489824,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.812355612315049,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "[NH3+][C@H](CCC(=O)O)C(=O)O",
+          "success": 1,
+          "vina_affinity": -6.428,
+          "all_affinities": [
+            -6.428,
+            -6.33,
+            -6.17,
+            -6.045,
+            -5.982,
+            -5.846,
+            -5.511
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8569542826740855,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "[NH3+][C@@H](Cc1cnc[nH]1)C(=O)O",
+          "success": 1,
+          "vina_affinity": -6.736,
+          "all_affinities": [
+            -6.736,
+            -6.011,
+            -5.95,
+            -5.733,
+            -4.68
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.037914719874237966,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8275504442165653,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Nc1nccn1[C@@H]1OC[C@H](O)[C@@H](O)[C@H]1O",
+          "success": 1,
+          "vina_affinity": -7.283,
+          "all_affinities": [
+            -7.283,
+            -6.651,
+            -5.734
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.004401779030557593,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.69515435506426,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "1p1q"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 73.04371416411081,
+      "strain_energy_median": 57.28107295772637,
+      "mol_volume_mean": 291.34080000000006,
+      "mol_volume_std": 33.60081621865756,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -9.822,
+      "vina_affinity_mean": -7.868600000000001,
+      "vina_affinity_std": 0.20418971570576253,
+      "vina_affinity_best": -8.108,
+      "vina_affinities": [
+        -7.622,
+        -7.66,
+        -7.868,
+        -8.085,
+        -8.108
+      ],
+      "high_affinity_rate": 0.0,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "Cc1ccc(S(=O)(=O)Nc2ccccc2)cc1C(N)=O",
+          "success": 1,
+          "vina_affinity": -7.622,
+          "all_affinities": [
+            -7.622,
+            -7.446,
+            -7.11,
+            -7.059,
+            -6.871,
+            -6.187,
+            -6.142,
+            -6.068,
+            -6.049
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.006136521916121684,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.6314932668151565,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CC(C)(C)OC(=O)Nc1nc2c(s1)C(C(=O)O)=N[C@H]2C(=O)O",
+          "success": 1,
+          "vina_affinity": -7.66,
+          "all_affinities": [
+            -7.66,
+            -7.476,
+            -6.272,
+            -5.975,
+            -5.87,
+            -5.813,
+            -5.633,
+            -5.392,
+            -5.118
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.006449096255618791,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.70818633676821,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "C[N@H+]1CCc2c(sc(Nc3cccc(C(F)(F)F)c3)c2C(=O)O)C1",
+          "success": 1,
+          "vina_affinity": -7.868,
+          "all_affinities": [
+            -7.868,
+            -7.067,
+            -6.839,
+            -6.802,
+            -6.755,
+            -6.311,
+            -6.156,
+            -5.728,
+            -5.608
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.04767940874156746,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7901005570806645,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cc1c(-c2cc(C#N)c(F)cc2F)c2[nH]c(=O)cc(CCC(=O)O)c2n1C(C)C",
+          "success": 1,
+          "vina_affinity": -8.085,
+          "all_affinities": [
+            -8.085,
+            -7.54,
+            -7.453,
+            -7.362,
+            -6.924,
+            -6.737,
+            -6.546,
+            -6.44,
+            -6.332
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.08733867229533354,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8384323491013235,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "COc1cc2ncn(-c3cccc(C(=O)O)c3)c(=O)c2cc1OCC(=O)O",
+          "success": 1,
+          "vina_affinity": -8.108,
+          "all_affinities": [
+            -8.108,
+            -7.964,
+            -7.925,
+            -7.637,
+            -7.367,
+            -6.949,
+            -6.108,
+            -5.911,
+            -5.688
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.008045146158590505,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.9656617003308754,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "2r9w"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 58.60990083965855,
+      "strain_energy_median": 57.04653686568926,
+      "mol_volume_mean": 212.37600000000003,
+      "mol_volume_std": 13.64374517498769,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -5.499,
+      "vina_affinity_mean": -5.8566,
+      "vina_affinity_std": 0.4607422706893733,
+      "vina_affinity_best": -6.403,
+      "vina_affinities": [
+        -5.206,
+        -5.561,
+        -5.763,
+        -6.403,
+        -6.35
+      ],
+      "high_affinity_rate": 0.8,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "[NH3+][C@@H](CC(=O)O)C(=O)N1CCC[C@H]1C(=O)O",
+          "success": 1,
+          "vina_affinity": -5.206,
+          "all_affinities": [
+            -5.206,
+            -5.143,
+            -5.09,
+            -4.995,
+            -4.979,
+            -4.898,
+            -4.751,
+            -4.695,
+            -4.614
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.9481934689453144,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=c1ccn([C@@H]2O[C@H](CO)[C@@H](O)[C@H]2O)c(=O)[nH]1",
+          "success": 1,
+          "vina_affinity": -5.561,
+          "all_affinities": [
+            -5.561,
+            -5.419,
+            -5.265,
+            -5.199,
+            -5.127,
+            -5.114,
+            -4.469,
+            -4.365,
+            -4.345
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.005445694275032609,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.006177489139128,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cc1cn([C@@H]2OC[C@@H](O)[C@H]2OP(=O)(O)O)c(=O)[nH]c1=O",
+          "success": 1,
+          "vina_affinity": -5.763,
+          "all_affinities": [
+            -5.763,
+            -5.686,
+            -5.562,
+            -5.394,
+            -5.306,
+            -5.291,
+            -5.214,
+            -5.082,
+            -4.912
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.01581321097928623,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8316245464586562,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Nc1ncnc2c1ncn2[C@@H]1O[C@H](CO)[C@@H](O)[C@H]1O",
+          "success": 1,
+          "vina_affinity": -6.403,
+          "all_affinities": [
+            -6.403,
+            -6.235,
+            -6.055,
+            -5.884,
+            -5.748,
+            -5.641,
+            -5.537,
+            -5.265,
+            -4.912
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0031477532831720167,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7986816226786515,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=P(O)(O)O[P@](=O)(O)Cc1cc2nc[nH]c2[nH]1",
+          "success": 1,
+          "vina_affinity": -6.35,
+          "all_affinities": [
+            -6.35,
+            -5.993,
+            -5.906,
+            -5.902,
+            -5.709,
+            -5.551,
+            -5.526,
+            -5.463,
+            -5.459
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.008334910943014612,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.86173427434904,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "1w4o"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 41.82248494920421,
+      "strain_energy_median": 39.466737893692724,
+      "mol_volume_mean": 223.55840000000003,
+      "mol_volume_std": 22.230920966977507,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -8.859,
+      "vina_affinity_mean": -7.155399999999998,
+      "vina_affinity_std": 0.6400717459785267,
+      "vina_affinity_best": -8.181,
+      "vina_affinities": [
+        -7.433,
+        -6.511,
+        -6.447,
+        -8.181,
+        -7.205
+      ],
+      "high_affinity_rate": 0.0,
+      "posebusters_pass_rate": 0.8,
+      "protein_clash_free_rate": 0.8,
+      "mean_protein_clashes": 0.2,
+      "docking_results": [
+        {
+          "smiles": "[NH3+][C@@H](Cc1c[nH]c2c(C(=O)O)cccc12)C(=O)O",
+          "success": 1,
+          "vina_affinity": -7.433,
+          "all_affinities": [
+            -7.433,
+            -6.349,
+            -5.35,
+            -4.912,
+            -4.696
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.010423439708740233,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.5754034274909774,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C(O)CCn1cc(C(=O)Nc2ccccc2)cn1",
+          "success": 1,
+          "vina_affinity": -6.511,
+          "all_affinities": [
+            -6.511,
+            -5.535,
+            -5.269,
+            -5.062,
+            -4.839,
+            -4.416,
+            -3.642
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0004905950465081133,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8281221338201363,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C(O)[C@@H]1CCCN1C(=O)c1nncn1Cc1ccccn1",
+          "success": 1,
+          "vina_affinity": -6.447,
+          "all_affinities": [
+            -6.447,
+            -5.371,
+            -4.963,
+            -4.405,
+            -3.453,
+            -3.449
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.002274518171608453,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 0,
+            "protein_clash_count": 1,
+            "min_protein_ligand_dist": 2.3675844322804522,
+            "passed_all": 0
+          },
+          "error": null
+        },
+        {
+          "smiles": "CCn1nc(C[C@H]([NH3+])C(=O)O)c2ccccc21",
+          "success": 1,
+          "vina_affinity": -8.181,
+          "all_affinities": [
+            -8.181,
+            -6.609,
+            -5.429,
+            -5.311
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.006541172100862927,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.80192438400165,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C(O)CC(=O)Cc1ccc(O)c(Br)c1",
+          "success": 1,
+          "vina_affinity": -7.205,
+          "all_affinities": [
+            -7.205,
+            -6.512,
+            -6.346,
+            -6.264,
+            -6.165,
+            -5.836,
+            -5.499,
+            -5.305,
+            -4.98
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.004079000028373858,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.676171079493125,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "1syi"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 4,
+      "conformer_success_rate": 0.8,
+      "strain_energy_mean": 84.50367777631973,
+      "strain_energy_median": 84.61619654940722,
+      "mol_volume_mean": 399.69200000000006,
+      "mol_volume_std": 30.072216812200598,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 4,
+      "n_dock_succeeded": 4,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -7.531,
+      "vina_affinity_mean": -7.365,
+      "vina_affinity_std": 0.506001976280726,
+      "vina_affinity_best": -8.207,
+      "vina_affinities": [
+        -7.001,
+        -6.941,
+        -7.311,
+        -8.207
+      ],
+      "high_affinity_rate": 0.25,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "C[C@H]1CN(Cc2cn(-c3ccc(N[C@H]4CC[N@H+](C)CC4)c([N+](=O)[O-])c3)nn2)CCO1",
+          "success": 1,
+          "vina_affinity": -7.001,
+          "all_affinities": [
+            -7.001,
+            -6.929,
+            -6.889,
+            -6.722,
+            -6.721,
+            -6.571,
+            -6.299,
+            -6.008,
+            -5.929
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.010451125075227496,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.0319539833653546,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "C[C@@H]1[NH2+][C@H](Cc2ccccc2)NC(=O)[C@H]2CCCN2C(=O)[C@H]2CCCN2C1=O",
+          "success": 1,
+          "vina_affinity": -6.941,
+          "all_affinities": [
+            -6.941,
+            -6.318,
+            -6.288,
+            -5.57,
+            -5.45,
+            -5.287,
+            -5.241,
+            -4.914,
+            -4.899
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.00649629124402451,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.965862941397016,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "COc1cc(C(=O)N[C@H]2[C@@H](C(N)=O)CN(C(=O)[C@@H]3CCC[N@H+]3C3CC3)[C@H]2C)cc(OC)c1OC",
+          "success": 1,
+          "vina_affinity": -7.311,
+          "all_affinities": [
+            -7.311,
+            -7.251,
+            -6.649,
+            -6.562,
+            -6.548,
+            -6.444,
+            -6.437,
+            -6.423,
+            -6.412
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.018591747855775036,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.926723105996808,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "COC(=O)C1=CCN2C(=O)[C@@H]3[C@H](OC(=O)c4ccccc4)[C@H](C)N(C4CC4)C(=O)[C@H]3C[C@@H]2C1",
+          "success": 1,
+          "vina_affinity": -8.207,
+          "all_affinities": [
+            -8.207,
+            -8.127,
+            -8.04,
+            -7.546,
+            -7.316,
+            -7.306,
+            -6.633,
+            -6.61,
+            -6.034
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0021147324598228545,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.129617842106517,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "2wca"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 125.2256043171219,
+      "strain_energy_median": 113.46168970839369,
+      "mol_volume_mean": 245.09600000000006,
+      "mol_volume_std": 45.03231394454431,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -6.611,
+      "vina_affinity_mean": -5.493399999999999,
+      "vina_affinity_std": 0.5088326247401989,
+      "vina_affinity_best": -6.368,
+      "vina_affinities": [
+        -5.163,
+        -5.771,
+        -5.136,
+        -5.029,
+        -6.368
+      ],
+      "high_affinity_rate": 0.0,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "O=P(O)(O)OP(=O)(O)OP(=O)(O)O",
+          "success": 1,
+          "vina_affinity": -5.163,
+          "all_affinities": [
+            -5.163,
+            -5.032,
+            -4.764,
+            -4.62,
+            -4.53,
+            -4.522,
+            -4.328,
+            -4.252,
+            -4.182
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.801764305403388,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Nc1ncnc2c1ncn2[C@@H]1O[C@H](COP(=O)(O)O)[C@@H](O)[C@@H]1O",
+          "success": 1,
+          "vina_affinity": -5.771,
+          "all_affinities": [
+            -5.771,
+            -5.643,
+            -5.35,
+            -5.337,
+            -5.301,
+            -5.243,
+            -5.239,
+            -4.955,
+            -4.809
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.007440688676742885,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7438323858697355,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=P(O)(O)OC[C@H](O)[C@H](O)[C@@H](COP(=O)(O)O)NOP(=O)(O)O",
+          "success": 1,
+          "vina_affinity": -5.136,
+          "all_affinities": [
+            -5.136,
+            -5.131,
+            -5.082,
+            -4.985,
+            -4.834,
+            -4.715,
+            -4.65,
+            -4.632,
+            -4.613
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.6155237785829435,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "NC(=O)C[C@H](NC(=O)[C@H]([NH3+])CCC(=O)O)C(=O)NO",
+          "success": 1,
+          "vina_affinity": -5.029,
+          "all_affinities": [
+            -5.029,
+            -4.913,
+            -4.901,
+            -4.879,
+            -4.871,
+            -4.79,
+            -4.78,
+            -4.54,
+            -4.284
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7225153941522424,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "[NH2+]=c1[nH]c(=O)c2ncn([C@H]3O[C@@H](COP(=O)([O-])[O-])[C@@H](O)[C@H]3O)c2[nH]1",
+          "success": 1,
+          "vina_affinity": -6.368,
+          "all_affinities": [
+            -6.368,
+            -5.501,
+            -5.413,
+            -5.301,
+            -5.264,
+            -5.136,
+            -4.876,
+            -4.786,
+            -4.733
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.039067678071153245,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7671244291201407,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "1o0h"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 82.56168706053987,
+      "strain_energy_median": 86.20336906602729,
+      "mol_volume_mean": 331.6384000000001,
+      "mol_volume_std": 51.05184850561241,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -6.392,
+      "vina_affinity_mean": -7.601000000000001,
+      "vina_affinity_std": 0.38935485100355427,
+      "vina_affinity_best": -7.994,
+      "vina_affinities": [
+        -6.947,
+        -7.371,
+        -7.812,
+        -7.881,
+        -7.994
+      ],
+      "high_affinity_rate": 1.0,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "COc1ccc2c3c(ncc2c1)CN(C(=O)CC[C@H](CO)C(=O)O)C[C@H]3C",
+          "success": 1,
+          "vina_affinity": -6.947,
+          "all_affinities": [
+            -6.947,
+            -6.801,
+            -6.726,
+            -6.72,
+            -6.598,
+            -6.374,
+            -6.136,
+            -6.119,
+            -5.889
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.004028050902496971,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8903205328173502,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cc1cc(=O)[nH]c(=O)n1-c1ccc(C(=O)Nc2ncc(C(=O)[O-])s2)cc1Cl",
+          "success": 1,
+          "vina_affinity": -7.371,
+          "all_affinities": [
+            -7.371,
+            -6.971,
+            -6.841,
+            -6.521,
+            -5.683,
+            -5.6,
+            -5.449,
+            -5.337,
+            -5.02
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.011671402910487794,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7627485000243763,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C(Nc1cn(-c2ccccc2)nn1)[C@@H]1CC[C@H](n2ccc(=O)[nH]c2=O)C1",
+          "success": 1,
+          "vina_affinity": -7.812,
+          "all_affinities": [
+            -7.812,
+            -7.546,
+            -6.735,
+            -6.445,
+            -6.268,
+            -6.144,
+            -5.784,
+            -5.735
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0067438272859803375,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.022417043914109,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CC(=O)NC[C@H]1OCC[C@@H]1Oc1cc(Cl)cc(-c2nc3c(N)nc(N)nc3n2-c2ccccc2)c1",
+          "success": 1,
+          "vina_affinity": -7.881,
+          "all_affinities": [
+            -7.881,
+            -7.518,
+            -7.2,
+            -7.013,
+            -6.765,
+            -6.728,
+            -6.661,
+            -6.42,
+            -5.983
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.034701340465489894,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.1747263043474216,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Nc1nc2cc(-n3cnc4c(N)ncnc43)cc(C(=O)O)c2c(=O)[nH]1",
+          "success": 1,
+          "vina_affinity": -7.994,
+          "all_affinities": [
+            -7.994,
+            -7.682,
+            -7.508,
+            -7.45,
+            -7.187,
+            -7.178,
+            -6.875,
+            -6.817,
+            -6.222
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.02359483301632473,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.819935870606201,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "2fxs"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 48.50800928651109,
+      "strain_energy_median": 51.049256187510196,
+      "mol_volume_mean": 312.74240000000003,
+      "mol_volume_std": 19.479532084729335,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": null,
+      "vina_affinity_mean": -8.097800000000001,
+      "vina_affinity_std": 0.0773857868086898,
+      "vina_affinity_best": -8.183,
+      "vina_affinities": [
+        -8.095,
+        -7.968,
+        -8.183,
+        -8.17,
+        -8.073
+      ],
+      "high_affinity_rate": null,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "CCOc1cc(Nc2cnnc(N3CCCC3)c2)cc2c1CN(C)S2(=O)=O",
+          "success": 1,
+          "vina_affinity": -8.095,
+          "all_affinities": [
+            -8.095,
+            -7.798,
+            -7.705,
+            -7.666,
+            -7.631,
+            -6.746,
+            -6.712,
+            -6.599,
+            -5.819
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.01018587678066818,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.941513585479061,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CN(C(=O)Cc1cc(-c2nccn2C)c(O)cc1O)c1cccc(F)c1",
+          "success": 1,
+          "vina_affinity": -7.968,
+          "all_affinities": [
+            -7.968,
+            -7.563,
+            -7.475,
+            -7.408,
+            -7.157,
+            -7.101,
+            -6.96,
+            -6.902,
+            -6.621
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.024100368880658918,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7680619383352263,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CO/C=C\\NC(=O)c1oc2ccc(C#N)cc2c1C1=NN(C)C(=O)CC1",
+          "success": 1,
+          "vina_affinity": -8.183,
+          "all_affinities": [
+            -8.183,
+            -8.064,
+            -7.759,
+            -7.542,
+            -7.488,
+            -7.288,
+            -7.019,
+            -6.887,
+            -6.593
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.005108451983919869,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.0394606493190106,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cc1ccc(C(N)=O)c(C)c1Nc1ccc(C(C)C)cc1",
+          "success": 1,
+          "vina_affinity": -8.17,
+          "all_affinities": [
+            -8.17,
+            -7.675,
+            -7.545,
+            -7.231,
+            -6.857,
+            -6.848,
+            -6.42,
+            -6.317,
+            -5.897
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.023821852668274746,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8547428416500114,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "COc1ccc(Nc2nc(Cl)nc(NCC3CC[NH2+]CC3)n2)c(Cl)c1",
+          "success": 1,
+          "vina_affinity": -8.073,
+          "all_affinities": [
+            -8.073,
+            -8.048,
+            -7.732,
+            -7.424,
+            -7.323,
+            -6.998,
+            -6.584,
+            -6.407,
+            -6.012
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.003795098494588922,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.075807250815825,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "1yc1"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 47.06383468779336,
+      "strain_energy_median": 43.232408700779104,
+      "mol_volume_mean": 185.59360000000004,
+      "mol_volume_std": 21.605373790795664,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -6.239,
+      "vina_affinity_mean": -6.0182,
+      "vina_affinity_std": 0.4724080439619968,
+      "vina_affinity_best": -6.495,
+      "vina_affinities": [
+        -6.495,
+        -6.28,
+        -5.15,
+        -6.253,
+        -5.913
+      ],
+      "high_affinity_rate": 0.6,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "CC[C@H](C[C@H]([NH3+])C(=O)O)C(=O)O",
+          "success": 1,
+          "vina_affinity": -6.495,
+          "all_affinities": [
+            -6.495,
+            -5.763,
+            -5.595,
+            -5.495,
+            -5.312,
+            -5.076,
+            -5.032,
+            -5.029,
+            -4.899
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.9607529746057812,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C1CC=CCN1[C@@H]1O[C@@H](CO)[C@@H](O)[C@@H](O)[C@@H]1O",
+          "success": 1,
+          "vina_affinity": -6.28,
+          "all_affinities": [
+            -6.28,
+            -6.203,
+            -5.947,
+            -5.928,
+            -5.905,
+            -5.87,
+            -5.498,
+            -5.362,
+            -5.312
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.812776923330774,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "OCCN1C[C@@H](O)[C@@H](O)[C@H](O)[C@H]1CO",
+          "success": 1,
+          "vina_affinity": -5.15,
+          "all_affinities": [
+            -5.15,
+            -5.028,
+            -4.938,
+            -4.842,
+            -4.465,
+            -4.409,
+            -4.338,
+            -4.327,
+            -4.087
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.811272096342072,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CO[C@@H]1O[C@@H](CO)[C@H](O)[C@@H](O)[C@H]1O",
+          "success": 1,
+          "vina_affinity": -6.253,
+          "all_affinities": [
+            -6.253,
+            -5.404,
+            -4.91,
+            -4.896,
+            -4.765,
+            -4.644,
+            -4.422,
+            -4.363,
+            -4.19
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.658077928364044,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CO[C@H]1[NH2+][C@@H](CO)[C@H](O)[C@H](O)[C@@H]1O",
+          "success": 1,
+          "vina_affinity": -5.913,
+          "all_affinities": [
+            -5.913,
+            -5.692,
+            -5.531,
+            -5.524,
+            -5.333,
+            -4.543,
+            -4.509,
+            -4.116,
+            -4.097
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.801460746181036,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "2j78"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 46.15330692444766,
+      "strain_energy_median": 24.216442136542526,
+      "mol_volume_mean": 138.93600000000004,
+      "mol_volume_std": 6.342943669937492,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -6.534,
+      "vina_affinity_mean": -5.659599999999999,
+      "vina_affinity_std": 0.6203658920346928,
+      "vina_affinity_best": -6.462,
+      "vina_affinities": [
+        -6.462,
+        -5.503,
+        -6.16,
+        -5.504,
+        -4.669
+      ],
+      "high_affinity_rate": 0.0,
+      "posebusters_pass_rate": 0.4,
+      "protein_clash_free_rate": 0.4,
+      "mean_protein_clashes": 1.0,
+      "docking_results": [
+        {
+          "smiles": "Cc1ccc(S(N)(=O)=O)cc1",
+          "success": 1,
+          "vina_affinity": -6.462,
+          "all_affinities": [
+            -6.462,
+            -5.973,
+            -5.712,
+            -5.441,
+            -4.975,
+            -4.95,
+            -4.646,
+            -4.601,
+            -4.165
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0030978519952544747,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 0,
+            "protein_clash_count": 2,
+            "min_protein_ligand_dist": 2.195274774559132,
+            "passed_all": 0
+          },
+          "error": null
+        },
+        {
+          "smiles": "NS(=O)(=O)c1nnc(S)s1",
+          "success": 1,
+          "vina_affinity": -5.503,
+          "all_affinities": [
+            -5.503,
+            -5.179,
+            -5.166,
+            -5.07,
+            -4.815,
+            -4.666,
+            -4.491,
+            -4.383,
+            -3.876
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0004634476041918134,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 0,
+            "protein_clash_count": 1,
+            "min_protein_ligand_dist": 2.7688853977493837,
+            "passed_all": 0
+          },
+          "error": null
+        },
+        {
+          "smiles": "NS(=O)(=O)c1ccccc1Cl",
+          "success": 1,
+          "vina_affinity": -6.16,
+          "all_affinities": [
+            -6.16,
+            -6.008,
+            -5.981,
+            -5.839,
+            -5.808,
+            -5.367,
+            -5.124,
+            -4.612,
+            -4.445
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.00039797351702419714,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 0,
+            "protein_clash_count": 2,
+            "min_protein_ligand_dist": 2.4217690516156507,
+            "passed_all": 0
+          },
+          "error": null
+        },
+        {
+          "smiles": "NS(=O)(=S)c1ccccc1",
+          "success": 1,
+          "vina_affinity": -5.504,
+          "all_affinities": [
+            -5.504,
+            -5.374,
+            -5.357,
+            -4.957,
+            -4.759,
+            -4.325,
+            -4.124,
+            -4.112,
+            -3.859
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.004766234017738125,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7018854570683035,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Sc1cccc(Cl)c1Cl",
+          "success": 1,
+          "vina_affinity": -4.669,
+          "all_affinities": [
+            -4.669,
+            -4.375,
+            -4.333,
+            -4.126,
+            -4.118,
+            -4.007,
+            -4.003,
+            -3.843,
+            -3.833
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0004508786274352028,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.978735264682324,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "2weg"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 43.781093656972836,
+      "strain_energy_median": 35.39259379475705,
+      "mol_volume_mean": 244.52320000000003,
+      "mol_volume_std": 19.656140072760984,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -5.329,
+      "vina_affinity_mean": -7.092999999999999,
+      "vina_affinity_std": 0.4465754135641593,
+      "vina_affinity_best": -7.789,
+      "vina_affinities": [
+        -7.074,
+        -6.734,
+        -6.526,
+        -7.342,
+        -7.789
+      ],
+      "high_affinity_rate": 1.0,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "Cc1cnc(N(C)C)cc1Nc1ccc(Cl)c(C(N)=O)c1",
+          "success": 1,
+          "vina_affinity": -7.074,
+          "all_affinities": [
+            -7.074,
+            -6.886,
+            -6.586,
+            -6.573,
+            -6.354,
+            -6.266,
+            -6.072,
+            -6.019,
+            -6.013
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.004866561820914578,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.9286216739652433,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cc1cc(Nc2ccncc2)n2ncc(C#N)c2n1",
+          "success": 1,
+          "vina_affinity": -6.734,
+          "all_affinities": [
+            -6.734,
+            -6.716,
+            -6.532,
+            -6.525,
+            -6.505,
+            -6.307,
+            -6.228,
+            -6.065,
+            -5.909
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0193796136215173,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.2574248581962313,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cc1nnc2c(NC3(C)CC[NH2+]CC3)ccnn12",
+          "success": 1,
+          "vina_affinity": -6.526,
+          "all_affinities": [
+            -6.526,
+            -6.357,
+            -6.31,
+            -6.193,
+            -6.093,
+            -5.884,
+            -5.82,
+            -5.469,
+            -5.286
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.002499238227534284,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.841385954720867,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cc1cc(NCc2n[nH]c3cc(C(=O)O)cc(Cl)c23)ccn1",
+          "success": 1,
+          "vina_affinity": -7.342,
+          "all_affinities": [
+            -7.342,
+            -7.128,
+            -6.895,
+            -6.688,
+            -6.665,
+            -6.578,
+            -6.462,
+            -6.32,
+            -6.295
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.007263389691552158,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.823477863451682,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cc1cc(-c2nc3[nH]c(=[NH2+])[nH]c(=O)c3[nH]2)cc(F)c1C",
+          "success": 1,
+          "vina_affinity": -7.789,
+          "all_affinities": [
+            -7.789,
+            -7.71,
+            -7.339,
+            -7.203,
+            -7.149,
+            -6.436,
+            -6.423,
+            -6.325,
+            -6.063
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0050797426997026,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8984804307390277,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "2iwx"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 79.35862126513274,
+      "strain_energy_median": 65.11566656780022,
+      "mol_volume_mean": 413.18880000000007,
+      "mol_volume_std": 84.215805163639,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -10.448,
+      "vina_affinity_mean": -9.1298,
+      "vina_affinity_std": 0.918599237970509,
+      "vina_affinity_best": -10.554,
+      "vina_affinities": [
+        -9.031,
+        -8.15,
+        -10.554,
+        -8.195,
+        -9.719
+      ],
+      "high_affinity_rate": 0.2,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "[H]/N=C(/N)c1ccc(-c2ccc(OCC3CCCCC3)cc2)cc1",
+          "success": 1,
+          "vina_affinity": -9.031,
+          "all_affinities": [
+            -9.031,
+            -8.537,
+            -8.514,
+            -7.679,
+            -7.314,
+            -7.153,
+            -7.096,
+            -6.477
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.001333366892030119,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.4961969433003928,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "C/C(N)=C\\c1ccc(CN2CC[C@@H](NC(=O)CCCCC[NH3+])C2=O)cc1",
+          "success": 1,
+          "vina_affinity": -8.15,
+          "all_affinities": [
+            -8.15,
+            -8.077,
+            -7.286,
+            -6.998,
+            -6.986,
+            -6.889,
+            -6.653,
+            -6.556,
+            -6.512
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0015396024977109568,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.931178511117196,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cc1nc(N)c2nc(-c3ccc4ccccc4c3)n([C@H]3CC[C@@H](C(=O)N4CCC[C@H]4C(N)=O)C3)c2n1",
+          "success": 1,
+          "vina_affinity": -10.554,
+          "all_affinities": [
+            -10.554,
+            -9.927,
+            -9.712,
+            -9.175,
+            -9.14,
+            -9.115,
+            -9.066,
+            -8.302,
+            -8.208
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.019637300161013838,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8210464684825727,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "N#Cc1cccnc1CNc1ccc2nc(-c3ccc(Cl)s3)n([C@H]3O[C@H](CO)[C@@H](O)[C@H]3O)c2c1",
+          "success": 1,
+          "vina_affinity": -8.195,
+          "all_affinities": [
+            -8.195,
+            -7.553,
+            -7.366,
+            -7.18,
+            -7.056,
+            -7.025,
+            -6.948,
+            -6.667,
+            -6.474
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.020130370455947066,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.889026021558404,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CC(C)n1c(Nc2ncc(C(N)=[NH2+])s2)nc2cc(-c3cn(CCCC(=O)Nc4ccccc4C(=O)N4CCCC4)nn3)ccc21",
+          "success": 1,
+          "vina_affinity": -9.719,
+          "all_affinities": [
+            -9.719,
+            -9.567,
+            -9.295,
+            -8.889,
+            -8.515,
+            -8.433,
+            -8.347,
+            -8.157,
+            -8.072
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.04467214547493292,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8550575161366463,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "1lpg"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 34.956220816803366,
+      "strain_energy_median": 30.930969274672726,
+      "mol_volume_mean": 140.01760000000002,
+      "mol_volume_std": 8.612296920102095,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -6.189,
+      "vina_affinity_mean": -5.8616,
+      "vina_affinity_std": 0.39343644976031383,
+      "vina_affinity_best": -6.335,
+      "vina_affinities": [
+        -5.68,
+        -6.335,
+        -6.212,
+        -5.847,
+        -5.234
+      ],
+      "high_affinity_rate": 0.4,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "Cn1c(=O)[nH]c(=O)c2[nH]cnc21",
+          "success": 1,
+          "vina_affinity": -5.68,
+          "all_affinities": [
+            -5.68,
+            -5.188,
+            -5.183,
+            -5.146,
+            -4.86,
+            -4.226,
+            -4.133,
+            -3.868,
+            -3.612
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.00045606799305678014,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.9529201880061424,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "C[C@@H]1[NH2+]C[C@H](O)[C@@H](O)[C@H]1O",
+          "success": 1,
+          "vina_affinity": -6.335,
+          "all_affinities": [
+            -6.335,
+            -5.772,
+            -5.424,
+            -5.146,
+            -4.794,
+            -4.419,
+            -4.162,
+            -4.028,
+            -3.662
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.681108113303955,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O[C@H]1[C@H](O)[C@@H](O)[C@H](O)[C@H]1O",
+          "success": 1,
+          "vina_affinity": -6.212,
+          "all_affinities": [
+            -6.212,
+            -6.142,
+            -6.059,
+            -5.451,
+            -5.142,
+            -4.889,
+            -4.776,
+            -4.651,
+            -4.568
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.683332422099484,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "OC[C@@H]1C[NH2+]C[C@@H](O)[C@@H]1O",
+          "success": 1,
+          "vina_affinity": -5.847,
+          "all_affinities": [
+            -5.847,
+            -5.234,
+            -5.062,
+            -4.841,
+            -4.49,
+            -4.327,
+            -4.125,
+            -3.297,
+            -3.276
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.541033741132862,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "[NH3+][C@H](CC[C@H](O)CO)C(=O)O",
+          "success": 1,
+          "vina_affinity": -5.234,
+          "all_affinities": [
+            -5.234,
+            -5.233,
+            -5.224,
+            -5.063,
+            -4.806,
+            -4.795,
+            -4.556,
+            -4.113,
+            -4.05
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.6780999217664894,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "2j7h"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 62.154139483042535,
+      "strain_energy_median": 63.83645670235306,
+      "mol_volume_mean": 316.5840000000001,
+      "mol_volume_std": 30.40475204963857,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -7.91,
+      "vina_affinity_mean": -7.8854,
+      "vina_affinity_std": 1.092930299698933,
+      "vina_affinity_best": -9.189,
+      "vina_affinities": [
+        -6.517,
+        -8.757,
+        -9.189,
+        -8.293,
+        -6.671
+      ],
+      "high_affinity_rate": 0.6,
+      "posebusters_pass_rate": 0.2,
+      "protein_clash_free_rate": 0.2,
+      "mean_protein_clashes": 1.0,
+      "docking_results": [
+        {
+          "smiles": "CC(C)[C@@H](NC(=O)OCc1ccccc1)C(=O)N[C@@H](CS)C(C)(C)C",
+          "success": 1,
+          "vina_affinity": -6.517,
+          "all_affinities": [
+            -6.517,
+            -6.302,
+            -6.296,
+            -6.287,
+            -6.255,
+            -6.224,
+            -6.17,
+            -6.048,
+            -5.887
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0056085212554008446,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8588567397409674,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "C[C@@H](Cc1ccccc1)C(=O)N[C@@H](Cc1ccccc1)C(=O)NO",
+          "success": 1,
+          "vina_affinity": -8.757,
+          "all_affinities": [
+            -8.757,
+            -8.569,
+            -8.384,
+            -8.097,
+            -7.991,
+            -7.135,
+            -6.963,
+            -6.885,
+            -6.778
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.003844279534484518,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 0,
+            "protein_clash_count": 1,
+            "min_protein_ligand_dist": 2.4393080029963676,
+            "passed_all": 0
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C(N[C@@H](Cc1ccccc1)C(=O)NO)OCc1ccccc1",
+          "success": 1,
+          "vina_affinity": -9.189,
+          "all_affinities": [
+            -9.189,
+            -8.765,
+            -8.605,
+            -8.464,
+            -8.339,
+            -8.136,
+            -7.266
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0020985600384611502,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 0,
+            "protein_clash_count": 1,
+            "min_protein_ligand_dist": 2.1637968775792964,
+            "passed_all": 0
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C(O)CC[C@@H](Cc1ccccc1)C(=O)N[C@@H](Cc1ccccc1)C(=O)O",
+          "success": 1,
+          "vina_affinity": -8.293,
+          "all_affinities": [
+            -8.293,
+            -8.216,
+            -8.027,
+            -7.508,
+            -7.407,
+            -6.743,
+            -6.401,
+            -6.399,
+            -6.218
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0022752023517942366,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 0,
+            "protein_clash_count": 2,
+            "min_protein_ligand_dist": 2.1859653547149134,
+            "passed_all": 0
+          },
+          "error": null
+        },
+        {
+          "smiles": "CC(C)[C@@H](CC(=O)NO)[NH2+][C@@H](Cc1ccccc1)C(=O)[O-]",
+          "success": 1,
+          "vina_affinity": -6.671,
+          "all_affinities": [
+            -6.671,
+            -6.552,
+            -6.456,
+            -6.32,
+            -6.075,
+            -6.033,
+            -5.983,
+            -5.857,
+            -5.818
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0025447487625908927,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 0,
+            "protein_clash_count": 1,
+            "min_protein_ligand_dist": 2.332059711340737,
+            "passed_all": 0
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "1qf1"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 54.03663943980432,
+      "strain_energy_median": 56.22905351617983,
+      "mol_volume_mean": 313.8224,
+      "mol_volume_std": 44.56747237885497,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -8.647,
+      "vina_affinity_mean": -7.722399999999999,
+      "vina_affinity_std": 0.7710622802342235,
+      "vina_affinity_best": -8.502,
+      "vina_affinities": [
+        -6.284,
+        -8.502,
+        -7.757,
+        -7.811,
+        -8.258
+      ],
+      "high_affinity_rate": 0.0,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "[H]/N=C(/N)c1ccc2cc(N3CCCCCC3)c(/C(N)=N\\[H])cc2c1",
+          "success": 1,
+          "vina_affinity": -6.284,
+          "all_affinities": [
+            -6.284,
+            -5.136,
+            -4.957,
+            -4.922,
+            -4.862,
+            -4.83,
+            -4.675,
+            -4.073,
+            -3.912
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.005905485773557428,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.23910384178262,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C1CC[C@@H](C(=O)NCc2ccc3[nH]c(-c4ccccc4N4CCOCC4)cc3c2)N1",
+          "success": 1,
+          "vina_affinity": -8.502,
+          "all_affinities": [
+            -8.502,
+            -8.012,
+            -7.898,
+            -7.722,
+            -7.612,
+            -7.531,
+            -7.303,
+            -7.289,
+            -6.887
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.011260415372075283,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8273867243060398,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "[H]/N=C(/N)c1ccc(-c2cccc([C@H](C[NH3+])/N=C/c3ccccc3Cl)c2)cc1",
+          "success": 1,
+          "vina_affinity": -7.757,
+          "all_affinities": [
+            -7.757,
+            -7.602,
+            -7.565,
+            -6.673,
+            -6.561,
+            -6.553,
+            -6.41,
+            -6.363,
+            -6.056
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.002743688245021348,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7211865558539485,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "[NH2+]=c1[nH]nc(-c2cccc([C@@H](Cl)C(=O)N3CCOCC3)c2)[nH]1",
+          "success": 1,
+          "vina_affinity": -7.811,
+          "all_affinities": [
+            -7.811,
+            -7.706,
+            -7.533,
+            -7.467,
+            -7.17,
+            -6.624,
+            -6.467,
+            -5.751,
+            -5.604
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.011643930318427781,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.807111837406362,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "[H]/N=C(/N)c1ccc2[nH]c(-c3ccc(O)c(CC(=O)[O-])c3)nc2c1",
+          "success": 1,
+          "vina_affinity": -8.258,
+          "all_affinities": [
+            -8.258,
+            -7.878,
+            -7.474,
+            -7.351,
+            -7.164,
+            -7.009,
+            -6.944,
+            -6.643,
+            -6.473
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.00982852476512519,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7339869247996926,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "1owh"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 170.094178460977,
+      "strain_energy_median": 125.45300510044589,
+      "mol_volume_mean": 313.63520000000005,
+      "mol_volume_std": 33.062156096661326,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -8.359,
+      "vina_affinity_mean": -6.870400000000001,
+      "vina_affinity_std": 0.5998605171204385,
+      "vina_affinity_best": -7.482,
+      "vina_affinities": [
+        -7.128,
+        -5.772,
+        -7.482,
+        -7.236,
+        -6.734
+      ],
+      "high_affinity_rate": 0.0,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "Nc1ncnc2c1ncn2[C@H]1OC[C@@H](COP(=O)(O)O)[C@H]1O",
+          "success": 1,
+          "vina_affinity": -7.128,
+          "all_affinities": [
+            -7.128,
+            -6.303,
+            -6.095,
+            -5.88,
+            -5.613,
+            -5.283,
+            -5.274,
+            -5.119,
+            -4.788
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.005591044207156937,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.832788692798434,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=P(O)(O)O[P@@](=O)(O)OC[C@H](O)[C@@H](O)[C@@H](O)[C@H](O)[C@H](O)[C@@H](O)[C@H](O)CO",
+          "success": 1,
+          "vina_affinity": -5.772,
+          "all_affinities": [
+            -5.772,
+            -5.485,
+            -5.483,
+            -5.456,
+            -5.423,
+            -5.209,
+            -4.94,
+            -4.794,
+            -4.703
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7115344604464147,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Nc1ncnc2c1ncn2[C@H]1O[C@H](CO[P@@](=O)(O)OP(=O)(O)O)[C@H](O)[C@H]1O",
+          "success": 1,
+          "vina_affinity": -7.482,
+          "all_affinities": [
+            -7.482,
+            -6.665,
+            -6.036,
+            -5.955,
+            -5.729,
+            -5.352,
+            -4.888,
+            -4.711
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.007013793330962947,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7824699907716592,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Nc1ncnc2c1ncn2[C@@H](O)[C@H](O)[C@@H](O)[C@@H](O)[C@@H](O)CO[P@@](=O)(O)OP(=O)(O)O",
+          "success": 1,
+          "vina_affinity": -7.236,
+          "all_affinities": [
+            -7.236,
+            -7.234,
+            -7.038,
+            -7.0,
+            -6.985,
+            -6.851,
+            -6.748,
+            -6.723,
+            -6.521
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.021202375926440892,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.706963991667645,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "[NH2+]=c1[nH]c(=O)c2ncn([C@H]3O[C@@H](CO[P@@](=O)([O-])OP(=O)([O-])[O-])[C@@H](O)[C@H]3O)c2[nH]1",
+          "success": 1,
+          "vina_affinity": -6.734,
+          "all_affinities": [
+            -6.734,
+            -6.624,
+            -6.326,
+            -6.219,
+            -6.195,
+            -6.143,
+            -5.942,
+            -5.901,
+            -5.288
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.03336212173028007,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.80331535807678,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "1u1b"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 57.096505808515964,
+      "strain_energy_median": 49.551054115824144,
+      "mol_volume_mean": 278.8880000000001,
+      "mol_volume_std": 28.962642973319966,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -9.792,
+      "vina_affinity_mean": -7.865600000000001,
+      "vina_affinity_std": 0.7834070717066572,
+      "vina_affinity_best": -9.357,
+      "vina_affinities": [
+        -7.778,
+        -7.689,
+        -7.414,
+        -9.357,
+        -7.09
+      ],
+      "high_affinity_rate": 0.0,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "Nc1ncc2c(Nc3ccc(Cl)c(N4CCCC4)n3)ccnc2n1",
+          "success": 1,
+          "vina_affinity": -7.778,
+          "all_affinities": [
+            -7.778,
+            -6.609,
+            -6.346,
+            -6.107,
+            -6.049,
+            -5.296
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.00630905076812277,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.801866136894377,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CC(C)c1nc(NC2CC2)c2c(n1)c(C1CCCC1)nn2C",
+          "success": 1,
+          "vina_affinity": -7.689,
+          "all_affinities": [
+            -7.689,
+            -7.658,
+            -7.418,
+            -4.752
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.03395849777883867,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.1207312183166076,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cc1nc(Nc2ncnc3ncc(Cl)cc23)sc1C#N",
+          "success": 1,
+          "vina_affinity": -7.414,
+          "all_affinities": [
+            -7.414,
+            -7.338,
+            -7.307,
+            -6.777,
+            -6.164,
+            -5.844,
+            -5.834,
+            -5.657,
+            -5.328
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.033393408220131544,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.044704287612437,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cn1cc(-c2ccc(C3=CC(=O)CCC3)cc2)c(-c2ccccc2F)n1",
+          "success": 1,
+          "vina_affinity": -9.357,
+          "all_affinities": [
+            -9.357,
+            -8.651,
+            -8.166,
+            -7.164
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.013234422675578478,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.173443776923816,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cc1nc(Sc2ncc(C(C)C)[nH]2)sc1C(C)C",
+          "success": 1,
+          "vina_affinity": -7.09,
+          "all_affinities": [
+            -7.09,
+            -6.93,
+            -6.492,
+            -6.425,
+            -6.225,
+            -5.909,
+            -5.804,
+            -5.794,
+            -4.56
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.006498684034194624,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.394330376372958,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "2qe4"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 4,
+      "conformer_success_rate": 0.8,
+      "strain_energy_mean": 50.850904712325644,
+      "strain_energy_median": 45.557657658305224,
+      "mol_volume_mean": 304.398,
+      "mol_volume_std": 21.00624849895858,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 4,
+      "n_dock_succeeded": 4,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -13.97,
+      "vina_affinity_mean": -8.663499999999999,
+      "vina_affinity_std": 0.21243410743098654,
+      "vina_affinity_best": -8.847,
+      "vina_affinities": [
+        -8.719,
+        -8.847,
+        -8.304,
+        -8.784
+      ],
+      "high_affinity_rate": 0.0,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "Cc1ncsc1CNS(=O)(=O)c1ccc2c(=O)n(C)c(N)nc2c1",
+          "success": 1,
+          "vina_affinity": -8.719,
+          "all_affinities": [
+            -8.719,
+            -8.375,
+            -8.311,
+            -8.236,
+            -7.873,
+            -7.441,
+            -7.335,
+            -7.247,
+            -6.974
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.00535958003248993,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.9054348980239557,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "COc1cc(C(N)=O)ccc1-c1cc(Cl)c2c(n1)CN(C)C2=O",
+          "success": 1,
+          "vina_affinity": -8.847,
+          "all_affinities": [
+            -8.847,
+            -8.633,
+            -8.556,
+            -8.354,
+            -8.322,
+            -8.238,
+            -8.153,
+            -7.606,
+            -7.483
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.013471399982598609,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.204712210155913,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CO[C@H]1C[C@H](n2cnc3c(-c4cccnc4)n[nH]c32)[C@H]2CCC[NH2+][C@@H]21",
+          "success": 1,
+          "vina_affinity": -8.304,
+          "all_affinities": [
+            -8.304,
+            -8.066,
+            -7.863,
+            -7.69,
+            -7.633,
+            -7.375,
+            -7.305,
+            -7.163,
+            -6.822
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.006286060558378881,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.977458786751431,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=c1[nH]cnc2c(N3CCCCC3)nc(Nc3c(Cl)cccc3C(F)(F)F)nc12",
+          "success": 1,
+          "vina_affinity": -8.784,
+          "all_affinities": [
+            -8.784,
+            -8.717,
+            -8.518,
+            -8.41,
+            -8.327,
+            -8.324,
+            -8.292,
+            -8.184,
+            -8.003
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.012580017373878219,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.9845081774727067,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "1nvq"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 37.13931730887295,
+      "strain_energy_median": 32.32999244061794,
+      "mol_volume_mean": 184.31680000000006,
+      "mol_volume_std": 43.89783501905306,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -8.574,
+      "vina_affinity_mean": -5.4824,
+      "vina_affinity_std": 0.5932306802585314,
+      "vina_affinity_best": -6.235,
+      "vina_affinities": [
+        -5.89,
+        -6.235,
+        -4.853,
+        -5.712,
+        -4.722
+      ],
+      "high_affinity_rate": 0.0,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "O=C(O)c1cc2cc[nH]c2c(Cl)c1C(=O)O",
+          "success": 1,
+          "vina_affinity": -5.89,
+          "all_affinities": [
+            -5.89,
+            -5.704,
+            -5.5,
+            -5.088,
+            -4.943,
+            -4.484,
+            -4.449,
+            -4.402,
+            -4.394
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0067690302245877465,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.54221995658959,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CN(C)CCC[C@H]([NH3+])C(=O)O",
+          "success": 1,
+          "vina_affinity": -6.235,
+          "all_affinities": [
+            -6.235,
+            -3.865,
+            -3.759,
+            -3.554,
+            -3.535,
+            -3.278
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8023061952932147,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CCCc1nccn1Cc1cccc(Cl)c1Cl",
+          "success": 1,
+          "vina_affinity": -4.853,
+          "all_affinities": [
+            -4.853,
+            -4.564,
+            -4.439,
+            -4.433,
+            -4.42,
+            -4.266,
+            -4.186,
+            -4.142,
+            -4.068
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.011234575473387187,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.127028913783784,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C(C(F)(F)F)P(=O)(O)O",
+          "success": 1,
+          "vina_affinity": -5.712,
+          "all_affinities": [
+            -5.712,
+            -5.57,
+            -5.563,
+            -5.007,
+            -4.981,
+            -4.734,
+            -4.249,
+            -3.909,
+            -3.87
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7096211140600235,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "c1cn2c(n1)[NH2+][C@@H](c1c[nH]cn1)C[C@@H]2c1c[nH]cn1",
+          "success": 1,
+          "vina_affinity": -4.722,
+          "all_affinities": [
+            -4.722,
+            -4.34,
+            -4.335,
+            -3.15,
+            -1.816
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.023212519331131276,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.328367914935749,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "2al5"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 84.62083775413676,
+      "strain_energy_median": 92.36213248595647,
+      "mol_volume_mean": 403.99840000000006,
+      "mol_volume_std": 36.649174536952394,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -6.259,
+      "vina_affinity_mean": -7.9918000000000005,
+      "vina_affinity_std": 0.30697843572472666,
+      "vina_affinity_best": -8.374,
+      "vina_affinities": [
+        -7.526,
+        -8.374,
+        -8.285,
+        -7.877,
+        -7.897
+      ],
+      "high_affinity_rate": 1.0,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "COC(=O)[C@@H]1CCCN1C(=O)Nc1cnc(N[C@H]2CC[C@H]([NH3+])CC2)nc1N1CCC[C@H]([NH3+])C1",
+          "success": 1,
+          "vina_affinity": -7.526,
+          "all_affinities": [
+            -7.526,
+            -7.504,
+            -7.418,
+            -7.206,
+            -7.127,
+            -6.765,
+            -6.665,
+            -6.589,
+            -6.286
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.020218665704120287,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8378618190697416,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CCn1ncc2cccc(S(=O)(=O)Nc3ccc([C@@H]4CC(=O)N5CCC[N@@H+]5C4)cc3N(C)C)c21",
+          "success": 1,
+          "vina_affinity": -8.374,
+          "all_affinities": [
+            -8.374,
+            -8.24,
+            -8.139,
+            -7.388,
+            -7.329,
+            -7.126,
+            -6.929,
+            -6.761,
+            -6.714
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.044410130849620616,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.562559714377568,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CN(C)c1ncc(C(=O)[O-])c(NC(=O)[C@@H]2C[C@@H](NC(=O)/C=C\\c3ccc(O)cc3)C(C)(C)C2)n1",
+          "success": 1,
+          "vina_affinity": -8.285,
+          "all_affinities": [
+            -8.285,
+            -8.112,
+            -7.977,
+            -7.953,
+            -7.862,
+            -7.59,
+            -7.474,
+            -7.457,
+            -7.269
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.01044153576450002,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.9621894771860027,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "COc1cc2c(cc1-c1ccc(F)c(-c3cc(O)cc(C[NH3+])c3)c1)OCCO2",
+          "success": 1,
+          "vina_affinity": -7.877,
+          "all_affinities": [
+            -7.877,
+            -7.824,
+            -7.753,
+            -7.631,
+            -7.135,
+            -6.869,
+            -6.833,
+            -6.608,
+            -6.572
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.012299602351474426,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.95614820827958,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CC(=O)N[C@H](C)C(=O)N[C@@H](Cc1c[nH]c2ccccc12)C(=O)NCc1c(C)noc1C",
+          "success": 1,
+          "vina_affinity": -7.897,
+          "all_affinities": [
+            -7.897,
+            -7.883,
+            -7.851,
+            -7.746,
+            -7.684,
+            -7.635,
+            -7.405,
+            -7.208,
+            -7.179
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.004368277010530164,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7976971504625188,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "2vw5"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 628.4739828241682,
+      "strain_energy_median": 80.09237872994048,
+      "mol_volume_mean": 312.8368000000001,
+      "mol_volume_std": 11.96891611466972,
+      "intra_posebusters_pass_rate": 0.8,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -11.54,
+      "vina_affinity_mean": -8.0908,
+      "vina_affinity_std": 1.4882634712980092,
+      "vina_affinity_best": -10.046,
+      "vina_affinities": [
+        -7.491,
+        -5.683,
+        -10.046,
+        -8.097,
+        -9.137
+      ],
+      "high_affinity_rate": 0.0,
+      "posebusters_pass_rate": 0.8,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "CNC(=O)c1nc(N2CCOCC2)ncc1NC(=O)N1CCCCC1",
+          "success": 1,
+          "vina_affinity": -7.491,
+          "all_affinities": [
+            -7.491,
+            -7.405,
+            -7.068,
+            -6.974,
+            -6.914,
+            -6.738,
+            -6.738,
+            -6.57,
+            -6.041
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0022112800083580186,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.10459021982746,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CNc1nc(N2CCc3cc4c(n3C(=O)CCC4)C2)ccc1Cl",
+          "success": 1,
+          "vina_affinity": -5.683,
+          "all_affinities": [
+            -5.683,
+            -5.559,
+            -5.443,
+            -5.391,
+            -4.931,
+            -4.911,
+            -4.891,
+            -4.853,
+            -4.84
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 0,
+            "max_ring_planarity_dev": 0.3663418014031942,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.2361574756013023,
+            "passed_all": 0
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cn1ncc2c(-c3cn(Cc4ccc5c(N)ncc(C#N)c5n4)nn3)ccnc21",
+          "success": 1,
+          "vina_affinity": -10.046,
+          "all_affinities": [
+            -10.046,
+            -8.901,
+            -8.818,
+            -8.634,
+            -8.496,
+            -8.362,
+            -8.254,
+            -8.049,
+            -8.009
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.01764559178917806,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.975471228959643,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "c1cc(-c2cnc(NC3CCCCC3)n2C2CC[NH2+]CC2)ccn1",
+          "success": 1,
+          "vina_affinity": -8.097,
+          "all_affinities": [
+            -8.097,
+            -7.928,
+            -7.23,
+            -7.128,
+            -7.123,
+            -6.833,
+            -6.735,
+            -5.873,
+            -5.841
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.018379703697786156,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.308876185460882,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "N#Cc1cn(-c2ccc(S(N)(=O)=O)cc2)c2ccc(NC(=O)C(N)=O)cc12",
+          "success": 1,
+          "vina_affinity": -9.137,
+          "all_affinities": [
+            -9.137,
+            -8.549,
+            -8.275,
+            -7.715,
+            -6.879,
+            -6.768,
+            -6.656,
+            -6.514,
+            -6.513
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.028334578872318106,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7434450176677876,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "2wtv"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 39.69362826831782,
+      "strain_energy_median": 39.72759437765547,
+      "mol_volume_mean": 290.3936000000001,
+      "mol_volume_std": 16.813996759842677,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -10.313,
+      "vina_affinity_mean": -8.008399999999998,
+      "vina_affinity_std": 0.4053327521925654,
+      "vina_affinity_best": -8.681,
+      "vina_affinities": [
+        -7.408,
+        -7.988,
+        -8.681,
+        -8.041,
+        -7.924
+      ],
+      "high_affinity_rate": 0.0,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "Cc1ccccc1-c1c(=O)n(C)nc2c(NC(C)(C)C)cccc12",
+          "success": 1,
+          "vina_affinity": -7.408,
+          "all_affinities": [
+            -7.408,
+            -6.699,
+            -6.605,
+            -6.452,
+            -6.202,
+            -5.974,
+            -5.77,
+            -5.767,
+            -5.519
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0027583420619965993,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.851639388908481,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CCCCS(=O)(=O)Nc1cccc2c1c1ccc(Cl)cc1n2C",
+          "success": 1,
+          "vina_affinity": -7.988,
+          "all_affinities": [
+            -7.988,
+            -7.804,
+            -7.773,
+            -7.192,
+            -7.179,
+            -6.617,
+            -6.498,
+            -6.419,
+            -6.212
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.011903798974222668,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.235886846929958,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Oc1ccc2c(c1)nc(-c1ccccc1F)n2Cc1ccccc1",
+          "success": 1,
+          "vina_affinity": -8.681,
+          "all_affinities": [
+            -8.681,
+            -8.166,
+            -8.099,
+            -7.793,
+            -7.336,
+            -6.791
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.010121139521618944,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.0576760403075305,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cc1cnc(Nc2nncn3cc(C(C)C)nc23)c(C)c1",
+          "success": 1,
+          "vina_affinity": -8.041,
+          "all_affinities": [
+            -8.041,
+            -7.948,
+            -7.498,
+            -7.152,
+            -6.929,
+            -6.466,
+            -6.416,
+            -6.14
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.030624182557376783,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.0927266629615437,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "COc1cc(Nc2ccc(-c3ccccc3)cn2)cc(Cl)c1Cl",
+          "success": 1,
+          "vina_affinity": -7.924,
+          "all_affinities": [
+            -7.924,
+            -7.834,
+            -7.74,
+            -7.622,
+            -7.519,
+            -7.451,
+            -7.31,
+            -7.204,
+            -7.128
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.008433973391935468,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.121867043342397,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "1qkt"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 43.1526561822706,
+      "strain_energy_median": 41.844613627426725,
+      "mol_volume_mean": 299.97440000000006,
+      "mol_volume_std": 13.421645943773074,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -9.971,
+      "vina_affinity_mean": -6.749600000000001,
+      "vina_affinity_std": 0.8832237768538618,
+      "vina_affinity_best": -7.751,
+      "vina_affinities": [
+        -5.306,
+        -6.264,
+        -7.751,
+        -7.485,
+        -6.942
+      ],
+      "high_affinity_rate": 0.0,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "CS(=O)(=O)c1ccc(Nc2ccc3c(c2)OCCCCC3)cc1",
+          "success": 1,
+          "vina_affinity": -5.306,
+          "all_affinities": [
+            -5.306,
+            -5.258,
+            -5.045,
+            -4.291,
+            -4.176,
+            -2.382
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.013961053390172506,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.1745736932823725,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cn1cc(-c2ccc(NC(=O)c3cc(Cl)cc(Cl)c3O)cc2)cn1",
+          "success": 1,
+          "vina_affinity": -6.264,
+          "all_affinities": [
+            -6.264,
+            -5.941,
+            -5.643,
+            -5.637
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.001403317391086534,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.802555968217031,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "C#CCCn1cc(-c2ccc(F)cc2)c2ccc(S(N)(=O)=O)cc21",
+          "success": 1,
+          "vina_affinity": -7.751,
+          "all_affinities": [
+            -7.751,
+            -7.223,
+            -6.077,
+            -5.374,
+            -4.776,
+            -4.766
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.008161626268406164,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.588583529313938,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cc1ccccc1CNc1ccc(-n2cc(CC(C)(C)O)nn2)cc1",
+          "success": 1,
+          "vina_affinity": -7.485,
+          "all_affinities": [
+            -7.485,
+            -7.46,
+            -6.949,
+            -6.893,
+            -6.375,
+            -6.094,
+            -4.576
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.008705690066134253,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.856730912859423,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "COc1cc(OC)c(C(C)C)cc1C(=O)NC1CCCC1",
+          "success": 1,
+          "vina_affinity": -6.942,
+          "all_affinities": [
+            -6.942,
+            -6.703,
+            -6.587,
+            -4.655,
+            -4.516
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.01569385754518615,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.0763694722628308,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "2pog"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 37.94802117277134,
+      "strain_energy_median": 37.537537434444786,
+      "mol_volume_mean": 269.64000000000004,
+      "mol_volume_std": 27.336947949615737,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -12.013,
+      "vina_affinity_mean": -9.7006,
+      "vina_affinity_std": 1.0543190408979626,
+      "vina_affinity_best": -11.546,
+      "vina_affinities": [
+        -9.77,
+        -8.427,
+        -8.98,
+        -9.78,
+        -11.546
+      ],
+      "high_affinity_rate": 0.0,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "CCOc1ccc(-c2cc(C)c(O)cc2C)c(C)c1",
+          "success": 1,
+          "vina_affinity": -9.77,
+          "all_affinities": [
+            -9.77,
+            -8.003,
+            -7.937,
+            -7.308,
+            -7.143
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0033589637093489125,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.7205900655430413,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "COc1ccc(-c2c(CO)nn(C)c2-c2ccccc2)cc1OC",
+          "success": 1,
+          "vina_affinity": -8.427,
+          "all_affinities": [
+            -8.427,
+            -8.272,
+            -7.871,
+            -7.18,
+            -6.998,
+            -6.95,
+            -5.952,
+            -5.934,
+            -5.87
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.012154333641812676,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.573287320691939,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CN1N=C(c2ccc3ccc(O)cc3c2)[C@H]1CS",
+          "success": 1,
+          "vina_affinity": -8.98,
+          "all_affinities": [
+            -8.98,
+            -8.691,
+            -8.612,
+            -8.394,
+            -7.68,
+            -7.508,
+            -7.404,
+            -6.441,
+            -6.137
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0014315693277496822,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.2242562122872536,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C(c1ccccc1)[C@H]1CCCN1C(=O)c1cccnc1",
+          "success": 1,
+          "vina_affinity": -9.78,
+          "all_affinities": [
+            -9.78,
+            -9.289,
+            -9.009,
+            -8.984,
+            -8.219,
+            -7.699,
+            -7.116
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.012768088172645686,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.2263243021569203,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "CC(=O)N1CCc2c([nH]c(CCC(=O)O)c2-c2ccc(O)cc2)C1=O",
+          "success": 1,
+          "vina_affinity": -11.546,
+          "all_affinities": [
+            -11.546,
+            -11.364,
+            -9.831,
+            -8.784
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.004400267939254854,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.6741703230263574,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "1e66"
+    },
+    {
+      "n_input": 5,
+      "n_embedded": 5,
+      "conformer_success_rate": 1.0,
+      "strain_energy_mean": 90.70482460332164,
+      "strain_energy_median": 76.30528228584693,
+      "mol_volume_mean": 370.0336000000001,
+      "mol_volume_std": 54.9756631887238,
+      "intra_posebusters_pass_rate": 1.0,
+      "vina_ran": 1,
+      "n_dock_attempted": 5,
+      "n_dock_succeeded": 5,
+      "vina_success_rate": 1.0,
+      "native_vina_affinity": -9.138,
+      "vina_affinity_mean": -8.7548,
+      "vina_affinity_std": 0.7939094154876863,
+      "vina_affinity_best": -10.2,
+      "vina_affinities": [
+        -9.005,
+        -8.299,
+        -8.245,
+        -8.025,
+        -10.2
+      ],
+      "high_affinity_rate": 0.2,
+      "posebusters_pass_rate": 1.0,
+      "protein_clash_free_rate": 1.0,
+      "mean_protein_clashes": 0.0,
+      "docking_results": [
+        {
+          "smiles": "O=C1[C@@H](NS(=O)(=O)c2ccc(Cl)s2)CCN1Cc1ccc(-c2ccccn2)cc1",
+          "success": 1,
+          "vina_affinity": -9.005,
+          "all_affinities": [
+            -9.005,
+            -8.7,
+            -8.104,
+            -8.087,
+            -8.081,
+            -7.486,
+            -7.157,
+            -6.936,
+            -6.833
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.004523099790981977,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.9084858953519546,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "O=C([C@H]1CCCN1C(=O)c1nc2c(s1)CC[N@@H+](Cc1ccc(Cl)s1)C2)N1CCOCC1",
+          "success": 1,
+          "vina_affinity": -8.299,
+          "all_affinities": [
+            -8.299,
+            -8.291,
+            -7.561,
+            -7.389,
+            -6.848,
+            -6.783,
+            -6.701,
+            -6.605,
+            -6.463
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.018850405194792773,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.3073411206966283,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "[H]/N=C(\\N)c1cc(-c2cn(-c3cccc(/C(N)=N\\[H])c3)nn2)cs1",
+          "success": 1,
+          "vina_affinity": -8.245,
+          "all_affinities": [
+            -8.245,
+            -8.067,
+            -7.978,
+            -7.623,
+            -7.071,
+            -6.922,
+            -6.788,
+            -6.442,
+            -6.091
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.0023470447497399016,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.8202672025882323,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "C[NH+]1CCN(C(=O)[C@H](Cc2ccccc2)NS(=O)(=O)c2ccc3ccccc3c2)CC1",
+          "success": 1,
+          "vina_affinity": -8.025,
+          "all_affinities": [
+            -8.025,
+            -7.925,
+            -7.456,
+            -7.33,
+            -7.242,
+            -7.196,
+            -7.081,
+            -6.892,
+            -6.501
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.008642513395176632,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 3.201241542010477,
+            "passed_all": 1
+          },
+          "error": null
+        },
+        {
+          "smiles": "Cn1cnc(C(=O)Nc2c(F)ccc(C(=O)Nc3ccccc3-c3cccc(-n4cnnn4)c3)c2F)c1",
+          "success": 1,
+          "vina_affinity": -10.2,
+          "all_affinities": [
+            -10.2,
+            -9.403,
+            -9.393,
+            -9.344,
+            -8.956,
+            -8.322,
+            -8.05,
+            -8.009,
+            -7.606
+          ],
+          "posebusters": {
+            "bond_lengths_ok": 1,
+            "bond_angles_ok": 1,
+            "aromatic_ring_planarity_ok": 1,
+            "max_ring_planarity_dev": 0.006948154043249985,
+            "internal_clashes_ok": 1,
+            "internal_clash_count": 0,
+            "protein_clashes_ok": 1,
+            "protein_clash_count": 0,
+            "min_protein_ligand_dist": 2.9612019635550286,
+            "passed_all": 1
+          },
+          "error": null
+        }
+      ],
+      "pdb_id": "1mq6"
+    }
+  ]
+}
