@@ -72,6 +72,7 @@ declare global {
 const RDKIT_CDNS = [
   'https://unpkg.com/@rdkit/rdkit@2025.3.4-1.0.0/dist/',
   'https://cdn.jsdelivr.net/npm/@rdkit/rdkit@2025.3.4-1.0.0/dist/',
+  'https://cdn.jsdelivr.net/npm/@rdkit/rdkit/dist/',
 ];
 
 let rdkitPromise: Promise<RDKitModule> | null = null;

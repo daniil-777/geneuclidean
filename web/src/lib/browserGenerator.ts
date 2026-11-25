@@ -167,6 +167,20 @@ function mulberry32(seed: number): () => number {
   };
 }
 
+export function cosineSimilarity(a: ArrayLike<number>, b: ArrayLike<number>): number {
+  const n = Math.min(a.length, b.length);
+  let dot = 0;
+  let na = 0;
+  let nb = 0;
+  for (let i = 0; i < n; i++) {
+    dot += a[i] * b[i];
+    na += a[i] * a[i];
+    nb += b[i] * b[i];
+  }
+  const denom = Math.sqrt(na) * Math.sqrt(nb);
+  return denom > 1e-12 ? dot / denom : 0;
+}
+
 export function buildSteeringVector(
   pack: PocketEmbeddingsPack,
   mode: 'single' | 'contrastive' | 'dual_blend',
@@ -535,6 +549,94 @@ export class BrowserChemicalTransformer {
       const tok = this.manifest.vocab[chosen] ?? '';
       tokens.push(tok);
       if (opts.onToken) opts.onToken(tokens.join(''));
+
+      const nextPos = prefix_len + 1 + step;
+      if (nextPos >= max_seq_len) break;
+      condLogits = condStream.step(chosen, nextPos);
+      if (uncondStream) uncondLogits = uncondStream.step(chosen, nextPos);
+    }
+
+    return {
+      smiles: tokens.join(''),
+      tokenCount: tokens.length,
+      latencyMs: performance.now() - t0,
+    };
+  }
+
+  async generateOneAsync(opts: GenerateOptions): Promise<GeneratedSample> {
+    const t0 = performance.now();
+    const rng = opts.seed !== undefined ? mulberry32(opts.seed) : Math.random;
+    const { vocab_size, pad_id, bos_id, eos_id, unk_id, prefix_len, max_seq_len } = this.cfg;
+    const useCfg = Math.abs(opts.cfgScale - 1.0) > 1e-4;
+
+    const condStream = this.createStream(opts.zCond);
+    const uncondStream = useCfg ? this.createStream(new Float32Array(this.cfg.pocket_dim)) : null;
+
+    let condLogits = condStream.prefill();
+    let uncondLogits = uncondStream ? uncondStream.prefill() : null;
+
+    const guided = new Float32Array(vocab_size);
+    const indices = Array.from({ length: vocab_size }, (_, i) => i);
+    const probs = new Float32Array(vocab_size);
+    const tokens: string[] = [];
+
+    const maxSteps = Math.min(opts.maxNewTokens, max_seq_len - prefix_len - 1);
+    const invTemp = 1 / Math.max(opts.temperature, 1e-4);
+
+    for (let step = 0; step < maxSteps; step++) {
+      for (let i = 0; i < vocab_size; i++) {
+        if (i === pad_id || i === bos_id || i === unk_id) {
+          guided[i] = -Infinity;
+        } else if (useCfg && uncondLogits) {
+          guided[i] =
+            (uncondLogits[i] + opts.cfgScale * (condLogits[i] - uncondLogits[i])) * invTemp;
+        } else {
+          guided[i] = condLogits[i] * invTemp;
+        }
+      }
+
+      indices.sort((a, b) => guided[b] - guided[a]);
+      const kLimit = Math.min(opts.topK > 0 ? opts.topK : vocab_size, vocab_size);
+      const maxLogit = guided[indices[0]];
+
+      let sumExp = 0;
+      for (let i = 0; i < kLimit; i++) {
+        const val = guided[indices[i]];
+        const e = Number.isFinite(val) ? Math.exp(val - maxLogit) : 0;
+        probs[i] = e;
+        sumExp += e;
+      }
+
+      let cutoff = kLimit;
+      let cum = 0;
+      for (let i = 0; i < kLimit; i++) {
+        probs[i] /= sumExp;
+        cum += probs[i];
+        if (cum >= opts.topP && i >= 0) {
+          cutoff = i + 1;
+          break;
+        }
+      }
+
+      let r = rng() * cum;
+      let chosen = indices[0];
+      for (let i = 0; i < cutoff; i++) {
+        r -= probs[i];
+        if (r <= 0) {
+          chosen = indices[i];
+          break;
+        }
+      }
+
+      if (chosen === eos_id) break;
+      const tok = this.manifest.vocab[chosen] ?? '';
+      tokens.push(tok);
+      if (opts.onToken && (step % 4 === 0 || step === maxSteps - 1)) {
+        opts.onToken(tokens.join(''));
+      }
+      if (step > 0 && step % 12 === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
 
       const nextPos = prefix_len + 1 + step;
       if (nextPos >= max_seq_len) break;

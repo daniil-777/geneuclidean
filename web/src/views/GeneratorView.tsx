@@ -6,6 +6,7 @@ import {
   Download,
   FlaskConical,
   Play,
+  Search,
   ShieldCheck,
   Sliders,
   Sparkles,
@@ -14,6 +15,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import {
   buildSteeringVector,
+  cosineSimilarity,
   loadBrowserGeneratorBundle,
   type BrowserChemicalTransformer,
   type GeneratorPreset,
@@ -35,6 +37,7 @@ interface GeneratorViewProps {
 
 interface GeneratedCard {
   id: string;
+  label: string;
   rawSmiles: string;
   latencyMs: number;
   tokenCount: number;
@@ -48,19 +51,22 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
   const [engineStatus, setEngineStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
   const [statusMessage, setStatusMessage] = useState<string>('Checking quantized model pack…');
 
+  const [activePresetId, setActivePresetId] = useState<string>('tourette_anti_eps');
   const [mode, setMode] = useState<'single' | 'contrastive' | 'dual_blend'>('contrastive');
   const [primaryTarget, setPrimaryTarget] = useState<string>('DRD1');
   const [secondaryTarget, setSecondaryTarget] = useState<string>('DRD2');
-  const [cfgScale, setCfgScale] = useState<number>(1.5);
-  const [temperature, setTemperature] = useState<number>(0.85);
+  const [cfgScale, setCfgScale] = useState<number>(1.35);
+  const [temperature, setTemperature] = useState<number>(0.88);
   const [topP, setTopP] = useState<number>(0.92);
-  const [steerParam, setSteerParam] = useState<number>(0.5);
+  const [steerParam, setSteerParam] = useState<number>(0.55);
   const [batchSize, setBatchSize] = useState<number>(8);
 
   const [generating, setGenerating] = useState(false);
   const [streamPreview, setStreamPreview] = useState<string>('');
   const [results, setResults] = useState<GeneratedCard[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [customSmiles, setCustomSmiles] = useState<string>('');
+  const [customError, setCustomError] = useState<string | null>(null);
 
   // Auto-load neural generator + RDKit.js + calibrated ADMET/QSAR models on mount
   useEffect(() => {
@@ -75,8 +81,9 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
         setPockets(genBundle.pockets);
         setScorer(chemScorer);
         setEngineStatus('ready');
+        const mb = (genBundle.transformer.manifest.weights_bytes / (1024 * 1024)).toFixed(2);
         setStatusMessage(
-          `Ready · ${(genBundle.transformer.manifest.weights_bytes / (1024 * 1024)).toFixed(2)} MB INT8 Transformer + RDKit.js + Calibrated CNS Oracles`,
+          `LIVE · ${mb} MB INT8 3D-Transformer + RDKit.js + 15 Calibrated Oracles`,
         );
       })
       .catch((err) => {
@@ -99,7 +106,28 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
     return molecules.map((m) => m.target);
   }, [pockets, molecules]);
 
+  // Live PaiNN-SE3 steering vector & cosine alignment readout
+  const steeringTelemetry = useMemo(() => {
+    if (!pockets) return null;
+    const z = buildSteeringVector(pockets, mode, primaryTarget, secondaryTarget, steerParam);
+    const zA = pockets.targets[primaryTarget]?.embedding;
+    const zB = pockets.targets[secondaryTarget]?.embedding;
+    return {
+      z,
+      cosA: zA ? cosineSimilarity(z, zA) : 0,
+      cosB: zB ? cosineSimilarity(z, zB) : 0,
+    };
+  }, [pockets, mode, primaryTarget, secondaryTarget, steerParam]);
+
+  const verificationOverall = useMemo(() => {
+    const v = transformer?.manifest.verification as
+      | { overall?: Record<string, number> }
+      | undefined;
+    return v?.overall ?? null;
+  }, [transformer]);
+
   const applyPreset = (preset: GeneratorPreset) => {
+    setActivePresetId(preset.id);
     setMode(preset.mode);
     setPrimaryTarget(preset.primary_target);
     if (preset.anti_target) setSecondaryTarget(preset.anti_target);
@@ -111,25 +139,19 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
   };
 
   const handleGenerate = async () => {
-    if (!transformer || !pockets || !scorer || generating) return;
+    if (!transformer || !pockets || !scorer || !steeringTelemetry || generating) return;
     setGenerating(true);
     setResults([]);
     setStreamPreview('');
+    setCustomError(null);
 
-    const zCond = buildSteeringVector(
-      pockets,
-      mode,
-      primaryTarget,
-      secondaryTarget,
-      steerParam,
-    );
+    const zCond = steeringTelemetry.z;
     const seenCanonical = new Set<string>();
     const generated: GeneratedCard[] = [];
 
     for (let i = 0; i < batchSize; i++) {
-      // Yield to browser paint frame so live streaming tokens render smoothly
       await new Promise((r) => setTimeout(r, 8));
-      const sample = transformer.generateOne({
+      const sample = await transformer.generateOneAsync({
         zCond,
         cfgScale,
         temperature,
@@ -140,12 +162,12 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
       });
       const score = scorer.score(sample.smiles);
       if (score && seenCanonical.has(score.canonicalSmiles)) {
-        // Keep unique molecules prioritized, still append if needed
         continue;
       }
       if (score) seenCanonical.add(score.canonicalSmiles);
       generated.push({
         id: `${Date.now()}-${i}`,
+        label: `DeNovo #${generated.length + 1}`,
         rawSmiles: sample.smiles,
         latencyMs: sample.latencyMs,
         tokenCount: sample.tokenCount,
@@ -156,6 +178,30 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
 
     setStreamPreview('');
     setGenerating(false);
+  };
+
+  const handleScoreCustom = () => {
+    if (!scorer) return;
+    const smi = customSmiles.trim();
+    if (!smi) return;
+    const t0 = performance.now();
+    const score = scorer.score(smi);
+    if (!score) {
+      setCustomError('Invalid SMILES string — RDKit.js could not parse molecule.');
+      return;
+    }
+    setCustomError(null);
+    setResults((prev) => [
+      {
+        id: `custom-${Date.now()}`,
+        label: 'Custom SMILES',
+        rawSmiles: smi,
+        latencyMs: performance.now() - t0,
+        tokenCount: smi.length,
+        score,
+      },
+      ...prev,
+    ]);
   };
 
   const summaryStats = useMemo(() => {
@@ -203,16 +249,16 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="inline-flex items-center gap-1.5 text-[11px] font-mono-num uppercase tracking-widest text-emerald-600 dark:text-emerald-400 font-semibold">
-            <Sparkles className="h-3.5 w-3.5" /> Zero-Backend Client-Side Neural Inference
+            <Sparkles className="h-3.5 w-3.5" /> Zero-Backend Client-Side Neural Inference (Pure TS INT8)
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
-            Live AI De Novo Molecule Generator
+            Live AI De Novo Molecule Generator &amp; CNS Scorer
           </h1>
           <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1 max-w-3xl">
-            Run GenEuclidean&apos;s real INT8 KV-cached 3D pocket-conditioned Transformer inside your
-            browser using frozen chiral <code className="font-mono-num">PaiNN-SE3</code> pocket
-            embeddings, live <strong>RDKit.js WASM</strong> 2D depictions, Pfizer CNS MPO v2, and
-            5-fold scaffold-CV calibrated BBB/P-gp/hERG &amp; 12-target QSAR oracles.
+            Synthesize novel small molecules live in your browser using GenEuclidean&apos;s distilled
+            1.69M-parameter INT8 KV-cached Transformer conditioned on frozen chiral{' '}
+            <code className="font-mono-num">PaiNN-SE3</code> 3D pocket embeddings, scored in real time
+            by <strong>RDKit.js WASM</strong> + 15 calibrated scaffold-CV CNS ADMET &amp; target QSAR oracles.
           </p>
         </div>
 
@@ -230,6 +276,34 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
         </div>
       </div>
 
+      {/* Verified Embedded Audit Strip from generator_manifest.json */}
+      {verificationOverall && (
+        <div className="lab-card rounded-2xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono-num">
+          <span className="font-sans font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+            Verified Browser INT8 Benchmarks (12 Targets × N=64):
+          </span>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[var(--text-secondary)]">
+            <span>
+              Valid <strong className="text-emerald-500">{(verificationOverall.raw_validity * 100).toFixed(1)}%</strong>
+            </span>
+            <span>
+              Novel <strong className="text-cyan-500">{(verificationOverall.strict_novelty_vs_chembl_zinc * 100).toFixed(1)}%</strong>
+            </span>
+            <span>
+              IntDiv1 <strong>{verificationOverall.intdiv1.toFixed(3)}</strong>
+            </span>
+            <span>
+              MPO v2 <strong className="text-amber-500">{verificationOverall.mean_cns_mpo_v2.toFixed(2)}</strong>
+            </span>
+            <span>
+              BBB <strong>{(verificationOverall.mean_bbb_full_oracle * 100).toFixed(0)}%</strong> · hERG{' '}
+              <strong className="text-emerald-500">{(verificationOverall.mean_herg_full_oracle * 100).toFixed(0)}%</strong>
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Curated Clinical Task Presets */}
       {pockets && pockets.presets.length > 0 && (
         <div className="space-y-2">
@@ -237,18 +311,25 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
             Curated Neuro-Discovery Steering Presets (1-Click)
           </div>
           <div className="flex flex-wrap gap-2">
-            {pockets.presets.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                onClick={() => applyPreset(preset)}
-                title={preset.description}
-                className="px-3 py-1.5 rounded-xl lab-card hover:border-cyan-500/50 text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5 cursor-pointer"
-              >
-                <Zap className="h-3.5 w-3.5 text-amber-500" />
-                {preset.label}
-              </button>
-            ))}
+            {pockets.presets.map((preset) => {
+              const active = preset.id === activePresetId;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => applyPreset(preset)}
+                  title={preset.description}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    active
+                      ? 'bg-cyan-500/18 border-cyan-500/55 text-cyan-700 dark:text-cyan-200 shadow-sm'
+                      : 'lab-card hover:border-cyan-500/45 text-[var(--text-primary)]'
+                  }`}
+                >
+                  <Zap className={`h-3.5 w-3.5 ${active ? 'text-cyan-400' : 'text-amber-500'}`} />
+                  {preset.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -281,7 +362,10 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
                 <button
                   key={id}
                   type="button"
-                  onClick={() => setMode(id)}
+                  onClick={() => {
+                    setActivePresetId('');
+                    setMode(id);
+                  }}
                   className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold border cursor-pointer ${
                     mode === id
                       ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-700 dark:text-cyan-200'
@@ -300,7 +384,10 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
             </label>
             <select
               value={primaryTarget}
-              onChange={(e) => setPrimaryTarget(e.target.value)}
+              onChange={(e) => {
+                setActivePresetId('');
+                setPrimaryTarget(e.target.value);
+              }}
               className="w-full px-3 py-2 rounded-xl text-xs bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] outline-none focus:border-cyan-500"
             >
               {targetIds.map((tid) => {
@@ -325,7 +412,10 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
               </label>
               <select
                 value={secondaryTarget}
-                onChange={(e) => setSecondaryTarget(e.target.value)}
+                onChange={(e) => {
+                  setActivePresetId('');
+                  setSecondaryTarget(e.target.value);
+                }}
                 className="w-full px-3 py-2 rounded-xl text-xs bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] outline-none focus:border-cyan-500"
               >
                 {targetIds
@@ -336,6 +426,36 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
                     </option>
                   ))}
               </select>
+            </div>
+          )}
+
+          {/* Live PaiNN-SE3 hypersphere cosine readout */}
+          {steeringTelemetry && (
+            <div className="rounded-xl bg-[var(--bg-elevated)]/85 border border-[var(--border-subtle)] p-2.5 space-y-1.5 font-mono-num text-[10.5px]">
+              <div className="flex justify-between">
+                <span className="text-[var(--text-muted)]">cos(z_steer, {primaryTarget})</span>
+                <span className="font-bold text-emerald-500">
+                  {steeringTelemetry.cosA >= 0 ? '+' : ''}
+                  {steeringTelemetry.cosA.toFixed(3)}
+                </span>
+              </div>
+              {mode !== 'single' && (
+                <div className="flex justify-between">
+                  <span className="text-[var(--text-muted)]">cos(z_steer, {secondaryTarget})</span>
+                  <span
+                    className={`font-bold ${
+                      mode === 'contrastive'
+                        ? steeringTelemetry.cosB <= 0
+                          ? 'text-cyan-500'
+                          : 'text-amber-500'
+                        : 'text-violet-500'
+                    }`}
+                  >
+                    {steeringTelemetry.cosB >= 0 ? '+' : ''}
+                    {steeringTelemetry.cosB.toFixed(3)}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
@@ -378,7 +498,7 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
                 type="range"
                 min="0.5"
                 max="2.5"
-                step="0.1"
+                step="0.05"
                 value={cfgScale}
                 onChange={(e) => setCfgScale(Number(e.target.value))}
                 className="w-full accent-cyan-500"
@@ -395,9 +515,9 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
                 </div>
                 <input
                   type="range"
-                  min="0.45"
+                  min="0.5"
                   max="1.25"
-                  step="0.05"
+                  step="0.02"
                   value={temperature}
                   onChange={(e) => setTemperature(Number(e.target.value))}
                   className="w-full accent-cyan-500"
@@ -460,9 +580,36 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
           >
             <Play className="h-4 w-4" />
             {generating
-              ? `Synthesizing Live in Browser (${results.length}/${batchSize})…`
+              ? `Synthesizing Live (${results.length}/${batchSize})…`
               : `Generate ${batchSize} Novel Molecules Live`}
           </button>
+
+          {/* Instant Custom SMILES Oracle Scorer */}
+          <div className="pt-3 border-t border-[var(--border-subtle)] space-y-1.5">
+            <label className="text-[11px] font-semibold text-[var(--text-secondary)] flex items-center gap-1.5">
+              <Search className="h-3 w-3 text-cyan-500" />
+              Score Any Custom SMILES (Live ADMET + 12-Target QSAR)
+            </label>
+            <div className="flex gap-1.5">
+              <input
+                type="text"
+                value={customSmiles}
+                onChange={(e) => setCustomSmiles(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleScoreCustom()}
+                placeholder="Paste SMILES (e.g. ecopipam)…"
+                className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg text-xs font-mono-num bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] outline-none focus:border-cyan-500"
+              />
+              <button
+                type="button"
+                disabled={engineStatus !== 'ready'}
+                onClick={handleScoreCustom}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold lab-card hover:border-cyan-500/50 text-[var(--text-primary)] disabled:opacity-40 cursor-pointer"
+              >
+                Score
+              </button>
+            </div>
+            {customError && <p className="text-[10.5px] text-rose-500">{customError}</p>}
+          </div>
 
           {results.length > 0 && (
             <button
@@ -492,7 +639,7 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
               <div className="min-w-0">
                 <div className="text-[10px] uppercase tracking-wider text-cyan-500 font-bold">
-                  Autoregressive CFG Token Stream
+                  Autoregressive 2-Stream CFG Token Generation
                 </div>
                 <div className="font-mono-num text-xs text-[var(--text-primary)] truncate">
                   {streamPreview}
@@ -505,11 +652,23 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
           {summaryStats && (
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
               {[
-                ['RDKit Valid', `${summaryStats.validPct.toFixed(0)}% (${summaryStats.validCount}/${summaryStats.total})`, 'text-emerald-500'],
+                [
+                  'RDKit Valid',
+                  `${summaryStats.validPct.toFixed(0)}% (${summaryStats.validCount}/${summaryStats.total})`,
+                  'text-emerald-500',
+                ],
                 ['CNS-Safe', `${summaryStats.safeCount}/${summaryStats.validCount}`, 'text-cyan-500'],
                 ['Mean MPO v2', `${summaryStats.meanMpo.toFixed(2)} / 6`, 'text-amber-500'],
-                ['Mean P(BBB+) / hERG', `${summaryStats.meanBbb.toFixed(0)}% / ${summaryStats.meanHerg.toFixed(0)}%`, 'text-violet-500'],
-                ['Inference Speed', `${summaryStats.meanLatency.toFixed(1)} ms/mol`, 'text-[var(--text-primary)]'],
+                [
+                  'BBB+ / hERG',
+                  `${summaryStats.meanBbb.toFixed(0)}% / ${summaryStats.meanHerg.toFixed(0)}%`,
+                  'text-violet-500',
+                ],
+                [
+                  'CPU Speed',
+                  `${summaryStats.meanLatency.toFixed(0)} ms/mol`,
+                  'text-[var(--text-primary)]',
+                ],
               ].map(([k, v, cls]) => (
                 <div key={k} className="lab-card rounded-xl p-3">
                   <div className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">
@@ -524,17 +683,23 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
           {/* Generated Molecule Cards Grid */}
           {results.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-              {results.map((item, idx) => {
+              {results.map((item) => {
                 const sc = item.score;
                 const pPrimary = sc?.targetProbs[primaryTarget];
-                const pSecondary =
-                  mode !== 'single' ? sc?.targetProbs[secondaryTarget] : sc?.targetProbs['DRD2'];
+                const compTgt = mode !== 'single' ? secondaryTarget : primaryTarget === 'DRD1' ? 'DRD2' : null;
+                const pComp = compTgt ? sc?.targetProbs[compTgt] : undefined;
+                const topTargets = sc
+                  ? Object.entries(sc.targetProbs)
+                      .sort((a, b) => b[1] - a[1])
+                      .slice(0, 3)
+                  : [];
+
                 return (
                   <div key={item.id} className="lab-card rounded-2xl p-4 space-y-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <span className="font-mono-num text-xs font-bold text-[var(--text-primary)]">
-                          DeNovo #{idx + 1}
+                          {item.label}
                         </span>
                         {sc?.jointCnsSafe ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
@@ -606,20 +771,39 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[var(--border-subtle)] font-mono-num text-[10px] text-[var(--text-muted)]">
-                          <span>
+                        {/* Live QSAR selectivity & top predicted targets */}
+                        <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 border-t border-[var(--border-subtle)] font-mono-num text-[10px]">
+                          <span className="text-[var(--text-muted)]">
                             MW {sc.mw.toFixed(0)} · LogP {sc.clogp.toFixed(1)} · TPSA{' '}
                             {sc.tpsa.toFixed(0)} · pKa {sc.mostBasicPka.toFixed(1)}
                           </span>
                           {pPrimary !== undefined && (
-                            <span className="text-cyan-600 dark:text-cyan-400 font-semibold">
-                              P({primaryTarget}) {(pPrimary * 100).toFixed(0)}%
-                              {pSecondary !== undefined && primaryTarget !== 'DRD2'
-                                ? ` · P(${mode !== 'single' ? secondaryTarget : 'DRD2'}) ${(pSecondary * 100).toFixed(0)}%`
+                            <span className="text-cyan-600 dark:text-cyan-400 font-bold">
+                              {primaryTarget} {(pPrimary * 100).toFixed(0)}%
+                              {compTgt && pComp !== undefined
+                                ? ` · ${compTgt} ${(pComp * 100).toFixed(0)}%`
                                 : ''}
                             </span>
                           )}
                         </div>
+
+                        {topTargets.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1 text-[9.5px] font-mono-num">
+                            <span className="text-[var(--text-muted)]">Top QSAR:</span>
+                            {topTargets.map(([t, p]) => (
+                              <span
+                                key={t}
+                                className={`px-1.5 py-0.5 rounded ${
+                                  t === primaryTarget
+                                    ? 'bg-emerald-500/18 text-emerald-600 dark:text-emerald-300 font-bold'
+                                    : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)]'
+                                }`}
+                              >
+                                {t} {(p * 100).toFixed(0)}%
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -634,17 +818,26 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
               <div className="space-y-1.5 max-w-lg">
                 <h2 className="text-lg font-bold text-[var(--text-primary)]">
                   {engineStatus === 'ready'
-                    ? 'Neural Engine Loaded — Click Generate to Synthesize Novel Molecules Live'
+                    ? 'Neural Engine Ready — Click Generate to Synthesize Novel Molecules Live'
                     : engineStatus === 'loading'
                       ? 'Initializing In-Browser Neural Inference Engine…'
-                      : 'Ready for Quantized Browser Model Pack'}
+                      : 'Quantized Browser Model Pack Not Found'}
                 </h2>
                 <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
                   {engineStatus === 'ready'
-                    ? `Select any human CNS target or preset (e.g. Tourette Anti-EPS DRD1 − α·DRD2), tune CFG scale & temperature, and run live 2-stream KV-cached inference directly on your CPU.`
-                    : `The Pure-TypeScript Per-Row INT8 KV-Cached Causal Transformer + RDKit.js + Calibrated CNS ADMET/QSAR runtime is fully wired and waiting for web/public/models/ weights.`}
+                    ? `Pick any clinical steering preset above (like Tourette Anti-EPS DRD1 − α·DRD2), tune CFG scale & temperature, and watch novel CNS-safe ligands stream live with RDKit.js 2D depictions & 15 calibrated oracles.`
+                    : `The Pure-TypeScript Per-Row INT8 KV-Cached Causal Transformer + RDKit.js runtime is waiting for web/public/models/ weights.`}
                 </p>
               </div>
+              {engineStatus === 'ready' && (
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 shadow-lg shadow-cyan-500/20 hover:brightness-110 cursor-pointer"
+                >
+                  <Play className="h-4 w-4" /> Synthesize {batchSize} {primaryTarget} Molecules Now
+                </button>
+              )}
             </div>
           )}
         </section>
