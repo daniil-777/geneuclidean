@@ -40,6 +40,8 @@ from geneuclidean.evaluation import (
 )
 
 _DISPLAY_NAMES: dict[str, str] = {
+    "pretrain_zinc": "Stage-1 Prior (SMILES)",
+    "pretrain_zinc_selfies": "Stage-1 Prior (SELFIES)",
     "e3nn_lstm_v15": "v1.5 (e3nn+LSTM)",
     "painn_pocketformer_scratch": "PocketFormer (Scratch)",
     "painn_pocketformer": "PaiNN-PocketFormer",
@@ -52,6 +54,16 @@ _DISPLAY_NAMES: dict[str, str] = {
     "geneuclidean_v2_painn_dpo": "v2 (PaiNN-SE3+DPO)",
 }
 
+_CURVE_ORDER: tuple[str, ...] = (
+    "pretrain_zinc",
+    "pretrain_zinc_selfies",
+    "painn_pocketformer",
+    "geneuclidean_v2_schnet",
+    "geneuclidean_v2_egnn",
+    "geneuclidean_v2_selfies",
+    "geneuclidean_v2_painn",
+)
+
 _PROP_OVERLAY_PRIORITY: tuple[str, ...] = (
     "e3nn_lstm_v15",
     "painn_pocketformer",
@@ -63,12 +75,23 @@ _PROP_OVERLAY_PRIORITY: tuple[str, ...] = (
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
-    """Load non-empty JSON objects from a ``.jsonl`` file."""
+    """Load non-empty JSON objects from a ``.jsonl`` file, deduplicating repeated epochs."""
     rows: list[dict[str, Any]] = []
+    by_epoch: dict[int, int] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         cleaned = line.strip()
-        if cleaned:
-            rows.append(json.loads(cleaned))
+        if not cleaned:
+            continue
+        obj = json.loads(cleaned)
+        ep = obj.get("epoch")
+        if isinstance(ep, int):
+            if ep in by_epoch:
+                rows[by_epoch[ep]] = obj
+            else:
+                by_epoch[ep] = len(rows)
+                rows.append(obj)
+        else:
+            rows.append(obj)
     return rows
 
 
@@ -180,16 +203,33 @@ def generate_all_figures(
         print(f"[fig 01] Skipped (missing {comp_csv})")
 
     # 2. Multi-model training curves from runs/*/history.jsonl
+    _stage2_order: tuple[str, ...] = (
+        "geneuclidean_v2_painn",
+        "geneuclidean_v2_egnn",
+        "geneuclidean_v2_schnet",
+        "geneuclidean_v2_selfies",
+        "painn_pocketformer",
+        "geneuclidean_v2_e3nn",
+        "e3nn_lstm_v15",
+    )
     histories: dict[str, list[dict[str, Any]]] = {}
     if runs_dir.is_dir():
-        for entry in sorted(runs_dir.iterdir()):
-            if not entry.is_dir() or entry.name.startswith("prior_"):
-                continue
-            hist_path = entry / "history.jsonl"
+        run_entries = {
+            e.name: e
+            for e in runs_dir.iterdir()
+            if e.is_dir()
+            and not e.name.startswith(("prior_", "pretrain_"))
+            and not e.name.endswith("_dpo")
+        }
+        ordered_names = [n for n in _stage2_order if n in run_entries] + sorted(
+            n for n in run_entries if n not in _stage2_order
+        )
+        for name in ordered_names:
+            hist_path = run_entries[name] / "history.jsonl"
             if hist_path.is_file():
                 rows = _read_jsonl(hist_path)
-                if rows:
-                    label = _DISPLAY_NAMES.get(entry.name, entry.name)
+                if len(rows) >= 2:
+                    label = _DISPLAY_NAMES.get(name, name)
                     histories[label] = rows
     if histories:
         out = plot_training_curves(histories, output_dir / "02_training_curves.png")
@@ -267,11 +307,13 @@ def generate_all_figures(
         yt = t4.get("pkd_y_true") or []
         yp = t4.get("pkd_y_pred") or []
         if yt and yp and len(yt) == len(yp):
-            split_label = str(flagship_eval.get("split", split_name)).upper()
+            raw_split = str(flagship_eval.get("split", split_name)).lower()
+            split_label = "CASF-2016" if raw_split == "casf2016" else raw_split.upper()
+            model_label = _DISPLAY_NAMES.get(flagship_name or "", flagship_name or "Flagship")
             out = plot_pkd_parity(
                 yt,
                 yp,
-                f"{split_label} ({flagship_name})",
+                f"{split_label} · {model_label}",
                 output_dir / f"05_pkd_parity_{split_name}.png",
             )
             generated["05_pkd_parity"] = out

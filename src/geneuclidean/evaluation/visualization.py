@@ -21,6 +21,7 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
 from numpy.typing import ArrayLike, NDArray
 from rdkit import Chem
 from rdkit.Chem import Draw
@@ -89,6 +90,7 @@ def _safe_kde_plot(
     linestyle: str = "-",
     linewidth: float = 2.0,
     alpha_fill: float = 0.20,
+    clip: tuple[float, float] | None = None,
 ) -> None:
     """Draw a smooth KDE curve with safe fallback for low-variance or small arrays."""
     clean = values[np.isfinite(values)]
@@ -100,17 +102,20 @@ def _safe_kde_plot(
         )
         return
     try:
-        sns.kdeplot(
-            x=clean,
-            ax=ax,
-            color=color,
-            label=label,
-            fill=fill,
-            alpha=alpha_fill if fill else 1.0,
-            linestyle=linestyle,
-            linewidth=linewidth,
-            warn_singular=False,
-        )
+        kde_kwargs: dict[str, Any] = {
+            "x": clean,
+            "ax": ax,
+            "color": color,
+            "label": label,
+            "fill": fill,
+            "alpha": alpha_fill if fill else 1.0,
+            "linestyle": linestyle,
+            "linewidth": linewidth,
+            "warn_singular": False,
+        }
+        if clip is not None:
+            kde_kwargs["clip"] = clip
+        sns.kdeplot(**kde_kwargs)
     except Exception:
         ax.hist(clean, bins=20, density=True, color=color, alpha=0.35, label=label)
 
@@ -165,10 +170,10 @@ def plot_training_curves(
         color = OKABE_ITO[idx % len(OKABE_ITO)]
         hist = _normalize_history(raw_hist)
 
-        # Panel 1: Train & Val Loss
-        train_loss = _first_finite_series(hist, ("train_loss", "train_total_loss", "train_lm_loss"))
+        # Panel 1: Train & Val Chemical LM Loss (falls back to total/objective loss)
+        train_loss = _first_finite_series(hist, ("train_lm_loss", "train_loss", "train_total_loss"))
         val_loss = _first_finite_series(
-            hist, ("val_loss", "val_objective", "val_total_loss", "val_lm_loss")
+            hist, ("val_lm_loss", "val_loss", "val_objective", "val_total_loss")
         )
         if train_loss:
             epochs = np.arange(1, len(train_loss) + 1)
@@ -177,9 +182,8 @@ def plot_training_curves(
                 train_loss,
                 color=color,
                 linestyle="--",
-                alpha=0.65,
-                lw=1.5,
-                label=f"{model_name} (train)",
+                alpha=0.55,
+                lw=1.4,
             )
         if val_loss:
             epochs = np.arange(1, len(val_loss) + 1)
@@ -189,7 +193,7 @@ def plot_training_curves(
                 color=color,
                 linestyle="-",
                 lw=2.2,
-                label=f"{model_name} (val)",
+                label=model_name,
             )
 
         # Panel 2: Validation Perplexity
@@ -206,7 +210,7 @@ def plot_training_curves(
         val_pkd_r = _first_finite_series(
             hist, ("val_pkd_r", "val_pkd_pearson", "val_pearson_r", "pkd_r")
         )
-        if val_pkd_r:
+        if val_pkd_r and any(abs(v) > 1e-8 for v in val_pkd_r):
             epochs = np.arange(1, len(val_pkd_r) + 1)
             ax_pkd.plot(epochs, val_pkd_r, color=color, lw=2.2, marker="o", ms=3, label=model_name)
 
@@ -214,28 +218,51 @@ def plot_training_curves(
         kl_vals = _first_finite_series(
             hist, ("val_kl", "val_kl_nats", "train_kl", "train_kl_nats", "kl_nats")
         )
-        if kl_vals:
+        if kl_vals and any(abs(v) > 1e-8 for v in kl_vals):
             epochs = np.arange(1, len(kl_vals) + 1)
             ax_kl.plot(epochs, kl_vals, color=color, lw=2.2, label=model_name)
 
-    ax_loss.set_title("Total Training & Validation Loss")
+    ax_loss.set_title("Chemical LM Training & Validation Loss")
     ax_loss.set_xlabel("Epoch")
-    ax_loss.set_ylabel("Loss")
+    ax_loss.set_ylabel("Cross-Entropy Loss (↓)")
     if ax_loss.lines:
-        ax_loss.legend(frameon=True, facecolor="white", framealpha=0.85, ncol=1)
+        handles, labels = ax_loss.get_legend_handles_labels()
+        handles.extend(
+            [
+                Line2D([0], [0], color="#444444", lw=2.0, linestyle="-", label="Validation"),
+                Line2D(
+                    [0], [0], color="#444444", lw=1.4, linestyle="--", alpha=0.65, label="Train"
+                ),
+            ]
+        )
+        labels.extend(["Validation (solid)", "Train (dashed)"])
+        ax_loss.legend(
+            handles=handles,
+            labels=labels,
+            loc="upper right",
+            frameon=True,
+            facecolor="white",
+            framealpha=0.9,
+            fontsize=8.0,
+        )
 
     ax_ppl.set_title("Validation Chemical Language Perplexity")
     ax_ppl.set_xlabel("Epoch")
     ax_ppl.set_ylabel("Perplexity (↓)")
     if ax_ppl.lines:
-        ax_ppl.legend(frameon=True, facecolor="white", framealpha=0.85)
+        ax_ppl.legend(loc="upper right", frameon=True, facecolor="white", framealpha=0.9)
 
     ax_pkd.set_title("Validation Binding Affinity Scoring (pKd Pearson r)")
     ax_pkd.set_xlabel("Epoch")
     ax_pkd.set_ylabel("Pearson r (↑)")
-    ax_pkd.set_ylim(-0.05, 1.02)
+    ax_pkd.set_ylim(0.35, 0.80)
     if ax_pkd.lines:
-        ax_pkd.legend(frameon=True, facecolor="white", framealpha=0.85)
+        ymin_pkd = min(float(np.nanmin(ln.get_ydata())) for ln in ax_pkd.lines)
+        ymax_pkd = max(float(np.nanmax(ln.get_ydata())) for ln in ax_pkd.lines)
+        ax_pkd.set_ylim(
+            max(-0.05, min(0.35, ymin_pkd - 0.06)), min(1.02, max(0.76, ymax_pkd + 0.08))
+        )
+        ax_pkd.legend(loc="lower right", frameon=True, facecolor="white", framealpha=0.9)
     else:
         ax_pkd.text(
             0.5, 0.5, "No pKd head logged", ha="center", va="center", transform=ax_pkd.transAxes
@@ -245,7 +272,7 @@ def plot_training_curves(
     ax_kl.set_xlabel("Epoch")
     ax_kl.set_ylabel("KL Divergence (nats)")
     if ax_kl.lines:
-        ax_kl.legend(frameon=True, facecolor="white", framealpha=0.85)
+        ax_kl.legend(loc="lower right", frameon=True, facecolor="white", framealpha=0.9)
     else:
         ax_kl.text(
             0.5, 0.5, "No CVAE KL logged", ha="center", va="center", transform=ax_kl.transAxes
@@ -501,11 +528,17 @@ def plot_property_distributions(
         ("NP_score", "Natural Product-Likeness (NP)"),
     )
 
-    fig, axes = plt.subplots(2, 3, figsize=(14.5, 8.2))
+    fig, axes = plt.subplots(2, 3, figsize=(14.5, 8.6))
+    non_negative_keys = {"MW", "QED", "SA", "TPSA"}
+    shared_handles: list[Any] = []
+    shared_labels: list[str] = []
+
     for ax, (key, xlabel) in zip(axes.ravel(), panels, strict=True):
+        pooled_chunks: list[NDArray[np.float64]] = []
         ref_vals = np.asarray(ref_props.get(key, []), dtype=np.float64)
         ref_vals = ref_vals[np.isfinite(ref_vals)]
         if len(ref_vals) > 0:
+            pooled_chunks.append(ref_vals)
             _safe_kde_plot(
                 ax,
                 ref_vals,
@@ -524,18 +557,37 @@ def plot_property_distributions(
             g_vals = g_vals[np.isfinite(g_vals)]
             if len(g_vals) == 0:
                 continue
+            pooled_chunks.append(g_vals)
             _safe_kde_plot(ax, g_vals, color=color, label=model_name, fill=False, linewidth=2.0)
             if len(ref_vals) > 0:
                 w1 = compute_wasserstein_1(g_vals, ref_vals)
                 w1_lines.append(f"{model_name}: W₁={w1:.2f}")
+
+        if pooled_chunks:
+            pooled = np.concatenate(pooled_chunks)
+            if len(pooled) >= 20:
+                q_lo, q_hi = np.percentile(pooled, [0.5, 99.5])
+                span = max(float(q_hi - q_lo), 1e-6)
+                x_lo = float(q_lo) - 0.08 * span
+                x_hi = float(q_hi) + 0.10 * span
+                if key in non_negative_keys:
+                    x_lo = max(0.0, x_lo)
+                if key == "QED":
+                    x_lo, x_hi = 0.0, 1.04
+                ax.set_xlim(x_lo, x_hi)
+
+        # Add top headroom so the W1 annotation box never overlaps KDE peaks
+        y_lo, y_hi = ax.get_ylim()
+        if y_hi > y_lo:
+            ax.set_ylim(y_lo, y_hi * 1.24)
 
         ax.set_title(xlabel)
         ax.set_xlabel(key)
         ax.set_ylabel("Density")
         if w1_lines:
             ax.text(
-                0.97,
-                0.95,
+                0.98,
+                0.96,
                 "\n".join(w1_lines),
                 transform=ax.transAxes,
                 ha="right",
@@ -545,17 +597,33 @@ def plot_property_distributions(
                     "boxstyle": "round,pad=0.3",
                     "facecolor": "white",
                     "edgecolor": "#DDDDDD",
-                    "alpha": 0.9,
+                    "alpha": 0.92,
                 },
             )
-        ax.legend(loc="upper left", frameon=True, facecolor="white", framealpha=0.85, fontsize=7.8)
+        if not shared_handles:
+            h, lbls = ax.get_legend_handles_labels()
+            if h:
+                shared_handles, shared_labels = list(h), list(lbls)
 
     fig.suptitle(
         "Physicochemical & Medicinal Chemistry Property Fidelity",
         fontsize=13,
         fontweight="bold",
+        y=0.985,
     )
-    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.95))
+    if shared_handles:
+        fig.legend(
+            shared_handles,
+            shared_labels,
+            loc="upper center",
+            bbox_to_anchor=(0.5, 0.942),
+            ncol=min(5, len(shared_handles)),
+            frameon=True,
+            facecolor="white",
+            framealpha=0.95,
+            fontsize=8.8,
+        )
+    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.895))
     return _save_figure(fig, out_path)
 
 
@@ -632,12 +700,17 @@ def plot_pkd_parity(
         fontsize=9.0,
         bbox={"boxstyle": "round,pad=0.45", "facecolor": "#F8F9FA", "edgecolor": "#CCCCCC"},
     )
-    ax.set_title(f"Binding Affinity (pKd) Prediction — {split_name}")
     ax.set_xlabel("Experimental pKd")
     ax.set_ylabel("Predicted pKd")
     ax.legend(loc="lower right", frameon=True, facecolor="white", framealpha=0.9)
 
-    fig.tight_layout()
+    fig.suptitle(
+        f"Binding Affinity (pKd) Prediction — {split_name}",
+        fontsize=11.5,
+        fontweight="bold",
+        y=0.98,
+    )
+    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.945))
     return _save_figure(fig, out_path)
 
 
@@ -866,7 +939,7 @@ def plot_decoding_pareto(
     label_col = _resolve_column(df, ("label", "config", "strategy", "method", "name"))
     group_col = _resolve_column(df, ("strategy", "method", "family", "group"))
 
-    fig, ax = plt.subplots(figsize=(8.0, 5.6))
+    fig, ax = plt.subplots(figsize=(9.6, 6.2))
     if x_col is None or y_col is None or df.empty:
         ax.text(0.5, 0.5, "Insufficient decoding metrics for Pareto plot", ha="center", va="center")
         return _save_figure(fig, out_path)
@@ -887,7 +960,7 @@ def plot_decoding_pareto(
                 ys[mask],
                 color=color_map[grp],
                 label=grp,
-                s=75,
+                s=80,
                 edgecolors="#222222",
                 linewidth=0.7,
                 zorder=3,
@@ -897,24 +970,11 @@ def plot_decoding_pareto(
             xs[valid],
             ys[valid],
             color=OKABE_ITO[0],
-            s=75,
+            s=80,
             edgecolors="#222222",
             linewidth=0.7,
             zorder=3,
         )
-
-    # Annotate individual decoding configurations
-    if label_col is not None:
-        labels = df[label_col].astype(str).tolist()
-        for i in np.where(valid)[0]:
-            ax.annotate(
-                labels[i],
-                (xs[i], ys[i]),
-                xytext=(5, 5),
-                textcoords="offset points",
-                fontsize=7.8,
-                alpha=0.9,
-            )
 
     # Highlight non-dominated Pareto frontier
     valid_idx = np.where(valid)[0]
@@ -928,15 +988,139 @@ def plot_decoding_pareto(
             linestyle="--",
             lw=2.0,
             marker="*",
-            ms=11,
+            ms=12,
             label="Pareto Frontier",
             zorder=4,
         )
 
+    # Pad axis limits cleanly so callout labels never clip at margins
+    if len(valid_idx) > 0:
+        x_min, x_max = float(np.min(xs[valid_idx])), float(np.max(xs[valid_idx]))
+        y_min, y_max = float(np.min(ys[valid_idx])), float(np.max(ys[valid_idx]))
+        x_span = max(x_max - x_min, 1e-4)
+        y_span = max(y_max - y_min, 1e-4)
+        ax.set_xlim(x_min - 0.08 * x_span, x_max + 0.16 * x_span)
+        ax.set_ylim(y_min - 0.09 * y_span, y_max + 0.12 * y_span)
+
+    # Non-overlapping label placement with clean leader lines for crowded clusters
+    if label_col is not None and len(valid_idx) > 0:
+        labels = df[label_col].astype(str).tolist()
+        x0, x1 = ax.get_xlim()
+        y0, y1 = ax.get_ylim()
+        dx_lim = max(x1 - x0, 1e-9)
+        dy_lim = max(y1 - y0, 1e-9)
+
+        # Normalize points to [0, 1]^2 for scale-invariant box repulsion
+        pts_u = (xs[valid_idx] - x0) / dx_lim
+        pts_v = (ys[valid_idx] - y0) / dy_lim
+        n_pts = len(valid_idx)
+        box_w = np.array([max(0.09, 0.0082 * len(labels[i]) + 0.018) for i in valid_idx])
+        box_h = np.full(n_pts, 0.044, dtype=np.float64)
+
+        # Deterministic initial spread away from dense centroid
+        pos_u = pts_u.copy()
+        pos_v = pts_v.copy()
+        order = np.argsort(pts_v)
+        for rank, k in enumerate(order):
+            # Alternate slight left/right nudge for tightly packed vertical points
+            close_neighbors = int(
+                np.sum((np.abs(pts_u - pts_u[k]) < 0.06) & (np.abs(pts_v - pts_v[k]) < 0.06))
+            )
+            if close_neighbors >= 3:
+                side = -1.0 if (rank % 2 == 0) else 1.0
+                pos_u[k] = pts_u[k] + side * (0.11 + 0.015 * (rank % 3))
+                pos_v[k] = pts_v[k] + 0.035 * ((rank % 5) - 2)
+            elif pts_u[k] > 0.85:
+                pos_u[k] = pts_u[k] - 0.04
+                pos_v[k] = pts_v[k] + 0.04
+            else:
+                pos_u[k] = pts_u[k] + 0.035
+                pos_v[k] = pts_v[k] + 0.032
+
+        # Iterative repulsion separating label boxes from each other, data points, and legend
+        for _ in range(180):
+            # Label-label separation
+            for i in range(n_pts):
+                for j in range(i + 1, n_pts):
+                    du = pos_u[i] - pos_u[j]
+                    dv = pos_v[i] - pos_v[j]
+                    min_u = 0.5 * (box_w[i] + box_w[j]) + 0.012
+                    min_v = 0.5 * (box_h[i] + box_h[j]) + 0.012
+                    if abs(du) < min_u and abs(dv) < min_v:
+                        ov_u = min_u - abs(du)
+                        ov_v = min_v - abs(dv)
+                        if ov_v <= ov_u * 1.15:
+                            push = 0.52 * ov_v * (1.0 if dv >= 0.0 else -1.0)
+                            pos_v[i] += push
+                            pos_v[j] -= push
+                        else:
+                            push = 0.52 * ov_u * (1.0 if du >= 0.0 else -1.0)
+                            pos_u[i] += push
+                            pos_u[j] -= push
+            # Gentle spring back toward anchor point first, then enforce hard non-overlap
+            for i in range(n_pts):
+                pos_u[i] += 0.02 * (pts_u[i] - pos_u[i])
+                pos_v[i] += 0.02 * (pts_v[i] - pos_v[i])
+            # Label-point separation so text boxes never occlude scatter markers
+            for i in range(n_pts):
+                for j in range(n_pts):
+                    du = pos_u[i] - pts_u[j]
+                    dv = pos_v[i] - pts_v[j]
+                    min_u = 0.5 * box_w[i] + 0.026
+                    min_v = 0.5 * box_h[i] + 0.032
+                    if abs(du) < min_u and abs(dv) < min_v:
+                        ov_u = min_u - abs(du)
+                        ov_v = min_v - abs(dv)
+                        if ov_v <= ov_u * 1.2:
+                            pos_v[i] += 0.55 * ov_v * (1.0 if dv >= 0.0 else -1.0)
+                        else:
+                            pos_u[i] += 0.55 * ov_u * (1.0 if du >= 0.0 else -1.0)
+            # Keep outside lower-left legend region and within frame margins
+            for i in range(n_pts):
+                half_w = 0.5 * box_w[i]
+                half_h = 0.5 * box_h[i]
+                if pos_u[i] - half_w < 0.25 and pos_v[i] - half_h < 0.44:
+                    pos_u[i] = max(pos_u[i], 0.26 + half_w)
+                pos_u[i] = float(np.clip(pos_u[i], half_w + 0.015, 0.985 - half_w))
+                pos_v[i] = float(np.clip(pos_v[i], half_h + 0.025, 0.975 - half_h))
+
+        for k, idx_i in enumerate(valid_idx):
+            tx = x0 + pos_u[k] * dx_lim
+            ty = y0 + pos_v[k] * dy_lim
+            dist_norm = float(np.hypot(pos_u[k] - pts_u[k], pos_v[k] - pts_v[k]))
+            arrow_kw: dict[str, Any] | None = (
+                {"arrowstyle": "-", "color": "#777777", "lw": 0.75, "alpha": 0.8, "shrinkA": 2}
+                if dist_norm > 0.035
+                else None
+            )
+            ax.annotate(
+                labels[idx_i],
+                xy=(xs[idx_i], ys[idx_i]),
+                xytext=(tx, ty),
+                textcoords="data",
+                ha="center",
+                va="center",
+                fontsize=7.8,
+                bbox={
+                    "boxstyle": "round,pad=0.18",
+                    "facecolor": "white",
+                    "edgecolor": "#E0E0E0",
+                    "alpha": 0.88,
+                },
+                arrowprops=arrow_kw,
+                zorder=5,
+            )
+
+    axis_labels: dict[str, str] = {
+        "int_div_1": "Internal Diversity (IntDiv1 ↑)",
+        "tanimoto": "ECFP4 Tanimoto Similarity (↑)",
+        "matched_tanimoto_mean": "ECFP4 Tanimoto Similarity (↑)",
+        "pred_pkd": "Predicted Binding Affinity pKd (↑)",
+    }
     ax.set_title("Decoding Pareto Frontier: Target Specificity vs. Structural Diversity")
-    ax.set_xlabel(f"Structural Variation ({x_col} ↑)")
-    ax.set_ylabel(f"Target Specificity ({y_col} ↑)")
-    ax.legend(frameon=True, facecolor="white", framealpha=0.9)
+    ax.set_xlabel(axis_labels.get(x_col, f"Structural Variation ({x_col} ↑)"))
+    ax.set_ylabel(axis_labels.get(y_col, f"Target Specificity ({y_col} ↑)"))
+    ax.legend(loc="lower left", frameon=True, facecolor="white", framealpha=0.92)
     fig.tight_layout()
     return _save_figure(fig, out_path)
 
