@@ -529,7 +529,7 @@ def _load_docking_progression(tables_dir: Path) -> list[dict[str, Any]]:
         "top1_vina_mean": native_ref,
         "native_vina_mean": native_ref,
         "top1_ha_pct": float("nan"),
-        "posebusters_pct": 100.0,
+        "posebusters_pct": float("nan"),
         "n_pockets": model_rows[0]["n_pockets"],
         "is_native": True,
     }

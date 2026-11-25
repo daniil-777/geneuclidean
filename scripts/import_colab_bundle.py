@@ -255,22 +255,45 @@ def _rebuild_v3_comparison(tables_dir: Path) -> tuple[Path, Path]:
 
 
 def _regenerate_figures(runs_dir: Path, results_dir: Path) -> bool:
-    """Invoke ``scripts/generate_figures.py`` against imported runs and tables."""
-    fig_script = Path(__file__).resolve().parent / "generate_figures.py"
-    if not fig_script.is_file():
-        return False
-    cmd = [
-        sys.executable,
-        str(fig_script),
-        "--runs-dir",
-        str(runs_dir),
-        "--tables-dir",
-        str(results_dir / "tables"),
-        "--output-dir",
-        str(results_dir / "figures"),
-    ]
-    subprocess.run(cmd, check=True)
-    return True
+    """Invoke ``scripts/generate_figures.py`` and ``scripts/generate_v3_figures.py``."""
+    scripts_dir = Path(__file__).resolve().parent
+    tables_dir = results_dir / "tables"
+    figures_dir = results_dir / "figures"
+    ran_any = False
+
+    fig_script = scripts_dir / "generate_figures.py"
+    if fig_script.is_file():
+        subprocess.run(
+            [
+                sys.executable,
+                str(fig_script),
+                "--runs-dir",
+                str(runs_dir),
+                "--tables-dir",
+                str(tables_dir),
+                "--output-dir",
+                str(figures_dir),
+            ],
+            check=True,
+        )
+        ran_any = True
+
+    v3_fig_script = scripts_dir / "generate_v3_figures.py"
+    if v3_fig_script.is_file():
+        subprocess.run(
+            [
+                sys.executable,
+                str(v3_fig_script),
+                "--tables-dir",
+                str(tables_dir),
+                "--output-dir",
+                str(figures_dir),
+            ],
+            check=True,
+        )
+        ran_any = True
+
+    return ran_any
 
 
 def _fmt_metric(val: Any, digits: int = 3) -> str:

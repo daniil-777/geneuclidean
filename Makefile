@@ -7,7 +7,7 @@ PRETRAIN_CONFIG ?= configs/pretrain_zinc.yaml
 CHECKPOINT ?= runs/geneuclidean_v2_painn/best.pt
 
 help:
-	@echo "GenEuclidean v2.0 — Available Make targets:"
+	@echo "GenEuclidean v3.0 — Available Make targets:"
 	@echo "  make install           Install package editable with dev extras in .venv"
 	@echo "  make lint              Run ruff lint and format checks"
 	@echo "  make format            Auto-fix lint issues and format code with ruff"
@@ -24,12 +24,12 @@ install:
 	$(UV) pip install --python $(PYTHON) -e ".[dev]"
 
 lint:
-	$(PYTHON) -m ruff check src tests
-	$(PYTHON) -m ruff format --check src tests
+	$(PYTHON) -m ruff check src tests scripts
+	$(PYTHON) -m ruff format --check src tests scripts
 
 format:
-	$(PYTHON) -m ruff check --fix src tests
-	$(PYTHON) -m ruff format src tests
+	$(PYTHON) -m ruff check --fix src tests scripts
+	$(PYTHON) -m ruff format src tests scripts
 
 typecheck:
 	$(PYTHON) -m mypy src

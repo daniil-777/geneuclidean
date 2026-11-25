@@ -1495,7 +1495,7 @@ def info(
     )
     env_table.add_row("Auto-selected Device", str(device))
     env_table.add_row("RDKit / e3nn", f"{rdkit.__version__} / {e3nn.__version__}")
-    env_table.add_row("LLM Extra ([llm])", llm_status)
+    env_table.add_row(r"LLM Extra (\[llm])", llm_status)
     env_table.add_row("3D Encoders", "painn (SE3), egnn, e3nn (v0.6), schnet")
     env_table.add_row(
         "Decoders / v3 LLMs",

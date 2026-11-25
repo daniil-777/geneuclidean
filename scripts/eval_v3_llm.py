@@ -30,7 +30,7 @@ import os
 import time
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
@@ -52,10 +52,10 @@ from geneuclidean.evaluation import (
     parse_mol,
     tanimoto_similarity,
 )
-from geneuclidean.models.hf_backbones import load_hf_backbone
-from geneuclidean.models.llm_bridge import PocketConditionedLLM
-from geneuclidean.sampling.llm_sampler import sample_llm_molecules, sample_llm_with_attention
 from geneuclidean.sampling.rerank import rerank_and_select
+
+if TYPE_CHECKING:
+    from geneuclidean.models.llm_bridge import PocketConditionedLLM
 
 RDLogger.DisableLog("rdApp.*")  # type: ignore[attr-defined]
 
@@ -431,6 +431,9 @@ def _load_v3_model(
     llm_cfg = cfg.llm if cfg.llm is not None else LLMConfig()
     os.environ["HF_HOME"] = str(Path(llm_cfg.cache_dir).resolve())
 
+    from geneuclidean.models.hf_backbones import load_hf_backbone
+    from geneuclidean.models.llm_bridge import PocketConditionedLLM
+
     backbone = load_hf_backbone(
         backbone_id=llm_cfg.backbone_id,
         cache_dir=llm_cfg.cache_dir,
@@ -557,6 +560,8 @@ def _run_cfg_and_h2l_sweep(
     seed: int,
 ) -> dict[str, Any]:
     """Run CFG scale sweep (w = 1.0, 1.3, 1.6, 2.0) + Hit-to-Lead CVAE seed refinement."""
+    from geneuclidean.sampling.llm_sampler import sample_llm_molecules
+
     pids = list(test_ids[:n_pockets]) if n_pockets > 0 else list(test_ids)
     native_map = {pid: str(records[pid]["canonical_smiles"]) for pid in pids if pid in records}
 
@@ -690,6 +695,8 @@ def evaluate_single_v3_model(
     local_files_only: bool,
 ) -> dict[str, Any]:
     """Run full 5-tier CASF-2016 evaluation for one trained v3.0 LLM model."""
+    from geneuclidean.sampling.llm_sampler import sample_llm_molecules, sample_llm_with_attention
+
     t0 = time.perf_counter()
     seed_everything(seed)
     model, cfg, n_params = _load_v3_model(

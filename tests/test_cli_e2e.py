@@ -370,7 +370,7 @@ def test_cli_llm_help_and_info_status(tmp_path: Path) -> None:
         ],
     )
     assert info_res.exit_code == 0
-    assert "LLM Extra" in info_res.stdout
+    assert "LLM Extra ([llm])" in info_res.stdout
     assert "HF LLM cache" in info_res.stdout
 
 
