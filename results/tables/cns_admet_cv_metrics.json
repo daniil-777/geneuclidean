@@ -1,0 +1,175 @@
+{
+  "schema_version": "geneuclidean-v3.1-cns-admet-cv",
+  "features": {
+    "ecfp4_bits": 1024,
+    "descriptors": [
+      "MW",
+      "MolLogP",
+      "TPSA",
+      "HBD",
+      "HBA",
+      "RotBonds",
+      "FractionCSP3",
+      "RingCount",
+      "AromaticRings",
+      "HeavyAtomCount",
+      "FormalCharge",
+      "MostBasicPKa"
+    ],
+    "total_dim": 1036
+  },
+  "model_family": "Calibrated 50/50 HistGradientBoostingClassifier + RandomForestClassifier ensemble with scaffold-disjoint probability calibration and ECFP4 AD",
+  "endpoints": {
+    "bbb": {
+      "endpoint": "bbb",
+      "description": "Blood-Brain Barrier permeability P(BBB+) trained on B3DB (Meng et al. 2021, 7,805 valid compounds); higher is better for CNS penetration.",
+      "split_protocol": "5-fold Bemis-Murcko scaffold CV (zero scaffold overlap)",
+      "calibration_method": "sigmoid",
+      "n_samples": 7802,
+      "n_positive": 4955,
+      "n_negative": 2847,
+      "positive_rate": 0.6350935657523712,
+      "n_unique_scaffolds": 2437,
+      "scaffold_leakage_groups": 0,
+      "oof_roc_auc": 0.9150029223318968,
+      "oof_pr_auc": 0.9462201219912065,
+      "oof_brier_score": 0.11206768440145307,
+      "oof_ece": 0.030429340286672404,
+      "oof_uncalibrated_brier_score": 0.10974078820880591,
+      "oof_uncalibrated_ece": 0.039810481928449756,
+      "fold_roc_auc_mean": 0.9186426437624636,
+      "fold_roc_auc_std": 0.014401683012126623,
+      "fold_pr_auc_mean": 0.9475602889265324,
+      "fold_pr_auc_std": 0.01537561430218855,
+      "fold_brier_mean": 0.11206934742779917,
+      "fold_brier_std": 0.015944446080990715,
+      "fold_ece_mean": 0.054698835001642764,
+      "fold_ece_std": 0.015985525645546804,
+      "ad_threshold": 0.3,
+      "data_hygiene": {
+        "n_raw": 7807,
+        "n_invalid": 2,
+        "n_label_conflicts_dropped": 0,
+        "n_clean_unique": 7802
+      },
+      "external_tdc_bbb_martins": {
+        "data_hygiene": {
+          "n_raw": 2039,
+          "n_invalid": 0,
+          "n_label_conflicts_dropped": 11,
+          "n_clean_unique": 1955
+        },
+        "n_total": 1955,
+        "in_domain_rate": 0.9943734015345268,
+        "mean_ad_tanimoto": 0.968453099729155,
+        "full": {
+          "roc_auc": 0.9721394616789646,
+          "pr_auc": 0.9876310195727173,
+          "brier_score": 0.04450145274836311,
+          "ece": 0.03280528079352463
+        },
+        "n_non_overlapping": 227,
+        "n_overlapping": 1728,
+        "non_overlapping": {
+          "roc_auc": 0.8026561043802423,
+          "pr_auc": 0.7736951600110449,
+          "brier_score": 0.18739412776461284,
+          "ece": 0.10664372362770744
+        }
+      }
+    },
+    "pgp": {
+      "endpoint": "pgp",
+      "description": "P-glycoprotein (ABCB1/MDR1) inhibition P(P-gp inhibitor) trained on TDC Pgp_Broccatelli (Broccatelli et al. 2011, 1,212 unique compounds). NOTE: Y=1 reflects P-gp inhibition rather than pure MDCK-MDR1 efflux substrate ratio; interpret alongside Pfizer CNS MPO v2's 2x HBD term for brain-efflux control.",
+      "split_protocol": "5-fold Bemis-Murcko scaffold CV (zero scaffold overlap)",
+      "calibration_method": "sigmoid",
+      "n_samples": 1212,
+      "n_positive": 647,
+      "n_negative": 565,
+      "positive_rate": 0.5338283828382838,
+      "n_unique_scaffolds": 700,
+      "scaffold_leakage_groups": 0,
+      "oof_roc_auc": 0.9269330196550449,
+      "oof_pr_auc": 0.9425864318046226,
+      "oof_brier_score": 0.1034532216459081,
+      "oof_ece": 0.025299181129589985,
+      "oof_uncalibrated_brier_score": 0.09603977161920677,
+      "oof_uncalibrated_ece": 0.04812819922184335,
+      "fold_roc_auc_mean": 0.9333967357800255,
+      "fold_roc_auc_std": 0.019680948883271664,
+      "fold_pr_auc_mean": 0.9468424677752036,
+      "fold_pr_auc_std": 0.025173193494045915,
+      "fold_brier_mean": 0.10344150224841897,
+      "fold_brier_std": 0.02053385439841372,
+      "fold_ece_mean": 0.08822988634793558,
+      "fold_ece_std": 0.026627914319304054,
+      "ad_threshold": 0.3,
+      "data_hygiene": {
+        "n_raw": 1219,
+        "n_invalid": 0,
+        "n_label_conflicts_dropped": 0,
+        "n_clean_unique": 1212
+      }
+    },
+    "herg": {
+      "endpoint": "herg",
+      "description": "hERG K+ channel blockade cardiotoxicity P(hERG IC50 < 10 uM) trained on TDC hERG_Karim (Karim et al. 2021, 13,445 balanced compounds); lower is safer (critical QT-prolongation gate for psychiatric and pediatric Tourette drugs).",
+      "split_protocol": "5-fold Bemis-Murcko scaffold CV (zero scaffold overlap)",
+      "calibration_method": "sigmoid",
+      "n_samples": 13268,
+      "n_positive": 6640,
+      "n_negative": 6628,
+      "positive_rate": 0.5004522158577027,
+      "n_unique_scaffolds": 6016,
+      "scaffold_leakage_groups": 0,
+      "oof_roc_auc": 0.853233634598745,
+      "oof_pr_auc": 0.8563095897597811,
+      "oof_brier_score": 0.15645972196404023,
+      "oof_ece": 0.012611715420218333,
+      "oof_uncalibrated_brier_score": 0.1593230195540541,
+      "oof_uncalibrated_ece": 0.05508484440892195,
+      "fold_roc_auc_mean": 0.8536930829670675,
+      "fold_roc_auc_std": 0.013001902501402481,
+      "fold_pr_auc_mean": 0.8571894987493721,
+      "fold_pr_auc_std": 0.01617051904977734,
+      "fold_brier_mean": 0.1564606779680599,
+      "fold_brier_std": 0.007487695983006863,
+      "fold_ece_mean": 0.035334072789707724,
+      "fold_ece_std": 0.007248695539787117,
+      "ad_threshold": 0.3,
+      "data_hygiene": {
+        "n_raw": 13445,
+        "n_invalid": 0,
+        "n_label_conflicts_dropped": 6,
+        "n_clean_unique": 13268
+      },
+      "external_tdc_herg_wang": {
+        "data_hygiene": {
+          "n_raw": 655,
+          "n_invalid": 0,
+          "n_label_conflicts_dropped": 3,
+          "n_clean_unique": 639
+        },
+        "n_total": 639,
+        "in_domain_rate": 0.9295774647887324,
+        "mean_ad_tanimoto": 0.8790051712769671,
+        "full": {
+          "roc_auc": 0.9174145785876993,
+          "pr_auc": 0.9657775581404893,
+          "brier_score": 0.15499021108824815,
+          "ece": 0.19432274483292616
+        },
+        "n_non_overlapping": 186,
+        "n_overlapping": 453,
+        "non_overlapping": {
+          "roc_auc": 0.9118055555555556,
+          "pr_auc": 0.9343688282208155,
+          "brier_score": 0.13862278366843925,
+          "ece": 0.1399394860135
+        }
+      }
+    }
+  },
+  "model_artifact": "data/cns_neuro.nosync/admet_oracles.joblib",
+  "model_size_mb": 14.821
+}
