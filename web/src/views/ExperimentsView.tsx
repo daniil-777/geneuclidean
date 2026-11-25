@@ -25,6 +25,7 @@ import {
   YAxis,
   ZAxis,
 } from 'recharts';
+import { V4BenchmarksSection } from '../components/V4BenchmarksSection';
 import { formatPValue } from '../lib/data';
 import type {
   ClinicalDrugPoint,
@@ -33,10 +34,12 @@ import type {
   ExperimentsData,
   ModelComparisonRow,
   ThemeMode,
+  V4BenchmarksData,
 } from '../types/studio';
 
 interface ExperimentsViewProps {
   experiments: ExperimentsData;
+  v4Benchmarks: V4BenchmarksData | null;
   casfModels: ModelComparisonRow[];
   theme: ThemeMode;
   onInspectTarget: (target: string) => void;
@@ -77,10 +80,12 @@ function heatmapCellColor(metric: MatrixMetric, val: number, isDark: boolean): s
 
 export function ExperimentsView({
   experiments,
+  v4Benchmarks,
   casfModels,
   theme,
   onInspectTarget,
 }: ExperimentsViewProps) {
+  const [suiteFilter, setSuiteFilter] = useState<'all' | 'v4' | 'v31'>('all');
   const isDark = theme === 'dark';
   const gridStroke = isDark ? 'rgba(148,163,184,0.16)' : 'rgba(15,23,42,0.10)';
   const axisTick = isDark ? '#94A3B8' : '#475569';
@@ -290,7 +295,31 @@ export function ExperimentsView({
             the 3D Studio.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs font-mono-num">
+        <div className="flex flex-wrap items-center gap-2 text-xs font-mono-num">
+          {v4Benchmarks && (
+            <div className="inline-flex rounded-xl p-0.5 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[11px] font-sans font-semibold">
+              {(
+                [
+                  ['all', 'All (v4.0 + v3.1)'],
+                  ['v4', 'v4.0 Tri-Disorder'],
+                  ['v31', 'v3.1 & CASF-2016'],
+                ] as const
+              ).map(([mode, lbl]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setSuiteFilter(mode)}
+                  className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
+                    suiteFilter === mode
+                      ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-200'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  {lbl}
+                </button>
+              ))}
+            </div>
+          )}
           <span className="px-2.5 py-1 rounded-lg bg-emerald-500/12 text-emerald-600 dark:text-emerald-300 border border-emerald-500/25 font-semibold flex items-center gap-1">
             <ShieldCheck className="h-3.5 w-3.5" /> 0 Scaffold Leakage
           </span>
@@ -300,6 +329,18 @@ export function ExperimentsView({
         </div>
       </div>
 
+      {/* GenEuclidean v4.0 Tri-Disorder, 3-LLM, Clinical Rescue, 12-Endpoint Avoid-ome & TS-GABA */}
+      {v4Benchmarks && (suiteFilter === 'all' || suiteFilter === 'v4') && (
+        <V4BenchmarksSection
+          v4={v4Benchmarks}
+          theme={theme}
+          onInspectTarget={onInspectTarget}
+        />
+      )}
+
+      {/* GenEuclidean v3.1 CNS & CASF-2016 Benchmark Suite */}
+      {(suiteFilter === 'all' || suiteFilter === 'v31') && (
+        <div className="space-y-8">
       {/* SECTION 1: Sortable CASF-2016 12-Model Comparison Leaderboard */}
       <section className="lab-card rounded-2xl p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1281,6 +1322,8 @@ export function ExperimentsView({
           </ResponsiveContainer>
         </div>
       </section>
+        </div>
+      )}
     </div>
   );
 }

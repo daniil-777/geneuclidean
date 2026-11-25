@@ -19,10 +19,28 @@ interface FiguresViewProps {
 
 const MANUSCRIPTS = [
   {
+    title: 'v4.0 Tri-Disorder 3-LLM, Clinical Rescue & Avoid-ome Technical Report',
+    path: 'docs/v4_tri_disorder_report.md',
+    desc: '28 human targets (Tourette-GABA × Schizophrenia × Alzheimer’s), SAFE-GPT-87M vs NovoMolGen-157M vs GP-MoLFormer, 12-ep Avoid-ome + Rat Kp,uu, and FDA/EMA dossier.',
+    badge: 'v4.0 Flagship',
+  },
+  {
+    title: 'Tourette CSTC Basal-Ganglia & GABAergic Circuit Audit',
+    path: 'docs/tourette_circuit_audit.md',
+    desc: 'Independent neurobiology audit of 13 CSTC targets, 6 caught structural/species traps, and zero-shot 3D transfer onto GABRA5, GAT1, ADORA2A & GRM5.',
+    badge: 'TS-GABA Circuit',
+  },
+  {
+    title: 'GenEuclidean Python Library SDK Documentation',
+    path: 'docs/library_api.md',
+    desc: 'Clean lazy-import Python SDK (`import geneuclidean as ge`) covering Pocket loading, 3D generation, MedChem triage, docking, and 3D visualization.',
+    badge: 'Python SDK',
+  },
+  {
     title: 'v3.1 CNS Neuroscience & Tourette Computational Chemistry Manuscript',
     path: 'docs/neuro_tourette_psychiatry.md',
     desc: 'Complete 4-gate, 3-iteration closed-loop CNS study, Basic-Amine Paradox resolution, Ablations A1–A5, 10×10 selectivity, and Top-12 dossiers.',
-    badge: 'v3.1 Flagship',
+    badge: 'v3.1 Manuscript',
   },
   {
     title: '2024–2026 Industry Pharma Dataset Architecture & Data Hygiene',
@@ -31,32 +49,27 @@ const MANUSCRIPTS = [
     badge: 'Industry Data',
   },
   {
-    title: 'Chemical Foundation & Local LLM Research Report',
-    path: 'docs/llm_research.md',
-    desc: 'GP-MoLFormer-Uniq vs. GPT2-ZINC-87M vs. Qwen2.5-0.5B scouting, RoPE meta-init fix, 12.5× fast_4d_tril kernel, and 11.15× KV-cached CFG.',
-    badge: 'v3.0 LLMs',
-  },
-  {
-    title: 'Mathematical Architecture & SE(3) Equivariance Specification',
+    title: 'Chemical Foundation LLM Research & SE(3) Architecture Specs',
     path: 'docs/architecture.md',
-    desc: 'Chiral PaiNN-SE3 equations, PocketPerceiverResampler, ScaleMatchRMSNorm, PocketCVAE, and CPU/MPS numerical equivariance proofs.',
+    desc: 'Chiral PaiNN-SE3 equations, PocketPerceiverResampler, ScaleMatchRMSNorm, SAFE codec, and CPU/MPS numerical equivariance proofs.',
     badge: 'SE(3) Math',
-  },
-  {
-    title: '2021 ETH Zürich Thesis Forensic Audit',
-    path: 'docs/legacy_audit.md',
-    desc: 'Forensic reconstruction of v1.0.0-thesis-2021 defects and verified clean-room upgrades.',
-    badge: 'v1.0 Audit',
   },
 ];
 
 const CLI_SNIPPETS = [
   {
-    title: 'Inspect 12 Human CNS Targets & Canonical Anchors',
+    title: 'Python Library SDK Quickstart (<200 ms lazy import)',
+    cmd: `import geneuclidean as ge
+pocket = ge.Pocket.from_target("DRD1")
+scores = ge.score_molecules(["CN1CCN(C(=O)c2ccc3ccccc3n2)CC1"])
+ge.visualize_complex(pocket.pdb_path, "hit.sdf", out_html="studio.html")`,
+  },
+  {
+    title: 'Inspect 28 Human Tri-Disorder & Tourette CSTC/GABA Targets',
     cmd: '.venv/bin/geneuclidean cns-targets --target DRD1',
   },
   {
-    title: 'Score Any Molecule (Pfizer CNS MPO v2 + Calibrated BBB/P-gp/hERG + AD)',
+    title: 'Score Any Molecule (Pfizer CNS MPO v2 + 12-Ep Avoid-ome & ADMET)',
     cmd: '.venv/bin/geneuclidean cns-admet "CN1CCN(C(=O)c2ccc3ccccc3n2)CC1"',
   },
   {
@@ -64,20 +77,16 @@ const CLI_SNIPPETS = [
     cmd: '.venv/bin/geneuclidean viz3d --pocket pocket.pdb --ligand hit.sdf --out-html complex.html --out-png complex.png --theme dark',
   },
   {
-    title: 'Sample De Novo Ligands with 11.15× KV-Cached CFG + MPO Reranking',
-    cmd: '.venv/bin/geneuclidean sample-llm --adapter runs/geneuclidean_v31_cns_dpo/best_adapter.pt --pdb-id 9llg --cfg-scale 1.3 --num-samples 32',
-  },
-  {
-    title: 'Rebuild Web Studio JSON Data Assets from Repo Tables',
+    title: 'Rebuild Web Studio JSON Data Assets (28 Complexes + v4 Benchmarks)',
     cmd: '.venv/bin/python scripts/build_web_data.py',
   },
 ];
 
 const BIBTEX = `@software{emtsev2026geneuclidean,
   author       = {Emtsev, Daniil},
-  title        = {{GenEuclidean v3.1: SE(3)-Equivariant 3D Protein Pocket-Conditioned Chemical Foundation Transformers, Calibrated CNS-Safe De Novo Drug Design, and 3D Molecular Studio}},
+  title        = {{GenEuclidean v4.0: SE(3)-Equivariant 3D Pocket-Conditioned Chemical Foundation LLMs, Industrial Avoid-ome Alignment, and Live Browser AI Molecular Studio}},
   year         = {2026},
-  version      = {3.1.0},
+  version      = {4.0.0},
   url          = {https://github.com/daniil-777/geneuclidean}
 }`;
 
@@ -223,14 +232,14 @@ export function FiguresView({ figures, repoUrl }: FiguresViewProps) {
         </div>
       </section>
 
-      {/* Reproducibility CLI + Colab + BibTeX */}
+      {/* Reproducibility SDK, CLI + Colab + BibTeX */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         <div className="lg:col-span-7 lab-card rounded-2xl p-5 space-y-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Terminal className="h-4 w-4 text-emerald-500" />
               <h2 className="font-bold text-base text-[var(--text-primary)]">
-                Reproducible CLI &amp; Google Colab Commands
+                Python SDK, CLI &amp; Google Colab Commands
               </h2>
             </div>
             <a
@@ -304,11 +313,11 @@ export function FiguresView({ figures, repoUrl }: FiguresViewProps) {
 
           <div className="rounded-xl bg-[var(--bg-elevated)]/70 border border-[var(--border-subtle)] p-3.5 text-xs text-[var(--text-secondary)] space-y-1">
             <div className="font-semibold text-[var(--text-primary)]">
-              MIT License · 187 Passing Automated Tests
+              MIT License · Strict Zero-Leakage CI &amp; FDA/EMA 10/10 Dossier
             </div>
             <p>
-              Verified on Apple Silicon M3 Pro (MPS) and Google Colab T4/L4/A100 GPUs with strict
-              zero-leakage CASF-2016 and 5-fold Bemis-Murcko scaffold-CV splits.
+              Verified on Apple Silicon M3 Pro (MPS) and Google Colab T4/L4/A100 GPUs across 28
+              human 3D targets with strict Bemis-Murcko scaffold-disjoint validation.
             </p>
           </div>
         </div>

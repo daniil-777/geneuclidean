@@ -30,6 +30,15 @@ export interface HeadlineKPIs {
   casf_drugclip_r5_pct: number;
   total_vina_dockings: number;
   n_targets: number;
+  // v4.0 live KPIs
+  v4_safegpt_safe_pct?: number;
+  v4_safe_fold_vs_v31?: number;
+  v4_dcu_pct?: number;
+  v4_pde10a_sink_pct?: number;
+  v4_n_avoidome_endpoints?: number;
+  v4_kpuu_rho?: number;
+  ts_gaba_rmsd_median?: number;
+  n_local_llms?: number;
 }
 
 export interface EvolutionStage {
@@ -115,9 +124,12 @@ export interface OverviewData {
   figures: FigureItem[];
 }
 
+export type TargetCohort = 'v3.1' | 'v4.0-tri' | 'v4.0-ts-gaba';
+
 export interface MoleculeIndexEntry {
   target: string;
   lead_id: string;
+  cohort: TargetCohort;
   is_curated_rank2: boolean;
   title: string;
   family: string;
@@ -135,10 +147,12 @@ export interface MoleculeIndexEntry {
   bbb_prob: number;
   herg_prob: number;
   pgp_inhib_prob: number;
+  mdr1_efflux_prob?: number | null;
+  v4_pharma_safe?: boolean;
   posebusters_passed: boolean;
   anchor_label: string;
   anchor_min_dist: number | null;
-  max_chembl_tan: number;
+  max_chembl_tan: number | null;
   n_contacts: number;
   svg_mini_dark: string;
   svg_mini_light: string;
@@ -192,6 +206,7 @@ export interface NearestChembl {
 export interface ComplexDetail {
   target: string;
   lead_id: string;
+  cohort: TargetCohort;
   is_curated_rank2: boolean;
   title: string;
   family: string;
@@ -233,13 +248,14 @@ export interface ComplexDetail {
     pgp_inhib_prob: number;
     pgp_minus_prob: number;
     herg_prob: number;
-    min_ad_sim: number;
+    min_ad_sim: number | null;
     in_domain_all: boolean;
     joint_cns_safe: boolean;
     pred_pkd_painn: number | null;
     qsar_p_on_target: number | null;
     qsar_delta_sel: number | null;
   };
+  avoidome_v4?: Record<string, number> | null;
   physics_3d: {
     top1_vina_dg: number;
     native_vina_dg: number | null;
@@ -252,7 +268,7 @@ export interface ComplexDetail {
     anchor_engaged_top1: boolean;
     posebusters_passed: boolean;
     protein_clashes: number;
-    mmff_strain_kcal: number;
+    mmff_strain_kcal: number | null;
     plif_tanimoto: number;
     residue_recovery: number;
     ddg_vs_drd2_6cm4: number | null;
@@ -261,9 +277,9 @@ export interface ComplexDetail {
   };
   novelty: {
     is_strict_novel: boolean;
-    max_tanimoto_all_chembl: number;
+    max_tanimoto_all_chembl: number | null;
     nearest_all_chembl: NearestChembl | null;
-    max_tanimoto_same_target: number;
+    max_tanimoto_same_target: number | null;
     nearest_same_target: NearestChembl | null;
   };
   attention_stats: {
@@ -507,5 +523,142 @@ export interface ExperimentsData {
     arm_summaries: Record<string, Record<string, number>>;
     clinical_controls: Drd1ClinicalControl[];
     points: Drd1ScatterPoint[];
+  };
+}
+
+// ---------------------------------------------------------------------------
+// GenEuclidean v4.0 Tri-Disorder, 3-LLM, Clinical Rescue & TS-GABA Benchmarks
+// ---------------------------------------------------------------------------
+
+export interface V4LlmArmRow {
+  key: string;
+  label: string;
+  short_label: string;
+  validity_pct: number;
+  uniqueness_pct: number;
+  strict_novelty_pct: number;
+  int_div_1: number;
+  v4_pharma_safe_pct: number;
+  v31_safe_pct: number;
+  triage_pass_pct: number;
+  reagent_dcu_pct: number;
+  cns_mpo_v2: number;
+  mdr1_efflux_pct: number;
+  herg_pct: number;
+  pde10a_vmat2_bleed_pct: number | null;
+  mean_vina_dg: number | null;
+  best_vina_dg: number | null;
+  mean_le: number | null;
+  posebusters_pct: number | null;
+}
+
+export interface V4ClinicalRescue {
+  id: string;
+  drug_name: string;
+  target_id: string;
+  pdb_id: string;
+  counter_target: string;
+  objective: string;
+  core_preserved_ratio: string;
+  parent_smiles: string;
+  analog_smiles: string;
+  parent_svg_dark: string;
+  parent_svg_light: string;
+  analog_svg_dark: string;
+  analog_svg_light: string;
+  parent_mpo: number;
+  analog_mpo: number;
+  parent_herg: number;
+  analog_herg: number;
+  parent_chrm3: number;
+  analog_chrm3: number;
+  parent_mdr1: number;
+  analog_mdr1: number;
+  analog_p_on_target: number;
+  on_vina_dg: number;
+  off_vina_dg: number;
+  ddg: number;
+  posebusters_passed: boolean;
+  anchor_engaged: boolean;
+  headline_win: string;
+}
+
+export interface V4AvoidomeEndpoint {
+  key: string;
+  label: string;
+  category: 'BBB / Efflux' | 'DMPK / CYP' | 'Avoid-ome' | 'Toxicology';
+  n_samples: number;
+  roc_auc: number;
+  roc_auc_std: number;
+  ece: number;
+  conformal_coverage_pct: number | null;
+  singleton_rate_pct: number | null;
+}
+
+export interface V4TsGabaPocket {
+  target: string;
+  pdb_id: string;
+  cstc_node: string;
+  polarity: string;
+  gate1_top1_rmsd: number;
+  gate1_best3_rmsd: number;
+  gate1_anchor_pct: number;
+  gate1_pb_pct: number;
+  best_lead_label: string;
+  best_lead_smiles: string;
+  best_vina_dg: number;
+  best_le: number;
+  best_mpo: number;
+  best_herg: number;
+  zinc_best_vina_dg: number;
+  clinical_ref_best_dg: number;
+  clinical_ref_note: string;
+}
+
+export interface V4BenchmarksData {
+  generated_at: string;
+  best_v4_arm: string;
+  llm_head_to_head: {
+    arms: V4LlmArmRow[];
+    safegpt_vs_v31_stats: {
+      v4_safe_diff_pp: number;
+      v4_safe_wilcoxon_p: number;
+      v4_safe_holm_n: number;
+      mdr1_wilcoxon_p: number | null;
+      mdr1_holm_n: number | null;
+    };
+  };
+  clinical_rescues: V4ClinicalRescue[];
+  avoidome_12ep: {
+    endpoints: V4AvoidomeEndpoint[];
+    kpuu_benchmark: {
+      n_compounds: number;
+      bbb_spearman_rho: number;
+      bbb_spearman_p: number;
+      bbb_roc_auc_high_kpuu: number;
+      mpo_spearman_rho: number;
+    };
+  };
+  gate1_expansion: {
+    n_complexes: number;
+    median_top1_rmsd: number;
+    median_best3_rmsd: number;
+    pass_best3_le_2p0A_pct: number;
+    mean_pb_pct: number;
+  };
+  ts_circuit_gaba: {
+    median_top1_rmsd: number;
+    median_best3_rmsd: number;
+    mean_anchor_pct: number;
+    mean_pb_pct: number;
+    pockets: V4TsGabaPocket[];
+  };
+  credibility_dossier: {
+    model_name: string;
+    n_tracked_artifacts: number;
+    fda_ema_principles_passed: number;
+    fda_ema_principles_total: number;
+    risk_tier: string;
+    boundary: string;
   };
 }

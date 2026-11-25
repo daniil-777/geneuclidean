@@ -24,9 +24,10 @@ interface OverviewViewProps {
 
 const HERO_TARGETS = [
   { id: 'DRD1', label: 'DRD1 (9LLG)', tag: 'Tourette Anti-EPS' },
-  { id: 'VMAT2', label: 'VMAT2 (8T69)', tag: 'Presynaptic TS' },
+  { id: 'ACHE', label: 'ACHE (4EY7)', tag: "Alzheimer's v4.0" },
+  { id: 'MAOB', label: 'MAOB (2V5Z)', tag: "Alzheimer's +FAD" },
+  { id: 'GRM5', label: 'GRM5 (4OO9)', tag: 'Tourette CSTC' },
   { id: 'CHRM4', label: 'CHRM4 (8FX5)', tag: 'Non-D2 M4' },
-  { id: 'SERT', label: 'SERT (5I6X)', tag: 'Comorbid OCD' },
 ] as const;
 
 const PIPELINE_STAGES = [
@@ -36,11 +37,12 @@ const PIPELINE_STAGES = [
     title: 'Chiral PaiNN-SE3 3D Encoder',
     badge: 'SO(3) < 8e-6',
     accent: 'from-cyan-500 to-sky-500',
-    summary: 'Float32 SE(3)-equivariant message passing over 10 Å protein pocket heavy-atom graphs.',
+    summary:
+      'Float32 SE(3)-equivariant message passing over 10 Å pocket heavy-atom + cofactor graphs (FAD/ADP/Zn/Mg).',
     details: [
       'Scalar invariants s ∈ ℝ¹⁹² + l=1 vector channels v ∈ ℝ⁶⁴ˣ³ over 5.5 Å radius-kNN graphs (24 Bessel RBFs).',
-      'Normalized cross-product & pseudoscalar contractions distinguish chiral L- vs. D-amino-acid pockets.',
-      'Frozen bit-for-bit across v3.0/v3.1: retains CASF-2016 pKd r = 0.746 and DrugCLIP R@5 = 62.1%.',
+      'Preserves catalytic cofactors (FAD in MAO-B, ADP in NLRP3, Zn/Mg in PDE1B) while masking organic ligand leaks.',
+      'Frozen bit-for-bit across v3.0–v4.0: retains CASF-2016 pKd r = 0.746 and DrugCLIP R@5 = 62.1% with 0.0 drift.',
     ],
   },
   {
@@ -59,27 +61,29 @@ const PIPELINE_STAGES = [
   {
     id: 'backbone',
     step: '03',
-    title: 'GP-MoLFormer-Uniq + LoRA',
-    badge: '1.1B Prior · 11.15× CFG',
+    title: '3 Local LLMs + 1.79 MB Browser AI',
+    badge: 'SAFE-GPT · NovoMolGen · GP-MoLF',
     accent: 'from-emerald-500 to-teal-500',
-    summary: 'Billion-molecule chemical foundation transformer with atom-regex stereocenter tokens.',
+    summary:
+      'Multi-backbone chemical foundation transformers enabling de novo generation AND 3D scaffold rescue.',
     details: [
-      'Pretrained on 650M unique / 1.1B ZINC+PubChem SMILES; compact 19.91 MB LoRA (r=16, α=32) adapter.',
+      'SAFE-GPT-87M (fragment SAFE + 3D clinical scaffold decoration), NovoMolGen-157M (MPS SDPA, IntDiv1=0.892), and GP-MoLFormer-Uniq.',
       '12.5× exact fast_4d_tril causal attention kernel + 11.15× KV-cached Classifier-Free Guidance (w=1.3).',
-      'Outperforms 10× larger general LLMs (94.9% CASF / 99.4% CNS raw SMILES validity, SA 2.79).',
+      'Distilled into a 1.79 MB INT8 KV-cached client-side Transformer running live in your browser (View 6).',
     ],
   },
   {
     id: 'alignment',
     step: '04',
-    title: 'AD-Damped CNS-RPO-DPO',
-    badge: 'Basic-Amine Resolved',
+    title: '4-Ch GDPO + L_XP-DPO + 12-Ep Avoid-ome',
+    badge: '5.5× Safe · 0% DCU',
     accent: 'from-amber-500 to-rose-500',
-    summary: 'Applicability-Domain-bounded preference alignment with strict Vina exclusion.',
+    summary:
+      'Multiplicative safety-gated alignment across 12 industrial DMPK/Avoid-ome oracles & Split-Conformal UQ.',
     details: [
-      'Trains strictly on LoRA weights with frozen 3D encoder/bridge/heads and 5-fold scaffold-CV ADMET oracles.',
-      'Resolves the Basic-Amine CNS Paradox: preserves 50.0% GPCR amines while cutting P(hERG) −71% & P(P-gp) −76%.',
-      'Anti-Goodhart discipline: AutoDock Vina v1.2.7 is 100% held out from training, verifying 100% PoseBusters.',
+      'SAFE-GPT-87M + 4-Ch GDPO lifts 12-endpoint Pharma-Safe 5.5× vs v3.1 (6.8% → 37.3%, 22/24 Holm) with 0.0% DCU and 0.0% PDE10A sink.',
+      'Slashes Biogen MDR1-MDCK efflux 7.6× (0.448 → 0.059) and validates external Rat Kp,uu (ρ = +0.724, p = 3.85×10⁻⁴⁰).',
+      'Anti-Goodhart discipline: AutoDock Vina v1.2.7 is 100% held out from training, verifying 100% PoseBusters & FDA/EMA 10/10 dossier.',
     ],
   },
 ] as const;
@@ -108,15 +112,12 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
     PIPELINE_STAGES.find((s) => s.id === activeStage) ?? PIPELINE_STAGES[0];
 
   const heroPills = [
-    { label: 'CNS Validity', value: `${kpi.cns_validity_pct.toFixed(1)}%`, tone: 'emerald' },
-    { label: 'PoseBusters', value: `${kpi.posebusters_pass_pct.toFixed(0)}%`, tone: 'cyan' },
-    { label: 'Gate-1 Redock', value: `${kpi.gate1_core10_rmsd_median.toFixed(2)} Å`, tone: 'sky' },
-    { label: '10×10 Selectivity', value: `p=${kpi.cross_target_col_z_p.toFixed(4)}`, tone: 'violet' },
-    {
-      label: 'DRD1_1 ΔΔG',
-      value: `${(kpi.drd1_lead_ddg ?? -1.31).toFixed(2)}`,
-      tone: 'amber',
-    },
+    { label: 'Human 3D Targets', value: `${kpi.n_targets}` },
+    { label: 'Local LLMs + Web AI', value: `${kpi.n_local_llms ?? 3} + 1` },
+    { label: 'v4 Pharma-Safe', value: `${kpi.v4_safe_fold_vs_v31 ?? 5.5}× (${kpi.v4_safegpt_safe_pct ?? 37.3}%)` },
+    { label: 'Avoid-ome Oracles', value: `${kpi.v4_n_avoidome_endpoints ?? 12}-Ep` },
+    { label: 'PoseBusters', value: `${kpi.posebusters_pass_pct.toFixed(0)}%` },
+    { label: 'DCU / Sink', value: `${(kpi.v4_dcu_pct ?? 0).toFixed(0)}%` },
   ];
 
   return (
@@ -128,24 +129,25 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/25">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              GenEuclidean {overview.version} · {kpi.n_targets} Verified Human CNS 3D Targets ·{' '}
-              {kpi.total_vina_dockings.toLocaleString()} Held-Out Dockings
+              GenEuclidean {overview.version} · {kpi.n_targets} Human 3D Targets (Tourette-GABA × Schizophrenia × Alzheimer&apos;s)
             </div>
 
             <h1 className="text-3xl sm:text-4xl xl:text-[44px] font-extrabold tracking-tight leading-[1.08] text-[var(--text-primary)]">
               3D <span className="bg-gradient-to-r from-cyan-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">SE(3)-Equivariant</span>{' '}
-              De Novo Drug Design Studio
+              Tri-Disorder Drug Discovery Studio
             </h1>
 
             <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed max-w-2xl">
-              Bridging chiral <code className="font-mono-num text-cyan-600 dark:text-cyan-300">PaiNN-SE3</code>{' '}
-              protein pocket geometry directly into billion-molecule Chemical Foundation Transformers via{' '}
-              <code className="font-mono-num text-cyan-600 dark:text-cyan-300">PocketPerceiverResampler</code>{' '}
-              and Applicability-Domain-damped <strong className="text-[var(--text-primary)]">CNS-RPO-DPO</strong> — resolving
-              the Basic-Amine CNS Paradox for Tourette Syndrome and psychiatric neuroscience.
+              Uniting frozen chiral <code className="font-mono-num text-cyan-600 dark:text-cyan-300">PaiNN-SE3</code>{' '}
+              3D pocket geometry with three local chemical foundation LLMs (
+              <strong className="text-[var(--text-primary)]">SAFE-GPT-87M</strong>,{' '}
+              <strong className="text-[var(--text-primary)]">NovoMolGen-157M</strong>,{' '}
+              <strong className="text-[var(--text-primary)]">GP-MoLFormer</strong>),{' '}
+              <strong>4-Channel GDPO + L_XP-DPO</strong>, 12-endpoint industrial Avoid-ome/DMPK oracles,
+              and a live <strong>1.79 MB in-browser neural generator</strong>.
             </p>
 
-            {/* Live verified KPI pills */}
+            {/* Live verified v4.0 KPI pills */}
             <div className="flex flex-wrap gap-2 pt-1">
               {heroPills.map((p) => (
                 <div
@@ -167,7 +169,7 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 shadow-lg shadow-cyan-500/20 hover:brightness-110 transition-all cursor-pointer"
             >
               <Atom className="h-4 w-4" />
-              Launch 3D &amp; 2D Studio
+              Explore {kpi.n_targets} 3D Complexes
               <ArrowRight className="h-4 w-4" />
             </button>
 
@@ -177,7 +179,7 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/35 hover:bg-emerald-500/25 transition-all cursor-pointer"
             >
               <Sparkles className="h-4 w-4" />
-              Live AI Generator
+              Live Browser AI Generator
             </button>
 
             <button
@@ -186,7 +188,7 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm lab-card text-[var(--text-primary)] hover:border-cyan-500/40 cursor-pointer"
             >
               <BarChart3 className="h-4 w-4 text-cyan-500" />
-              Explore Benchmarks
+              v4.0 3-LLM Benchmarks
             </button>
           </div>
 
@@ -194,50 +196,49 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
             <div className="lab-card rounded-xl p-3.5">
               <div className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">
-                Joint Phys+Safe
+                v4 SAFE-GPT Safe
               </div>
               <div className="font-mono-num text-2xl font-bold text-emerald-500 dark:text-emerald-400 mt-1">
-                {kpi.joint_phys_safe_core10_pct.toFixed(0)}%
+                {(kpi.v4_safegpt_safe_pct ?? 37.3).toFixed(1)}%
               </div>
               <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                {kpi.joint_phys_safe_all12_pct.toFixed(1)}% All-12 · +58 pp ZINC
+                {kpi.v4_safe_fold_vs_v31 ?? 5.5}× v3.1 · 0% DCU/sink
               </div>
             </div>
 
             <div className="lab-card rounded-xl p-3.5">
               <div className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">
-                3D Contact Attn
+                Rat Kp,uu Calib.
               </div>
               <div className="font-mono-num text-2xl font-bold text-cyan-500 dark:text-cyan-400 mt-1">
-                {kpi.attn_contact_enrichment.toFixed(2)}×
+                ρ={(kpi.v4_kpuu_rho ?? 0.724).toFixed(3)}
               </div>
               <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                &lt;4.5 Å crystal hotspots
+                n=239 · p=3.85×10⁻⁴⁰
               </div>
             </div>
 
             <div className="lab-card rounded-xl p-3.5">
               <div className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">
-                Pfizer CNS MPO
+                Donepezil Rescue
               </div>
               <div className="font-mono-num text-2xl font-bold text-amber-500 dark:text-amber-400 mt-1">
-                {kpi.cns_mpo_v2.toFixed(2)}
-                <span className="text-xs font-normal text-[var(--text-muted)]"> / 6</span>
+                −2.29
               </div>
               <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                {kpi.joint_cns_safe_pct.toFixed(1)}% In-AD safe (5× SFT)
+                ΔΔG vs BChE · hERG 0.95→0.14
               </div>
             </div>
 
             <div className="lab-card rounded-xl p-3.5">
               <div className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">
-                CASF-2016 pKd
+                TS-GABA Gate-1
               </div>
               <div className="font-mono-num text-2xl font-bold text-violet-500 dark:text-violet-400 mt-1">
-                r={kpi.casf_pkd_r.toFixed(3)}
+                {(kpi.ts_gaba_rmsd_median ?? 1.3).toFixed(2)} Å
               </div>
               <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                CLIP R@5 {kpi.casf_drugclip_r5_pct.toFixed(1)}% · 0 drift
+                100% PB &amp; anchor · 4 pockets
               </div>
             </div>
           </div>
@@ -248,7 +249,7 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-secondary)]">
               <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              Live Interactive 3D WebGL Showcase — Drag to Orbit · Scroll to Zoom
+              Live 3D WebGL Complex — Drag to Orbit · Scroll to Zoom
             </div>
             <div className="flex items-center gap-1 flex-wrap">
               {HERO_TARGETS.map((t) => (
@@ -256,6 +257,7 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
                   key={t.id}
                   type="button"
                   onClick={() => setHeroTarget(t.id)}
+                  title={t.tag}
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-mono-num font-semibold border transition-all cursor-pointer ${
                     heroTarget === t.id
                       ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-700 dark:text-cyan-200'
@@ -283,8 +285,10 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
                   {heroComplex.lead_id} · {heroComplex.disease_tag}
                 </span>
                 <span className="font-mono-num text-pink-500 dark:text-pink-400 font-semibold">
-                  {heroComplex.physics_3d.anchor_label}{' '}
-                  {heroComplex.physics_3d.anchor_min_dist?.toFixed(2)} Å
+                  {heroComplex.physics_3d.anchor_label}
+                  {heroComplex.physics_3d.anchor_min_dist !== null
+                    ? ` ${heroComplex.physics_3d.anchor_min_dist.toFixed(2)} Å`
+                    : ''}
                 </span>
                 <span className="font-mono-num text-[var(--text-muted)]">
                   MPO {heroComplex.admet.cns_mpo_v2.toFixed(2)} · P(hERG){' '}
@@ -377,12 +381,12 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
             onClick={() => onNavigate('experiments')}
             className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/25 cursor-pointer"
           >
-            View Ablation Proofs <ArrowRight className="h-3.5 w-3.5" />
+            View v4.0 Benchmarks <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </div>
       </section>
 
-      {/* Version Evolution Timeline (v1.0 -> v4.0) */}
+      {/* Version Evolution Timeline (v1.0 -> v4.0.0 LIVE) */}
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
@@ -390,7 +394,7 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
               Research Lineage
             </div>
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">
-              Evolution Timeline: 2021 ETH Thesis → v3.1 CNS Studio → v4.0 Ready
+              Evolution Timeline: 2021 ETH Thesis → v4.0.0 Tri-Disorder 3-LLM Studio
             </h2>
           </div>
           <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
@@ -401,16 +405,13 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
           {overview.evolution.map((stage) => {
             const isCurrent = stage.status === 'active' || stage.status === 'live';
-            const isFuture = stage.status === 'ready';
             return (
               <div
                 key={stage.version}
                 className={`rounded-2xl p-4 border flex flex-col justify-between gap-3 ${
                   isCurrent
-                    ? 'bg-gradient-to-b from-cyan-500/12 to-emerald-500/8 border-cyan-500/45'
-                    : isFuture
-                      ? 'lab-card border-dashed border-violet-500/40'
-                      : 'lab-card'
+                    ? 'bg-gradient-to-b from-cyan-500/14 to-emerald-500/10 border-cyan-500/55 shadow-md shadow-cyan-500/10'
+                    : 'lab-card'
                 }`}
               >
                 <div className="space-y-2">
@@ -422,12 +423,10 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
                       className={`font-mono-num text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                         isCurrent
                           ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300'
-                          : isFuture
-                            ? 'bg-violet-500/20 text-violet-600 dark:text-violet-300'
-                            : 'bg-slate-500/15 text-[var(--text-muted)]'
+                          : 'bg-slate-500/15 text-[var(--text-muted)]'
                       }`}
                     >
-                      {stage.year}
+                      {isCurrent ? 'LIVE' : stage.year}
                     </span>
                   </div>
                   <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)]">
@@ -460,26 +459,26 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
           {
             icon: ShieldCheck,
             color: 'text-emerald-500',
-            title: 'Basic-Amine Paradox Resolved',
-            body: 'Preserves 50.0% GPCR basic amines (5.4× zero-shot) while slashing hERG cardiotoxicity −71% (0.155) and P-gp efflux −76% (0.121).',
+            title: 'SAFE-GPT 5.5× Pharma-Safe',
+            body: '4-Ch GDPO + L_XP-DPO hits 37.3% 12-endpoint Pharma-Safe (22/24 Holm), 0.0% DCU, 0.0% PDE10A sink, and slashes MDR1 efflux 7.6×.',
+          },
+          {
+            icon: Sparkles,
+            color: 'text-cyan-500',
+            title: '3D Clinical Scaffold Rescues',
+            body: 'Decorates Donepezil (hERG 0.95→0.14, ΔΔG −2.29), Safinamide (ΔΔG −3.47), Xanomeline (M3 0.97→0.22), and Ecopipam (ΔΔG −0.98).',
           },
           {
             icon: Activity,
-            color: 'text-cyan-500',
-            title: 'Anti-Reward-Hacking Proven',
-            body: 'Disabling Applicability-Domain damping (A3_NoAD) causes OOD exploitation and a −10.6 pp crash in verified In-AD CNS-Safe rate.',
+            color: 'text-violet-500',
+            title: '12-Ep Avoid-ome + Kp,uu',
+            body: '5-fold scaffold-CV oracles + 90% Split-Conformal UQ + external Rat Kp,uu ρ=+0.724 (p=3.85×10⁻⁴⁰) + FDA/EMA 10/10 dossier.',
           },
           {
             icon: Layers,
-            color: 'text-violet-500',
-            title: '10×10 3D Selectivity (p=0.0081)',
-            body: '500 cross-target Vina dockings confirm diagonal dominance (9/10 targets above pocket mean, DRD1 ranked #1/10, DC-Z p=0.0235).',
-          },
-          {
-            icon: Atom,
             color: 'text-amber-500',
-            title: 'Tourette Anti-EPS Flagship',
-            body: 'DRD1_1 (−9.26 kcal/mol, Asp103 3.02 Å, CNS MPO 5.67, hERG 0.08) achieves ΔΔG = −1.31 vs. off-target DRD2 (exceeding ecopipam −1.04).',
+            title: 'Tourette CSTC/GABA + Web AI',
+            body: '4 new basal-ganglia pockets (GABRA5, GAT1, ADORA2A, GRM5; 1.30 Å redock) + 1.79 MB INT8 neural generator running live in-browser.',
           },
         ].map((card) => {
           const Icon = card.icon;

@@ -25,11 +25,23 @@ interface Studio3DViewProps {
 
 const DISORDER_FILTERS = [
   'All',
-  'Tourette Syndrome',
+  'Tourette (CSTC+GABA)',
   'Schizophrenia',
-  'OCD / ADHD',
   "Alzheimer's Disease",
+  'OCD / ADHD',
 ] as const;
+
+const AVOIDOME_DISPLAY: [string, string, boolean][] = [
+  ['mdr1_efflux', 'MDR1 Efflux', false],
+  ['hlm_clearance', 'HLM Clear.', false],
+  ['cyp2d6', 'CYP2D6', false],
+  ['cyp3a4', 'CYP3A4', false],
+  ['htr2b_avoid', '5-HT2B Valv.', false],
+  ['hrh1_avoid', 'H1 Sedation', false],
+  ['chrm3_avoid', 'M3 Periph.', false],
+  ['dili', 'DILI Liver', false],
+  ['ames', 'AMES Mut.', false],
+];
 
 export function Studio3DView({
   molecules,
@@ -88,7 +100,7 @@ export function Studio3DView({
         return false;
       }
       if (!q) return true;
-      const hay = `${m.target} ${m.lead_id} ${m.pdb_id} ${m.title} ${m.disease_tag} ${m.canonical_smiles}`.toLowerCase();
+      const hay = `${m.target} ${m.lead_id} ${m.pdb_id} ${m.title} ${m.disease_tag} ${m.canonical_smiles} ${m.cohort}`.toLowerCase();
       return hay.includes(q);
     });
   }, [molecules, disorderFilter, searchQuery]);
@@ -119,12 +131,12 @@ export function Studio3DView({
   return (
     <div className="mx-auto max-w-[1680px] px-3 sm:px-5 py-4">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-        {/* LEFT RAIL: Disorder Filters, Search & Target Cards */}
+        {/* LEFT RAIL: Disorder Filters, Search & 28 Target Cards */}
         <aside className="lg:col-span-3 xl:col-span-2.5 flex flex-col gap-3 lg:h-[calc(100vh-5.5rem)]">
           <div className="lab-card rounded-2xl p-3 space-y-2.5 shrink-0">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
-                CNS Lead Portfolio
+                28 Human 3D Complexes
               </span>
               <span className="font-mono-num text-[11px] text-[var(--text-muted)]">
                 {filteredMolecules.length}/{molecules.length}
@@ -154,7 +166,7 @@ export function Studio3DView({
                       : 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                   }`}
                 >
-                  {d === "Alzheimer's Disease" ? "Alzheimer's" : d === 'Tourette Syndrome' ? 'Tourette' : d}
+                  {d === "Alzheimer's Disease" ? "Alzheimer's" : d}
                 </button>
               ))}
             </div>
@@ -163,6 +175,12 @@ export function Studio3DView({
           <div className="flex-1 overflow-y-auto space-y-2 pr-0.5 max-h-[340px] lg:max-h-none">
             {filteredMolecules.map((mol) => {
               const active = mol.target === selectedTarget;
+              const cohortBadge =
+                mol.cohort === 'v4.0-ts-gaba'
+                  ? { txt: 'TS-GABA', cls: 'bg-violet-500/18 text-violet-600 dark:text-violet-300 border-violet-500/30' }
+                  : mol.cohort === 'v4.0-tri'
+                    ? { txt: 'v4.0', cls: 'bg-amber-500/18 text-amber-700 dark:text-amber-300 border-amber-500/30' }
+                    : null;
               return (
                 <button
                   key={mol.target}
@@ -175,12 +193,19 @@ export function Studio3DView({
                   }`}
                 >
                   <div className="flex items-center justify-between gap-1.5">
-                    <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="flex items-center gap-1 min-w-0">
                       <span className="font-bold text-xs text-[var(--text-primary)] truncate">
-                        {mol.lead_id}
+                        {mol.target}
                       </span>
+                      {cohortBadge && (
+                        <span
+                          className={`text-[9px] font-mono-num font-bold px-1 rounded border shrink-0 ${cohortBadge.cls}`}
+                        >
+                          {cohortBadge.txt}
+                        </span>
+                      )}
                       {mol.is_curated_rank2 && (
-                        <span className="text-[9px] font-mono-num px-1 rounded bg-sky-500/15 text-sky-600 dark:text-sky-300 border border-sky-500/25">
+                        <span className="text-[9px] font-mono-num px-1 rounded bg-sky-500/15 text-sky-600 dark:text-sky-300 border border-sky-500/25 shrink-0">
                           #2
                         </span>
                       )}
@@ -194,7 +219,6 @@ export function Studio3DView({
                     {mol.disease_tag}
                   </div>
 
-                  {/* Mini 2D RDKit vector preview */}
                   <div
                     className="my-1.5 h-14 rounded-lg bg-[var(--bg-elevated)]/70 border border-[var(--border-subtle)] flex items-center justify-center overflow-hidden px-1 rdkit-svg-wrap"
                     dangerouslySetInnerHTML={{
@@ -279,7 +303,7 @@ export function Studio3DView({
           />
         </section>
 
-        {/* RIGHT INSPECTOR: 2D SVG Formula, CNS Safety Dashboard & Clickable 3D Contacts */}
+        {/* RIGHT INSPECTOR: 2D SVG Formula, 12-Ep Avoid-ome Safety & Clickable 3D Contacts */}
         <aside className="lg:col-span-4 xl:col-span-3.5 space-y-3 lg:h-[calc(100vh-5.5rem)] lg:overflow-y-auto pr-0.5">
           {loading || !complex ? (
             <div className="lab-card rounded-2xl p-8 text-center text-xs text-[var(--text-muted)]">
@@ -330,7 +354,6 @@ export function Studio3DView({
                   )}
                 </button>
 
-                {/* Descriptor pills */}
                 <div className="grid grid-cols-4 gap-1.5 text-center font-mono-num text-[10px]">
                   {[
                     ['MW', `${complex.descriptors.mw.toFixed(1)}`],
@@ -353,11 +376,11 @@ export function Studio3DView({
                 </div>
               </div>
 
-              {/* Physics & Medicinal Chemistry KPI Dashboard */}
+              {/* Physics, CNS Safety & 12-Endpoint Avoid-ome Dashboard */}
               <div className="lab-card rounded-2xl p-3.5 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[10.5px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                    3D Physics &amp; CNS Safety Profile
+                    3D Physics &amp; 12-Ep CNS Safety
                   </span>
                   {complex.physics_3d.posebusters_passed && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
@@ -366,7 +389,6 @@ export function Studio3DView({
                   )}
                 </div>
 
-                {/* Primary 4 physics tiles */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-xl bg-[var(--bg-elevated)]/80 border border-[var(--border-subtle)] p-2.5">
                     <div className="text-[10px] text-[var(--text-muted)] font-semibold">Vina ΔG</div>
@@ -390,19 +412,15 @@ export function Studio3DView({
                         ? `${complex.physics_3d.ddg_vs_drd2_mean > 0 ? '+' : ''}${complex.physics_3d.ddg_vs_drd2_mean.toFixed(2)}`
                         : complex.physics_3d.anchor_min_dist !== null
                           ? `${complex.physics_3d.anchor_min_dist.toFixed(2)} Å`
-                          : '—'}
+                          : 'Engaged'}
                     </div>
                     <div className="font-mono-num text-[10px] text-[var(--text-muted)] truncate">
                       {complex.physics_3d.anchor_label}
-                      {complex.physics_3d.anchor_min_dist !== null &&
-                      complex.physics_3d.ddg_vs_drd2_mean !== null
-                        ? ` (${complex.physics_3d.anchor_min_dist.toFixed(2)} Å)`
-                        : ''}
                     </div>
                   </div>
                 </div>
 
-                {/* Calibrated ADMET & AD Risk Meters */}
+                {/* Primary CNS ADMET risk meters */}
                 <div className="space-y-2">
                   {[
                     {
@@ -423,16 +441,9 @@ export function Studio3DView({
                       goodHigh: false,
                       text: `${(complex.admet.herg_prob * 100).toFixed(1)}%`,
                     },
-                    {
-                      label: 'Min AD Similarity (≥0.30)',
-                      val: Math.min(1, complex.admet.min_ad_sim),
-                      goodHigh: true,
-                      text: complex.admet.min_ad_sim.toFixed(2),
-                    },
                   ].map((m) => {
-                    const isGood = m.goodHigh ? m.val >= 0.3 : m.val <= 0.3;
                     const barColor = m.goodHigh
-                      ? m.val >= 0.7 || m.label.includes('AD')
+                      ? m.val >= 0.7
                         ? 'bg-emerald-500'
                         : 'bg-amber-500'
                       : m.val <= 0.25
@@ -444,11 +455,7 @@ export function Studio3DView({
                       <div key={m.label} className="space-y-0.5">
                         <div className="flex justify-between text-[11px]">
                           <span className="text-[var(--text-secondary)]">{m.label}</span>
-                          <span
-                            className={`font-mono-num font-bold ${
-                              isGood ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'
-                            }`}
-                          >
+                          <span className="font-mono-num font-bold text-[var(--text-primary)]">
                             {m.text}
                           </span>
                         </div>
@@ -462,6 +469,38 @@ export function Studio3DView({
                     );
                   })}
                 </div>
+
+                {/* v4.0 12-Endpoint Industrial Avoid-ome & DMPK Grid */}
+                {complex.avoidome_v4 && (
+                  <div className="pt-2 border-t border-[var(--border-subtle)] space-y-1.5">
+                    <div className="flex items-center justify-between text-[10.5px]">
+                      <span className="font-bold text-[var(--text-primary)]">
+                        v4.0 Industrial Avoid-ome &amp; DMPK (Lower ↓)
+                      </span>
+                      <span className="font-mono-num text-[9.5px] text-cyan-600 dark:text-cyan-400">
+                        Scaffold-CV
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5 font-mono-num text-[9.5px]">
+                      {AVOIDOME_DISPLAY.map(([k, lbl]) => {
+                        const v = complex.avoidome_v4?.[k];
+                        if (v === undefined) return null;
+                        const tone =
+                          v <= 0.35
+                            ? 'bg-emerald-500/12 border-emerald-500/25 text-emerald-600 dark:text-emerald-300'
+                            : v <= 0.55
+                              ? 'bg-amber-500/12 border-amber-500/25 text-amber-600 dark:text-amber-300'
+                              : 'bg-rose-500/12 border-rose-500/25 text-rose-500';
+                        return (
+                          <div key={k} className={`rounded-lg border px-1.5 py-1 text-center ${tone}`}>
+                            <div className="text-[8.5px] opacity-80 truncate">{lbl}</div>
+                            <div className="font-bold">{(v * 100).toFixed(0)}%</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* Pfizer CNS MPO v2 + 6 Component Breakdown */}
                 <div className="pt-2 border-t border-[var(--border-subtle)] space-y-2">
@@ -497,25 +536,27 @@ export function Studio3DView({
                 </div>
 
                 {/* Strict Novelty & Nearest ChEMBL */}
-                <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px]">
-                  <span className="text-[var(--text-muted)]">Max ChEMBL Tanimoto</span>
-                  <div className="flex items-center gap-2 font-mono-num">
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                      {complex.novelty.max_tanimoto_all_chembl.toFixed(3)}
-                    </span>
-                    {complex.novelty.nearest_all_chembl && (
-                      <a
-                        href={`https://www.ebi.ac.uk/chembl/compound_report_card/${complex.novelty.nearest_all_chembl.chembl_id}/`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-cyan-600 dark:text-cyan-400 hover:underline inline-flex items-center gap-0.5"
-                      >
-                        {complex.novelty.nearest_all_chembl.chembl_id}
-                        <ExternalLink className="h-2.5 w-2.5" />
-                      </a>
-                    )}
+                {complex.novelty.max_tanimoto_all_chembl !== null && (
+                  <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px]">
+                    <span className="text-[var(--text-muted)]">Max ChEMBL Tanimoto</span>
+                    <div className="flex items-center gap-2 font-mono-num">
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                        {complex.novelty.max_tanimoto_all_chembl.toFixed(3)}
+                      </span>
+                      {complex.novelty.nearest_all_chembl && (
+                        <a
+                          href={`https://www.ebi.ac.uk/chembl/compound_report_card/${complex.novelty.nearest_all_chembl.chembl_id}/`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-cyan-600 dark:text-cyan-400 hover:underline inline-flex items-center gap-0.5"
+                        >
+                          {complex.novelty.nearest_all_chembl.chembl_id}
+                          <ExternalLink className="h-2.5 w-2.5" />
+                        </a>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Interactive 3D Non-Covalent Contacts Table (Click to Zoom!) */}
@@ -552,9 +593,7 @@ export function Studio3DView({
                               viewerRef.current?.focusContact(rec);
                             }}
                             className={`cursor-pointer transition-colors ${
-                              selected
-                                ? 'bg-cyan-500/18'
-                                : 'hover:bg-slate-500/10'
+                              selected ? 'bg-cyan-500/18' : 'hover:bg-slate-500/10'
                             }`}
                           >
                             <td className="py-1.5 px-2">

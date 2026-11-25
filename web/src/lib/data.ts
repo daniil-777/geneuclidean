@@ -3,6 +3,7 @@ import type {
   ExperimentsData,
   MoleculesIndexData,
   OverviewData,
+  V4BenchmarksData,
 } from '../types/studio';
 
 const BASE = import.meta.env.BASE_URL.endsWith('/')
@@ -46,6 +47,10 @@ export function loadMoleculesIndex(): Promise<MoleculesIndexData> {
 
 export function loadExperiments(): Promise<ExperimentsData> {
   return fetchJsonCached<ExperimentsData>('data/experiments.json');
+}
+
+export function loadV4Benchmarks(): Promise<V4BenchmarksData> {
+  return fetchJsonCached<V4BenchmarksData>('data/v4_benchmarks.json');
 }
 
 export function loadComplexDetail(target: string): Promise<ComplexDetail> {

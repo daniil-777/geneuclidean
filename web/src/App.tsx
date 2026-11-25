@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Navbar } from './components/Navbar';
-import { loadExperiments, loadMoleculesIndex, loadOverview } from './lib/data';
+import {
+  loadExperiments,
+  loadMoleculesIndex,
+  loadOverview,
+  loadV4Benchmarks,
+} from './lib/data';
 import type {
   ExperimentsData,
   MoleculesIndexData,
   OverviewData,
   StudioTab,
   ThemeMode,
+  V4BenchmarksData,
 } from './types/studio';
 import { DisordersView } from './views/DisordersView';
 import { ExperimentsView } from './views/ExperimentsView';
@@ -24,6 +30,7 @@ export function App() {
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [moleculesIdx, setMoleculesIdx] = useState<MoleculesIndexData | null>(null);
   const [experiments, setExperiments] = useState<ExperimentsData | null>(null);
+  const [v4Benchmarks, setV4Benchmarks] = useState<V4BenchmarksData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // Apply dark/light root class
@@ -54,21 +61,32 @@ export function App() {
     };
   }, []);
 
-  // Load experiments JSON when entering Experiments view (or preload softly after overview mounts)
+  // Load experiments & v4 benchmarks JSONs after overview mounts
   useEffect(() => {
-    if (experiments || !overview) return;
+    if ((experiments && v4Benchmarks) || !overview) return;
     let alive = true;
-    loadExperiments()
-      .then((exp) => {
-        if (alive) setExperiments(exp);
-      })
-      .catch(() => {
-        // retry when clicking experiments tab
-      });
+    if (!experiments) {
+      loadExperiments()
+        .then((exp) => {
+          if (alive) setExperiments(exp);
+        })
+        .catch(() => {
+          // retry when clicking experiments tab
+        });
+    }
+    if (!v4Benchmarks) {
+      loadV4Benchmarks()
+        .then((v4) => {
+          if (alive) setV4Benchmarks(v4);
+        })
+        .catch(() => {
+          // optional v4 payload
+        });
+    }
     return () => {
       alive = false;
     };
-  }, [overview, experiments]);
+  }, [overview, experiments, v4Benchmarks]);
 
   const handleNavigate = (tab: StudioTab, target?: string, disorder?: string) => {
     if (target) setSelectedTarget(target);
@@ -145,6 +163,7 @@ export function App() {
           (experiments ? (
             <ExperimentsView
               experiments={experiments}
+              v4Benchmarks={v4Benchmarks}
               casfModels={overview.model_comparison_casf}
               theme={theme}
               onInspectTarget={(target) => handleNavigate('studio3d', target, 'All')}
