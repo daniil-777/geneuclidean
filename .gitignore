@@ -65,7 +65,11 @@ results/tables/pocket_embeddings_*.npz
 !results/figures/*.png
 !results/tables/model_comparison.csv
 !results/tables/model_comparison.md
+!results/tables/model_comparison_v3.csv
+!results/tables/model_comparison_v3.md
 !results/tables/decoding_ablation.csv
 !results/tables/decoding_ablation.json
+!results/tables/cfg_sweep_v3_*.csv
+!results/tables/cfg_sweep_v3_*.json
 !results/tables/docking_*.json
 !results/tables/eval_*.json

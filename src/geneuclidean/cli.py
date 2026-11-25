@@ -1,4 +1,4 @@
-"""Command-line interface for GenEuclidean v2.0 (Typer + Rich)."""
+"""Command-line interface for GenEuclidean v3.0 (Typer + Rich)."""
 
 from __future__ import annotations
 
@@ -22,8 +22,8 @@ if TYPE_CHECKING:
 app = typer.Typer(
     name="geneuclidean",
     help=(
-        "GenEuclidean v2.0 — SE(3)/E(3)-equivariant 3D protein pocket-conditioned "
-        "de novo molecular generation and binding affinity prediction."
+        "GenEuclidean v3.0 — SE(3)/E(3)-equivariant 3D protein pocket-conditioned "
+        "Chemical Foundation Transformer & Local LLM de novo drug design."
     ),
     no_args_is_help=True,
     add_completion=False,
