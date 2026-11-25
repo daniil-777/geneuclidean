@@ -75,6 +75,7 @@ _RESIDUE_ALIASES: dict[str, str] = {
 }
 
 _WATER_RESNAMES: frozenset[str] = frozenset({"HOH", "WAT", "DOD", "SOL"})
+_MODIFIED_POLYMER_RESNAMES: frozenset[str] = frozenset({"MSE"})
 _BACKBONE_ATOMS: frozenset[str] = frozenset({"N", "CA", "C", "O", "OXT"})
 _BACKBONE_ROLE_TO_IDX: dict[str, int] = {"N": 0, "CA": 1, "C": 2, "O": 3, "OXT": 3}
 
@@ -360,8 +361,17 @@ def _compute_52d_node_features(
 
 def _load_protein_heavy_atoms(
     structure_path: Path,
+    *,
+    include_metals: bool = True,
 ) -> tuple[np.ndarray, list[tuple[str, str, str]]]:
-    """Load heavy (non-H, non-water) protein atoms from a PDB or mmCIF file."""
+    """Load heavy (non-H, non-water, non-ligand) protein atoms from a PDB or mmCIF file.
+
+    Filters out non-protein HETATM records (co-crystal organic ligands, membrane lipids,
+    buffers, cryoprotectants, and solvents) to prevent ligand-atom leakage when parsing raw
+    holo PDB/mmCIF structures. Retains standard polymer amino-acid residues
+    (``residue.id[0] == " "``), selenomethionine (``MSE``), and optionally catalytic metal
+    ions (``ZN, MG, CA, FE, MN, CU, CO, NI, K, NA``).
+    """
     suffix = structure_path.suffix.lower()
     if suffix in (".cif", ".mmcif"):
         parser: Any = MMCIFParser(QUIET=True)
@@ -377,9 +387,16 @@ def _load_protein_heavy_atoms(
             resname = str(residue.get_resname()).strip().upper()
             if resname in _WATER_RESNAMES:
                 continue
+            hetflag = str(residue.id[0])
+            is_polymer = hetflag == " " or resname in _MODIFIED_POLYMER_RESNAMES
+            is_metal_ion = include_metals and resname in _METAL_ELEMENTS
+            if not (is_polymer or is_metal_ion):
+                continue
             for atom in residue.get_atoms():
                 element = _infer_element(atom)
                 if element == "H" or element == "D":
+                    continue
+                if is_metal_ion and not is_polymer and element not in _METAL_ELEMENTS:
                     continue
                 coord = np.asarray(atom.get_coord(), dtype=np.float32)
                 if not np.all(np.isfinite(coord)):

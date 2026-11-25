@@ -40,6 +40,8 @@ data/raw
 data/raw/
 data/processed
 data/processed/
+data/cns_neuro
+data/cns_neuro/
 runs
 runs/
 checkpoints

@@ -218,6 +218,63 @@ def test_ligand_free_inference_featurizer(tmp_path: Path) -> None:
     assert f_centered.node_feats.shape[1] == POCKET_NODE_DIM
 
 
+def test_raw_holo_pdb_strips_organic_hetatms_keeps_mse_and_metals(tmp_path: Path) -> None:
+    """Raw holo PDB parsing must strip organic ligand/lipid/buffer HETATMs without leakage."""
+    protein_atoms = _make_synthetic_pocket_atoms()
+    # Keep polymer residues only (exclude helper's ATOM ZN so we test HETATM ZN directly)
+    polymer_atoms = [a for a in protein_atoms if a[1] != "ZN"]
+    lines: list[str] = []
+    serial = 1
+    for aname, resname, resseq, xyz, elem in polymer_atoms:
+        lines.append(
+            f"ATOM  {serial:5d} {aname:<4s} {resname:>3s} A{resseq:4d}    "
+            f"{xyz[0]:8.3f}{xyz[1]:8.3f}{xyz[2]:8.3f}  1.00 20.00          {elem:>2s}"
+        )
+        serial += 1
+    # Modified polymer residue selenomethionine (MSE) as HETATM -> MUST BE KEPT
+    lines.append(
+        f"HETATM{serial:5d} SE   MSE A 101    "
+        f"{2.100:8.3f}{0.500:8.3f}{-0.500:8.3f}  1.00 20.00          SE"
+    )
+    serial += 1
+    # Catalytic zinc ion (ZN) as HETATM -> MUST BE KEPT
+    lines.append(
+        f"HETATM{serial:5d} ZN   ZN  A 201    "
+        f"{1.800:8.3f}{-0.400:8.3f}{0.600:8.3f}  1.00 20.00          ZN"
+    )
+    serial += 1
+    # Co-crystal organic ligand (8NU, e.g. risperidone), cholesterol lipid (CLR), glycerol (GOL),
+    # and water (HOH) right inside the binding pocket -> ALL MUST BE STRIPPED!
+    for aname, resname, resseq, xyz, elem in [
+        ("C1", "8NU", 301, (0.0, 0.0, 0.0), "C"),
+        ("N1", "8NU", 301, (1.2, 0.0, 0.0), "N"),
+        ("F1", "8NU", 301, (0.0, 1.2, 0.0), "F"),
+        ("C1", "CLR", 302, (2.0, 2.0, 0.0), "C"),
+        ("O1", "GOL", 303, (1.5, -1.5, 0.0), "O"),
+        ("O", "HOH", 401, (0.5, 0.5, 0.5), "O"),
+    ]:
+        lines.append(
+            f"HETATM{serial:5d} {aname:<4s} {resname:>3s} A{resseq:4d}    "
+            f"{xyz[0]:8.3f}{xyz[1]:8.3f}{xyz[2]:8.3f}  1.00 20.00          {elem:>2s}"
+        )
+        serial += 1
+    lines.append("END")
+
+    holo_pdb = tmp_path / "raw_holo_drd2.pdb"
+    holo_pdb.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    feat = featurize_pdb_pocket_inference(holo_pdb, center=[0.0, 0.0, 0.0], pocket_cutoff=15.0)
+    # Expect exactly polymer_atoms + 1 MSE atom + 1 ZN atom (0 ligand/lipid/buffer/water atoms!)
+    assert feat.coords.shape == (len(polymer_atoms) + 2, 3)
+    # Element index 5 is Fluorine (F from 8NU ligand) -> must be strictly zero
+    assert float(feat.node_feats[:, 5].sum()) == 0.0
+    # Element index 8 is Metal (ZN HETATM) -> must be exactly 1
+    assert float(feat.node_feats[:, 8].sum()) == 1.0
+    # MSE maps via _RESIDUE_ALIASES to MET (residue index 12 -> col 10 + 12 = 22);
+    # polymer_atoms already has 1 MET atom + 1 MSE atom = 2 MET atoms
+    assert float(feat.node_feats[:, 22].sum()) == 2.0
+
+
 def test_leak_proof_splits(tmp_path: Path) -> None:
     """Scaffold, CASF-2016, LP-PDBBind, and random splits guarantee zero leakage."""
     smiles_map = {

@@ -20,7 +20,7 @@ import os
 import re
 import sys
 import types
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -448,7 +448,10 @@ def _install_molformer_transformers_v5_shims() -> None:
 
     import transformers.pytorch_utils as pytorch_utils
 
-    if not hasattr(pytorch_utils, "find_pruneable_heads_and_indices"):
+    pytorch_utils_mod: Any = pytorch_utils
+    pre_trained_cls: Any = PreTrainedModel
+
+    if not hasattr(pytorch_utils_mod, "find_pruneable_heads_and_indices"):
 
         def find_pruneable_heads_and_indices(
             heads: list[int],
@@ -465,9 +468,9 @@ def _install_molformer_transformers_v5_shims() -> None:
             index = torch.arange(len(flat_mask))[flat_mask].long()
             return heads_set, index
 
-        pytorch_utils.find_pruneable_heads_and_indices = find_pruneable_heads_and_indices  # type: ignore[attr-defined]
+        pytorch_utils_mod.find_pruneable_heads_and_indices = find_pruneable_heads_and_indices
 
-    if not hasattr(PreTrainedModel, "create_extended_attention_mask_for_decoder"):
+    if not hasattr(pre_trained_cls, "create_extended_attention_mask_for_decoder"):
 
         @staticmethod  # type: ignore[misc]
         def create_extended_attention_mask_for_decoder(
@@ -492,11 +495,11 @@ def _install_molformer_transformers_v5_shims() -> None:
                 causal_mask = torch.cat([prefix_ones, causal_mask], dim=-1)
             return causal_mask[:, None, :, :] * attention_mask[:, None, None, :]
 
-        PreTrainedModel.create_extended_attention_mask_for_decoder = (  # type: ignore[attr-defined]
+        pre_trained_cls.create_extended_attention_mask_for_decoder = (
             create_extended_attention_mask_for_decoder
         )
 
-    if not hasattr(PreTrainedModel, "get_extended_attention_mask"):
+    if not hasattr(pre_trained_cls, "get_extended_attention_mask"):
 
         def get_extended_attention_mask(
             self: Any,
@@ -509,13 +512,15 @@ def _install_molformer_transformers_v5_shims() -> None:
             if resolved_dtype not in (torch.float16, torch.bfloat16, torch.float32, torch.float64):
                 resolved_dtype = torch.float32
             mask = attention_mask.to(dtype=resolved_dtype)
+            extended: Tensor
             if mask.dim() == 3:
                 extended = mask[:, None, :, :]
             elif mask.dim() == 2:
                 if bool(getattr(self.config, "is_decoder", False)):
-                    extended = PreTrainedModel.create_extended_attention_mask_for_decoder(  # type: ignore[attr-defined]
-                        input_shape, mask, device=device
+                    create_decoder_mask: Callable[..., Tensor] = (
+                        pre_trained_cls.create_extended_attention_mask_for_decoder
                     )
+                    extended = create_decoder_mask(input_shape, mask, device=device)
                 else:
                     extended = mask[:, None, None, :]
             else:
@@ -525,9 +530,9 @@ def _install_molformer_transformers_v5_shims() -> None:
                 )
             return (1.0 - extended) * torch.finfo(resolved_dtype).min
 
-        PreTrainedModel.get_extended_attention_mask = get_extended_attention_mask  # type: ignore[attr-defined]
+        pre_trained_cls.get_extended_attention_mask = get_extended_attention_mask
 
-    if not hasattr(PreTrainedModel, "invert_attention_mask"):
+    if not hasattr(pre_trained_cls, "invert_attention_mask"):
 
         def invert_attention_mask(self: Any, encoder_attention_mask: Tensor) -> Tensor:
             resolved_dtype = getattr(self, "dtype", torch.float32)
@@ -541,9 +546,9 @@ def _install_molformer_transformers_v5_shims() -> None:
                 raise ValueError(f"Unsupported encoder_attention_mask shape {shape}")
             return (1.0 - extended) * torch.finfo(resolved_dtype).min
 
-        PreTrainedModel.invert_attention_mask = invert_attention_mask  # type: ignore[attr-defined]
+        pre_trained_cls.invert_attention_mask = invert_attention_mask
 
-    if not hasattr(PreTrainedModel, "get_head_mask"):
+    if not hasattr(pre_trained_cls, "get_head_mask"):
 
         def get_head_mask(
             self: Any,
@@ -562,7 +567,7 @@ def _install_molformer_transformers_v5_shims() -> None:
                 head_mask = head_mask.unsqueeze(-1)
             return head_mask.to(dtype=getattr(self, "dtype", torch.float32))
 
-        PreTrainedModel.get_head_mask = get_head_mask  # type: ignore[attr-defined]
+        pre_trained_cls.get_head_mask = get_head_mask
 
 
 def _resolve_model_dtype(dtype: str, spec: BackboneSpec) -> torch.dtype:
