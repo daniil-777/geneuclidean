@@ -49,7 +49,7 @@ _DPI = 300
 
 # Verified 2021 ETH Zurich thesis baseline (Report_denovo.pdf Tables 4.3, 4.4 & Fig. A.1)
 _THESIS_2021_RECORD: dict[str, Any] = {
-    "short_label": "2021 Thesis\n(e3nn+LSTM)",
+    "short_label": "2021\nThesis\n(e3nn+LSTM)",
     "validity": 0.650,
     "qed": 0.450,
     "sa_norm": (10.0 - 4.00) / 9.0,
@@ -68,11 +68,19 @@ _THESIS_2021_RECORD: dict[str, Any] = {
 _MODEL_SLOTS: tuple[tuple[str, str], ...] = (
     ("eval_geneuclidean_v2_painn.json", "v2.0\nPaiNN-SE3"),
     ("eval_geneuclidean_v2_painn_dpo.json", "v2.0\nRPO-DPO"),
-    ("eval_v3_gpmolformer.json", "v3.0\nGP-MoLFormer"),
-    ("eval_v3_gpmolformer_dpo.json", "v3.0\nGP-MoLF+DPO"),
+    ("eval_v3_gpmolformer_iter1_rand.json", "v3.0\nGP-MoLF\n(Iter1 Rand)"),
+    ("eval_v3_gpmolformer.json", "v3.0\nGP-MoLF\n(Canon)"),
+    ("eval_v3_gpmolformer_dpo.json", "v3.0\nGP-MoLF\n+ RPO-DPO"),
     ("eval_v3_gpt2zinc.json", "v3.0\nGPT2-ZINC"),
-    ("eval_v3_qwen25.json", "v3.0\nQwen2.5-0.5B"),
+    ("eval_v3_qwen25.json", "v3.0\nQwen2.5\n0.5B"),
 )
+
+_SWEEP_TITLE_MAP: dict[str, str] = {
+    "geneuclidean_v3_gpmolformer": "v3.0 GP-MoLFormer-Uniq",
+    "geneuclidean_v3_gpmolformer_dpo": "v3.0 GP-MoLFormer + RPO-DPO",
+    "geneuclidean_v3_gpt2zinc": "v3.0 GPT2-ZINC-87M",
+    "geneuclidean_v3_qwen25": "v3.0 Qwen2.5-0.5B",
+}
 
 
 def _apply_pub_style() -> None:
@@ -166,7 +174,13 @@ def _load_comparison_records(tables_dir: Path) -> list[dict[str, Any]]:
     return records
 
 
-def _annotate_bars(ax: Axes, bars: Any, fmt: str = "{:.2f}", dy: float = 0.015) -> None:
+def _annotate_bars(
+    ax: Axes,
+    bars: Any,
+    fmt: str = "{:.2f}",
+    dy: float = 0.015,
+    fontsize: float = 7.2,
+) -> None:
     """Place crisp numeric labels above finite positive bars."""
     for bar in bars:
         height = float(bar.get_height())
@@ -178,9 +192,45 @@ def _annotate_bars(ax: Axes, bars: Any, fmt: str = "{:.2f}", dy: float = 0.015) 
             fmt.format(height),
             ha="center",
             va="bottom",
-            fontsize=7.2,
+            fontsize=fontsize,
             color="#222222",
         )
+
+
+def _annotate_grouped_bars(
+    ax: Axes,
+    bar_groups: Sequence[Any],
+    fmt: str = "{:.2f}",
+    dy: float = 0.012,
+    stagger_thresh: float = 0.045,
+    stagger_step: float = 0.036,
+    fontsize: float = 6.6,
+) -> None:
+    """Annotate grouped bars while vertically staggering close adjacent labels."""
+    if not bar_groups:
+        return
+    n_slots = len(bar_groups[0])
+    for slot_idx in range(n_slots):
+        prev_y: float | None = None
+        for grp in bar_groups:
+            bar = grp[slot_idx]
+            height = float(bar.get_height())
+            if not math.isfinite(height) or height <= 0.0:
+                prev_y = None
+                continue
+            y_pos = height + dy
+            if prev_y is not None and abs(y_pos - prev_y) < stagger_thresh:
+                y_pos = max(y_pos, prev_y + stagger_step)
+            ax.text(
+                bar.get_x() + bar.get_width() / 2.0,
+                y_pos,
+                fmt.format(height),
+                ha="center",
+                va="bottom",
+                fontsize=fontsize,
+                color="#222222",
+            )
+            prev_y = y_pos
 
 
 def plot_v3_llm_comparison(tables_dir: Path, out_path: Path) -> Path:
@@ -190,14 +240,16 @@ def plot_v3_llm_comparison(tables_dir: Path, out_path: Path) -> Path:
     labels = [r["short_label"] for r in records]
     x = np.arange(len(records), dtype=np.float64)
 
-    fig, axes = plt.subplots(2, 2, figsize=(15.5, 9.4), constrained_layout=True)
+    fig, axes = plt.subplots(2, 2, figsize=(17.2, 10.2), constrained_layout=True)
     fig.suptitle(
         "GenEuclidean v3.0 — Chemical Foundation Transformers & Local LLMs "
         "vs. v2.0 & 2021 Thesis (CASF-2016)",
-        fontsize=13.5,
+        fontsize=14.0,
         fontweight="bold",
-        y=1.01,
     )
+    layout_engine = fig.get_layout_engine()
+    if layout_engine is not None and hasattr(layout_engine, "set"):
+        layout_engine.set(h_pad=0.12, w_pad=0.10, hspace=0.06, wspace=0.04)
 
     # --- Panel A: Chemical Quality & Diversity ---
     ax_a = axes[0, 0]
@@ -208,6 +260,7 @@ def plot_v3_llm_comparison(tables_dir: Path, out_path: Path) -> Path:
         ("sa_norm", "SA_norm", OKABE_ITO["orange"]),
         ("int_div_1", "IntDiv1", OKABE_ITO["purple"]),
     ]
+    bar_groups_a: list[Any] = []
     for offset_idx, (key, title, color) in enumerate(metrics_a):
         vals = np.array([r[key] for r in records], dtype=np.float64)
         plot_vals = np.where(np.isfinite(vals), vals, 0.0)
@@ -215,12 +268,15 @@ def plot_v3_llm_comparison(tables_dir: Path, out_path: Path) -> Path:
         bars = ax_a.bar(
             x + shift, plot_vals, width=w_a, label=title, color=color, edgecolor="white"
         )
-        _annotate_bars(ax_a, bars, fmt="{:.2f}", dy=0.012)
+        bar_groups_a.append(bars)
+    _annotate_grouped_bars(
+        ax_a, bar_groups_a, fmt="{:.2f}", dy=0.012, stagger_thresh=0.055, stagger_step=0.042
+    )
     ax_a.set_xticks(x)
-    ax_a.set_xticklabels(labels)
-    ax_a.set_ylim(0.0, 1.15)
+    ax_a.set_xticklabels(labels, fontsize=8.0)
+    ax_a.set_ylim(0.0, 1.18)
     ax_a.set_ylabel("Score (0 – 1, higher is better)")
-    ax_a.set_title("A. Chemical Prior Quality & Structural Diversity")
+    ax_a.set_title("A. Chemical Prior Quality & Structural Diversity", pad=8)
     ax_a.legend(ncol=2, loc="upper left", frameon=True, framealpha=0.9)
 
     # --- Panel B: Causal 3D Pocket Specificity (Matched vs Shuffled Dice + Tanimoto) ---
@@ -253,20 +309,26 @@ def plot_v3_llm_comparison(tables_dir: Path, out_path: Path) -> Path:
         label="Matched True Tanimoto",
         edgecolor="white",
     )
-    _annotate_bars(ax_b, bars_md, fmt="{:.3f}", dy=0.008)
-    _annotate_bars(ax_b, bars_sd, fmt="{:.3f}", dy=0.008)
-    _annotate_bars(ax_b, bars_mt, fmt="{:.3f}", dy=0.008)
+    _annotate_grouped_bars(
+        ax_b,
+        [bars_md, bars_sd, bars_mt],
+        fmt="{:.3f}",
+        dy=0.008,
+        stagger_thresh=0.022,
+        stagger_step=0.017,
+        fontsize=6.8,
+    )
     top_b = max(
-        0.42,
-        float(np.nanmax(np.concatenate([m_dice, s_dice, m_tan]))) * 1.25
+        0.44,
+        float(np.nanmax(np.concatenate([m_dice, s_dice, m_tan]))) * 1.30
         if np.any(np.isfinite(m_dice))
-        else 0.42,
+        else 0.44,
     )
     ax_b.set_xticks(x)
-    ax_b.set_xticklabels(labels)
+    ax_b.set_xticklabels(labels, fontsize=8.0)
     ax_b.set_ylim(0.0, top_b)
     ax_b.set_ylabel("Fingerprint Similarity to Native Ligand")
-    ax_b.set_title("B. Causal 3D Pocket Conditioning (Matched vs. Shuffled)")
+    ax_b.set_title("B. Causal 3D Pocket Conditioning (Matched vs. Shuffled)", pad=8)
     ax_b.legend(loc="upper left", frameon=True, framealpha=0.9)
 
     # --- Panel C: Cross-Pocket Physicochemical Alignment (MW / TPSA / LogP Pearson r) ---
@@ -277,6 +339,7 @@ def plot_v3_llm_comparison(tables_dir: Path, out_path: Path) -> Path:
         ("tpsa_r", "TPSA Pearson r", OKABE_ITO["green"]),
         ("logp_r", "LogP Pearson r", OKABE_ITO["orange"]),
     ]
+    bar_groups_c: list[Any] = []
     for offset_idx, (key, title, color) in enumerate(prop_specs):
         vals = np.array([r[key] for r in records], dtype=np.float64)
         plot_vals = np.where(np.isfinite(vals), vals, 0.0)
@@ -284,13 +347,22 @@ def plot_v3_llm_comparison(tables_dir: Path, out_path: Path) -> Path:
         bars = ax_c.bar(
             x + shift, plot_vals, width=w_c, label=title, color=color, edgecolor="white"
         )
-        _annotate_bars(ax_c, bars, fmt="{:.2f}", dy=0.015)
+        bar_groups_c.append(bars)
+    _annotate_grouped_bars(
+        ax_c,
+        bar_groups_c,
+        fmt="{:.2f}",
+        dy=0.014,
+        stagger_thresh=0.045,
+        stagger_step=0.040,
+        fontsize=6.8,
+    )
     ax_c.axhline(0.0, color=OKABE_ITO["black"], linewidth=0.8)
     ax_c.set_xticks(x)
-    ax_c.set_xticklabels(labels)
-    ax_c.set_ylim(-0.05, 1.12)
+    ax_c.set_xticklabels(labels, fontsize=8.0)
+    ax_c.set_ylim(-0.05, 1.15)
     ax_c.set_ylabel("Cross-Pocket Pearson r (Generated vs. Native)")
-    ax_c.set_title("C. Cavity Size & Polarity Alignment Across CASF-2016 Pockets")
+    ax_c.set_title("C. Cavity Size & Polarity Alignment Across CASF-2016 Pockets", pad=8)
     ax_c.legend(loc="upper left", ncol=3, frameon=True, framealpha=0.9)
 
     # --- Panel D: <4.5 A Contact Atom Attention Enrichment ---
@@ -307,7 +379,7 @@ def plot_v3_llm_comparison(tables_dir: Path, out_path: Path) -> Path:
         color=bar_colors,
         edgecolor="white",
     )
-    _annotate_bars(ax_d, bars_d, fmt="{:.2f}×", dy=0.03)
+    _annotate_bars(ax_d, bars_d, fmt="{:.2f}×", dy=0.10, fontsize=7.8)
     ax_d.axhline(
         1.0,
         color=OKABE_ITO["vermilion"],
@@ -317,13 +389,13 @@ def plot_v3_llm_comparison(tables_dir: Path, out_path: Path) -> Path:
     )
     top_d = max(
         2.0,
-        float(np.nanmax(enr_vals)) * 1.25 if np.any(np.isfinite(enr_vals)) else 2.0,
+        float(np.nanmax(enr_vals)) * 1.22 if np.any(np.isfinite(enr_vals)) else 2.0,
     )
     ax_d.set_xticks(x)
-    ax_d.set_xticklabels(labels)
+    ax_d.set_xticklabels(labels, fontsize=8.0)
     ax_d.set_ylim(0.0, top_d)
     ax_d.set_ylabel("Contact / Peripheral Attention Enrichment (×)")
-    ax_d.set_title("D. 3D Interpretability: <4.5 Å Contact Atom Attention Enrichment")
+    ax_d.set_title("D. 3D Interpretability: <4.5 Å Contact Atom Attention Enrichment", pad=8)
     ax_d.legend(loc="upper left", frameon=True, framealpha=0.9)
 
     return _save_fig(fig, out_path)
@@ -451,7 +523,7 @@ def _load_docking_progression(tables_dir: Path) -> list[dict[str, Any]]:
     native_vals = [
         r["native_vina_mean"] for r in model_rows if math.isfinite(r["native_vina_mean"])
     ]
-    native_ref = float(np.mean(native_vals)) if native_vals else float("nan")
+    native_ref = native_vals[0] if native_vals else float("nan")
     native_row = {
         "label": "Native\nCrystal",
         "top1_vina_mean": native_ref,
@@ -467,48 +539,73 @@ def _load_docking_progression(tables_dir: Path) -> list[dict[str, Any]]:
 def plot_v3_cfg_and_docking(tables_dir: Path, out_path: Path) -> Path:
     """Render ``11_v3_cfg_and_docking.png`` (CFG/CVAE Pareto + AutoDock Vina progression)."""
     _apply_pub_style()
-    fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(14.8, 5.8), constrained_layout=True)
+    fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(15.4, 6.2), constrained_layout=True)
     fig.suptitle(
         "GenEuclidean v3.0 — Autoregressive CFG / Hit-to-Lead Pareto Frontier "
         "& 3D AutoDock Vina v1.2.7 Progression",
-        fontsize=12.8,
+        fontsize=13.2,
         fontweight="bold",
-        y=1.02,
     )
+    layout_engine = fig.get_layout_engine()
+    if layout_engine is not None and hasattr(layout_engine, "set"):
+        layout_engine.set(h_pad=0.14, w_pad=0.12)
 
     # --- Panel A: CFG Scale & Hit-to-Lead CVAE Pareto Curve ---
     sweep_name, sweep_rows = _load_v3_cfg_sweep(tables_dir)
     if sweep_rows:
         cfg_pts = [r for r in sweep_rows if not bool(r.get("use_seed_refine", False))]
         h2l_pts = [r for r in sweep_rows if bool(r.get("use_seed_refine", False))]
+        all_xs: list[float] = []
+        all_ys: list[float] = []
 
         if cfg_pts:
             cfg_pts.sort(key=lambda r: _safe_float(r.get("cfg_scale")))
             xs = np.array([_safe_float(r.get("int_div_1")) for r in cfg_pts], dtype=np.float64)
             ys = np.array([_safe_float(r.get("tanimoto")) for r in cfg_pts], dtype=np.float64)
             qeds = np.array([_safe_float(r.get("QED")) for r in cfg_pts], dtype=np.float64)
+            vals = np.array([_safe_float(r.get("validity")) for r in cfg_pts], dtype=np.float64)
             valid = np.isfinite(xs) & np.isfinite(ys)
+            all_xs.extend(xs[valid].tolist())
+            all_ys.extend(ys[valid].tolist())
             ax_l.plot(
                 xs[valid],
                 ys[valid],
                 color=OKABE_ITO["blue"],
-                linewidth=2.2,
+                linewidth=2.3,
                 marker="o",
                 markersize=9,
                 label="CFG Scale Sweep (w = 1.0 → 2.0)",
                 zorder=3,
             )
-            for r, xv, yv, qv in zip(cfg_pts, xs, ys, qeds, strict=True):
+            n_cfg = len(cfg_pts)
+            for idx, (r, xv, yv, qv, vv) in enumerate(
+                zip(cfg_pts, xs, ys, qeds, vals, strict=True)
+            ):
                 if not (math.isfinite(xv) and math.isfinite(yv)):
                     continue
                 lbl = str(r.get("label", f"w={r.get('cfg_scale')}"))
-                q_txt = f"\nQED={qv:.2f}" if math.isfinite(qv) else ""
+                sub_parts: list[str] = []
+                if math.isfinite(vv):
+                    sub_parts.append(f"Val {100.0 * vv:.1f}%")
+                if math.isfinite(qv):
+                    sub_parts.append(f"QED {qv:.2f}")
+                sub_txt = f"\n{' · '.join(sub_parts)}" if sub_parts else ""
+                if idx == 0:
+                    xytext, ha, va = (8, -22), "left", "top"
+                elif idx == n_cfg - 1:
+                    xytext, ha, va = (-10, 8), "right", "bottom"
+                elif idx == 1:
+                    xytext, ha, va = (0, -14), "center", "top"
+                else:
+                    xytext, ha, va = (10, 6), "left", "bottom"
                 ax_l.annotate(
-                    f"{lbl}{q_txt}",
+                    f"{lbl}{sub_txt}",
                     xy=(xv, yv),
-                    xytext=(6, 6),
+                    xytext=xytext,
                     textcoords="offset points",
-                    fontsize=8,
+                    ha=ha,
+                    va=va,
+                    fontsize=7.8,
                     fontweight="bold",
                     color=OKABE_ITO["black"],
                 )
@@ -516,11 +613,15 @@ def plot_v3_cfg_and_docking(tables_dir: Path, out_path: Path) -> Path:
         for r in h2l_pts:
             xv = _safe_float(r.get("int_div_1"))
             yv = _safe_float(r.get("tanimoto"))
+            vv = _safe_float(r.get("validity"))
+            qv = _safe_float(r.get("QED"))
             if math.isfinite(xv) and math.isfinite(yv):
+                all_xs.append(xv)
+                all_ys.append(yv)
                 ax_l.scatter(
                     [xv],
                     [yv],
-                    s=210,
+                    s=230,
                     marker="*",
                     color=OKABE_ITO["vermilion"],
                     edgecolor="black",
@@ -528,19 +629,33 @@ def plot_v3_cfg_and_docking(tables_dir: Path, out_path: Path) -> Path:
                     zorder=5,
                     label=str(r.get("label", "Hit-to-Lead CVAE")),
                 )
+                h2l_sub = (
+                    f"\nVal {100.0 * vv:.1f}% · QED {qv:.2f}"
+                    if math.isfinite(vv) and math.isfinite(qv)
+                    else ""
+                )
                 ax_l.annotate(
-                    str(r.get("label", "Hit-to-Lead CVAE")),
+                    f"{r.get('label', 'Hit-to-Lead CVAE')}{h2l_sub}",
                     xy=(xv, yv),
-                    xytext=(-12, -16),
+                    xytext=(12, -4),
                     textcoords="offset points",
-                    fontsize=8.2,
+                    ha="left",
+                    va="center",
+                    fontsize=8.0,
                     fontweight="bold",
                     color=OKABE_ITO["vermilion"],
                 )
 
+        if all_xs and all_ys:
+            x_span = max(max(all_xs) - min(all_xs), 0.005)
+            y_span = max(max(all_ys) - min(all_ys), 0.005)
+            ax_l.set_xlim(min(all_xs) - 0.14 * x_span, max(all_xs) + 0.24 * x_span)
+            ax_l.set_ylim(min(all_ys) - 0.14 * y_span, max(all_ys) + 0.18 * y_span)
+
+        display_sweep = _SWEEP_TITLE_MAP.get(sweep_name, sweep_name)
         ax_l.set_xlabel("Internal Structural Diversity (IntDiv1 ↑)")
         ax_l.set_ylabel("Matched Pocket True Tanimoto (↑)")
-        ax_l.set_title(f"A. CFG Scale & Hit-to-Lead CVAE Frontier ({sweep_name})")
+        ax_l.set_title(f"A. CFG Scale & Hit-to-Lead CVAE Frontier ({display_sweep})", pad=8)
         ax_l.legend(loc="lower left", frameon=True, framealpha=0.92)
     else:
         ax_l.text(
@@ -553,7 +668,7 @@ def plot_v3_cfg_and_docking(tables_dir: Path, out_path: Path) -> Path:
             color=OKABE_ITO["gray"],
             transform=ax_l.transAxes,
         )
-        ax_l.set_title("A. v3.0 CFG Scale & Hit-to-Lead CVAE Frontier")
+        ax_l.set_title("A. v3.0 CFG Scale & Hit-to-Lead CVAE Frontier", pad=8)
 
     # --- Panel B: 30-Pocket AutoDock Vina v1.2.7 + PoseBusters Progression ---
     dock_rows = _load_docking_progression(tables_dir)
@@ -580,8 +695,9 @@ def plot_v3_cfg_and_docking(tables_dir: Path, out_path: Path) -> Path:
                 native_strength,
                 color=OKABE_ITO["vermilion"],
                 linestyle="--",
-                linewidth=1.5,
-                label=f"Native Crystal ({-native_strength:.2f} kcal/mol)",
+                linewidth=1.6,
+                zorder=4,
+                label=f"Native Crystal ({-native_strength:.3f} kcal/mol)",
             )
 
         for idx, (bar, raw_aff, ha, pb) in enumerate(
@@ -590,14 +706,19 @@ def plot_v3_cfg_and_docking(tables_dir: Path, out_path: Path) -> Path:
             h = float(bar.get_height())
             if not math.isfinite(raw_aff):
                 continue
-            badge = f"{raw_aff:.2f}"
+            badge = f"{raw_aff:.3f}"
             if idx > 0 and math.isfinite(ha):
                 badge += f"\nHA {ha:.1f}%"
             if math.isfinite(pb):
                 badge += f"\nPB {pb:.1f}%"
+            y_anchor = (
+                max(h, native_strength) + 0.22
+                if math.isfinite(native_strength) and abs(h - native_strength) < 0.7
+                else h + 0.22
+            )
             ax_r.text(
                 bar.get_x() + bar.get_width() / 2.0,
-                h + 0.14,
+                y_anchor,
                 badge,
                 ha="center",
                 va="bottom",
@@ -607,11 +728,11 @@ def plot_v3_cfg_and_docking(tables_dir: Path, out_path: Path) -> Path:
             )
 
         ax_r.set_xticks(dx)
-        ax_r.set_xticklabels(d_labels)
-        top_r = max(10.5, float(np.nanmax(strength)) * 1.28 if np.any(strength > 0) else 10.5)
+        ax_r.set_xticklabels(d_labels, fontsize=8.5)
+        top_r = max(11.0, float(np.nanmax(strength)) * 1.34 if np.any(strength > 0) else 11.0)
         ax_r.set_ylim(0.0, top_r)
         ax_r.set_ylabel("Top-1 AutoDock Vina Binding Strength (−kcal/mol ↑)")
-        ax_r.set_title("B. 30-Pocket AutoDock Vina v1.2.7 Top-1 Affinity, HA% & PoseBusters")
+        ax_r.set_title("B. 30-Pocket AutoDock Vina v1.2.7 Top-1 Affinity, HA% & PoseBusters", pad=8)
         ax_r.legend(loc="lower right", frameon=True, framealpha=0.92)
     else:
         ax_r.text(
@@ -625,7 +746,7 @@ def plot_v3_cfg_and_docking(tables_dir: Path, out_path: Path) -> Path:
             color=OKABE_ITO["gray"],
             transform=ax_r.transAxes,
         )
-        ax_r.set_title("B. 30-Pocket AutoDock Vina v1.2.7 Progression")
+        ax_r.set_title("B. 30-Pocket AutoDock Vina v1.2.7 Progression", pad=8)
 
     return _save_fig(fig, out_path)
 
