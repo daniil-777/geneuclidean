@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
 import geneuclidean
@@ -48,10 +49,10 @@ def _json_safe(obj: Any) -> Any:
     if isinstance(obj, (np.floating, float)):
         val = float(obj)
         return val if math.isfinite(val) else None
-    if isinstance(obj, (np.integer, int)):
-        return int(obj)
     if isinstance(obj, (np.bool_, bool)):
         return bool(obj)
+    if isinstance(obj, (np.integer, int)):
+        return int(obj)
     return obj
 
 
@@ -1453,8 +1454,480 @@ def fetch_pdb(
     table.add_row("Pocket PDB", str(info_dict["pocket_pdb"]))
     table.add_row("Pocket atoms", str(info_dict["pocket_atoms"]))
     table.add_row("Detected ligand", str(info_dict.get("ligand_resname") or "None"))
-    table.add_row("Ligand SMILES", str(info_dict.get("ligand_smiles") or "None"))
+    table.add_row("Ligand SMILES", escape(str(info_dict.get("ligand_smiles") or "None")))
     table.add_row("Ligand center", str(info_dict.get("ligand_center") or "None"))
+    console.print(table)
+
+
+@app.command("cns-targets")
+def cns_targets(
+    target: str | None = typer.Option(
+        None,
+        "--target",
+        "-t",
+        help="Optional target ID, gene symbol, ChEMBL ID, or UniProt ID for detailed view.",
+    ),
+    indication: str | None = typer.Option(
+        None,
+        "--indication",
+        help="Optional case-insensitive disease/indication keyword filter (e.g. 'Tourette').",
+    ),
+    structures_dir: Path = typer.Option(
+        Path("data/cns_neuro/structures"),
+        "--structures-dir",
+        help="Directory holding cached CNS clean_pockets/ structures.",
+    ),
+    as_json: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit structured JSON to stdout instead of a Rich table.",
+    ),
+) -> None:
+    """List verified Homo sapiens Tourette & psychiatric 3D CNS targets and pocket status."""
+    from geneuclidean.cns.targets import (
+        find_local_pocket_files,
+        get_cns_target,
+        list_cns_targets,
+    )
+
+    if target is not None:
+        try:
+            spec = get_cns_target(target)
+        except KeyError as exc:
+            raise typer.BadParameter(str(exc)) from exc
+        local = find_local_pocket_files(spec.target_id, structures_dir=structures_dir)
+        detail_payload: dict[str, Any] = {
+            "target_id": spec.target_id,
+            "gene_symbol": spec.gene_symbol,
+            "name": spec.name,
+            "target_class": spec.target_class,
+            "uniprot_id": spec.uniprot_id,
+            "chembl_id": spec.chembl_id,
+            "indications": list(spec.indications),
+            "therapeutic_moa": spec.therapeutic_moa,
+            "desired_state": spec.desired_state,
+            "primary_pdb_id": spec.primary_pdb_id,
+            "secondary_pdb_ids": list(spec.secondary_pdb_ids),
+            "primary_anchor_residue": spec.primary_anchor_residue,
+            "hotspot_residues": list(spec.hotspot_residues),
+            "hotspot_isoform_aliases": list(spec.hotspot_isoform_aliases),
+            "reference_drugs": [
+                {
+                    "name": d.name,
+                    "canonical_smiles": d.canonical_smiles,
+                    "clinical_status": d.clinical_status,
+                    "role": d.role,
+                }
+                for d in spec.reference_drugs
+            ],
+            "local_pocket_pdb": str(local[0]) if local is not None else None,
+            "local_ligand_sdf": str(local[1]) if (local is not None and local[1]) else None,
+            "notes": spec.notes,
+        }
+        if as_json:
+            typer.echo(json.dumps(_json_safe(detail_payload), indent=2))
+            return
+
+        detail_table = Table(title=f"Human CNS Target Detail: {spec.target_id} ({spec.name})")
+        detail_table.add_column("Field", style="cyan")
+        detail_table.add_column("Value", style="white")
+        detail_table.add_row("Target / Gene", f"{spec.target_id} ({spec.gene_symbol})")
+        detail_table.add_row("Target Class", spec.target_class)
+        detail_table.add_row("UniProt / ChEMBL", f"{spec.uniprot_id} / {spec.chembl_id}")
+        detail_table.add_row("Indications", "; ".join(spec.indications))
+        detail_table.add_row("Therapeutic MoA", spec.therapeutic_moa)
+        detail_table.add_row("Desired State", spec.desired_state)
+        detail_table.add_row(
+            "Primary / Secondary PDBs",
+            f"{spec.primary_pdb_id} / {', '.join(spec.secondary_pdb_ids)}",
+        )
+        detail_table.add_row("Primary 3D Anchor", spec.primary_anchor_residue)
+        detail_table.add_row("3D Hotspot Residues", ", ".join(spec.hotspot_residues))
+        if spec.hotspot_isoform_aliases:
+            detail_table.add_row("Isoform Aliases", ", ".join(spec.hotspot_isoform_aliases))
+        pocket_status = (
+            f"[green]READY[/green] ({escape(str(local[0]))})"
+            if local is not None
+            else "[yellow]NOT CACHED[/yellow]"
+        )
+        detail_table.add_row("Local 3D Pocket", pocket_status)
+        for drug in spec.reference_drugs:
+            detail_table.add_row(
+                f"Ref Drug: {escape(drug.name)}",
+                f"{escape(drug.canonical_smiles)} ({escape(drug.role)})",
+            )
+        if spec.notes:
+            detail_table.add_row("Notes", escape(spec.notes))
+        console.print(detail_table)
+        return
+
+    specs = list_cns_targets(indication_filter=indication)
+    rows_payload: list[dict[str, Any]] = []
+    for spec in specs:
+        local = find_local_pocket_files(spec.target_id, structures_dir=structures_dir)
+        rows_payload.append(
+            {
+                "target_id": spec.target_id,
+                "gene_symbol": spec.gene_symbol,
+                "name": spec.name,
+                "uniprot_id": spec.uniprot_id,
+                "chembl_id": spec.chembl_id,
+                "primary_pdb_id": spec.primary_pdb_id,
+                "secondary_pdb_ids": list(spec.secondary_pdb_ids),
+                "desired_state": spec.desired_state,
+                "primary_anchor_residue": spec.primary_anchor_residue,
+                "primary_indication": spec.indications[0] if spec.indications else "",
+                "local_pocket_ready": local is not None,
+                "local_pocket_pdb": str(local[0]) if local is not None else None,
+            }
+        )
+
+    if as_json:
+        typer.echo(json.dumps(_json_safe({"targets": rows_payload}), indent=2))
+        return
+
+    title_suffix = f" (filter={indication!r})" if indication else ""
+    table = Table(
+        title=f"GenEuclidean Verified Homo sapiens CNS Targets ({len(specs)}){title_suffix}"
+    )
+    table.add_column("Target", style="cyan", no_wrap=True)
+    table.add_column("UniProt", no_wrap=True)
+    table.add_column("ChEMBL ID", style="green", no_wrap=True)
+    table.add_column("PDB", style="bold", no_wrap=True)
+    table.add_column("Anchor", style="magenta", no_wrap=True)
+    table.add_column("State / Primary Indication")
+    table.add_column("Pocket", no_wrap=True)
+
+    for row in rows_payload:
+        pocket_badge = (
+            "[green]READY[/green]" if row["local_pocket_ready"] else "[yellow]MISS[/yellow]"
+        )
+        table.add_row(
+            str(row["target_id"]),
+            str(row["uniprot_id"]),
+            str(row["chembl_id"]),
+            str(row["primary_pdb_id"]),
+            str(row["primary_anchor_residue"]),
+            f"{escape(str(row['desired_state']))} | {escape(str(row['primary_indication']))}",
+            pocket_badge,
+        )
+    console.print(table)
+
+
+@app.command("cns-admet")
+def cns_admet(
+    smiles: list[str] | None = typer.Argument(
+        None,
+        help="One or more candidate SMILES strings to profile.",
+    ),
+    smiles_file: Path | None = typer.Option(
+        None,
+        "--smiles-file",
+        "-f",
+        help="Optional newline-delimited SMILES file (first whitespace token per line).",
+    ),
+    oracle_path: Path = typer.Option(
+        Path("data/cns_neuro.nosync/admet_oracles.joblib"),
+        "--oracle-path",
+        help="Trained CNSAdmetSuite joblib bundle (falls back to MPO-only mode if absent).",
+    ),
+    out_json: Path | None = typer.Option(
+        None,
+        "--out-json",
+        help="Optional path to save the full JSON CNS MPO + ADMET report.",
+    ),
+    as_json: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit structured JSON to stdout instead of a Rich table.",
+    ),
+) -> None:
+    """Score SMILES with Pfizer CNS MPO v1/v2, MedChem filters, and calibrated BBB/P-gp/hERG."""
+    from geneuclidean.cns.admet import CNSAdmetSuite, compute_cns_composite_reward
+
+    collected: list[str] = list(smiles or [])
+    if smiles_file is not None:
+        if not smiles_file.is_file():
+            raise typer.BadParameter(f"SMILES file not found: {smiles_file}")
+        for line in smiles_file.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            collected.append(stripped.split()[0])
+
+    if not collected:
+        raise typer.BadParameter("Provide at least one SMILES argument or --smiles-file.")
+
+    suite = CNSAdmetSuite.try_load(oracle_path)
+    composite_scores = compute_cns_composite_reward(collected, admet_suite=suite)
+
+    records: list[dict[str, Any]] = []
+    for entry in composite_scores:
+        mpo = entry.mpo
+        admet = entry.admet
+        ad_min: float | None = None
+        if admet is not None and admet.valid:
+            ad_min = float(
+                min(admet.bbb_ad_tanimoto, admet.pgp_ad_tanimoto, admet.herg_ad_tanimoto)
+            )
+        records.append(
+            {
+                "smiles": entry.smiles,
+                "canonical_smiles": entry.canonical_smiles,
+                "valid": entry.valid,
+                "cns_mpo_v1": mpo.cns_mpo_v1,
+                "cns_mpo_v2": mpo.cns_mpo_v2,
+                "mw": mpo.mw,
+                "clogp": mpo.clogp,
+                "clogd_74": mpo.clogd_74,
+                "tpsa": mpo.tpsa,
+                "hbd": mpo.hbd,
+                "most_basic_pka": mpo.most_basic_pka,
+                "qed": mpo.qed,
+                "sa_score": mpo.sa_score,
+                "pains_free": mpo.pains_free,
+                "brenk_free": mpo.brenk_free,
+                "lipinski_pass": mpo.lipinski_pass,
+                "bbb_clark_pass": mpo.bbb_clark_pass,
+                "bbb_prob": admet.bbb_prob if admet is not None else None,
+                "pgp_prob": admet.pgp_prob if admet is not None else None,
+                "herg_prob": admet.herg_prob if admet is not None else None,
+                "ad_tanimoto_min": ad_min,
+                "in_domain_all": admet.in_domain_all if admet is not None else None,
+                "admet_pass": admet.admet_pass if admet is not None else None,
+                "composite_reward": entry.composite_reward,
+            }
+        )
+
+    payload: dict[str, Any] = {
+        "admet_oracles_loaded": suite is not None,
+        "oracle_path": str(oracle_path),
+        "n_molecules": len(records),
+        "results": records,
+    }
+    if out_json is not None:
+        out_json.parent.mkdir(parents=True, exist_ok=True)
+        out_json.write_text(json.dumps(_json_safe(payload), indent=2) + "\n", encoding="utf-8")
+
+    if as_json:
+        typer.echo(json.dumps(_json_safe(payload), indent=2))
+        return
+
+    mode_label = (
+        "Pfizer CNS MPO v1/v2 + Calibrated BBB/P-gp/hERG Oracles"
+        if suite is not None
+        else "Pfizer CNS MPO v1/v2 (Physicochemical Mode — ADMET bundle not cached)"
+    )
+    table = Table(title=f"GenEuclidean CNS Profiling — {mode_label}")
+    table.add_column("#", justify="right", style="dim")
+    table.add_column("SMILES", style="green", overflow="fold")
+    table.add_column("MPO v1", justify="right")
+    table.add_column("MPO v2", justify="right", style="cyan")
+    table.add_column("QED", justify="right")
+    table.add_column("SA", justify="right")
+    table.add_column("PAINS/Brenk", justify="center")
+    if suite is not None:
+        table.add_column("P(BBB+)", justify="right")
+        table.add_column("P(Pgp_inh)", justify="right")
+        table.add_column("P(hERG)", justify="right")
+        table.add_column("AD_sim", justify="right")
+    table.add_column("Reward", justify="right", style="bold")
+
+    for idx, rec in enumerate(records, start=1):
+        smi_disp = escape(str(rec["canonical_smiles"] or rec["smiles"]))
+        if not rec["valid"]:
+            row_cells = [str(idx), smi_disp, "INVALID", "-", "-", "-", "-"]
+            if suite is not None:
+                row_cells.extend(["-", "-", "-", "-"])
+            row_cells.append("0.000")
+            table.add_row(*row_cells)
+            continue
+
+        alerts = (
+            f"{'OK' if rec['pains_free'] else 'PAINS'}/{'OK' if rec['brenk_free'] else 'BRENK'}"
+        )
+        row_cells = [
+            str(idx),
+            smi_disp,
+            f"{rec['cns_mpo_v1']:.2f}",
+            f"{rec['cns_mpo_v2']:.2f}",
+            f"{rec['qed']:.2f}",
+            f"{rec['sa_score']:.2f}",
+            alerts,
+        ]
+        if suite is not None:
+            ad_str = (
+                f"{rec['ad_tanimoto_min']:.2f} ({'IN' if rec['in_domain_all'] else 'OUT'})"
+                if rec["ad_tanimoto_min"] is not None
+                else "-"
+            )
+            row_cells.extend(
+                [
+                    f"{rec['bbb_prob']:.3f}" if rec["bbb_prob"] is not None else "-",
+                    f"{rec['pgp_prob']:.3f}" if rec["pgp_prob"] is not None else "-",
+                    f"{rec['herg_prob']:.3f}" if rec["herg_prob"] is not None else "-",
+                    ad_str,
+                ]
+            )
+        row_cells.append(f"{rec['composite_reward']:.3f}")
+        table.add_row(*row_cells)
+
+    console.print(table)
+    if suite is None:
+        console.print(
+            "[yellow]Note: ADMET oracle bundle not found; displayed physicochemical "
+            "Pfizer CNS MPO v1/v2 & MedChem metrics only.[/yellow]"
+        )
+    if out_json is not None:
+        console.print(f"[bold green]Saved CNS ADMET report to {escape(str(out_json))}[/bold green]")
+
+
+def _load_3d_ligand_mol(path: Path) -> Any:
+    """Load a 3D ligand RDKit Mol from SDF, MOL, or MOL2 with graceful sanitization fallback."""
+    from rdkit import Chem
+
+    suffix = path.suffix.lower()
+    mol: Any = None
+    if suffix in (".sdf", ".sd"):
+        suppl = Chem.SDMolSupplier(str(path), sanitize=True, removeHs=False)
+        if len(suppl) > 0 and suppl[0] is not None:
+            mol = suppl[0]
+        else:
+            raw_suppl = Chem.SDMolSupplier(str(path), sanitize=False, removeHs=False)
+            if len(raw_suppl) > 0 and raw_suppl[0] is not None:
+                mol = raw_suppl[0]
+    elif suffix == ".mol2":
+        mol = Chem.MolFromMol2File(str(path), sanitize=True, removeHs=False)
+        if mol is None:
+            mol = Chem.MolFromMol2File(str(path), sanitize=False, removeHs=False)
+    else:
+        mol = Chem.MolFromMolFile(str(path), sanitize=True, removeHs=False)
+        if mol is None:
+            mol = Chem.MolFromMolFile(str(path), sanitize=False, removeHs=False)
+
+    if mol is None or mol.GetNumConformers() == 0:
+        raise typer.BadParameter(f"Could not read a valid 3D ligand conformer from {path}.")
+    return mol
+
+
+@app.command("viz3d")
+def viz3d(
+    pocket: Path = typer.Option(..., "--pocket", "-p", help="Path to receptor/pocket PDB file."),
+    ligand: Path = typer.Option(..., "--ligand", "-l", help="Path to 3D ligand SDF/MOL/MOL2 file."),
+    out_html: Path = typer.Option(
+        ...,
+        "--out-html",
+        help="Destination path for self-contained interactive 3Dmol.js WebGL HTML.",
+    ),
+    out_png: Path | None = typer.Option(
+        None,
+        "--out-png",
+        help="Optional destination path for 300-DPI static Matplotlib 3D PNG render.",
+    ),
+    theme: str = typer.Option(
+        "dark",
+        "--theme",
+        help="Static PNG color theme ('dark' or 'light').",
+    ),
+    title: str = typer.Option(
+        "GenEuclidean 3D Protein-Ligand Complex",
+        "--title",
+        help="Display title for HTML and PNG viewers.",
+    ),
+    pdb_id: str = typer.Option("", "--pdb-id", help="Optional PDB identifier label."),
+    disease: str = typer.Option("", "--disease", help="Optional disease/indication badge."),
+    native_ligand: Path | None = typer.Option(
+        None,
+        "--native-ligand",
+        help="Optional native co-crystal 3D ligand SDF for ghost overlay comparison.",
+    ),
+) -> None:
+    """Profile 3D non-covalent interactions and render interactive HTML (+ optional 300-DPI PNG)."""
+    from rdkit import Chem
+
+    from geneuclidean.cns.mpo import compute_cns_mpo
+    from geneuclidean.evaluation.interactions3d import profile_3d_interactions
+    from geneuclidean.evaluation.viz3d import (
+        render_interactive_3d_html,
+        render_static_3d_complex_png,
+    )
+
+    if not pocket.is_file():
+        raise typer.BadParameter(f"Pocket PDB file not found: {pocket}")
+    if not ligand.is_file():
+        raise typer.BadParameter(f"Ligand 3D file not found: {ligand}")
+    theme_norm = theme.strip().lower()
+    if theme_norm not in ("dark", "light"):
+        raise typer.BadParameter(f"--theme must be 'dark' or 'light', got {theme!r}")
+    theme_typed = cast(Literal["dark", "light"], theme_norm)
+
+    lig_mol = _load_3d_ligand_mol(ligand)
+    native_mol = _load_3d_ligand_mol(native_ligand) if native_ligand is not None else None
+
+    interactions = profile_3d_interactions(pocket, lig_mol)
+    can_smiles = str(Chem.MolToSmiles(Chem.RemoveHs(lig_mol), canonical=True, isomericSmiles=True))
+    mpo = compute_cns_mpo(can_smiles)
+    kpi_metrics: dict[str, Any] = (
+        {
+            "CNS MPO v2": f"{mpo.cns_mpo_v2:.2f} / 6.0",
+            "QED": f"{mpo.qed:.3f}",
+            "SA": f"{mpo.sa_score:.2f}",
+            "MW": f"{mpo.mw:.1f} Da",
+            "LogP": f"{mpo.clogp:.2f}",
+            "TPSA": f"{mpo.tpsa:.1f} A^2",
+        }
+        if mpo.valid
+        else {}
+    )
+
+    html_written = render_interactive_3d_html(
+        pocket,
+        lig_mol,
+        out_html,
+        native_ligand_mol=native_mol,
+        interactions=interactions,
+        title=title,
+        pdb_id=pdb_id,
+        disease=disease,
+        smiles=can_smiles,
+        metrics=kpi_metrics,
+    )
+    png_written: Path | None = None
+    if out_png is not None:
+        png_written = render_static_3d_complex_png(
+            pocket,
+            lig_mol,
+            out_png,
+            interactions=interactions,
+            native_ligand_mol=native_mol,
+            title=title,
+            pdb_id=pdb_id,
+            disease=disease,
+            theme=theme_typed,
+            metrics=kpi_metrics,
+        )
+
+    counts = interactions.counts_by_type
+    table = Table(title=f"3D Complex Profiling & Visualization ({escape(title)})")
+    table.add_column("Field", style="cyan")
+    table.add_column("Value", style="green")
+    table.add_row("Pocket PDB", escape(str(pocket)))
+    table.add_row("Ligand 3D", escape(str(ligand)))
+    table.add_row("Canonical SMILES", escape(can_smiles))
+    table.add_row(
+        "3D Interactions",
+        (
+            f"total={len(interactions.interactions)} "
+            f"(HB={counts.get('hbond', 0)}, SB={counts.get('salt_bridge', 0)}, "
+            f"pi-pi={counts.get('pi_stacking', 0)}, cat-pi={counts.get('cation_pi', 0)}, "
+            f"HYD={counts.get('hydrophobic', 0)}, XB={counts.get('halogen_bond', 0)})"
+        ),
+    )
+    if interactions.key_residues:
+        table.add_row("Key Residues", escape(", ".join(interactions.key_residues[:10])))
+    table.add_row("Interactive HTML", escape(str(html_written)))
+    if png_written is not None:
+        table.add_row(f"Static PNG ({theme_typed})", escape(str(png_written)))
     console.print(table)
 
 
