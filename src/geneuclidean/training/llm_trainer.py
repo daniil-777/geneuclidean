@@ -48,12 +48,21 @@ from geneuclidean.config import ExperimentConfig, LLMConfig, seed_everything, se
 from geneuclidean.data.featurizer import LIGAND_FP_DIM
 from geneuclidean.data.tokenizer import randomize_smiles
 from geneuclidean.models.encoders.rbf import PocketEncoderOutput
+from geneuclidean.models.safe_codec import safe_to_smiles, smiles_to_safe
 from geneuclidean.sampling.rerank import compute_mpo_scores
 from geneuclidean.training.dpo import PreferencePair, build_preference_pairs_from_mpo
 from geneuclidean.training.losses import compute_cvae_kl_loss, compute_dpo_loss
 from geneuclidean.training.pretrain import build_cosine_warmup_scheduler
 
 RDLogger.DisableLog("rdApp.*")  # type: ignore[attr-defined]
+
+GDPO_CHANNEL_NAMES: tuple[str, str, str, str] = (
+    "safety",
+    "selectivity",
+    "fit_3d",
+    "medchem_anchor",
+)
+DEFAULT_GDPO_CHANNEL_WEIGHTS: tuple[float, float, float, float] = (0.30, 0.30, 0.25, 0.15)
 
 _BRIDGE_PREFIXES: tuple[str, ...] = (
     "perceiver.",
@@ -161,6 +170,20 @@ def _get_backbone_meta(model: Any) -> dict[str, Any]:
     eos_int = int(eos_id) if eos_id is not None else 0
     pad_int = int(pad_id) if pad_id is not None else eos_int
 
+    format_mode = (
+        str(
+            getattr(
+                model,
+                "format_mode",
+                getattr(backbone, "representation", "smiles") if backbone is not None else "smiles",
+            )
+        )
+        .strip()
+        .lower()
+    )
+    if format_mode not in {"smiles", "safe"}:
+        format_mode = "smiles"
+
     return {
         "backbone": backbone,
         "tokenizer": tokenizer,
@@ -169,6 +192,7 @@ def _get_backbone_meta(model: Any) -> dict[str, Any]:
         "bos_token_id": int(bos_id) if bos_id is not None else None,
         "eos_token_id": eos_int,
         "pad_token_id": pad_int,
+        "format_mode": format_mode,
     }
 
 
@@ -403,7 +427,7 @@ def precompute_pocket_cache(
 
 
 class CachedPocketLLMDataset(Dataset[dict[str, Any]]):
-    """Dataset over pre-encoded pockets with per-epoch dynamic SMILES randomization."""
+    """Dataset over pre-encoded pockets with per-epoch dynamic SMILES/SAFE augmentation."""
 
     def __init__(
         self,
@@ -417,6 +441,7 @@ class CachedPocketLLMDataset(Dataset[dict[str, Any]]):
         max_seq_len: int = 128,
         randomize: bool = False,
         seed: int | None = None,
+        format_mode: str = "smiles",
     ) -> None:
         super().__init__()
         self.records = list(records)
@@ -426,6 +451,7 @@ class CachedPocketLLMDataset(Dataset[dict[str, Any]]):
         self.bos_token_id = bos_token_id
         self.eos_token_id = int(eos_token_id)
         self.max_seq_len = int(max_seq_len)
+        self.format_mode = format_mode.strip().lower()
         self.randomize = bool(randomize and is_smiles_native)
         self._rng = np.random.default_rng(seed) if seed is not None else None
 
@@ -435,11 +461,22 @@ class CachedPocketLLMDataset(Dataset[dict[str, Any]]):
     def __getitem__(self, index: int) -> dict[str, Any]:
         rec = self.records[index]
         smi = rec.canonical_smiles
-        if self.randomize:
-            smi = randomize_smiles(smi, rng=self._rng)
+        if self.format_mode == "safe":
+            try:
+                mol_text = smiles_to_safe(
+                    smi,
+                    slicer="brics",
+                    canonical=True,
+                    randomize_order=self.randomize,
+                    rng=self._rng,
+                )
+            except ValueError:
+                mol_text = smi
+        else:
+            mol_text = randomize_smiles(smi, rng=self._rng) if self.randomize else smi
 
         input_ids, labels = tokenize_smiles_for_llm(
-            smi,
+            mol_text,
             tokenizer=self.tokenizer,
             is_smiles_native=self.is_smiles_native,
             prompt_prefix=self.prompt_prefix,
@@ -743,6 +780,7 @@ class PocketLLMTrainer:
             max_seq_len=self.cfg.data.max_seq_len,
             randomize=randomize,
             seed=seed,
+            format_mode=self._meta["format_mode"],
         )
         pad_id = int(self._meta["pad_token_id"])
         gen = torch.Generator().manual_seed(seed) if shuffle else None
@@ -1230,6 +1268,261 @@ def _record_to_pocket_out_and_mask(
     return pocket_out, mask.to(device=device)
 
 
+@dataclass(frozen=True)
+class CrossPocketPreferencePair:
+    """Preference pair optionally carrying an anti-target pocket for ``L_XP-DPO``."""
+
+    pocket_batch: Mapping[str, Any]
+    chosen_smiles: str
+    rejected_smiles: str
+    chosen_score: float = 0.0
+    rejected_score: float = 0.0
+    off_target_pocket_emb: (
+        CachedPocketRecord | PocketEncoderOutput | Mapping[str, Any] | Tensor | None
+    ) = None
+
+
+@dataclass(frozen=True)
+class GDPOGroup:
+    """One pocket group of sampled ligands with 4-channel objective rewards for GDPO."""
+
+    pocket_batch: Mapping[str, Any]
+    smiles_list: Sequence[str]
+    safety_rewards: Sequence[float]
+    selectivity_rewards: Sequence[float]
+    fit_3d_rewards: Sequence[float]
+    medchem_anchor_rewards: Sequence[float]
+    hygiene_gates: Sequence[float] | None = None
+
+
+def compute_cross_pocket_dpo_loss(
+    policy_logps_on: Tensor,
+    policy_logps_off: Tensor,
+    *,
+    beta: float = 0.5,
+    ref_logps_on: Tensor | None = None,
+    ref_logps_off: Tensor | None = None,
+) -> Tensor:
+    """Compute Contrastive Cross-Pocket Negative DPO loss ``L_XP-DPO``.
+
+    Sharpens 3D pocket selectivity (e.g. ``DRD1`` vs ``DRD2``, ``PDE10A`` vs ``VMAT2``,
+    ``MAO-B`` vs ``MAO-A``) by contrasting the length-normalized log-probability of an
+    on-target winner ``y+`` inside its true pocket ``p_on`` against an anti-target pocket
+    ``p_off``:
+
+    - Direct form (default when ``ref_logps_*`` are ``None``):
+      ``-log sigmoid(beta * [l_theta(y+ | p_on) - l_theta(y+ | p_off)])``
+    - Reference-centered form (when ``ref_logps_on`` and ``ref_logps_off`` are provided):
+      ``-log sigmoid(beta * [(l_pi(y+|p_on)-l_ref(y+|p_on)) - (l_pi(y+|p_off)-l_ref(y+|p_off))])``
+    """
+    if ref_logps_on is not None and ref_logps_off is not None:
+        margin = (policy_logps_on - ref_logps_on) - (policy_logps_off - ref_logps_off)
+    else:
+        margin = policy_logps_on - policy_logps_off
+    return -F.logsigmoid(float(beta) * margin).mean()
+
+
+def _resolve_gdpo_weights(
+    channel_weights: Sequence[float] | Mapping[str, float] | Tensor | None,
+    num_channels: int,
+    *,
+    device: torch.device,
+    dtype: torch.dtype,
+) -> Tensor:
+    """Convert GDPO channel weights into a validated 1D float tensor of length ``num_channels``."""
+    if channel_weights is None:
+        if num_channels == len(DEFAULT_GDPO_CHANNEL_WEIGHTS):
+            weights = torch.tensor(DEFAULT_GDPO_CHANNEL_WEIGHTS, device=device, dtype=dtype)
+        else:
+            weights = torch.full(
+                (num_channels,), 1.0 / float(num_channels), device=device, dtype=dtype
+            )
+    elif isinstance(channel_weights, Mapping):
+        if num_channels != len(GDPO_CHANNEL_NAMES):
+            raise ValueError(
+                f"Mapping channel_weights requires {len(GDPO_CHANNEL_NAMES)} channels "
+                f"({GDPO_CHANNEL_NAMES}), got num_channels={num_channels}."
+            )
+        weights = torch.tensor(
+            [float(channel_weights[name]) for name in GDPO_CHANNEL_NAMES],
+            device=device,
+            dtype=dtype,
+        )
+    elif isinstance(channel_weights, Tensor):
+        weights = channel_weights.to(device=device, dtype=dtype).reshape(-1)
+    else:
+        weights = torch.tensor([float(w) for w in channel_weights], device=device, dtype=dtype)
+
+    if int(weights.numel()) != num_channels:
+        raise ValueError(
+            f"Expected {num_channels} GDPO channel weights, got {int(weights.numel())}."
+        )
+    if bool((weights < 0.0).any().item()):
+        raise ValueError("GDPO channel_weights must be non-negative.")
+    weight_sum = float(weights.sum().item())
+    if weight_sum <= 0.0:
+        raise ValueError("GDPO channel_weights must have a strictly positive sum.")
+    return weights / weight_sum
+
+
+def compute_gdpo_advantages(
+    channel_rewards: Tensor,
+    channel_weights: Sequence[float] | Mapping[str, float] | Tensor | None = None,
+    *,
+    hygiene_gates: Tensor | None = None,
+    batch_normalize: bool = True,
+    eps: float = 1e-6,
+) -> tuple[Tensor, Tensor]:
+    """Compute 4-channel GDPO decoupled group-normalized advantages (NVlabs Jan 2026).
+
+    Implements Group reward-Decoupled Normalization Policy Optimization
+    (Liu et al., ``arXiv:2601.05242``): normalizes each objective channel (e.g.
+    ``Safety``, ``Selectivity``, ``3D Fit``, ``MedChem/Anchor``) independently within each
+    pocket group BEFORE weighted summation and optional batch-level normalization. Because
+    each channel is z-scored independently per group, scaling any channel by an arbitrary
+    positive constant leaves both per-channel and combined advantages strictly invariant.
+
+    Args:
+        channel_rewards: Reward tensor of shape ``[G, K]`` (single group) or ``[B, G, K]``
+            (batch of ``B`` groups of size ``G`` across ``K`` channels).
+        channel_weights: Non-negative per-channel weights (sequence, mapping by
+            ``GDPO_CHANNEL_NAMES``, or 1D tensor). Defaults to ``DEFAULT_GDPO_CHANNEL_WEIGHTS``.
+        hygiene_gates: Optional multiplicative hygiene gate tensor ``[G]`` or ``[B, G]`` in
+            ``[0, 1]`` suppressing positive reinforcement on unhygienic/reagent artifacts.
+        batch_normalize: Whether to apply batch-level z-normalization after weighted channel
+            aggregation (default ``True``, per GDPO Eq. 5).
+        eps: Numerical floor below which a constant group/batch channel produces exact ``0.0``.
+
+    Returns:
+        Tuple ``(combined_advantages, per_channel_advantages)`` with shapes
+        ``(channel_rewards.shape[:-1], channel_rewards.shape)``.
+    """
+    if channel_rewards.ndim not in (2, 3):
+        shape_str = tuple(channel_rewards.shape)
+        raise ValueError(f"channel_rewards must have shape [G, K] or [B, G, K], got {shape_str}")
+    work_dtype = torch.float32 if channel_rewards.device.type == "mps" else torch.float64
+    rewards = channel_rewards.to(dtype=work_dtype)
+    num_channels = int(rewards.shape[-1])
+    if num_channels < 1:
+        raise ValueError("channel_rewards must have at least 1 reward channel.")
+
+    weights = _resolve_gdpo_weights(
+        channel_weights,
+        num_channels,
+        device=rewards.device,
+        dtype=work_dtype,
+    )
+
+    # Step 1: Decoupled per-channel, per-group z-score normalization (strict affine invariance).
+    group_mean = rewards.mean(dim=-2, keepdim=True)
+    group_std = rewards.std(dim=-2, unbiased=False, keepdim=True)
+    has_spread = group_std > float(eps)
+    safe_std = torch.where(has_spread, group_std, torch.ones_like(group_std))
+    per_channel_adv = torch.where(
+        has_spread,
+        (rewards - group_mean) / safe_std,
+        torch.zeros_like(rewards),
+    )
+
+    # Step 2: Weighted combination across decoupled channels.
+    combined = (per_channel_adv * weights).sum(dim=-1)
+
+    # Step 3: Batch-level normalization to stabilize advantage magnitude across groups.
+    if batch_normalize and int(combined.numel()) > 1:
+        b_mean = combined.mean()
+        b_std = combined.std(unbiased=False)
+        if float(b_std.item()) > float(eps):
+            combined = (combined - b_mean) / b_std
+        else:
+            combined = torch.zeros_like(combined)
+
+    # Step 4: Optional MedChem hygiene gate suppressing positive updates on failed artifacts.
+    if hygiene_gates is not None:
+        gates = hygiene_gates.to(device=combined.device, dtype=work_dtype).clamp(0.0, 1.0)
+        if gates.shape != combined.shape:
+            raise ValueError(
+                f"hygiene_gates shape {tuple(gates.shape)} must match {tuple(combined.shape)}"
+            )
+        combined = torch.where(combined > 0.0, combined * gates, combined)
+
+    return combined.to(dtype=torch.float32), per_channel_adv.to(dtype=torch.float32)
+
+
+def _prepare_mol_text_for_llm(smiles: str, format_mode: str) -> str:
+    """Convert SMILES into SAFE when ``format_mode == 'safe'`` (gracefully preserving SAFE)."""
+    cleaned = smiles.strip()
+    if format_mode != "safe" or not cleaned:
+        return cleaned
+    try:
+        return smiles_to_safe(cleaned, slicer="brics", canonical=True)
+    except ValueError:
+        return cleaned
+
+
+def _decode_candidate_smiles(raw_text: str, format_mode: str) -> str | None:
+    """Validate and canonicalize a sampled SMILES or SAFE string."""
+    if not raw_text:
+        return None
+    if format_mode == "safe":
+        return safe_to_smiles(raw_text, canonical=True)
+    mol = Chem.MolFromSmiles(raw_text)
+    if mol is None:
+        return None
+    return str(Chem.MolToSmiles(mol, canonical=True))
+
+
+def _coerce_pocket_to_out_and_mask(
+    pocket_obj: CachedPocketRecord | PocketEncoderOutput | Mapping[str, Any] | Tensor,
+    model: nn.Module,
+    device: torch.device,
+) -> tuple[PocketEncoderOutput, Tensor]:
+    """Convert any supported pocket representation into ``(PocketEncoderOutput, atom_mask)``."""
+    if isinstance(pocket_obj, PocketEncoderOutput):
+        node_emb = pocket_obj.node_emb.to(device=device, dtype=torch.float32)
+        pooled = pocket_obj.pooled_emb.to(device=device, dtype=torch.float32)
+        if node_emb.ndim == 2:
+            node_emb = node_emb.unsqueeze(0)
+        if pooled.ndim == 1:
+            pooled = pooled.unsqueeze(0)
+        mask = torch.ones((node_emb.shape[0], node_emb.shape[1]), dtype=torch.bool, device=device)
+        return PocketEncoderOutput(node_emb=node_emb, pooled_emb=pooled, vec_emb=None), mask
+    if isinstance(pocket_obj, Tensor):
+        node_emb = pocket_obj.to(device=device, dtype=torch.float32)
+        if node_emb.ndim == 2:
+            node_emb = node_emb.unsqueeze(0)
+        elif node_emb.ndim == 1:
+            node_emb = node_emb.unsqueeze(0).unsqueeze(0)
+        pooled = node_emb.mean(dim=1)
+        mask = torch.ones((node_emb.shape[0], node_emb.shape[1]), dtype=torch.bool, device=device)
+        return PocketEncoderOutput(node_emb=node_emb, pooled_emb=pooled, vec_emb=None), mask
+    return _record_to_pocket_out_and_mask(pocket_obj, model, device)
+
+
+def _unpack_llm_preference_pair(
+    pair: PreferencePair | CrossPocketPreferencePair | Mapping[str, Any],
+) -> tuple[Mapping[str, Any], str, str, Any]:
+    """Extract ``(pocket_batch, chosen, rejected, off_target_pocket_emb)`` from a pair object."""
+    if isinstance(pair, Mapping):
+        pocket_batch: Mapping[str, Any] = pair["pocket_batch"]
+        chosen = str(pair["chosen_smiles"])
+        rejected = str(pair["rejected_smiles"])
+        off_target = pair.get(
+            "off_target_pocket_emb",
+            pocket_batch.get("off_target_pocket_emb")
+            if isinstance(pocket_batch, Mapping)
+            else None,
+        )
+        return pocket_batch, chosen, rejected, off_target
+
+    pocket_batch = pair.pocket_batch
+    chosen = str(pair.chosen_smiles)
+    rejected = str(pair.rejected_smiles)
+    off_target = getattr(pair, "off_target_pocket_emb", None)
+    if off_target is None and isinstance(pocket_batch, Mapping):
+        off_target = pocket_batch.get("off_target_pocket_emb")
+    return pocket_batch, chosen, rejected, off_target
+
+
 def run_llm_rpo_dpo(
     model: nn.Module,
     train_records: Sequence[CachedPocketRecord | Mapping[str, Any]]
@@ -1252,10 +1545,15 @@ def run_llm_rpo_dpo(
     min_p: float | None = None,
     repetition_penalty: float | None = None,
     seed: int | None = None,
-    preference_pairs: Sequence[PreferencePair] | None = None,
+    preference_pairs: (
+        Sequence[PreferencePair | CrossPocketPreferencePair | Mapping[str, Any]] | None
+    ) = None,
     save_dir: str | Path | None = None,
+    cross_pocket_weight: float = 0.0,
+    cross_pocket_beta: float | None = None,
+    cross_pocket_use_ref: bool = False,
 ) -> dict[str, Any]:
-    """Run stabilized LoRA-only RPO-DPO preference alignment on ``PocketConditionedLLM``.
+    """Run stabilized LoRA-only RPO-DPO (+ optional ``L_XP-DPO``) on ``PocketConditionedLLM``.
 
     Pipeline:
       1. Samples ``M = samples_per_pocket`` candidate molecules per pocket via fast
@@ -1267,8 +1565,9 @@ def run_llm_rpo_dpo(
          updates (avoiding a second copy of the LLM in memory).
       5. Freezes EVERY parameter except LoRA adapter weights (preserving ``PaiNN-SE3``,
          ``CVAE``, ``heads``, ``Perceiver``, ``prefix_norm``, and base LLM bit-for-bit!).
-      6. Optimizes length-normalized RPO-DPO (``dpo_loss + sft_nll_weight * sft_nll``)
-         with gradient accumulation and clipping.
+      6. Optimizes length-normalized RPO-DPO (``dpo_loss + sft_nll_weight * sft_nll``),
+         optionally augmented with Contrastive Cross-Pocket Negative DPO ``L_XP-DPO`` when
+         ``cross_pocket_weight > 0`` and pairs carry ``off_target_pocket_emb``.
     """
     from geneuclidean.sampling.llm_sampler import sample_llm_molecules
 
@@ -1281,6 +1580,7 @@ def run_llm_rpo_dpo(
     seed_everything(eff_seed)
     model = model.to(eff_device)
     meta = _get_backbone_meta(model)
+    format_mode: str = str(meta["format_mode"])
 
     eff_max_tokens = cfg.sampling.max_len if max_new_tokens is None else int(max_new_tokens)
     eff_cfg_scale = cfg.sampling.cfg_scale if cfg_scale is None else float(cfg_scale)
@@ -1291,9 +1591,11 @@ def run_llm_rpo_dpo(
     )
     eff_accum = max(1, int(grad_accum_steps))
     eff_sft_weight = max(0.0, float(sft_nll_weight))
+    eff_xp_weight = max(0.0, float(cross_pocket_weight))
+    eff_xp_beta = float(beta) if cross_pocket_beta is None else float(cross_pocket_beta)
 
     t0 = time.perf_counter()
-    pairs: list[PreferencePair] = []
+    pairs: list[PreferencePair | CrossPocketPreferencePair | Mapping[str, Any]] = []
     total_generated = 0
     unique_valid_total = 0
     n_pockets_used = 0
@@ -1341,10 +1643,9 @@ def run_llm_rpo_dpo(
             unique_valid: list[str] = []
             seen_can: set[str] = set()
             for smi in sampled:
-                mol = Chem.MolFromSmiles(smi) if smi else None
-                if mol is None:
+                can = _decode_candidate_smiles(smi, format_mode)
+                if can is None:
                     continue
-                can = Chem.MolToSmiles(mol, canonical=True)
                 if can not in seen_can:
                     seen_can.add(can)
                     unique_valid.append(can)
@@ -1401,16 +1702,32 @@ def run_llm_rpo_dpo(
 
     # Precompute frozen reference log-probabilities before any LoRA update
     cached_dpo_items: list[
-        tuple[PocketEncoderOutput, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]
+        tuple[
+            PocketEncoderOutput,
+            Tensor,
+            Tensor,
+            Tensor,
+            Tensor,
+            Tensor,
+            Tensor,
+            Tensor,
+            PocketEncoderOutput | None,
+            Tensor | None,
+            Tensor | None,
+        ]
     ] = []
     model.eval()
     with torch.no_grad():
         for pair in pairs:
-            p_out_dev, a_mask_dev = _record_to_pocket_out_and_mask(
-                pair.pocket_batch, model, eff_device
+            pocket_batch, chosen_smi, rejected_smi, raw_off_target = _unpack_llm_preference_pair(
+                pair
             )
+            p_out_dev, a_mask_dev = _record_to_pocket_out_and_mask(pocket_batch, model, eff_device)
+            chosen_text = _prepare_mol_text_for_llm(chosen_smi, format_mode)
+            rejected_text = _prepare_mol_text_for_llm(rejected_smi, format_mode)
+
             pos_ids_list, pos_lbl_list = tokenize_smiles_for_llm(
-                pair.chosen_smiles,
+                chosen_text,
                 tokenizer=meta["tokenizer"],
                 is_smiles_native=meta["is_smiles_native"],
                 prompt_prefix=meta["prompt_prefix"],
@@ -1419,7 +1736,7 @@ def run_llm_rpo_dpo(
                 max_seq_len=cfg.data.max_seq_len,
             )
             neg_ids_list, neg_lbl_list = tokenize_smiles_for_llm(
-                pair.rejected_smiles,
+                rejected_text,
                 tokenizer=meta["tokenizer"],
                 is_smiles_native=meta["is_smiles_native"],
                 prompt_prefix=meta["prompt_prefix"],
@@ -1453,6 +1770,32 @@ def run_llm_rpo_dpo(
                 labels=neg_lbl,
                 length_normalize=True,
             )
+
+            off_p_cpu: PocketEncoderOutput | None = None
+            off_mask_cpu: Tensor | None = None
+            ref_pos_off_cpu: Tensor | None = None
+            if eff_xp_weight > 0.0 and raw_off_target is not None:
+                off_p_dev, off_m_dev = _coerce_pocket_to_out_and_mask(
+                    raw_off_target, model, eff_device
+                )
+                off_p_cpu = PocketEncoderOutput(
+                    node_emb=off_p_dev.node_emb.detach().cpu(),
+                    pooled_emb=off_p_dev.pooled_emb.detach().cpu(),
+                    vec_emb=None,
+                )
+                off_mask_cpu = off_m_dev.detach().cpu()
+                if cross_pocket_use_ref:
+                    ref_pos_off, _ = _compute_llm_sequence_logps(
+                        model,
+                        pocket_out=off_p_dev,
+                        atom_mask=off_m_dev,
+                        input_ids=pos_ids,
+                        attention_mask=pos_attn,
+                        labels=pos_lbl,
+                        length_normalize=True,
+                    )
+                    ref_pos_off_cpu = ref_pos_off.detach().cpu()
+
             p_out_cpu = PocketEncoderOutput(
                 node_emb=p_out_dev.node_emb.detach().cpu(),
                 pooled_emb=p_out_dev.pooled_emb.detach().cpu(),
@@ -1468,6 +1811,9 @@ def run_llm_rpo_dpo(
                     neg_lbl.detach().cpu(),
                     ref_pos.detach().cpu(),
                     ref_neg.detach().cpu(),
+                    off_p_cpu,
+                    off_mask_cpu,
+                    ref_pos_off_cpu,
                 )
             )
 
@@ -1510,6 +1856,9 @@ def run_llm_rpo_dpo(
 
             dpo_loss_sum = 0.0
             sft_nll_sum = 0.0
+            xp_loss_sum = 0.0
+            xp_margin_sum = 0.0
+            xp_count = 0
             total_loss_sum = 0.0
             pos_reward_sum = 0.0
             neg_reward_sum = 0.0
@@ -1527,6 +1876,9 @@ def run_llm_rpo_dpo(
                 neg_lbl_c,
                 ref_pos_c,
                 ref_neg_c,
+                off_p_cpu,
+                off_mask_cpu,
+                ref_pos_off_c,
             ) in enumerate(cached_dpo_items):
                 p_out_dev = PocketEncoderOutput(
                     node_emb=p_out_cpu.node_emb.to(device=eff_device),
@@ -1564,6 +1916,39 @@ def run_llm_rpo_dpo(
                 sft_nll = -pi_pos_norm.mean()
                 loss = dpo_loss + eff_sft_weight * sft_nll
 
+                if eff_xp_weight > 0.0 and off_p_cpu is not None and off_mask_cpu is not None:
+                    off_p_dev = PocketEncoderOutput(
+                        node_emb=off_p_cpu.node_emb.to(device=eff_device),
+                        pooled_emb=off_p_cpu.pooled_emb.to(device=eff_device),
+                        vec_emb=None,
+                    )
+                    off_m_dev = off_mask_cpu.to(device=eff_device)
+                    pi_pos_off, _ = _compute_llm_sequence_logps(
+                        model,
+                        pocket_out=off_p_dev,
+                        atom_mask=off_m_dev,
+                        input_ids=pos_ids,
+                        attention_mask=torch.ones_like(pos_ids),
+                        labels=pos_lbl,
+                        length_normalize=True,
+                    )
+                    ref_off_dev = (
+                        ref_pos_off_c.to(device=eff_device)
+                        if (cross_pocket_use_ref and ref_pos_off_c is not None)
+                        else None
+                    )
+                    xp_loss = compute_cross_pocket_dpo_loss(
+                        pi_pos,
+                        pi_pos_off,
+                        beta=eff_xp_beta,
+                        ref_logps_on=ref_pos if ref_off_dev is not None else None,
+                        ref_logps_off=ref_off_dev,
+                    )
+                    loss = loss + eff_xp_weight * xp_loss
+                    xp_loss_sum += float(xp_loss.detach().item())
+                    xp_margin_sum += float((pi_pos.detach() - pi_pos_off.detach()).mean().item())
+                    xp_count += 1
+
                 window_start = (idx // eff_accum) * eff_accum
                 window_size = min(eff_accum, n_total - window_start)
                 (loss / float(max(1, window_size))).backward()
@@ -1592,6 +1977,9 @@ def run_llm_rpo_dpo(
                     "epoch": epoch,
                     "dpo_loss": dpo_loss_sum / n_pairs_f,
                     "sft_nll": sft_nll_sum / n_pairs_f,
+                    "xp_dpo_loss": xp_loss_sum / float(max(1, xp_count)) if xp_count > 0 else 0.0,
+                    "xp_margin": xp_margin_sum / float(max(1, xp_count)) if xp_count > 0 else 0.0,
+                    "xp_pairs": xp_count,
                     "total_loss": total_loss_sum / n_pairs_f,
                     "chosen_reward": pos_reward_sum / n_pairs_f,
                     "rejected_reward": neg_reward_sum / n_pairs_f,
@@ -1614,10 +2002,11 @@ def run_llm_rpo_dpo(
         model.save_adapter_checkpoint(  # type: ignore[operator]
             ckpt_path,
             extra_meta={
-                "stage": "rpo_dpo",
+                "stage": "xp_rpo_dpo" if eff_xp_weight > 0.0 else "rpo_dpo",
                 "config": cfg.model_dump(mode="python"),
                 "dpo_history": history,
                 "num_pairs": len(pairs),
+                "cross_pocket_weight": eff_xp_weight,
             },
         )
         ckpt_path_str = str(ckpt_path)
@@ -1632,6 +2021,7 @@ def run_llm_rpo_dpo(
         "dpo_pockets_sampled": n_pockets_used,
         "total_generated": total_generated,
         "unique_valid_generated": unique_valid_total,
+        "cross_pocket_weight": eff_xp_weight,
         "pair_gen_sec": round(pair_gen_sec, 3),
         "wall_time_sec": round(time.perf_counter() - t0, 3),
         "history": history,
@@ -1639,13 +2029,548 @@ def run_llm_rpo_dpo(
     }
 
 
+def run_llm_gdpo(
+    model: nn.Module,
+    train_records: Sequence[CachedPocketRecord | Mapping[str, Any]]
+    | Mapping[str, Mapping[str, Any]],
+    cfg: ExperimentConfig,
+    device: torch.device | str | None = None,
+    *,
+    gdpo_pockets: int = 64,
+    group_size: int = 16,
+    epochs: int = 1,
+    lr: float = 1e-5,
+    clip_eps: float = 0.2,
+    kl_beta: float = 0.04,
+    rpo_nll_weight: float = 0.15,
+    rpo_top_fraction: float = 0.25,
+    channel_weights: Sequence[float] | Mapping[str, float] = DEFAULT_GDPO_CHANNEL_WEIGHTS,
+    grad_accum_steps: int = 4,
+    max_new_tokens: int | None = None,
+    cfg_scale: float | None = None,
+    temperature: float | None = None,
+    min_p: float | None = None,
+    repetition_penalty: float | None = None,
+    seed: int | None = None,
+    gdpo_groups: Sequence[GDPOGroup] | None = None,
+    reward_fn: Any | None = None,
+    save_dir: str | Path | None = None,
+) -> dict[str, Any]:
+    """Run LoRA-only 4-Channel GDPO + RPO NLL alignment on ``PocketConditionedLLM``.
+
+    Implements Group reward-Decoupled Normalization Policy Optimization (Liu et al., NVlabs,
+    Jan 2026, ``arXiv:2601.05242``) across four orthogonal medicinal-chemistry channels:
+    ``(Safety, Selectivity, 3D Fit, MedChem/Anchor)``. Each channel is z-normalized
+    independently within its pocket group before weighted aggregation and batch normalization,
+    preventing high-variance ADMET channels from drowning target selectivity or 3D fit.
+
+    Updates ONLY LoRA parameters (keeping ``PaiNN-SE3``, ``CVAE``, ``heads``, ``Perceiver``,
+    ``prefix_norm``, and frozen base LLM bit-for-bit identical) using clipped importance
+    ratios, unbiased Schulman ``k3`` KL regularization against cached frozen ``ref_logps``,
+    and an RPO NLL anchor on top-quartile winners within each pocket group.
+    """
+    from geneuclidean.sampling.llm_sampler import sample_llm_molecules
+
+    eff_device = (
+        select_device(cfg.train.device)
+        if device is None
+        else (select_device(device) if isinstance(device, str) else device)
+    )
+    eff_seed = cfg.train.seed if seed is None else int(seed)
+    seed_everything(eff_seed)
+    model = model.to(eff_device)
+    meta = _get_backbone_meta(model)
+    format_mode: str = str(meta["format_mode"])
+
+    eff_max_tokens = cfg.sampling.max_len if max_new_tokens is None else int(max_new_tokens)
+    eff_cfg_scale = cfg.sampling.cfg_scale if cfg_scale is None else float(cfg_scale)
+    eff_temp = cfg.sampling.temperature if temperature is None else float(temperature)
+    eff_min_p = cfg.sampling.min_p if min_p is None else float(min_p)
+    eff_rep_penalty = (
+        cfg.sampling.repetition_penalty if repetition_penalty is None else float(repetition_penalty)
+    )
+    eff_accum = max(1, int(grad_accum_steps))
+    eff_clip = max(1e-4, float(clip_eps))
+    eff_kl_beta = max(0.0, float(kl_beta))
+    eff_rpo_w = max(0.0, float(rpo_nll_weight))
+    eff_top_frac = min(max(float(rpo_top_fraction), 0.05), 1.0)
+
+    weights_t = _resolve_gdpo_weights(
+        channel_weights,
+        len(GDPO_CHANNEL_NAMES),
+        device=torch.device("cpu"),
+        dtype=torch.float32,
+    )
+    weight_dict = {
+        name: round(float(weights_t[i].item()), 6) for i, name in enumerate(GDPO_CHANNEL_NAMES)
+    }
+
+    t0 = time.perf_counter()
+    groups: list[GDPOGroup] = []
+    total_generated = 0
+    unique_valid_total = 0
+    n_pockets_used = 0
+
+    if gdpo_groups is not None:
+        groups = [g for g in gdpo_groups if len(g.smiles_list) >= 2]
+    else:
+        record_list: list[CachedPocketRecord | Mapping[str, Any]]
+        if isinstance(train_records, Mapping):
+            record_list = [train_records[k] for k in sorted(train_records.keys())]
+        else:
+            record_list = list(train_records)
+
+        n_avail = len(record_list)
+        n_pockets_used = min(int(gdpo_pockets), n_avail)
+        if n_pockets_used > 0:
+            rng = np.random.default_rng(eff_seed)
+            indices = rng.choice(n_avail, size=n_pockets_used, replace=False).tolist()
+        else:
+            indices = []
+
+        # Pre-collect pooled pocket embeddings for on-policy cross-pocket CLIP selectivity contrast.
+        pocket_cache_list: list[tuple[PocketEncoderOutput, Tensor]] = []
+        model.eval()
+        for r_idx in indices:
+            pocket_cache_list.append(
+                _record_to_pocket_out_and_mask(record_list[int(r_idx)], model, eff_device)
+            )
+
+        for step_idx, (pocket_out, atom_mask) in enumerate(pocket_cache_list):
+            sampled = sample_llm_molecules(
+                cast(Any, model),
+                pocket_out,
+                atom_mask,
+                num_samples=int(group_size),
+                max_new_tokens=eff_max_tokens,
+                strategy=cfg.sampling.strategy,
+                temperature=eff_temp,
+                min_p=eff_min_p,
+                top_p=cfg.sampling.top_p,
+                top_k=cfg.sampling.top_k,
+                cfg_scale=eff_cfg_scale,
+                latent_temp=cfg.sampling.latent_temp,
+                repetition_penalty=eff_rep_penalty,
+                batch_size=int(group_size),
+                seed=eff_seed + step_idx,
+            )
+            total_generated += len(sampled)
+
+            unique_valid: list[str] = []
+            seen_can: set[str] = set()
+            for smi in sampled:
+                can = _decode_candidate_smiles(smi, format_mode)
+                if can is not None and can not in seen_can:
+                    seen_can.add(can)
+                    unique_valid.append(can)
+            unique_valid_total += len(unique_valid)
+            if len(unique_valid) < 2:
+                continue
+
+            with torch.no_grad():
+                fps_t = _compute_ecfp4_tensor(
+                    unique_valid,
+                    fp_dim=cfg.multitask.ligand_fp_dim,
+                ).to(device=eff_device)
+                cand_scores = model.score_candidates(pocket_out, fps_t)  # type: ignore[operator]
+                pred_pkd = (
+                    cand_scores["pkd"].detach().cpu().numpy().tolist()
+                    if "pkd" in cand_scores
+                    else [0.0] * len(unique_valid)
+                )
+                clip_sim = (
+                    cand_scores["clip_sim"].detach().cpu().numpy().tolist()
+                    if "clip_sim" in cand_scores
+                    else [0.0] * len(unique_valid)
+                )
+
+                # Estimate selectivity via CLIP margin against decoy pockets in batch
+                if len(pocket_cache_list) > 1 and "clip_sim" in cand_scores:
+                    decoy_clips: list[np.ndarray] = []
+                    for other_idx, (other_p, _) in enumerate(pocket_cache_list):
+                        if other_idx == step_idx:
+                            continue
+                        decoy_sc = model.score_candidates(other_p, fps_t)  # type: ignore[operator]
+                        if "clip_sim" in decoy_sc:
+                            decoy_clips.append(decoy_sc["clip_sim"].detach().cpu().numpy())
+                    if decoy_clips:
+                        max_decoy = np.max(np.stack(decoy_clips, axis=0), axis=0)
+                        sel_vals = [
+                            float(on_c - off_c)
+                            for on_c, off_c in zip(clip_sim, max_decoy.tolist(), strict=True)
+                        ]
+                    else:
+                        sel_vals = list(clip_sim)
+                else:
+                    sel_vals = list(clip_sim)
+
+            if reward_fn is not None:
+                ch_out = reward_fn(pocket_out, unique_valid, cand_scores)
+                safety_r = [float(x) for x in ch_out["safety"]]
+                sel_r = [float(x) for x in ch_out["selectivity"]]
+                fit3d_r = [float(x) for x in ch_out["fit_3d"]]
+                medchem_r = [float(x) for x in ch_out["medchem_anchor"]]
+                hyg_g = (
+                    [float(x) for x in ch_out["hygiene_gates"]]
+                    if "hygiene_gates" in ch_out and ch_out["hygiene_gates"] is not None
+                    else None
+                )
+            else:
+                mpo_entries = compute_mpo_scores(unique_valid, pred_pkd=pred_pkd, clip_sim=clip_sim)
+                safety_r = [
+                    0.5 * float(e.pains_free) + 0.5 * float(e.lipinski_pass) for e in mpo_entries
+                ]
+                sel_r = sel_vals
+                fit3d_r = [
+                    0.6 * float(pk) + 0.4 * float(cs)
+                    for pk, cs in zip(pred_pkd, clip_sim, strict=True)
+                ]
+                medchem_r = [0.5 * float(e.qed) + 0.5 * float(e.sa_norm) for e in mpo_entries]
+                hyg_g = [1.0 if e.pains_free else 0.0 for e in mpo_entries]
+
+            compact_pocket = {
+                "node_emb": pocket_out.node_emb.detach().cpu(),
+                "pooled_emb": pocket_out.pooled_emb.detach().cpu(),
+                "atom_mask": atom_mask.detach().cpu(),
+            }
+            groups.append(
+                GDPOGroup(
+                    pocket_batch=compact_pocket,
+                    smiles_list=unique_valid,
+                    safety_rewards=safety_r,
+                    selectivity_rewards=sel_r,
+                    fit_3d_rewards=fit3d_r,
+                    medchem_anchor_rewards=medchem_r,
+                    hygiene_gates=hyg_g,
+                )
+            )
+
+    group_gen_sec = time.perf_counter() - t0
+    if not groups:
+        return {
+            "epochs": 0,
+            "num_groups": 0,
+            "num_candidates": 0,
+            "gdpo_pockets_sampled": n_pockets_used,
+            "total_generated": total_generated,
+            "unique_valid_generated": unique_valid_total,
+            "channel_weights": weight_dict,
+            "group_gen_sec": round(group_gen_sec, 3),
+            "wall_time_sec": round(time.perf_counter() - t0, 3),
+            "history": [],
+            "adapter_ckpt_path": None,
+        }
+
+    # Step 1: Decoupled per-channel per-group normalization -> batch-level normalization.
+    raw_group_advs: list[Tensor] = []
+    group_hygienes: list[Tensor | None] = []
+    channel_means_accum = np.zeros(len(GDPO_CHANNEL_NAMES), dtype=np.float64)
+    total_candidates = 0
+
+    for grp in groups:
+        g_len = len(grp.smiles_list)
+        if not (
+            len(grp.safety_rewards)
+            == len(grp.selectivity_rewards)
+            == len(grp.fit_3d_rewards)
+            == len(grp.medchem_anchor_rewards)
+            == g_len
+        ):
+            raise ValueError("All 4 GDPO reward channels must match len(smiles_list).")
+        ch_mat = torch.tensor(
+            [
+                [
+                    float(grp.safety_rewards[i]),
+                    float(grp.selectivity_rewards[i]),
+                    float(grp.fit_3d_rewards[i]),
+                    float(grp.medchem_anchor_rewards[i]),
+                ]
+                for i in range(g_len)
+            ],
+            dtype=torch.float32,
+        )
+        channel_means_accum += ch_mat.sum(dim=0).numpy()
+        total_candidates += g_len
+        # Decoupled per-channel z-norm + weighted sum without batch norm yet (groups may vary in G).
+        raw_adv, _ = compute_gdpo_advantages(
+            ch_mat,
+            channel_weights=weights_t,
+            hygiene_gates=None,
+            batch_normalize=False,
+        )
+        raw_group_advs.append(raw_adv)
+        if grp.hygiene_gates is not None:
+            group_hygienes.append(
+                torch.tensor([float(x) for x in grp.hygiene_gates], dtype=torch.float32).clamp(
+                    0.0, 1.0
+                )
+            )
+        else:
+            group_hygienes.append(None)
+
+    all_raw = torch.cat(raw_group_advs, dim=0)
+    if int(all_raw.numel()) > 1:
+        b_mean = all_raw.mean()
+        b_std = all_raw.std(unbiased=False)
+        all_normed = (
+            (all_raw - b_mean) / b_std if float(b_std.item()) > 1e-6 else torch.zeros_like(all_raw)
+        )
+    else:
+        all_normed = torch.zeros_like(all_raw)
+
+    final_group_advs: list[Tensor] = []
+    offset = 0
+    for raw_adv, hyg in zip(raw_group_advs, group_hygienes, strict=True):
+        g_len = int(raw_adv.numel())
+        adv_slice = all_normed[offset : offset + g_len]
+        offset += g_len
+        if hyg is not None:
+            adv_slice = torch.where(adv_slice > 0.0, adv_slice * hyg, adv_slice)
+        final_group_advs.append(adv_slice)
+
+    # Step 2: Precompute frozen reference log-probabilities for every candidate in each group.
+    cached_groups: list[
+        tuple[PocketEncoderOutput, Tensor, list[tuple[Tensor, Tensor, Tensor, float]], list[int]]
+    ] = []
+    model.eval()
+    with torch.no_grad():
+        for grp, adv_vec in zip(groups, final_group_advs, strict=True):
+            p_out_dev, a_mask_dev = _record_to_pocket_out_and_mask(
+                grp.pocket_batch, model, eff_device
+            )
+            cand_items: list[tuple[Tensor, Tensor, Tensor, float]] = []
+            for smi, adv_val in zip(grp.smiles_list, adv_vec.tolist(), strict=True):
+                mol_text = _prepare_mol_text_for_llm(smi, format_mode)
+                ids_list, lbl_list = tokenize_smiles_for_llm(
+                    mol_text,
+                    tokenizer=meta["tokenizer"],
+                    is_smiles_native=meta["is_smiles_native"],
+                    prompt_prefix=meta["prompt_prefix"],
+                    bos_token_id=meta["bos_token_id"],
+                    eos_token_id=meta["eos_token_id"],
+                    max_seq_len=cfg.data.max_seq_len,
+                )
+                ids_t = torch.tensor(ids_list, dtype=torch.long, device=eff_device).unsqueeze(0)
+                lbl_t = torch.tensor(lbl_list, dtype=torch.long, device=eff_device).unsqueeze(0)
+                ref_lp, _ = _compute_llm_sequence_logps(
+                    model,
+                    pocket_out=p_out_dev,
+                    atom_mask=a_mask_dev,
+                    input_ids=ids_t,
+                    attention_mask=torch.ones_like(ids_t),
+                    labels=lbl_t,
+                    length_normalize=True,
+                )
+                cand_items.append(
+                    (
+                        ids_t.detach().cpu(),
+                        lbl_t.detach().cpu(),
+                        ref_lp.detach().cpu(),
+                        float(adv_val),
+                    )
+                )
+
+            # Identify top-quartile winners inside this pocket group for RPO NLL anchoring.
+            g_len = len(cand_items)
+            k_top = max(1, int(math.ceil(g_len * eff_top_frac)))
+            top_indices = sorted(
+                range(g_len),
+                key=lambda i: cand_items[i][3],
+                reverse=True,
+            )[:k_top]
+
+            p_out_cpu = PocketEncoderOutput(
+                node_emb=p_out_dev.node_emb.detach().cpu(),
+                pooled_emb=p_out_dev.pooled_emb.detach().cpu(),
+                vec_emb=None,
+            )
+            cached_groups.append((p_out_cpu, a_mask_dev.detach().cpu(), cand_items, top_indices))
+
+    orig_requires_grad: dict[str, bool] = {
+        name: param.requires_grad for name, param in model.named_parameters()
+    }
+    history: list[dict[str, float | int]] = []
+
+    try:
+        # Freeze EVERYTHING except LoRA adapter weights bit-for-bit!
+        lora_named: list[tuple[str, nn.Parameter]] = []
+        for name, param in model.named_parameters():
+            if _is_lora_param(name):
+                param.requires_grad = True
+                lora_named.append((name, param))
+            else:
+                param.requires_grad = False
+                param.grad = None
+
+        if not lora_named:
+            raise RuntimeError("No LoRA parameters found in PocketConditionedLLM for GDPO.")
+
+        lora_params = [p for _, p in lora_named]
+        optimizer = AdamW(
+            _split_decay_groups(
+                lora_named,
+                lr=lr,
+                weight_decay=cfg.train.weight_decay,
+                group_prefix="gdpo_lora",
+            )
+        )
+        n_groups = len(cached_groups)
+        llm_sub = getattr(model, "llm", None)
+
+        for epoch in range(1, max(1, int(epochs)) + 1):
+            ep_t0 = time.perf_counter()
+            model.eval()
+            if isinstance(llm_sub, nn.Module):
+                llm_sub.train()
+
+            pg_loss_sum = 0.0
+            kl_loss_sum = 0.0
+            rpo_nll_sum = 0.0
+            total_loss_sum = 0.0
+            ratio_sum = 0.0
+            ratio_count = 0
+            opt_steps = 0
+
+            optimizer.zero_grad(set_to_none=True)
+            for g_idx, (p_out_cpu, a_mask_cpu, cand_items, top_indices) in enumerate(cached_groups):
+                p_out_dev = PocketEncoderOutput(
+                    node_emb=p_out_cpu.node_emb.to(device=eff_device),
+                    pooled_emb=p_out_cpu.pooled_emb.to(device=eff_device),
+                    vec_emb=None,
+                )
+                a_mask_dev = a_mask_cpu.to(device=eff_device)
+                top_set = set(top_indices)
+
+                pg_terms: list[Tensor] = []
+                kl_terms: list[Tensor] = []
+                rpo_terms: list[Tensor] = []
+
+                for c_idx, (ids_c, lbl_c, ref_lp_c, adv_val) in enumerate(cand_items):
+                    ids_dev = ids_c.to(device=eff_device)
+                    lbl_dev = lbl_c.to(device=eff_device)
+                    ref_lp = ref_lp_c.to(device=eff_device)
+
+                    pi_lp, pi_lp_norm = _compute_llm_sequence_logps(
+                        model,
+                        pocket_out=p_out_dev,
+                        atom_mask=a_mask_dev,
+                        input_ids=ids_dev,
+                        attention_mask=torch.ones_like(ids_dev),
+                        labels=lbl_dev,
+                        length_normalize=True,
+                    )
+                    log_ratio = (pi_lp - ref_lp).clamp(min=-10.0, max=10.0)
+                    ratio = torch.exp(log_ratio)
+                    adv_t = torch.full_like(ratio, float(adv_val))
+                    surr1 = ratio * adv_t
+                    surr2 = ratio.clamp(1.0 - eff_clip, 1.0 + eff_clip) * adv_t
+                    pg_terms.append(-torch.minimum(surr1, surr2).mean())
+
+                    # Schulman k3 unbiased non-negative KL estimator: exp(ref - pi) - (ref - pi) - 1
+                    delta_ref = (ref_lp - pi_lp).clamp(min=-10.0, max=10.0)
+                    kl_k3 = (torch.exp(delta_ref) - delta_ref - 1.0).mean()
+                    kl_terms.append(kl_k3)
+
+                    if c_idx in top_set:
+                        rpo_terms.append(-pi_lp_norm.mean())
+
+                    ratio_sum += float(ratio.detach().mean().item())
+                    ratio_count += 1
+
+                pg_loss = torch.stack(pg_terms).mean()
+                kl_loss = torch.stack(kl_terms).mean()
+                rpo_nll = torch.stack(rpo_terms).mean() if rpo_terms else pg_loss.new_zeros(())
+                loss = pg_loss + eff_kl_beta * kl_loss + eff_rpo_w * rpo_nll
+
+                window_start = (g_idx // eff_accum) * eff_accum
+                window_size = min(eff_accum, n_groups - window_start)
+                (loss / float(max(1, window_size))).backward()
+
+                if ((g_idx + 1) % eff_accum == 0) or ((g_idx + 1) == n_groups):
+                    torch.nn.utils.clip_grad_norm_(lora_params, max_norm=cfg.train.grad_clip)
+                    optimizer.step()
+                    optimizer.zero_grad(set_to_none=True)
+                    opt_steps += 1
+
+                pg_loss_sum += float(pg_loss.detach().item())
+                kl_loss_sum += float(kl_loss.detach().item())
+                rpo_nll_sum += float(rpo_nll.detach().item())
+                total_loss_sum += float(loss.detach().item())
+
+            n_groups_f = float(n_groups)
+            history.append(
+                {
+                    "epoch": epoch,
+                    "pg_loss": pg_loss_sum / n_groups_f,
+                    "kl_loss": kl_loss_sum / n_groups_f,
+                    "rpo_nll": rpo_nll_sum / n_groups_f,
+                    "total_loss": total_loss_sum / n_groups_f,
+                    "mean_ratio": ratio_sum / float(max(1, ratio_count)),
+                    "optimizer_steps": opt_steps,
+                    "elapsed_sec": round(time.perf_counter() - ep_t0, 3),
+                }
+            )
+    finally:
+        for name, param in model.named_parameters():
+            if name in orig_requires_grad:
+                param.requires_grad = orig_requires_grad[name]
+
+    ckpt_path_str: str | None = None
+    if save_dir is not None:
+        out_dir = Path(save_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        ckpt_path = out_dir / "best_adapter.pt"
+        model.save_adapter_checkpoint(  # type: ignore[operator]
+            ckpt_path,
+            extra_meta={
+                "stage": "gdpo",
+                "config": cfg.model_dump(mode="python"),
+                "gdpo_history": history,
+                "num_groups": len(groups),
+                "num_candidates": total_candidates,
+                "channel_weights": weight_dict,
+            },
+        )
+        ckpt_path_str = str(ckpt_path)
+        hist_path = out_dir / "history.jsonl"
+        with hist_path.open("w", encoding="utf-8") as handle:
+            for row in history:
+                handle.write(json.dumps(row) + "\n")
+
+    channel_means = {
+        name: round(float(channel_means_accum[i] / max(1, total_candidates)), 6)
+        for i, name in enumerate(GDPO_CHANNEL_NAMES)
+    }
+    return {
+        "epochs": len(history),
+        "num_groups": len(groups),
+        "num_candidates": total_candidates,
+        "gdpo_pockets_sampled": n_pockets_used,
+        "total_generated": total_generated,
+        "unique_valid_generated": unique_valid_total,
+        "channel_weights": weight_dict,
+        "channel_means": channel_means,
+        "group_gen_sec": round(group_gen_sec, 3),
+        "wall_time_sec": round(time.perf_counter() - t0, 3),
+        "history": history,
+        "adapter_ckpt_path": ckpt_path_str,
+    }
+
+
 __all__ = [
+    "DEFAULT_GDPO_CHANNEL_WEIGHTS",
+    "GDPO_CHANNEL_NAMES",
     "CachedPocketLLMDataset",
     "CachedPocketRecord",
+    "CrossPocketPreferencePair",
+    "GDPOGroup",
     "PocketLLMTrainer",
     "build_pocket_batches_from_records",
     "collate_cached_pocket_batch",
+    "compute_cross_pocket_dpo_loss",
+    "compute_gdpo_advantages",
     "precompute_pocket_cache",
+    "run_llm_gdpo",
     "run_llm_rpo_dpo",
     "tokenize_smiles_for_llm",
 ]

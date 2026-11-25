@@ -26,6 +26,7 @@ from typing import Any, NamedTuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from rdkit import Chem, RDLogger
 from torch import Tensor
 
 from geneuclidean.config import ExperimentConfig
@@ -34,6 +35,14 @@ from geneuclidean.models.decoders.transformer import RMSNorm, SwiGLU
 from geneuclidean.models.encoders import PocketEncoderOutput, build_encoder
 from geneuclidean.models.heads import MultiTaskHeads
 from geneuclidean.models.hf_backbones import LoadedBackbone, get_input_embeddings_tensor
+from geneuclidean.models.safe_codec import build_scaffold_prefix, safe_to_smiles, smiles_to_safe
+from geneuclidean.sampling.decoder_strategies import (
+    apply_repetition_penalty,
+    combine_cfg_logits,
+    select_next_tokens,
+)
+
+RDLogger.DisableLog("rdApp.*")  # type: ignore[attr-defined]
 
 
 class PocketLLMOutput(NamedTuple):
@@ -289,6 +298,7 @@ class PocketConditionedLLM(nn.Module):
         num_global_tokens: int = 4,
         cfg_drop_prob: float = 0.15,
         freeze_pocket_encoder: bool = True,
+        format_mode: str | None = None,
     ) -> None:
         super().__init__()
         self.v2_cfg = v2_cfg
@@ -303,6 +313,19 @@ class PocketConditionedLLM(nn.Module):
         self.is_smiles_native = bool(backbone.is_smiles_native)
         self.prompt_prefix = str(backbone.prompt_prefix)
         self.uses_tuple_kv_cache = bool(backbone.uses_tuple_kv_cache)
+
+        raw_mode = (
+            format_mode
+            if format_mode is not None
+            else str(getattr(backbone, "representation", "smiles"))
+        )
+        resolved_mode = raw_mode.strip().lower()
+        if resolved_mode not in {"smiles", "safe"}:
+            raise ValueError(
+                f"Unsupported format_mode {format_mode!r}; expected 'smiles' or 'safe'."
+            )
+        self.format_mode: str = resolved_mode
+        self.representation: str = resolved_mode
 
         self.num_queries = int(num_queries)
         self.perceiver_layers = int(perceiver_layers)
@@ -373,11 +396,340 @@ class PocketConditionedLLM(nn.Module):
             self._apply_pocket_freeze()
 
     @property
+    def is_safe_mode(self) -> bool:
+        """Return ``True`` when the bridge encodes/decodes molecules in SAFE fragment format."""
+        return self.format_mode == "safe"
+
+    @property
     def llm_dtype(self) -> torch.dtype:
         """Return the active parameter dtype of the underlying LLM backbone."""
         for param in self.llm.parameters():
             return param.dtype
         return self.backbone_meta.model_dtype
+
+    def encode_molecule_text(
+        self,
+        smiles: str,
+        *,
+        slicer: str = "brics",
+        randomize_fragments: bool = False,
+        rng: Any = None,
+    ) -> str:
+        """Convert SMILES into this model's native string representation (SMILES or SAFE)."""
+        cleaned = smiles.strip()
+        if self.format_mode == "safe":
+            return smiles_to_safe(
+                cleaned,
+                slicer=slicer,
+                canonical=True,
+                randomize_order=randomize_fragments,
+                rng=rng,
+            )
+        return cleaned
+
+    def decode_molecule_text(
+        self,
+        text: str,
+        *,
+        canonical: bool = True,
+        ignore_stereo: bool = False,
+    ) -> str | None:
+        """Decode raw LLM output text (SMILES or SAFE) into a validated canonical SMILES."""
+        if not text:
+            return None
+        cleaned = text.strip()
+        prompt_tag = self.prompt_prefix.strip()
+        if not self.is_smiles_native and prompt_tag and cleaned.startswith(prompt_tag):
+            cleaned = cleaned[len(prompt_tag) :].strip()
+        lines = [ln.strip() for ln in cleaned.splitlines() if ln.strip()]
+        if not lines:
+            return None
+        first_token = "".join(lines[0].split()) if self.is_smiles_native else lines[0].split()[0]
+        if self.format_mode == "safe":
+            return safe_to_smiles(first_token, canonical=canonical, ignore_stereo=ignore_stereo)
+        mol = Chem.MolFromSmiles(first_token)
+        if mol is None:
+            return None
+        return str(Chem.MolToSmiles(mol, canonical=canonical, isomericSmiles=not ignore_stereo))
+
+    def build_scaffold_decoration_prefix(
+        self,
+        core_smiles_with_dummy: str,
+        *,
+        attachment_start: int | None = None,
+        trailing_dot: bool = True,
+    ) -> str:
+        """Build a SAFE fragment prefix from a dummy-annotated core scaffold SMILES."""
+        return build_scaffold_prefix(
+            core_smiles_with_dummy,
+            attachment_start=attachment_start,
+            trailing_dot=trailing_dot,
+        )
+
+    def build_decoration_prompt_ids(
+        self,
+        core_smiles_with_dummy: str,
+        *,
+        batch_size: int = 1,
+        device: torch.device | str | None = None,
+        attachment_start: int | None = None,
+        trailing_dot: bool = True,
+    ) -> tuple[Tensor, str]:
+        """Encode ``[BOS, *scaffold_prefix_tokens]`` for 3D-conditioned R-group decoration.
+
+        Returns:
+            Tuple ``(prompt_ids[batch_size, P], prefix_str)`` ready to follow the 3D soft prefix.
+        """
+        prefix_str = (
+            build_scaffold_prefix(
+                core_smiles_with_dummy,
+                attachment_start=attachment_start,
+                trailing_dot=trailing_dot,
+            )
+            if self.format_mode == "safe"
+            else core_smiles_with_dummy.strip()
+        )
+        prefix_tok_ids = [
+            int(t) for t in self.tokenizer.encode(prefix_str, add_special_tokens=False)
+        ]
+        if self.is_smiles_native or not self.prompt_prefix:
+            base_ids = [self.bos_token_id]
+        else:
+            base_ids = [
+                int(t) for t in self.tokenizer.encode(self.prompt_prefix, add_special_tokens=False)
+            ]
+            if not base_ids:
+                base_ids = [self.bos_token_id]
+
+        full_ids = [*base_ids, *prefix_tok_ids]
+        target_dev = (
+            torch.device(device)
+            if device is not None
+            else next(self.llm.parameters(), self.null_prefix).device
+        )
+        prompt_tensor = (
+            torch.tensor(full_ids, dtype=torch.long, device=target_dev)
+            .unsqueeze(0)
+            .expand(int(batch_size), -1)
+            .contiguous()
+        )
+        return prompt_tensor, prefix_str
+
+    @torch.no_grad()
+    def decorate_scaffold(
+        self,
+        core_smiles_with_dummy: str,
+        *,
+        pocket_out: PocketEncoderOutput | None = None,
+        coords: Tensor | None = None,
+        node_feats: Tensor | None = None,
+        atom_mask: Tensor | None = None,
+        num_samples: int = 8,
+        max_new_tokens: int = 64,
+        strategy: str = "min_p",
+        temperature: float = 0.9,
+        min_p: float = 0.08,
+        top_p: float = 0.92,
+        top_k: int = 30,
+        cfg_scale: float = 1.6,
+        latent_temp: float = 1.0,
+        repetition_penalty: float = 1.05,
+        attachment_start: int | None = None,
+        seed: int | None = None,
+    ) -> list[dict[str, str | None]]:
+        """Run 3D-pocket-conditioned KV-cached CFG scaffold decoration / R-group generation.
+
+        Clamps ``core_smiles_with_dummy`` (converted to an open SAFE fragment prefix such as
+        ``"c1ccc2cc1."`` when ``format_mode == "safe"``) immediately after the 3D soft prefix
+        and ``BOS``, then autoregressively samples complementary fragments with CFG + KV cache.
+
+        Returns:
+            List of ``num_samples`` dictionaries with keys ``"prefix"``, ``"suffix"``,
+            ``"raw_text"``, and ``"smiles"`` (validated canonical SMILES or ``None``).
+        """
+        if num_samples < 1:
+            raise ValueError(f"num_samples must be >= 1, got {num_samples}")
+        if max_new_tokens < 1:
+            raise ValueError(f"max_new_tokens must be >= 1, got {max_new_tokens}")
+
+        was_training = self.training
+        self.eval()
+        try:
+            if pocket_out is None:
+                if coords is None or node_feats is None or atom_mask is None:
+                    raise ValueError(
+                        "Provide either pocket_out + atom_mask or live (coords, node_feats, "
+                        "atom_mask) for 3D scaffold decoration."
+                    )
+                pocket_out = self.encode_pocket(coords, node_feats, atom_mask)
+            if atom_mask is None:
+                raise ValueError("atom_mask is required for decorate_scaffold.")
+
+            device = pocket_out.node_emb.device
+            if int(pocket_out.node_emb.shape[0]) == 1 and num_samples > 1:
+                exp_pocket = PocketEncoderOutput(
+                    node_emb=pocket_out.node_emb.expand(num_samples, -1, -1).contiguous(),
+                    pooled_emb=pocket_out.pooled_emb.expand(num_samples, -1).contiguous(),
+                    vec_emb=(
+                        pocket_out.vec_emb.expand(num_samples, -1, -1, -1).contiguous()
+                        if pocket_out.vec_emb is not None
+                        else None
+                    ),
+                )
+                exp_mask = atom_mask.expand(num_samples, -1).contiguous()
+            else:
+                exp_pocket = pocket_out
+                exp_mask = atom_mask
+
+            cond_prefix, _, _ = self.build_soft_prefix(
+                pocket_out=exp_pocket,
+                atom_mask=exp_mask,
+                use_null_pocket=False,
+                latent_temp=latent_temp,
+                use_posterior=False,
+                deterministic_z=(latent_temp <= 0.0),
+                return_attn=False,
+            )
+            prompt_ids, prefix_str = self.build_decoration_prompt_ids(
+                core_smiles_with_dummy,
+                batch_size=num_samples,
+                device=device,
+                attachment_start=attachment_start,
+                trailing_dot=True,
+            )
+            prompt_embeds = get_input_embeddings_tensor(self.llm, prompt_ids)
+            cond_prefix = cond_prefix.to(device=prompt_embeds.device, dtype=prompt_embeds.dtype)
+            cond_inputs = torch.cat([cond_prefix, prompt_embeds], dim=1)
+
+            use_cfg = abs(float(cfg_scale) - 1.0) > 1e-6
+            if use_cfg:
+                uncond_prefix, _, _ = self.build_soft_prefix(
+                    pocket_out=exp_pocket,
+                    atom_mask=exp_mask,
+                    use_null_pocket=True,
+                    batch_size=num_samples,
+                )
+                uncond_prefix = uncond_prefix.to(
+                    device=prompt_embeds.device, dtype=prompt_embeds.dtype
+                )
+                uncond_inputs = torch.cat([uncond_prefix, prompt_embeds], dim=1)
+                prefill_inputs = torch.cat([cond_inputs, uncond_inputs], dim=0)
+            else:
+                prefill_inputs = cond_inputs
+
+            llm_device = prefill_inputs.device
+            eff_batch = int(prefill_inputs.shape[0])
+            total_len = int(prefill_inputs.shape[1])
+            prefill_mask = torch.ones((eff_batch, total_len), dtype=torch.long, device=llm_device)
+
+            outputs = self.llm(
+                inputs_embeds=prefill_inputs,
+                attention_mask=prefill_mask,
+                use_cache=True,
+                return_dict=True,
+            )
+            past_key_values = outputs.past_key_values
+            step_logits: Tensor = outputs.logits[:, -1, :].float()
+
+            generator: torch.Generator | None = (
+                torch.Generator(device="cpu").manual_seed(int(seed)) if seed is not None else None
+            )
+            finished = torch.zeros(num_samples, dtype=torch.bool, device=llm_device)
+            generated_cols: list[Tensor] = []
+            ignore_rep_ids = tuple({self.pad_token_id, self.bos_token_id, self.eos_token_id})
+            ctrl_mask_ids = [
+                tid
+                for tid in {self.pad_token_id, self.bos_token_id}
+                if tid != self.eos_token_id and 0 <= tid < step_logits.size(-1)
+            ]
+
+            for step in range(max_new_tokens):
+                if use_cfg:
+                    logits_cond, logits_uncond = step_logits.chunk(2, dim=0)
+                    next_logits = combine_cfg_logits(logits_cond, logits_uncond, cfg_scale)
+                else:
+                    next_logits = step_logits
+
+                if ctrl_mask_ids:
+                    masked = next_logits.clone()
+                    for tid in ctrl_mask_ids:
+                        masked[:, tid] = float("-inf")
+                    if bool(torch.isfinite(masked).any(dim=-1).all().item()):
+                        next_logits = masked
+
+                if generated_cols and repetition_penalty > 1.0:
+                    history = torch.stack(generated_cols, dim=1)
+                    next_logits = apply_repetition_penalty(
+                        next_logits,
+                        history,
+                        penalty=repetition_penalty,
+                        ignore_ids=ignore_rep_ids,
+                    )
+
+                next_tok = select_next_tokens(
+                    next_logits,
+                    strategy=strategy,
+                    temperature=temperature,
+                    top_k=top_k,
+                    top_p=top_p,
+                    min_p=min_p,
+                    generator=generator,
+                )
+                next_tok = torch.where(
+                    finished,
+                    torch.full_like(next_tok, self.eos_token_id),
+                    next_tok,
+                )
+                generated_cols.append(next_tok)
+                finished = finished | (next_tok == self.eos_token_id)
+                if bool(finished.all().item()) or step == max_new_tokens - 1:
+                    break
+
+                total_len += 1
+                step_ids = (
+                    torch.cat([next_tok, next_tok], dim=0).unsqueeze(1)
+                    if use_cfg
+                    else next_tok.unsqueeze(1)
+                )
+                step_mask = torch.ones((eff_batch, total_len), dtype=torch.long, device=llm_device)
+                outputs = self.llm(
+                    input_ids=step_ids,
+                    attention_mask=step_mask,
+                    past_key_values=past_key_values,
+                    use_cache=True,
+                    return_dict=True,
+                )
+                past_key_values = outputs.past_key_values
+                step_logits = outputs.logits[:, -1, :].float()
+
+            rows = (
+                torch.stack(generated_cols, dim=1).detach().cpu().tolist()
+                if generated_cols
+                else [[] for _ in range(num_samples)]
+            )
+            results: list[dict[str, str | None]] = []
+            for row in rows:
+                trimmed: list[int] = []
+                for tid in row:
+                    if int(tid) == self.eos_token_id:
+                        break
+                    trimmed.append(int(tid))
+                suffix_raw = str(self.tokenizer.decode(trimmed, skip_special_tokens=True))
+                suffix_clean = "".join(suffix_raw.split())
+                full_text = f"{prefix_str}{suffix_clean}"
+                decoded_smi = self.decode_molecule_text(full_text, canonical=True)
+                results.append(
+                    {
+                        "prefix": prefix_str,
+                        "suffix": suffix_clean,
+                        "raw_text": full_text,
+                        "smiles": decoded_smi,
+                    }
+                )
+            return results
+        finally:
+            if was_training:
+                self.train()
 
     def _apply_pocket_freeze(self) -> None:
         """Freeze v2.0 3D encoder, CVAE, and multi-task heads in eval mode."""
@@ -749,6 +1101,7 @@ class PocketConditionedLLM(nn.Module):
         }
         metadata: dict[str, Any] = {
             "backbone_id": self.backbone_id,
+            "format_mode": self.format_mode,
             "v2_ckpt_path": self.v2_ckpt_path,
             "num_queries": self.num_queries,
             "perceiver_layers": self.perceiver_layers,

@@ -1,12 +1,20 @@
-"""HuggingFace chemical foundation transformer and compact local LLM loaders for GenEuclidean v3.
+"""HuggingFace chemical foundation transformer and compact local LLM loaders for GenEuclidean v4.
 
-Supports three verified open-weight model families on Apple Silicon MPS / CUDA / CPU plus an
+Supports verified open-weight model families on Apple Silicon MPS / CUDA / CPU plus an
 offline zero-download ``mock-tiny-gpt2`` backbone for deterministic CI tests:
 
 - Track A Primary: ``ibm-research/GP-MoLFormer-Uniq`` (46.8M, Apache-2.0, Schwaller atom-regex
   SMILES tokenizer from ``ibm-research/MoLFormer-XL-both-10pct``, ``transformers==5.24.1``
   compatibility shim, RoPE non-persistent buffer re-initialization, and 12.5x faster exact 4D
   lower-triangular causal linear attention kernel on MPS).
+- Track A Fragment-Modular SAFE Prior: ``datamol-io/safe-gpt`` (alias ``"safe-gpt"``, 87.3M,
+  Apache-2.0, 1.17B ZINC20+UniChem molecules) loaded directly into native ``GPT2LMHeadModel``
+  (zero ``trust_remote_code``, native ``DynamicCache``) with Rust ``tokenizers>=0.23`` JSON
+  sanitization and ``SAFESplitter`` regex pre-tokenization preserving single-token stereocenters.
+- Track A Modern Llama Chemical Prior: ``chandar-lab/NovoMolGen_157M_SMILES_BPE`` (alias
+  ``"novomolgen-157m"``, 157M, MIT, 1.5B ZINC-22 molecules) remapped in pure PyTorch from
+  ``flash_attn`` fused-QKV / interleaved-RoPE / ``[up, gate]`` SwiGLU weights into native
+  ``LlamaForCausalLM`` running PyTorch MPS ``SDPA`` with zero CUDA ``flash_attn`` dependency.
 - Track A Native GPT-2 Fallback: ``entropy/gpt2_zinc_87m`` (87.3M, MIT, 480M ZINC SMILES).
 - Track B General Local LLMs: ``Qwen/Qwen2.5-0.5B``, ``HuggingFaceTB/SmolLM2-360M``, and
   ``Qwen/Qwen3-0.6B-Base`` (always loaded in ``bfloat16`` on MPS/CUDA or ``float32`` on CPU —
@@ -16,6 +24,8 @@ offline zero-download ``mock-tiny-gpt2`` backbone for deterministic CI tests:
 
 from __future__ import annotations
 
+import importlib
+import json
 import os
 import re
 import sys
@@ -36,14 +46,29 @@ from transformers import (
     AutoTokenizer,
     GPT2Config,
     GPT2LMHeadModel,
+    LlamaConfig,
+    LlamaForCausalLM,
     PreTrainedModel,
     PreTrainedTokenizerFast,
 )
 
+from geneuclidean.models.safe_codec import SAFE_SPLITTER_REGEX
+
 DEFAULT_HF_CACHE_DIR = ".hf_cache.nosync"
 MOLFORMER_REPO_ID = "ibm-research/GP-MoLFormer-Uniq"
 MOLFORMER_TOKENIZER_REPO_ID = "ibm-research/MoLFormer-XL-both-10pct"
+SAFE_GPT_REPO_ID = "datamol-io/safe-gpt"
+SAFE_GPT_ALIAS = "safe-gpt"
+NOVOMOLGEN_157M_REPO_ID = "chandar-lab/NovoMolGen_157M_SMILES_BPE"
+NOVOMOLGEN_157M_ALIAS = "novomolgen-157m"
+NOVOMOLGEN_300M_REPO_ID = "chandar-lab/NovoMolGen_300M_SMILES_BPE"
 MOCK_BACKBONE_ID = "mock-tiny-gpt2"
+
+SAFE_GPT_EXTRA_TOKENIZER_KEYS: tuple[str, ...] = (
+    "custom_pre_tokenizer",
+    "tokenizer_type",
+    "tokenizer_attrs",
+)
 
 _SMILES_ATOM_REGEX = re.compile(
     r"(\[[^\]]+\]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|#|-|\+|\\|/|:|~|@|\?|>|\*|\$|%[0-9]{2}|[0-9])"
@@ -139,6 +164,12 @@ class BackboneSpec:
     trust_remote_code: bool = False
     prefer_bf16_on_accel: bool = False
     uses_tuple_kv_cache: bool = False
+    representation: str = "smiles"
+
+    @property
+    def is_safe_native(self) -> bool:
+        """Return ``True`` when the backbone natively models dot-separated SAFE strings."""
+        return self.representation == "safe"
 
 
 @dataclass
@@ -158,6 +189,55 @@ class LoadedBackbone:
     prompt_prefix: str
     backbone_id: str
     uses_tuple_kv_cache: bool = False
+    representation: str = "smiles"
+
+    @property
+    def is_safe_native(self) -> bool:
+        """Return ``True`` when this loaded backbone uses SAFE fragment representation."""
+        return self.representation == "safe"
+
+
+_SAFE_GPT_SPEC = BackboneSpec(
+    backbone_id=SAFE_GPT_REPO_ID,
+    family="safe_gpt",
+    tokenizer_id=SAFE_GPT_REPO_ID,
+    lora_targets=("c_attn", "c_proj", "c_fc"),
+    fan_in_fan_out=True,
+    is_smiles_native=True,
+    prompt_prefix="",
+    trust_remote_code=False,
+    prefer_bf16_on_accel=True,
+    uses_tuple_kv_cache=False,
+    representation="safe",
+)
+
+_NOVOMOLGEN_157M_SPEC = BackboneSpec(
+    backbone_id=NOVOMOLGEN_157M_REPO_ID,
+    family="novomolgen",
+    tokenizer_id=NOVOMOLGEN_157M_REPO_ID,
+    lora_targets=("q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"),
+    fan_in_fan_out=False,
+    is_smiles_native=True,
+    prompt_prefix="",
+    trust_remote_code=False,
+    prefer_bf16_on_accel=True,
+    uses_tuple_kv_cache=False,
+    representation="smiles",
+)
+
+_NOVOMOLGEN_300M_SPEC = BackboneSpec(
+    backbone_id=NOVOMOLGEN_300M_REPO_ID,
+    family="novomolgen",
+    tokenizer_id=NOVOMOLGEN_300M_REPO_ID,
+    lora_targets=("q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"),
+    fan_in_fan_out=False,
+    is_smiles_native=True,
+    prompt_prefix="",
+    trust_remote_code=False,
+    prefer_bf16_on_accel=True,
+    uses_tuple_kv_cache=False,
+    representation="smiles",
+)
 
 
 BACKBONE_REGISTRY: dict[str, BackboneSpec] = {
@@ -172,7 +252,13 @@ BACKBONE_REGISTRY: dict[str, BackboneSpec] = {
         trust_remote_code=True,
         prefer_bf16_on_accel=False,
         uses_tuple_kv_cache=True,
+        representation="smiles",
     ),
+    SAFE_GPT_ALIAS: _SAFE_GPT_SPEC,
+    SAFE_GPT_REPO_ID: _SAFE_GPT_SPEC,
+    NOVOMOLGEN_157M_ALIAS: _NOVOMOLGEN_157M_SPEC,
+    NOVOMOLGEN_157M_REPO_ID: _NOVOMOLGEN_157M_SPEC,
+    NOVOMOLGEN_300M_REPO_ID: _NOVOMOLGEN_300M_SPEC,
     "entropy/gpt2_zinc_87m": BackboneSpec(
         backbone_id="entropy/gpt2_zinc_87m",
         family="gpt2",
@@ -641,6 +727,42 @@ def _infer_spec(backbone_id: str) -> BackboneSpec:
     if backbone_id in BACKBONE_REGISTRY:
         return BACKBONE_REGISTRY[backbone_id]
     lower = backbone_id.lower()
+    if "safe-gpt" in lower or "safe_gpt" in lower:
+        return BackboneSpec(
+            backbone_id=SAFE_GPT_REPO_ID if lower in ("safe-gpt", "safe_gpt") else backbone_id,
+            family="safe_gpt",
+            tokenizer_id=SAFE_GPT_REPO_ID if lower in ("safe-gpt", "safe_gpt") else backbone_id,
+            lora_targets=("c_attn", "c_proj", "c_fc"),
+            fan_in_fan_out=True,
+            is_smiles_native=True,
+            prompt_prefix="",
+            trust_remote_code=False,
+            prefer_bf16_on_accel=True,
+            uses_tuple_kv_cache=False,
+            representation="safe",
+        )
+    if "novomolgen" in lower:
+        return BackboneSpec(
+            backbone_id=backbone_id,
+            family="novomolgen",
+            tokenizer_id=backbone_id,
+            lora_targets=(
+                "q_proj",
+                "k_proj",
+                "v_proj",
+                "o_proj",
+                "gate_proj",
+                "up_proj",
+                "down_proj",
+            ),
+            fan_in_fan_out=False,
+            is_smiles_native=True,
+            prompt_prefix="",
+            trust_remote_code=False,
+            prefer_bf16_on_accel=True,
+            uses_tuple_kv_cache=False,
+            representation="smiles",
+        )
     if "molformer" in lower:
         return BackboneSpec(
             backbone_id=backbone_id,
@@ -744,6 +866,311 @@ def _load_molformer_backbone(
     return model, tokenizer
 
 
+def sanitize_safe_gpt_tokenizer_json(raw_json: str | Mapping[str, Any]) -> dict[str, Any]:
+    """Strip non-standard ``safe-mol`` top-level keys that crash Rust ``tokenizers>=0.23``.
+
+    ``datamol-io/safe-gpt/tokenizer.json`` appends ``custom_pre_tokenizer``,
+    ``tokenizer_type``, and ``tokenizer_attrs`` at the JSON root, which causes strict serde
+    deserialization errors in modern ``tokenizers`` releases.
+    """
+    parsed: dict[str, Any] = (
+        dict(json.loads(raw_json)) if isinstance(raw_json, str) else dict(raw_json)
+    )
+    for key in SAFE_GPT_EXTRA_TOKENIZER_KEYS:
+        parsed.pop(key, None)
+    return parsed
+
+
+def build_safe_gpt_tokenizer(
+    raw_json_or_path: str | Path | Mapping[str, Any],
+) -> Any:
+    """Build a ``PreTrainedTokenizerFast`` for ``datamol-io/safe-gpt`` with ``SAFESplitter`` regex.
+
+    Fixes two integration bugs without requiring ``safe-mol``:
+    1. Strips ``custom_pre_tokenizer``, ``tokenizer_type``, and ``tokenizer_attrs`` before
+       passing the JSON into Rust ``tokenizers.Tokenizer.from_str``.
+    2. Replaces the serialized ``Whitespace`` pre-tokenizer with
+       ``Split(Regex(SAFE_SPLITTER_REGEX), behavior="isolated")`` so stereocenters
+       (``[C@H]``, ``[C@@H]``), halogens (``Cl``, ``Br``), and multi-digit attachment rings
+       (``%10``, ``%11``) stay indivisible single tokens.
+    """
+    if isinstance(raw_json_or_path, Path):
+        raw_payload: str | Mapping[str, Any] = raw_json_or_path.read_text(encoding="utf-8")
+    elif isinstance(raw_json_or_path, str):
+        stripped = raw_json_or_path.lstrip()
+        if stripped.startswith("{"):
+            raw_payload = raw_json_or_path
+        else:
+            raw_payload = Path(raw_json_or_path).read_text(encoding="utf-8")
+    else:
+        raw_payload = raw_json_or_path
+
+    cleaned = sanitize_safe_gpt_tokenizer_json(raw_payload)
+    tok_mod: Any = importlib.import_module("tokenizers")
+    pre_tok_mod: Any = importlib.import_module("tokenizers.pre_tokenizers")
+
+    tok_obj: Any = tok_mod.Tokenizer.from_str(json.dumps(cleaned))
+    tok_obj.pre_tokenizer = pre_tok_mod.Split(
+        tok_mod.Regex(SAFE_SPLITTER_REGEX),
+        behavior="isolated",
+    )
+    return PreTrainedTokenizerFast(
+        tokenizer_object=tok_obj,
+        bos_token="[CLS]",
+        eos_token="[SEP]",
+        pad_token="[PAD]",
+        unk_token="[UNK]",
+        mask_token="[MASK]",
+    )
+
+
+def _load_safe_gpt_backbone(
+    spec: BackboneSpec,
+    hub_dir: Path,
+    model_dtype: torch.dtype,
+    local_files_only: bool,
+) -> tuple[nn.Module, Any]:
+    """Load ``datamol-io/safe-gpt`` directly into native ``GPT2LMHeadModel`` (no remote code)."""
+    tok_file = hf_hub_download(
+        repo_id=spec.tokenizer_id,
+        filename="tokenizer.json",
+        cache_dir=str(hub_dir),
+        local_files_only=local_files_only,
+    )
+    tokenizer = build_safe_gpt_tokenizer(Path(tok_file))
+
+    gpt2_cls: Any = GPT2LMHeadModel
+    model: nn.Module = gpt2_cls.from_pretrained(
+        spec.backbone_id,
+        cache_dir=str(hub_dir),
+        local_files_only=local_files_only,
+        dtype=model_dtype,
+    )
+    model = nn.Module.to(model, dtype=model_dtype)
+    return model, tokenizer
+
+
+def _unpermute_interleaved_rope_weight(weight: Tensor, num_heads: int, head_dim: int) -> Tensor:
+    """Convert interleaved RoPE rows ``(H, D/2, 2, ...)`` to HF NeoX ``(H, 2, D/2, ...)``.
+
+    ``flash_attn.models.llama`` configures ``rotary_emb_interleaved=True`` (pairing adjacent
+    channels ``(2i, 2i+1)``), whereas HuggingFace ``LlamaForCausalLM`` rotates split halves
+    ``(i, i + D/2)``. Permuting ``q_proj`` and ``k_proj`` output rows guarantees bit-exact
+    logit parity with zero custom RoPE layers.
+    """
+    if head_dim % 2 != 0:
+        raise ValueError(f"head_dim must be even for RoPE unpermutation, got {head_dim}")
+    trailing = weight.shape[1:]
+    return (
+        weight.view(num_heads, head_dim // 2, 2, *trailing)
+        .transpose(1, 2)
+        .reshape(num_heads * head_dim, *trailing)
+        .contiguous()
+    )
+
+
+def remap_novomolgen_state_dict(
+    raw_state_dict: Mapping[str, Tensor],
+    *,
+    num_hidden_layers: int,
+    num_attention_heads: int,
+    num_key_value_heads: int,
+    head_dim: int,
+) -> dict[str, Tensor]:
+    """Remap ``flash_attn`` ``GPTLMHeadModel`` weights into native ``LlamaForCausalLM`` keys.
+
+    Handles:
+    - ``transformer.embeddings.word_embeddings.weight`` -> ``model.embed_tokens.weight``
+    - ``transformer.layers.{i}.mixer.Wqkv.weight`` -> ``q_proj`` / ``k_proj`` / ``v_proj`` with
+      interleaved-to-NeoX RoPE unpermutation on ``q_proj`` and ``k_proj``
+    - ``transformer.layers.{i}.mixer.out_proj.weight`` -> ``self_attn.o_proj.weight``
+    - ``transformer.layers.{i}.norm{1,2}.weight`` -> ``{input,post_attention}_layernorm.weight``
+    - ``transformer.layers.{i}.mlp.fc1.weight`` (``flash_attn`` ``GatedMlp`` layout
+      ``[up_proj, gate_proj]``) -> ``mlp.up_proj.weight`` and ``mlp.gate_proj.weight``
+    - ``transformer.layers.{i}.mlp.fc2.weight`` -> ``mlp.down_proj.weight``
+    - ``transformer.ln_f.weight`` -> ``model.norm.weight``, ``lm_head.weight`` -> ``lm_head.weight``
+    """
+    if "model.embed_tokens.weight" in raw_state_dict:
+        return dict(raw_state_dict)
+
+    embed_w = raw_state_dict["transformer.embeddings.word_embeddings.weight"]
+    mapped: dict[str, Tensor] = {
+        "model.embed_tokens.weight": embed_w,
+        "model.norm.weight": raw_state_dict["transformer.ln_f.weight"],
+        "lm_head.weight": raw_state_dict.get("lm_head.weight", embed_w),
+    }
+
+    q_dim = int(num_attention_heads) * int(head_dim)
+    kv_dim = int(num_key_value_heads) * int(head_dim)
+
+    for layer_idx in range(int(num_hidden_layers)):
+        src_prefix = f"transformer.layers.{layer_idx}"
+        dst_prefix = f"model.layers.{layer_idx}"
+
+        wqkv = raw_state_dict[f"{src_prefix}.mixer.Wqkv.weight"]
+        if int(wqkv.shape[0]) != q_dim + 2 * kv_dim:
+            raise ValueError(
+                f"Unexpected Wqkv shape {tuple(wqkv.shape)} at layer {layer_idx}; "
+                f"expected first dim {q_dim + 2 * kv_dim} (q={q_dim}, kv={kv_dim})."
+            )
+        q_w, k_w, v_w = torch.split(wqkv, [q_dim, kv_dim, kv_dim], dim=0)
+        mapped[f"{dst_prefix}.self_attn.q_proj.weight"] = _unpermute_interleaved_rope_weight(
+            q_w, num_attention_heads, head_dim
+        )
+        mapped[f"{dst_prefix}.self_attn.k_proj.weight"] = _unpermute_interleaved_rope_weight(
+            k_w, num_key_value_heads, head_dim
+        )
+        mapped[f"{dst_prefix}.self_attn.v_proj.weight"] = v_w.contiguous()
+        mapped[f"{dst_prefix}.self_attn.o_proj.weight"] = raw_state_dict[
+            f"{src_prefix}.mixer.out_proj.weight"
+        ]
+
+        qkv_bias_key = f"{src_prefix}.mixer.Wqkv.bias"
+        if qkv_bias_key in raw_state_dict:
+            q_b, k_b, v_b = torch.split(raw_state_dict[qkv_bias_key], [q_dim, kv_dim, kv_dim], 0)
+            mapped[f"{dst_prefix}.self_attn.q_proj.bias"] = _unpermute_interleaved_rope_weight(
+                q_b, num_attention_heads, head_dim
+            )
+            mapped[f"{dst_prefix}.self_attn.k_proj.bias"] = _unpermute_interleaved_rope_weight(
+                k_b, num_key_value_heads, head_dim
+            )
+            mapped[f"{dst_prefix}.self_attn.v_proj.bias"] = v_b.contiguous()
+        o_bias_key = f"{src_prefix}.mixer.out_proj.bias"
+        if o_bias_key in raw_state_dict:
+            mapped[f"{dst_prefix}.self_attn.o_proj.bias"] = raw_state_dict[o_bias_key]
+
+        mapped[f"{dst_prefix}.input_layernorm.weight"] = raw_state_dict[
+            f"{src_prefix}.norm1.weight"
+        ]
+        mapped[f"{dst_prefix}.post_attention_layernorm.weight"] = raw_state_dict[
+            f"{src_prefix}.norm2.weight"
+        ]
+
+        # flash_attn.modules.mlp.GatedMlp splits fc1(x) into (x_up, gate) -> x_up * silu(gate).
+        fc1_w = raw_state_dict[f"{src_prefix}.mlp.fc1.weight"]
+        up_w, gate_w = torch.chunk(fc1_w, 2, dim=0)
+        mapped[f"{dst_prefix}.mlp.up_proj.weight"] = up_w.contiguous()
+        mapped[f"{dst_prefix}.mlp.gate_proj.weight"] = gate_w.contiguous()
+        mapped[f"{dst_prefix}.mlp.down_proj.weight"] = raw_state_dict[
+            f"{src_prefix}.mlp.fc2.weight"
+        ]
+
+        fc1_bias_key = f"{src_prefix}.mlp.fc1.bias"
+        if fc1_bias_key in raw_state_dict:
+            up_b, gate_b = torch.chunk(raw_state_dict[fc1_bias_key], 2, dim=0)
+            mapped[f"{dst_prefix}.mlp.up_proj.bias"] = up_b.contiguous()
+            mapped[f"{dst_prefix}.mlp.gate_proj.bias"] = gate_b.contiguous()
+        fc2_bias_key = f"{src_prefix}.mlp.fc2.bias"
+        if fc2_bias_key in raw_state_dict:
+            mapped[f"{dst_prefix}.mlp.down_proj.bias"] = raw_state_dict[fc2_bias_key]
+
+    return mapped
+
+
+def _load_novomolgen_backbone(
+    spec: BackboneSpec,
+    hub_dir: Path,
+    model_dtype: torch.dtype,
+    local_files_only: bool,
+) -> tuple[nn.Module, Any]:
+    """Load ``NovoMolGen`` into native ``LlamaForCausalLM`` (MPS SDPA, zero ``flash_attn``)."""
+    cfg_file = hf_hub_download(
+        repo_id=spec.backbone_id,
+        filename="config.json",
+        cache_dir=str(hub_dir),
+        local_files_only=local_files_only,
+    )
+    tok_file = hf_hub_download(
+        repo_id=spec.tokenizer_id,
+        filename="tokenizer.json",
+        cache_dir=str(hub_dir),
+        local_files_only=local_files_only,
+    )
+    weights_file = hf_hub_download(
+        repo_id=spec.backbone_id,
+        filename="pytorch_model.bin",
+        cache_dir=str(hub_dir),
+        local_files_only=local_files_only,
+    )
+
+    cfg_raw: dict[str, Any] = json.loads(Path(cfg_file).read_text(encoding="utf-8"))
+    tokenizer = PreTrainedTokenizerFast(
+        tokenizer_file=tok_file,
+        bos_token="<bos>",
+        eos_token="<eos>",
+        pad_token="<pad>",
+        unk_token="<unk>",
+    )
+
+    hidden_size = int(cfg_raw["hidden_size"])
+    num_heads = int(cfg_raw["num_attention_heads"])
+    num_kv_heads = int(cfg_raw.get("num_key_value_heads", num_heads))
+    head_dim = int(cfg_raw.get("head_dim", hidden_size // num_heads))
+    num_layers = int(cfg_raw["num_hidden_layers"])
+
+    bos_id = int(
+        cfg_raw.get(
+            "bos_token_id",
+            tokenizer.bos_token_id if tokenizer.bos_token_id is not None else 2,
+        )
+    )
+    eos_id = int(
+        cfg_raw.get(
+            "eos_token_id",
+            tokenizer.eos_token_id if tokenizer.eos_token_id is not None else 3,
+        )
+    )
+    pad_id = int(
+        cfg_raw.get(
+            "pad_token_id",
+            tokenizer.pad_token_id if tokenizer.pad_token_id is not None else 1,
+        )
+    )
+
+    llama_cfg_cls: Any = LlamaConfig
+    llama_cfg: Any = llama_cfg_cls(
+        vocab_size=int(cfg_raw["vocab_size"]),
+        hidden_size=hidden_size,
+        intermediate_size=int(cfg_raw["intermediate_size"]),
+        num_hidden_layers=num_layers,
+        num_attention_heads=num_heads,
+        num_key_value_heads=num_kv_heads,
+        head_dim=head_dim,
+        hidden_act=str(cfg_raw.get("hidden_act", "silu")),
+        max_position_embeddings=int(cfg_raw.get("max_position_embeddings", 2048)),
+        rms_norm_eps=float(cfg_raw.get("rms_norm_eps", 1e-6)),
+        rope_parameters={
+            "rope_type": "default",
+            "rope_theta": float(cfg_raw.get("rope_theta", 10000.0)),
+        },
+        attention_bias=bool(cfg_raw.get("attention_bias", False)),
+        mlp_bias=bool(cfg_raw.get("mlp_bias", False)),
+        tie_word_embeddings=bool(cfg_raw.get("tie_word_embeddings", False)),
+        bos_token_id=bos_id,
+        eos_token_id=eos_id,
+        pad_token_id=pad_id,
+        use_cache=True,
+    )
+    llama_cfg._attn_implementation = "sdpa"
+
+    raw_sd = torch.load(weights_file, map_location="cpu", weights_only=True)
+    if not isinstance(raw_sd, Mapping):
+        raise TypeError(f"Expected state_dict mapping in {weights_file}, got {type(raw_sd)}")
+
+    mapped_sd = remap_novomolgen_state_dict(
+        raw_sd,
+        num_hidden_layers=num_layers,
+        num_attention_heads=num_heads,
+        num_key_value_heads=num_kv_heads,
+        head_dim=head_dim,
+    )
+    llama_cls: Any = LlamaForCausalLM
+    model: nn.Module = llama_cls(llama_cfg)
+    model.load_state_dict(mapped_sd, strict=True)
+    model = nn.Module.to(model, dtype=model_dtype)
+    return model, tokenizer
+
+
 def _load_mock_backbone(model_dtype: torch.dtype) -> tuple[nn.Module, MockSmilesTokenizer]:
     """Build an offline 2-layer tiny GPT-2 + SMILES regex tokenizer with zero I/O."""
     cfg = GPT2Config(
@@ -832,6 +1259,20 @@ def load_hf_backbone(
                 model_dtype=model_dtype,
                 local_files_only=local_files_only,
             )
+        elif spec.family == "safe_gpt":
+            model, tokenizer = _load_safe_gpt_backbone(
+                spec=spec,
+                hub_dir=hub_dir,
+                model_dtype=model_dtype,
+                local_files_only=local_files_only,
+            )
+        elif spec.family == "novomolgen":
+            model, tokenizer = _load_novomolgen_backbone(
+                spec=spec,
+                hub_dir=hub_dir,
+                model_dtype=model_dtype,
+                local_files_only=local_files_only,
+            )
         else:
             tokenizer = AutoTokenizer.from_pretrained(
                 spec.tokenizer_id,
@@ -911,11 +1352,12 @@ def load_hf_backbone(
         prompt_prefix=spec.prompt_prefix,
         backbone_id=spec.backbone_id,
         uses_tuple_kv_cache=spec.uses_tuple_kv_cache,
+        representation=spec.representation,
     )
 
 
 def list_registered_backbones() -> Mapping[str, BackboneSpec]:
-    """Return a read-only view of all registered GenEuclidean v3 backbones."""
+    """Return a read-only view of all registered GenEuclidean backbones."""
     return dict(BACKBONE_REGISTRY)
 
 
@@ -925,11 +1367,20 @@ __all__ = [
     "MOCK_BACKBONE_ID",
     "MOLFORMER_REPO_ID",
     "MOLFORMER_TOKENIZER_REPO_ID",
+    "NOVOMOLGEN_157M_ALIAS",
+    "NOVOMOLGEN_157M_REPO_ID",
+    "NOVOMOLGEN_300M_REPO_ID",
+    "SAFE_GPT_ALIAS",
+    "SAFE_GPT_EXTRA_TOKENIZER_KEYS",
+    "SAFE_GPT_REPO_ID",
     "BackboneSpec",
     "LoadedBackbone",
     "MockSmilesTokenizer",
+    "build_safe_gpt_tokenizer",
     "compute_empirical_embed_rms",
     "get_input_embeddings_tensor",
     "list_registered_backbones",
     "load_hf_backbone",
+    "remap_novomolgen_state_dict",
+    "sanitize_safe_gpt_tokenizer_json",
 ]
