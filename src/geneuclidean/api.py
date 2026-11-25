@@ -1735,7 +1735,7 @@ class CredibilityDossier:
 def build_credibility_dossier(
     *,
     model_name: str = "GenEuclidean CNS Discovery & ADMET Suite",
-    model_version: str = "3.1.0",
+    model_version: str = "4.0.0",
     question_of_interest: str | None = None,
     context_of_use: str | None = None,
     decision_consequence: str | None = None,
