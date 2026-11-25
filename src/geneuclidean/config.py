@@ -174,6 +174,31 @@ class SamplingConfig(_StrictBaseModel):
         return self
 
 
+class LLMConfig(_StrictBaseModel):
+    """Pretrained chemical transformer / local LLM conditioning and LoRA configuration."""
+
+    backbone_id: str = "ibm-research/GP-MoLFormer-Uniq"
+    cache_dir: str = ".hf_cache.nosync"
+    dtype: Literal["auto", "float32", "bfloat16"] = "auto"
+    v2_pocket_ckpt: str = "runs/geneuclidean_v2_painn/best.pt"
+    freeze_pocket_encoder: bool = True
+    num_queries: int = Field(default=16, ge=1)
+    perceiver_layers: int = Field(default=2, ge=1)
+    perceiver_heads: int = Field(default=8, ge=1)
+    num_global_tokens: int = Field(default=4, ge=0)
+    lora_r: int = Field(default=16, ge=1)
+    lora_alpha: int = Field(default=32, ge=1)
+    lora_dropout: float = Field(default=0.05, ge=0.0, lt=1.0)
+    phase_a_epochs: int = Field(default=3, ge=0)
+    phase_b_epochs: int = Field(default=12, ge=0)
+    projector_lr: float = Field(default=1e-3, gt=0.0)
+    phase_b_projector_lr: float = Field(default=3e-4, gt=0.0)
+    lora_lr: float = Field(default=1e-4, gt=0.0)
+    cfg_drop_prob: float = Field(default=0.15, ge=0.0, lt=1.0)
+    cvae_kl_weight: float = Field(default=0.05, ge=0.0)
+    grad_accum_steps: int = Field(default=1, ge=1)
+
+
 class ExperimentConfig(_StrictBaseModel):
     """Top-level experiment configuration composing all GenEuclidean subsystems."""
 
@@ -186,6 +211,7 @@ class ExperimentConfig(_StrictBaseModel):
     multitask: MultiTaskConfig = Field(default_factory=MultiTaskConfig)
     train: TrainConfig = Field(default_factory=TrainConfig)
     sampling: SamplingConfig = Field(default_factory=SamplingConfig)
+    llm: LLMConfig | None = None
 
     def to_yaml(self, path: str | Path) -> Path:
         """Serialize configuration to a clean YAML file."""
@@ -264,6 +290,7 @@ __all__ = [
     "DecoderConfig",
     "EncoderConfig",
     "ExperimentConfig",
+    "LLMConfig",
     "MultiTaskConfig",
     "SamplingConfig",
     "TrainConfig",

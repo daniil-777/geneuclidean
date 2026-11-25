@@ -330,7 +330,9 @@ def test_cli_help_and_subcommands() -> None:
         "prepare",
         "pretrain",
         "train",
+        "train-llm",
         "sample",
+        "sample-llm",
         "evaluate",
         "fetch-pdb",
         "info",
@@ -338,6 +340,38 @@ def test_cli_help_and_subcommands() -> None:
         assert cmd in res.stdout
         sub = runner.invoke(app, [cmd, "--help"])
         assert sub.exit_code == 0, f"{cmd} --help failed: {sub.stdout}"
+
+
+def test_cli_llm_help_and_info_status(tmp_path: Path) -> None:
+    """Verify v3.0 LLM subcommand help pages and LLM/HF cache reporting in `info`."""
+    train_help = runner.invoke(app, ["train-llm", "--help"])
+    assert train_help.exit_code == 0
+    assert "--config" in train_help.stdout
+    assert "--phase-a-epochs" in train_help.stdout
+
+    sample_help = runner.invoke(app, ["sample-llm", "--help"])
+    assert sample_help.exit_code == 0
+    assert "--adapter" in sample_help.stdout
+    assert "--pdb-id" in sample_help.stdout
+    assert "--pdb-file" in sample_help.stdout
+
+    info_res = runner.invoke(
+        app,
+        [
+            "info",
+            "--processed-dir",
+            str(tmp_path / "missing_proc"),
+            "--raw-dir",
+            str(tmp_path / "missing_raw"),
+            "--metadata-dir",
+            "data/metadata",
+            "--hf-cache-dir",
+            str(tmp_path / "missing_hf"),
+        ],
+    )
+    assert info_res.exit_code == 0
+    assert "LLM Extra" in info_res.stdout
+    assert "HF LLM cache" in info_res.stdout
 
 
 def test_cli_info(tmp_path: Path) -> None:

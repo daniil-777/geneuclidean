@@ -1049,6 +1049,384 @@ def evaluate(
     console.print(table)
 
 
+@app.command("train-llm")
+def train_llm(
+    config: Path = typer.Option(..., "--config", "-c", help="v3.0 LLM experiment YAML config."),
+    v2_ckpt: Path | None = typer.Option(
+        None, help="Override warm-start v2.0 PaiNN-SE3 checkpoint path."
+    ),
+    output_dir: Path | None = typer.Option(None, help="Override run output directory."),
+    split_type: str | None = typer.Option(
+        None, help="Override split type (casf2016|lp_pdbbind|scaffold|random)."
+    ),
+    phase_a_epochs: int | None = typer.Option(
+        None, help="Override Phase A projector warmup epochs."
+    ),
+    phase_b_epochs: int | None = typer.Option(
+        None, help="Override Phase B joint Perceiver+LoRA epochs."
+    ),
+    batch_size: int | None = typer.Option(None, help="Override batch size."),
+    cache_dir: str | None = typer.Option(None, help="Override HuggingFace cache directory."),
+    device: str | None = typer.Option(None, help="Override compute device (auto|mps|cuda|cpu)."),
+    local_files_only: bool = typer.Option(
+        False, help="Require HF weights to load strictly from local cache."
+    ),
+) -> None:
+    """Run two-phase 3D-to-LLM training (Perceiver warmup + LoRA fine-tuning)."""
+    import os
+
+    import torch
+
+    try:
+        from geneuclidean.models.hf_backbones import load_hf_backbone
+        from geneuclidean.models.llm_bridge import PocketConditionedLLM
+        from geneuclidean.training.llm_trainer import (
+            PocketLLMTrainer,
+            build_pocket_batches_from_records,
+            precompute_pocket_cache,
+        )
+    except ImportError as exc:
+        raise typer.BadParameter(
+            "Optional LLM dependencies are not installed. Install with: pip install -e '.[llm]'"
+        ) from exc
+
+    from geneuclidean.config import ExperimentConfig, LLMConfig, seed_everything, select_device
+
+    cfg = ExperimentConfig.from_yaml(config)
+    llm_cfg = cfg.llm if cfg.llm is not None else LLMConfig()
+
+    if output_dir is not None:
+        cfg.train.output_dir = str(output_dir)
+    if split_type is not None:
+        cfg.data.split_type = cast(
+            Literal["lp_pdbbind", "casf2016", "scaffold", "random"], split_type
+        )
+    if batch_size is not None:
+        cfg.train.batch_size = batch_size
+    if device is not None:
+        cfg.train.device = device
+    if v2_ckpt is not None:
+        llm_cfg.v2_pocket_ckpt = str(v2_ckpt)
+    if cache_dir is not None:
+        llm_cfg.cache_dir = cache_dir
+    if phase_a_epochs is not None:
+        llm_cfg.phase_a_epochs = phase_a_epochs
+    if phase_b_epochs is not None:
+        llm_cfg.phase_b_epochs = phase_b_epochs
+    cfg.llm = llm_cfg
+
+    seed_everything(cfg.train.seed)
+    torch_device = select_device(cfg.train.device)
+    os.environ["HF_HOME"] = str(Path(llm_cfg.cache_dir).resolve())
+
+    proc_root = Path(cfg.data.processed_dir)
+    cache_path = proc_root / "pdbbind_pockets.pt"
+    splits_path = proc_root / "splits.json"
+    if not cache_path.is_file() or not splits_path.is_file():
+        raise typer.BadParameter(
+            f"Processed cache not found in {proc_root}. Run `geneuclidean prepare` first."
+        )
+
+    payload = torch.load(cache_path, map_location="cpu", weights_only=False)
+    records: dict[str, dict[str, Any]] = payload["records"]
+    splits_data = json.loads(splits_path.read_text(encoding="utf-8"))
+    group = splits_data[cfg.data.split_type]
+    train_ids = [pid for pid in group["train"] if pid in records]
+    val_ids = [pid for pid in group["val"] if pid in records]
+
+    backbone = load_hf_backbone(
+        backbone_id=llm_cfg.backbone_id,
+        cache_dir=llm_cfg.cache_dir,
+        dtype=llm_cfg.dtype,
+        lora_r=llm_cfg.lora_r,
+        lora_alpha=llm_cfg.lora_alpha,
+        lora_dropout=llm_cfg.lora_dropout,
+        use_lora=True,
+        local_files_only=local_files_only,
+    )
+    model = PocketConditionedLLM(
+        v2_cfg=cfg,
+        backbone=backbone,
+        num_queries=llm_cfg.num_queries,
+        perceiver_layers=llm_cfg.perceiver_layers,
+        perceiver_heads=llm_cfg.perceiver_heads,
+        num_global_tokens=llm_cfg.num_global_tokens,
+        cfg_drop_prob=llm_cfg.cfg_drop_prob,
+        freeze_pocket_encoder=llm_cfg.freeze_pocket_encoder,
+    )
+    v2_path = Path(llm_cfg.v2_pocket_ckpt)
+    if v2_path.is_file():
+        model.load_v2_pocket_checkpoint(v2_path)
+    else:
+        raise typer.BadParameter(f"v2 pocket checkpoint not found: {v2_path}")
+
+    train_batches = build_pocket_batches_from_records(
+        records, train_ids, batch_size=32, fp_dim=cfg.multitask.ligand_fp_dim
+    )
+    val_batches = build_pocket_batches_from_records(
+        records, val_ids, batch_size=32, fp_dim=cfg.multitask.ligand_fp_dim
+    )
+    train_cache = precompute_pocket_cache(model, train_batches, device=torch_device)
+    val_cache = precompute_pocket_cache(model, val_batches, device=torch_device)
+
+    trainer = PocketLLMTrainer(model=model, cfg=cfg, device=torch_device)
+    summary = trainer.fit(
+        train_cache=train_cache, val_cache=val_cache, output_dir=cfg.train.output_dir
+    )
+
+    table = Table(title=f"v3.0 LLM Training Complete ({cfg.name})")
+    table.add_column("Field", style="cyan")
+    table.add_column("Value", style="green")
+    table.add_row("Backbone", llm_cfg.backbone_id)
+    table.add_row(
+        "Split", f"{cfg.data.split_type} (train={len(train_cache)}, val={len(val_cache)})"
+    )
+    table.add_row("Best epoch", str(summary["best_epoch"]))
+    table.add_row(
+        "Best val loss / ppl", f"{summary['best_val_lm_loss']} / {summary['best_val_ppl']}"
+    )
+    table.add_row("Adapter checkpoint", str(summary["best_adapter_path"]))
+    console.print(table)
+
+
+@app.command("sample-llm")
+def sample_llm(
+    adapter: Path = typer.Option(
+        ..., "--adapter", help="Trained v3.0 adapter checkpoint (best_adapter.pt)."
+    ),
+    pdb_id: str | None = typer.Option(None, "--pdb-id", help="4-char PDB ID (cache or RCSB)."),
+    pdb_file: Path | None = typer.Option(None, "--pdb-file", help="Path to local PDB/mmCIF file."),
+    center: str | None = typer.Option(
+        None, help="Optional binding-site center 'x,y,z' in Angstroms (for --pdb-file)."
+    ),
+    config: Path | None = typer.Option(None, "--config", "-c", help="Optional v3 YAML override."),
+    v2_ckpt: Path | None = typer.Option(None, help="Optional v2.0 PaiNN-SE3 checkpoint override."),
+    strategy: str | None = typer.Option(
+        None, help="Decoding strategy (min_p|top_p|top_k|temperature|greedy|typical)."
+    ),
+    num_samples: int | None = typer.Option(None, help="Number of molecules to generate."),
+    max_new_tokens: int = typer.Option(96, help="Maximum new tokens per molecule."),
+    temperature: float | None = typer.Option(None, help="Sampling temperature."),
+    min_p: float | None = typer.Option(None, help="Min-p threshold."),
+    cfg_scale: float | None = typer.Option(None, help="Classifier-Free Guidance scale."),
+    latent_temp: float | None = typer.Option(None, help="CVAE prior sampling temperature."),
+    device: str = typer.Option("auto", help="Compute device (auto|mps|cuda|cpu)."),
+    seed: int = typer.Option(42, help="Sampling random seed."),
+    rerank: bool = typer.Option(
+        True, "--rerank/--no-rerank", help="Apply MPO scoring and MaxMin diverse hit selection."
+    ),
+    top_k_hits: int = typer.Option(16, help="Number of diverse reranked hits to display/save."),
+    local_files_only: bool = typer.Option(False, help="Load HF weights strictly from local cache."),
+    out_json: Path | None = typer.Option(None, help="Optional JSON path to save sampled results."),
+) -> None:
+    """Sample de novo ligands for a 3D pocket using a trained GenEuclidean v3.0 LLM adapter."""
+    import os
+
+    import numpy as np
+    import torch
+
+    try:
+        from geneuclidean.models.hf_backbones import load_hf_backbone
+        from geneuclidean.models.llm_bridge import PocketConditionedLLM
+        from geneuclidean.sampling.llm_sampler import sample_llm_molecules
+    except ImportError as exc:
+        raise typer.BadParameter(
+            "Optional LLM dependencies are not installed. Install with: pip install -e '.[llm]'"
+        ) from exc
+
+    from geneuclidean.config import ExperimentConfig, LLMConfig, seed_everything, select_device
+    from geneuclidean.data.featurizer import featurize_ligand_smiles
+    from geneuclidean.sampling.rerank import compute_mpo_scores, rerank_and_select
+
+    if not adapter.is_file():
+        raise typer.BadParameter(f"Adapter checkpoint not found: {adapter}")
+
+    seed_everything(seed)
+    torch_device = select_device(device)
+    payload = torch.load(adapter, map_location="cpu", weights_only=False)
+
+    if config is not None:
+        cfg = ExperimentConfig.from_yaml(config)
+    elif (adapter.parent / "config.yaml").is_file():
+        cfg = ExperimentConfig.from_yaml(adapter.parent / "config.yaml")
+    elif isinstance(payload, dict) and isinstance(payload.get("metadata"), dict):
+        meta = payload["metadata"]
+        raw_cfg = meta.get("config") or meta.get("v2_cfg")
+        cfg = (
+            ExperimentConfig.model_validate(raw_cfg)
+            if isinstance(raw_cfg, dict)
+            else ExperimentConfig()
+        )
+    else:
+        cfg = ExperimentConfig()
+
+    llm_cfg = cfg.llm if cfg.llm is not None else LLMConfig()
+    if v2_ckpt is not None:
+        llm_cfg.v2_pocket_ckpt = str(v2_ckpt)
+    os.environ["HF_HOME"] = str(Path(llm_cfg.cache_dir).resolve())
+
+    backbone = load_hf_backbone(
+        backbone_id=llm_cfg.backbone_id,
+        cache_dir=llm_cfg.cache_dir,
+        dtype=llm_cfg.dtype,
+        lora_r=llm_cfg.lora_r,
+        lora_alpha=llm_cfg.lora_alpha,
+        lora_dropout=llm_cfg.lora_dropout,
+        use_lora=True,
+        local_files_only=local_files_only,
+    )
+    model = PocketConditionedLLM(
+        v2_cfg=cfg,
+        backbone=backbone,
+        num_queries=llm_cfg.num_queries,
+        perceiver_layers=llm_cfg.perceiver_layers,
+        perceiver_heads=llm_cfg.perceiver_heads,
+        num_global_tokens=llm_cfg.num_global_tokens,
+        cfg_drop_prob=llm_cfg.cfg_drop_prob,
+        freeze_pocket_encoder=llm_cfg.freeze_pocket_encoder,
+    )
+    v2_path = Path(llm_cfg.v2_pocket_ckpt)
+    if v2_path.is_file():
+        model.load_v2_pocket_checkpoint(v2_path)
+    model.load_adapter_checkpoint(adapter, map_location="cpu")
+    model.to(torch_device)
+    model.eval()
+
+    center_tuple = _parse_center_arg(center)
+    pocket_batch, resolved_id, _pocket_pdb, _native_sdf, native_smiles = (
+        _resolve_pocket_for_sampling(
+            pdb_id=pdb_id,
+            pdb_file=pdb_file,
+            center=center_tuple,
+            cfg=cfg,
+        )
+    )
+
+    eff_strategy = strategy if strategy is not None else cfg.sampling.strategy
+    eff_num = num_samples if num_samples is not None else cfg.sampling.num_samples
+    eff_temp = temperature if temperature is not None else cfg.sampling.temperature
+    eff_min_p = min_p if min_p is not None else cfg.sampling.min_p
+    eff_cfg_scale = cfg_scale if cfg_scale is not None else cfg.sampling.cfg_scale
+    eff_latent = latent_temp if latent_temp is not None else cfg.sampling.latent_temp
+
+    with torch.no_grad():
+        pocket_out = model.encode_pocket(
+            pocket_batch["coords"].to(torch_device),
+            pocket_batch["node_feats"].to(torch_device),
+            pocket_batch["atom_mask"].to(torch_device),
+        )
+    raw_smiles = sample_llm_molecules(
+        model=model,
+        pocket_out=pocket_out,
+        atom_mask=pocket_batch["atom_mask"].to(torch_device),
+        num_samples=eff_num,
+        max_new_tokens=max_new_tokens,
+        strategy=eff_strategy,
+        temperature=eff_temp,
+        min_p=eff_min_p,
+        top_p=cfg.sampling.top_p,
+        top_k=cfg.sampling.top_k,
+        cfg_scale=eff_cfg_scale,
+        latent_temp=eff_latent,
+        repetition_penalty=cfg.sampling.repetition_penalty,
+        batch_size=min(32, eff_num),
+        seed=seed,
+    )
+
+    pred_pkd_arr: list[float] | None = None
+    clip_sim_arr: list[float] | None = None
+    fps: list[np.ndarray] = []
+    valid_indices: list[int] = []
+    for idx, smi in enumerate(raw_smiles):
+        parsed = featurize_ligand_smiles(smi, fp_size=cfg.multitask.ligand_fp_dim)
+        if parsed is not None:
+            valid_indices.append(idx)
+            fps.append(parsed[1])
+    if valid_indices:
+        with torch.no_grad():
+            fp_tensor = torch.from_numpy(np.stack(fps, axis=0)).to(
+                device=torch_device, dtype=torch.float32
+            )
+            head_scores = model.score_candidates(pocket_out, fp_tensor)
+        if "pkd" in head_scores:
+            pred_pkd_arr = [float("nan")] * len(raw_smiles)
+            for idx, val in zip(
+                valid_indices, head_scores["pkd"].detach().cpu().tolist(), strict=True
+            ):
+                pred_pkd_arr[idx] = float(val)
+        if "clip_sim" in head_scores:
+            clip_sim_arr = [float("nan")] * len(raw_smiles)
+            for idx, val in zip(
+                valid_indices, head_scores["clip_sim"].detach().cpu().tolist(), strict=True
+            ):
+                clip_sim_arr[idx] = float(val)
+
+    selected_hits = (
+        rerank_and_select(
+            raw_smiles,
+            k=top_k_hits,
+            pred_pkd=pred_pkd_arr,
+            clip_sim=clip_sim_arr,
+            relax_if_needed=True,
+        )
+        if rerank
+        else compute_mpo_scores(raw_smiles, pred_pkd=pred_pkd_arr, clip_sim=clip_sim_arr)[
+            :top_k_hits
+        ]
+    )
+
+    table = Table(
+        title=(
+            f"v3.0 LLM Sampled Ligands for {resolved_id.upper()} "
+            f"({llm_cfg.backbone_id}, cfg={eff_cfg_scale:.2f}, raw={len(raw_smiles)})"
+        )
+    )
+    table.add_column("#", justify="right", style="dim")
+    table.add_column("Canonical SMILES", style="green")
+    table.add_column("QED", justify="right")
+    table.add_column("SA", justify="right")
+    table.add_column("pKd", justify="right")
+    table.add_column("MPO", justify="right", style="cyan")
+    for rank, hit in enumerate(selected_hits, start=1):
+        table.add_row(
+            str(rank),
+            hit.canonical_smiles or hit.smiles,
+            f"{hit.qed:.3f}",
+            f"{hit.sa_score:.2f}",
+            f"{hit.pred_pkd:.2f}" if hit.pred_pkd is not None else "-",
+            f"{hit.mpo_score:.3f}",
+        )
+    console.print(table)
+
+    if out_json is not None:
+        payload_out: dict[str, Any] = {
+            "pdb_id": resolved_id,
+            "native_smiles": native_smiles,
+            "adapter": str(adapter),
+            "backbone_id": llm_cfg.backbone_id,
+            "raw_smiles": raw_smiles,
+            "selected_hits": [
+                {
+                    "smiles": h.smiles,
+                    "canonical_smiles": h.canonical_smiles,
+                    "valid": h.valid,
+                    "qed": h.qed,
+                    "sa_score": h.sa_score,
+                    "sa_norm": h.sa_norm,
+                    "lipinski_pass": h.lipinski_pass,
+                    "pains_free": h.pains_free,
+                    "pred_pkd": h.pred_pkd,
+                    "clip_sim": h.clip_sim,
+                    "mpo_score": h.mpo_score,
+                }
+                for h in selected_hits
+            ],
+        }
+        out_json.parent.mkdir(parents=True, exist_ok=True)
+        out_json.write_text(json.dumps(_json_safe(payload_out), indent=2) + "\n", encoding="utf-8")
+        console.print(f"[bold green]Saved v3 LLM sampling output to {out_json}[/bold green]")
+
+
 @app.command("fetch-pdb")
 def fetch_pdb(
     pdb_id: str = typer.Option(..., "--pdb-id", help="4-character RCSB PDB identifier."),
@@ -1086,8 +1464,13 @@ def info(
     raw_dir: Path = typer.Option(Path("data/raw"), help="Raw dataset directory."),
     metadata_dir: Path = typer.Option(Path("data/metadata"), help="Metadata CSV directory."),
     vina_bin: Path = typer.Option(Path("bin/vina"), help="AutoDock Vina binary path."),
+    hf_cache_dir: Path = typer.Option(
+        Path(".hf_cache.nosync"), help="HuggingFace local cache directory for v3.0 LLM weights."
+    ),
 ) -> None:
     """Display GenEuclidean version, active device, model catalog, and dataset cache status."""
+    import importlib.metadata
+
     import e3nn
     import rdkit
     import torch
@@ -1095,6 +1478,13 @@ def info(
     from geneuclidean.config import select_device
 
     device = select_device("auto")
+    try:
+        tf_ver = importlib.metadata.version("transformers")
+        peft_ver = importlib.metadata.version("peft")
+        llm_status = f"READY (transformers {tf_ver} / peft {peft_ver})"
+    except importlib.metadata.PackageNotFoundError:
+        llm_status = "NOT INSTALLED (pip install -e '.[llm]')"
+
     env_table = Table(title=f"GenEuclidean v{geneuclidean.__version__} Environment & Catalog")
     env_table.add_column("Property", style="cyan")
     env_table.add_column("Value", style="green")
@@ -1105,8 +1495,12 @@ def info(
     )
     env_table.add_row("Auto-selected Device", str(device))
     env_table.add_row("RDKit / e3nn", f"{rdkit.__version__} / {e3nn.__version__}")
+    env_table.add_row("LLM Extra ([llm])", llm_status)
     env_table.add_row("3D Encoders", "painn (SE3), egnn, e3nn (v0.6), schnet")
-    env_table.add_row("Decoders", "transformer (RoPE+SwiGLU+GatedXAttn), lstm (MaskedBahdanau)")
+    env_table.add_row(
+        "Decoders / v3 LLMs",
+        "transformer, lstm | v3: GP-MoLFormer-Uniq, gpt2_zinc_87m, Qwen2.5-0.5B, SmolLM2-360M",
+    )
     env_table.add_row(
         "Sampling Strategies",
         "min_p, top_p, top_k, temperature, greedy, typical, diverse_beam (+CFG, CVAE, MPO)",
@@ -1135,6 +1529,14 @@ def info(
         else:
             status = "[yellow]MISSING[/yellow]"
         data_table.add_row(label, str(path), status)
+
+    hub_dir = hf_cache_dir / "hub" if (hf_cache_dir / "hub").is_dir() else hf_cache_dir
+    if hf_cache_dir.is_dir():
+        cached_models = list(hub_dir.glob("models--*"))
+        hf_status = f"[green]READY ({len(cached_models)} cached models)[/green]"
+    else:
+        hf_status = "[yellow]MISSING[/yellow]"
+    data_table.add_row("HF LLM cache", str(hf_cache_dir), hf_status)
     console.print(data_table)
 
 

@@ -65,6 +65,13 @@ safe = [
 pyg = [
     "torch-geometric>=2.5",
 ]
+llm = [
+    "transformers>=5.0",
+    "peft>=0.15",
+    "safetensors>=0.4",
+    "accelerate>=1.0",
+    "huggingface-hub>=1.0",
+]
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
@@ -74,7 +81,7 @@ dev = [
     "types-requests>=2.31",
 ]
 all = [
-    "geneuclidean[docking,safe,pyg,dev]",
+    "geneuclidean[docking,safe,pyg,llm,dev]",
 ]
 
 [project.scripts]
@@ -118,22 +125,27 @@ pretty = true
 
 [[tool.mypy.overrides]]
 module = [
+    "accelerate.*",
     "Bio.*",
     "e3nn.*",
     "gemmi.*",
+    "huggingface_hub.*",
     "matplotlib.*",
     "meeko.*",
     "networkx.*",
     "pandas.*",
+    "peft.*",
     "rdkit.*",
     "requests.*",
     "safe.*",
+    "safetensors.*",
     "scipy.*",
     "seaborn.*",
     "selfies.*",
     "sklearn.*",
     "torch_geometric.*",
     "tqdm.*",
+    "transformers.*",
     "yaml.*",
 ]
 ignore_missing_imports = true
