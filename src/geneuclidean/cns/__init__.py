@@ -1,15 +1,23 @@
-"""Industry-standard CNS neuroscience drug-design modules for GenEuclidean v3.1.
+"""2026 Industry-Standard CNS Neuroscience Drug-Design Modules for GenEuclidean v4.0.
 
 Provides:
 - ``mpo``: Exact Pfizer CNS MPO v1 (Wager et al. 2010) and v2 (Wager et al. 2016)
-  desirability scoring, physicochemical SMARTS pKa / Henderson-Hasselbalch ClogD_7.4
-  estimation, and Clark/Kelder BBB heuristic filters.
-- ``admet``: Calibrated 5-fold Bemis-Murcko scaffold-CV CNS ADMET & safety oracles
-  (B3DB BBB+, TDC P-gp Broccatelli inhibition, TDC hERG Karim cardiotoxicity) with
-  ECFP4 Tanimoto applicability domain (AD) and composite CNS reward scoring.
-- ``targets``: Curated 12-target human Tourette Syndrome and neuropsychiatric 3D target
-  registry with verified UniProt/ChEMBL/RCSB accessions, clinical reference drugs,
-  canonical 3D hotspot residues, and 3D pocket loaders.
+  desirability scoring, SMARTS pKa (including BACE1 cyclic sulfonyl/amino-oxazine
+  warheads) / Henderson-Hasselbalch ClogD_7.4 estimation, and Clark/Kelder BBB filters.
+- ``medchem_triage``: 2026 industrial MedChem structural triage (RDKit PAINS/BRENK/NIH,
+  coupling-reagent & byproduct quarantine blocking DCU/DIU/HOBt/DMAP/Ph3P=O, Lilly-inspired
+  demerit scoring 0..300, ICH S10 phototoxicity alerts, stereocenter burden, Bemis-Murcko
+  scaffold-hop FTO pre-screen, and smooth ``hygiene_gate_score``).
+- ``credibility``: Distribution-free finite-sample Split-Conformal binary UQ
+  (``SplitConformalBinaryCalibrator``) and FDA Jan 2025 (``FDA-2024-D-4689``) / Joint
+  FDA-EMA Jan 2026 7-Step AI Credibility Dossier export (JSON & Markdown).
+- ``admet``: Calibrated 5-fold Bemis-Murcko scaffold-CV CNS ADMET & Avoid-ome oracles
+  (v3.1 3-endpoint core + v4.0 12-endpoint industrial suite with Split-Conformal UQ,
+  ECFP4 Applicability Domain, external rat Kp,uu benchmark, and Multiplicative Safety-Gated
+  CNS Reward ``compute_multiplicative_cns_reward``).
+- ``targets``: Curated 24-Target *Homo sapiens* Tri-Disorder CNS Atlas (12 v3.1
+  Tourette/Psychiatry + 6 new TS/Schizophrenia + 6 Alzheimer's Disease) + 7 matched
+  selectivity counter-targets with cofactor-aware 3D pocket loading.
 """
 
 from __future__ import annotations
@@ -18,15 +26,51 @@ from geneuclidean.cns.admet import (
     ADMET_DESCRIPTOR_NAMES,
     DEFAULT_ADMET_MODEL_PATH,
     DEFAULT_CNS_REWARD_WEIGHTS,
+    DEFAULT_V4_ADMET_CV_REPORT_PATH,
+    DEFAULT_V4_ADMET_MODEL_PATH,
+    DEFAULT_V4_EXPANSION_DIR,
+    ENDPOINT_HIGHER_IS_BETTER,
+    V3_ADMET_ENDPOINTS,
+    V4_ADMET_ENDPOINTS,
     CalibratedADMETOracle,
     CNSAdmetPrediction,
     CNSAdmetSuite,
     CNSCompositeScore,
+    MultiplicativeCNSReward,
+    PharmaAdmetPrediction,
     compute_cns_composite_reward,
     compute_ece,
+    compute_multiplicative_cns_reward,
+    evaluate_kpuu_external_benchmark,
     featurize_admet_smiles,
+    load_avoidome_binary_dataset,
+    load_biogen_binary_endpoint,
     make_scaffold_kfold,
     train_default_cns_admet_suite,
+    train_v4_pharma_admet_suite,
+)
+from geneuclidean.cns.credibility import (
+    CREDIBILITY_SCHEMA_VERSION,
+    DEFAULT_CONTEXT_OF_USE,
+    HUMAN_IN_THE_LOOP_DISCLAIMER,
+    ConformalPredictionResult,
+    SplitConformalBinaryCalibrator,
+    build_credibility_dossier,
+    compute_file_sha256,
+    export_credibility_dossier,
+    render_credibility_markdown,
+)
+from geneuclidean.cns.medchem_triage import (
+    FTO_MARKUSH_DISCLAIMER,
+    MedChemTriageResult,
+    ScaffoldHopReport,
+    bemis_murcko_scaffold,
+    compute_scaffold_hop_metrics,
+    hygiene_gate_score,
+    is_scaffold_hop,
+    stereocenter_burden,
+    triage_batch,
+    triage_molecule,
 )
 from geneuclidean.cns.mpo import (
     REFERENCE_CNS_DRUGS,
@@ -45,26 +89,49 @@ from geneuclidean.cns.mpo import (
     estimate_most_basic_pka,
 )
 from geneuclidean.cns.targets import (
+    ALL_CNS_TARGET_REGISTRY,
     CNS_TARGET_REGISTRY,
     DEFAULT_CNS_STRUCTURES_DIR,
+    DEFAULT_V4_STRUCTURES_DIR,
+    TRI_DISORDER_TARGET_REGISTRY,
+    V4_COUNTER_TARGET_REGISTRY,
+    V4_EXPANSION_TARGET_REGISTRY,
     ClinicalReferenceDrug,
     CNSTargetSpec,
+    DiseaseArea,
+    MoAClass,
     audit_pocket_hotspots,
     fetch_rcsb_structure,
     find_local_pocket_files,
     get_cns_target,
     list_cns_targets,
+    list_tri_disorder_targets,
     load_cns_target_pocket,
 )
 
 __all__ = [
     "ADMET_DESCRIPTOR_NAMES",
+    "ALL_CNS_TARGET_REGISTRY",
     "CNS_TARGET_REGISTRY",
+    "CREDIBILITY_SCHEMA_VERSION",
     "DEFAULT_ADMET_MODEL_PATH",
     "DEFAULT_CNS_REWARD_WEIGHTS",
     "DEFAULT_CNS_STRUCTURES_DIR",
+    "DEFAULT_CONTEXT_OF_USE",
+    "DEFAULT_V4_ADMET_CV_REPORT_PATH",
+    "DEFAULT_V4_ADMET_MODEL_PATH",
+    "DEFAULT_V4_EXPANSION_DIR",
+    "DEFAULT_V4_STRUCTURES_DIR",
+    "ENDPOINT_HIGHER_IS_BETTER",
+    "FTO_MARKUSH_DISCLAIMER",
+    "HUMAN_IN_THE_LOOP_DISCLAIMER",
     "REFERENCE_CNS_DRUGS",
     "REFERENCE_NON_CNS_DRUGS",
+    "TRI_DISORDER_TARGET_REGISTRY",
+    "V3_ADMET_ENDPOINTS",
+    "V4_ADMET_ENDPOINTS",
+    "V4_COUNTER_TARGET_REGISTRY",
+    "V4_EXPANSION_TARGET_REGISTRY",
     "CNSAdmetPrediction",
     "CNSAdmetSuite",
     "CNSCompositeScore",
@@ -72,11 +139,24 @@ __all__ = [
     "CNSTargetSpec",
     "CalibratedADMETOracle",
     "ClinicalReferenceDrug",
+    "ConformalPredictionResult",
+    "DiseaseArea",
+    "MedChemTriageResult",
+    "MoAClass",
+    "MultiplicativeCNSReward",
+    "PharmaAdmetPrediction",
+    "ScaffoldHopReport",
+    "SplitConformalBinaryCalibrator",
     "audit_pocket_hotspots",
+    "bemis_murcko_scaffold",
+    "build_credibility_dossier",
     "compute_cns_composite_reward",
     "compute_cns_mpo",
     "compute_cns_mpo_batch",
     "compute_ece",
+    "compute_file_sha256",
+    "compute_multiplicative_cns_reward",
+    "compute_scaffold_hop_metrics",
     "desirability_clogd",
     "desirability_clogp",
     "desirability_hbd",
@@ -86,12 +166,24 @@ __all__ = [
     "estimate_clogd_74",
     "estimate_most_acidic_pka",
     "estimate_most_basic_pka",
+    "evaluate_kpuu_external_benchmark",
+    "export_credibility_dossier",
     "featurize_admet_smiles",
     "fetch_rcsb_structure",
     "find_local_pocket_files",
     "get_cns_target",
+    "hygiene_gate_score",
+    "is_scaffold_hop",
     "list_cns_targets",
+    "list_tri_disorder_targets",
+    "load_avoidome_binary_dataset",
+    "load_biogen_binary_endpoint",
     "load_cns_target_pocket",
     "make_scaffold_kfold",
+    "render_credibility_markdown",
+    "stereocenter_burden",
     "train_default_cns_admet_suite",
+    "train_v4_pharma_admet_suite",
+    "triage_batch",
+    "triage_molecule",
 ]

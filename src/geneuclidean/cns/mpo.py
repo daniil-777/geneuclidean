@@ -48,25 +48,40 @@ PHYSIOLOGICAL_PH: float = 7.4
 _BASIC_PKA_SMARTS: tuple[tuple[str, str, float], ...] = (
     # Permanent quaternary ammonium cation (no neutral form at pH 7.4 -> poor passive BBB)
     ("quaternary_ammonium", "[NX4+;!$([N+](=O)[O-]);!$([N+]=*);!$([N+]#*)]", 14.0),
-    # Strongly basic non-acyl aliphatic guanidines / biguanides (e.g., metformin ~12.4)
+    # Strongly basic non-acyl, non-sulfonyl aliphatic guanidines / biguanides (metformin ~12.4)
     (
         "alkyl_guanidine",
         (
-            "[NX3,NX2;!$(NC=[O,S]);!$(N[a]);!$(NC1=NCCN1)]"
-            "C(=[NX2;!$(NC=[O,S]);!$(N1CCN=C1)])"
-            "([NX3;!$(NC=[O,S]);!$(N[a]);!$(NC1=NCCN1)])"
+            "[NX3,NX2;!$(NC=[O,S]);!$(NS(=O)=O);!$(N[a]);!$(NC1=NCCN1)]"
+            "C(=[NX2;!$(NC=[O,S]);!$(NS(=O)=O);!$(N1CCN=C1)])"
+            "([NX3;!$(NC=[O,S]);!$(NS(=O)=O);!$(N[a]);!$(NC1=NCCN1)])"
         ),
         12.0,
     ),
-    # Strongly basic non-acyl aliphatic amidines
+    # Strongly basic non-acyl aliphatic amidines (excludes beta-heteroatom / fluoroalkyl-dampened
+    # cyclic BACE1 warheads such as amino-oxazines and aminothiazines)
     (
         "alkyl_amidine",
         (
-            "[NX3,NX2;!$(NC=[O,S]);!$(N[a]);!$(NC1=NCCN1)]"
-            "C(=[NX2;!$(NC=[O,S])])"
-            "[#6;!$(C=[O,S]);!$(c);!$(C(=N)N)]"
+            "[NX3,NX2;!$(NC=[O,S]);!$(NS(=O)=O);!$(N[a]);!$(NC1=NCCN1)]"
+            "C(=[NX2;!$(NC=[O,S]);!$(NS(=O)=O)])"
+            "[#6;!$(C=[O,S]);!$(c);!$(C(=N)N);!$([CX4]([O,S,N,F,Cl]));!$([CX4][CX4]([F])([F]))]"
         ),
         11.5,
+    ),
+    # Inductively dampened cyclic sulfonyl-guanidine / iminothiadiazine dioxide
+    # (e.g., BACE1 inhibitor verubecestat clinical pKa ~6.2)
+    (
+        "cyclic_sulfonyl_guanidine",
+        "[NX3;H2,H1]C(=[NX2;R])[NX3;R]S(=O)(=O)",
+        6.2,
+    ),
+    # Inductively dampened cyclic amino-oxazine / aminothiazine / alpha-CF3 cyclic amidine
+    # (e.g., BACE1 inhibitors umibecestat & elenbecestat clinical pKa ~7.1)
+    (
+        "cyclic_ewg_amidine",
+        "[NX3;H2,H1]C(=[NX2;R])[$([CX4;R]([O,S,N,F,Cl])),$([CX4;R][CX4]([F])([F])),$([SX2,OX2;R])]",
+        7.1,
     ),
     # Acylguanidines (e.g., guanfacine clinical pKa ~8.1 — resonance-dampened by carbonyl)
     ("acyl_guanidine", "[NX3,NX2]C(=[NX2])[NX3,NX2]C(=O)", 8.1),

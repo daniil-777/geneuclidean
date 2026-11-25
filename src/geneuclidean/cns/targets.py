@@ -1,13 +1,28 @@
-"""Curated 12-target human Tourette Syndrome & psychiatric 3D structural pharmacology registry.
+"""Curated 24-Target *Homo sapiens* Tri-Disorder CNS Atlas + Matched Counter-Targets.
 
-Every UniProt accession, human single-protein ChEMBL Target ID (including verified fixes
-``VMAT2 = CHEMBL1893`` and ``TAAR1 = CHEMBL5857``), RCSB PDB accession (using verified
-human ``PDE10A`` ``5SJX``/``5SFE``/``3WYM`` rather than rat ``3HR1``), clinical reference
-drug canonical SMILES, and canonical 3D binding-site hotspot residue has been cross-verified
-against RCSB PDB, ChEMBL, PubChem, and RDKit.
+Expands GenEuclidean's v3.1 12-target Tourette Syndrome & psychiatric registry to the
+**v4.0 24-Target Tri-Disorder *Homo sapiens* Structural Pharmacology Atlas**:
 
-All ligands generated or scored against these targets are strictly *in silico* research
-hypotheses and are NOT clinically tested medicines or medical advice.
+- **12 Core v3.1 Tourette & Psychiatric Targets (`CNS_TARGET_REGISTRY`, preserved 100%
+  backward-compatible):** ``DRD1``, ``VMAT2``, ``ADRA2A``, ``DRD2``, ``HRH3``, ``PDE10A``,
+  ``CHRM4``, ``HTR2A``, ``SERT``, ``DRD3``, ``TAAR1``, ``DAT``.
+- **6 New Tourette & Schizophrenia Targets:** ``CHRM1`` (``9UCP`` active, ``-40`` TM6/7
+  offset documented), ``HTR1A`` (``9VJE`` active buspirone), ``GLYT1`` (``SLC6A9``
+  ``9J8D`` iclepertin), ``MGLL`` (``9F8D`` 1.14 A reversible), ``PDE1B`` (``5UOY`` 1.82 A),
+  ``GPR52`` (``8HMP`` active Gs).
+- **6 New Alzheimer's Disease Targets:** ``ACHE`` (``4EY7`` donepezil), ``OGA``
+  (``MGEA5``, ``CHEMBL5921``, ``9BA8`` ceperognastat), ``NLRP3`` (``9GU4`` ``NP3-253``
+  retaining ``ADP702``), ``MAOB`` (``2V5Z`` safinamide retaining ``FAD600``), ``GSK3B``
+  (``7SXJ`` ``BRD0705``), ``BACE1`` (``6EQM`` umibecestat + ``5HU1`` ``+61`` offset aliases).
+- **7 Matched Structural Selectivity Counter-Targets (`V4_COUNTER_TARGET_REGISTRY`):**
+  ``BCHE`` (``4BDS``), ``MAOA`` (``2Z5X`` retaining ``FAD600``), ``CDK2`` (``6Q4G``),
+  ``BACE2`` (``7D5B``), ``HTR2B`` (``7SRQ``), ``HRH1`` (``8X5Y``), ``CHRM3`` (``8EA0``).
+
+Every UniProt accession, human single-protein ChEMBL Target ID, RCSB PDB accession,
+cofactor requirement, conformational state, canonical 3D anchor residue, isoform alias,
+and RDKit canonical clinical SMILES has been live-verified. All ligands generated or scored
+against these targets are strictly *in silico* research hypotheses and are NOT clinically
+tested medicines or medical advice.
 """
 
 from __future__ import annotations
@@ -28,7 +43,19 @@ from geneuclidean.data.featurizer import (
 )
 
 DEFAULT_CNS_STRUCTURES_DIR = Path("data/cns_neuro/structures")
+DEFAULT_V4_STRUCTURES_DIR = Path("data/cns_neuro.nosync/v4_expansion/structures")
 RCSB_DOWNLOAD_URL = "https://files.rcsb.org/download"
+
+DiseaseArea = Literal["tourette", "schizophrenia", "psychiatry", "alzheimer", "counter"]
+MoAClass = Literal[
+    "ANTAGONIST",
+    "INVERSE_AGONIST",
+    "AGONIST",
+    "PARTIAL_AGONIST",
+    "INHIBITOR",
+    "PAM",
+    "NAM",
+]
 
 
 @dataclass(frozen=True)
@@ -61,12 +88,20 @@ class CNSTargetSpec:
     hotspot_isoform_aliases: tuple[str, ...]
     reference_drugs: tuple[ClinicalReferenceDrug, ...]
     notes: str = ""
+    disease_area: DiseaseArea = "psychiatry"
+    moa_class: MoAClass = "INHIBITOR"
+    keep_cofactors: tuple[str, ...] = ()
+    counter_targets: tuple[str, ...] = ()
 
     @property
     def all_pdb_ids(self) -> tuple[str, ...]:
         """Return ordered tuple of primary + secondary RCSB PDB IDs."""
         return (self.primary_pdb_id, *self.secondary_pdb_ids)
 
+
+# ---------------------------------------------------------------------------
+# 1. Core v3.1 12-Target Human Tourette & Psychiatric Registry (100% Backward-Compatible)
+# ---------------------------------------------------------------------------
 
 CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
     "DRD1": CNSTargetSpec(
@@ -112,6 +147,9 @@ CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
             "9LLG (2.77 A, flupentixol) and 9URL (3.04 A, SKF-83566 benzazepine) provide "
             "inactive antagonist pockets; 9U5E (2.49 A) and 7LJC (3.00 A) are active controls."
         ),
+        disease_area="tourette",
+        moa_class="ANTAGONIST",
+        counter_targets=("DRD2", "HTR2B"),
     ),
     "VMAT2": CNSTargetSpec(
         target_id="VMAT2",
@@ -162,6 +200,9 @@ CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
             "Verified human single-protein ChEMBL ID is CHEMBL1893 (NOT CHEMBL1985, which is "
             "human Glucagon receptor GCGR P47871)."
         ),
+        disease_area="tourette",
+        moa_class="INHIBITOR",
+        counter_targets=("DRD2",),
     ),
     "ADRA2A": CNSTargetSpec(
         target_id="ADRA2A",
@@ -216,6 +257,9 @@ CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
             "Cryo-EM constructs 7EJ8/9CBL/7EJ0 carry a +15 residue numbering offset "
             "(Asp128 = canonical Asp113^3.32 in X-ray 6KUX)."
         ),
+        disease_area="tourette",
+        moa_class="AGONIST",
+        counter_targets=("HRH1",),
     ),
     "DRD2": CNSTargetSpec(
         target_id="DRD2",
@@ -267,6 +311,9 @@ CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
             ),
         ),
         notes="Dual role: classical anti-tic/antipsychotic target and mandatory anti-EPS counter.",
+        disease_area="schizophrenia",
+        moa_class="ANTAGONIST",
+        counter_targets=("HRH1", "HTR2B"),
     ),
     "HRH3": CNSTargetSpec(
         target_id="HRH3",
@@ -311,6 +358,9 @@ CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
             ),
         ),
         notes="Genetically linked to familial TS via HDC W317X loss-of-function (NEJM 2010).",
+        disease_area="tourette",
+        moa_class="INVERSE_AGONIST",
+        counter_targets=("HRH1",),
     ),
     "PDE10A": CNSTargetSpec(
         target_id="PDE10A",
@@ -321,6 +371,7 @@ CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
         chembl_id="CHEMBL4409",
         indications=(
             "Striatal Medium Spiny Neuron Tic Modulation",
+            "Tourette Syndrome (Phase 2b Gemlapodect Allevia-2)",
             "Schizophrenia",
             "Huntington Disease",
         ),
@@ -354,12 +405,21 @@ CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
                 clinical_status="Phase 2 clinical candidate (human complex in 5SJX)",
                 role="Selective PDE10A inhibitor",
             ),
+            ClinicalReferenceDrug(
+                name="Gemlapodect (NOE-105)",
+                canonical_smiles="Cn1ncc(C(=O)N2CCOCC2)c1C(=O)Nc1ccn2nc(-c3ccccc3)nc2c1",
+                clinical_status="Phase 2a ALLEVIA-1 win / Phase 2b Allevia-2 for TS",
+                role="Selective clinical PDE10A inhibitor",
+            ),
         ),
         notes=(
             "Uses verified Homo sapiens Q9Y233 structures 5SJX (2.06 A MP-10), 5SFE (1.86 A), and "
             "3WYM (2.00 A TAK-063, -10 isoform numbering offset). Note: 3HR1 is Rattus norvegicus "
             "Q9QYJ6 and is excluded in favor of human 5SJX."
         ),
+        disease_area="tourette",
+        moa_class="INHIBITOR",
+        counter_targets=("PDE1B",),
     ),
     "CHRM4": CNSTargetSpec(
         target_id="CHRM4",
@@ -370,6 +430,7 @@ CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
         chembl_id="CHEMBL1821",
         indications=(
             "Schizophrenia (Cobenfy FDA-approved Sep 2024)",
+            "Alzheimer's Disease Psychosis (Phase 3 ADEPT)",
             "Hyperdopaminergic Basal-Ganglia Psychosis / Tic Modulation",
         ),
         therapeutic_moa="Orthosteric agonist or bitopic/allosteric M4 PAM (non-D2 striatal brake)",
@@ -396,6 +457,12 @@ CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
                 role="Dual orthosteric + allosteric M4/M1 agonist (in 8FX5)",
             ),
             ClinicalReferenceDrug(
+                name="Direclidine (NBI-1117568)",
+                canonical_smiles="CCOC(=O)N1CC[C@]2(C1)C[C@@H](N1CCC(c3ccnn3C)CC1)C2",
+                clinical_status="Phase 2 positive (Aug 2024) / entering Phase 3 for Schizophrenia",
+                role="Selective CHRM4 orthosteric agonist",
+            ),
+            ClinicalReferenceDrug(
                 name="Emraclidine",
                 canonical_smiles="Cc1cc(C)c2c(n1)CN(C(=O)CC1CN(c3ccnc(C(F)(F)F)c3)C1)C2",
                 clinical_status="Phase 2 (EMPOWER-1/2 missed primary endpoints Nov 2024)",
@@ -403,6 +470,9 @@ CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
             ),
         ),
         notes="8FX5 (2.45 A) captures dual orthosteric + extracellular allosteric xanomeline.",
+        disease_area="schizophrenia",
+        moa_class="AGONIST",
+        counter_targets=("CHRM3", "CHRM1"),
     ),
     "HTR2A": CNSTargetSpec(
         target_id="HTR2A",
@@ -450,6 +520,9 @@ CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
             ),
         ),
         notes="Always counter-screen against HTR2B agonism (cardiac valvulopathy risk).",
+        disease_area="psychiatry",
+        moa_class="INVERSE_AGONIST",
+        counter_targets=("HTR2B", "HRH1"),
     ),
     "SERT": CNSTargetSpec(
         target_id="SERT",
@@ -494,6 +567,9 @@ CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
             ),
         ),
         notes="5I71 resolves both orthosteric S1 and vestibular allosteric S2 binding sites.",
+        disease_area="psychiatry",
+        moa_class="INHIBITOR",
+        counter_targets=("HRH1",),
     ),
     "DRD3": CNSTargetSpec(
         target_id="DRD3",
@@ -539,6 +615,9 @@ CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
             ),
         ),
         notes="9T8C (2.90 A) resolves clinical bitopic drug cariprazine engaging SBP Glu90/Gly94.",
+        disease_area="psychiatry",
+        moa_class="PARTIAL_AGONIST",
+        counter_targets=("DRD2", "HTR2B"),
     ),
     "TAAR1": CNSTargetSpec(
         target_id="TAAR1",
@@ -549,6 +628,7 @@ CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
         chembl_id="CHEMBL5857",
         indications=(
             "Non-D2 Antipsychotic Mechanism",
+            "Schizophrenia",
             "Mood & Metabolic Regulation",
             "Substance Use Disorders",
         ),
@@ -581,6 +661,9 @@ CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
             "Verified human single-protein ChEMBL ID is CHEMBL5857 (NOT CHEMBL4908, which is "
             "Mus musculus Taar1 Q923Y8)."
         ),
+        disease_area="schizophrenia",
+        moa_class="AGONIST",
+        counter_targets=("HTR2B",),
     ),
     "DAT": CNSTargetSpec(
         target_id="DAT",
@@ -625,16 +708,891 @@ CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
             ),
         ),
         notes="8Y2G (2.83 A, dexmethylphenidate) & 9JKI (2.69 A, bupropion) are native human DAT.",
+        disease_area="psychiatry",
+        moa_class="INHIBITOR",
+        counter_targets=(),
     ),
 }
 
-# Alias map supporting gene symbols (SLC18A2, SLC6A4, SLC6A3) and ChEMBL IDs
+# ---------------------------------------------------------------------------
+# 2. v4.0 Expansion: 6 New Tourette/Schizophrenia + 6 New Alzheimer's Targets
+# ---------------------------------------------------------------------------
+
+V4_EXPANSION_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
+    # --- 6 New Tourette Syndrome & Schizophrenia Targets ---
+    "CHRM1": CNSTargetSpec(
+        target_id="CHRM1",
+        gene_symbol="CHRM1",
+        name="Muscarinic Acetylcholine Receptor M1",
+        target_class="Aminergic GPCR (Class A)",
+        uniprot_id="P11229",
+        chembl_id="CHEMBL216",
+        indications=(
+            "Schizophrenia Pro-Cognitive & Psychosis (Cobenfy / ML-007C-MA ZEPHYR Ph2 win)",
+            "Alzheimer's Disease Psychosis & Cognition (FDA Fast Track)",
+        ),
+        therapeutic_moa="Selective Gq/11 orthosteric agonist / PAM sparing peripheral CHRM3",
+        desired_state="Active (Gq/11-coupled agonist-bound)",
+        primary_pdb_id="9UCP",
+        secondary_pdb_ids=("6OIJ", "6ZG4"),
+        primary_anchor_residue="Asp105",
+        hotspot_residues=(
+            "Asp105",
+            "Tyr106",
+            "Ser109",
+            "Ala196",
+            "Phe197",
+            "Trp378",
+            "Tyr381",
+            "Asn382",
+            "Tyr404",
+            "Tyr408",
+        ),
+        # Exact -40 TM6/TM7 numbering offset in 9UCP ICL3-truncated cryo-EM construct
+        hotspot_isoform_aliases=("Trp338", "Tyr341", "Asn342", "Tyr364", "Tyr368"),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="Betovumeline (ML-007C)",
+                canonical_smiles="Cc1nc([C@@]23C[C@H]3CNC2)on1",
+                clinical_status="Phase 2 ZEPHYR win (Jul 2026) / FDA Fast Track ADP",
+                role="Compact dual CHRM1/CHRM4 agonist",
+            ),
+            ClinicalReferenceDrug(
+                name="HTL0009936",
+                canonical_smiles="CCOC(=O)N1CCC[C@H](N2CCC(C(=O)NC3(C)CCC3)CC2)CC1",
+                clinical_status="Phase 1b/2a selective M1 agonist (in 6ZG4)",
+                role="Selective CHRM1 agonist",
+            ),
+            ClinicalReferenceDrug(
+                name="Xanomeline",
+                canonical_smiles="CCCCCCOc1nsnc1C1=CCCN(C)C1",
+                clinical_status="FDA-approved (Cobenfy, Sep 2024)",
+                role="Dual CHRM1/CHRM4 agonist",
+            ),
+        ),
+        notes=(
+            "9UCP (2.88 A Active EM, Oct 2025) avoids the GPCRdb=Inactive StaR trap of "
+            "6ZFZ/6ZG4; TM6/TM7 carries a -40 residue numbering offset (Trp338=Trp378, "
+            "Tyr364=Tyr404, Tyr368=Tyr408)."
+        ),
+        disease_area="schizophrenia",
+        moa_class="AGONIST",
+        counter_targets=("CHRM3",),
+    ),
+    "HTR1A": CNSTargetSpec(
+        target_id="HTR1A",
+        gene_symbol="HTR1A",
+        name="Serotonin 5-HT1A Receptor",
+        target_class="Aminergic GPCR (Class A)",
+        uniprot_id="P08908",
+        chembl_id="CHEMBL214",
+        indications=(
+            "Schizophrenia Negative Symptoms & Anti-EPS (Brilaroxazine Ph3 RECOVER win)",
+            "Tourette Anxiety / Mood Comorbidity",
+            "Major Depressive Disorder & Generalized Anxiety",
+        ),
+        therapeutic_moa=(
+            "Presynaptic/postsynaptic Gi/o partial agonist (anti-EPS & negative symptoms)"
+        ),
+        desired_state="Active (Gi/o-coupled partial-agonist bound)",
+        primary_pdb_id="9VJE",
+        secondary_pdb_ids=("9HYI", "9VJ6", "7E2Z"),
+        primary_anchor_residue="Asp116",
+        hotspot_residues=(
+            "Asp116",
+            "Ser199",
+            "Tyr390",
+            "Phe361",
+            "Thr121",
+            "Cys187",
+            "Asn386",
+            "Gln97",
+        ),
+        hotspot_isoform_aliases=(),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="Buspirone",
+                canonical_smiles="O=C1CC2(CCCC2)CC(=O)N1CCCCN1CCN(c2ncccn2)CC1",
+                clinical_status="FDA-approved anxiolytic (co-crystallized in 9VJE)",
+                role="5-HT1A partial agonist",
+            ),
+            ClinicalReferenceDrug(
+                name="Brilaroxazine (RP5063)",
+                canonical_smiles="O=C1COc2ccc(OCCCCN3CCN(c4cccc(Cl)c4Cl)CC3)cc2N1",
+                clinical_status="Phase 3 RECOVER positive in Schizophrenia",
+                role="Multimodal D2/D3/5-HT1A partial agonist",
+            ),
+        ),
+        notes="9VJE (2.47 A Active GoA EM with Buspirone YLX, Nov 2025); anchor Asp116 at 2.53 A.",
+        disease_area="schizophrenia",
+        moa_class="PARTIAL_AGONIST",
+        counter_targets=("HTR2B", "HRH1"),
+    ),
+    "GLYT1": CNSTargetSpec(
+        target_id="GLYT1",
+        gene_symbol="SLC6A9",
+        name="Glycine Transporter 1",
+        target_class="Neurotransmitter Sodium Symporter (SLC6)",
+        uniprot_id="P48067",
+        chembl_id="CHEMBL2337",
+        indications=(
+            "Schizophrenia Cognitive Impairment (CIAS / NMDA Hypofunction)",
+            "Non-Aminergic Glutamatergic Modulation",
+        ),
+        therapeutic_moa="Non-basic-amine competitive/non-competitive glycine reuptake inhibitor",
+        desired_state="Inward-open / Outward-open inhibited",
+        primary_pdb_id="9J8D",
+        secondary_pdb_ids=("8WFL", "8WFK"),
+        primary_anchor_residue="Ser317",
+        hotspot_residues=(
+            "Ser317",
+            "Cys421",
+            "Tyr62",
+            "Gly67",
+            "Tyr142",
+            "Gly319",
+            "Trp322",
+            "Thr418",
+            "Asp474",
+        ),
+        hotspot_isoform_aliases=(),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="Iclepertin (BI 425809)",
+                canonical_smiles=(
+                    "C[C@@H](Oc1ccc(S(C)(=O)=O)cc1C(=O)N1C[C@@H]2C[C@]2(c2cc(C(F)(F)F)on2)C1)C(F)(F)F"
+                ),
+                clinical_status="Phase 3 CONNEX evaluated (landmark human cryo-EM 9J8D, Mar 2025)",
+                role="Neutral non-basic-amine GlyT1 inhibitor",
+            ),
+        ),
+        notes="3rd human SLC6 symporter in GenEuclidean; neutral scaffolds natively spare hERG.",
+        disease_area="schizophrenia",
+        moa_class="INHIBITOR",
+        counter_targets=(),
+    ),
+    "MGLL": CNSTargetSpec(
+        target_id="MGLL",
+        gene_symbol="MGLL",
+        name="Monoacylglycerol Lipase (MAGL)",
+        target_class="Serine Hydrolase (alpha/beta-Hydrolase)",
+        uniprot_id="Q99685",
+        chembl_id="CHEMBL4191",
+        indications=(
+            "Tourette Syndrome Endocannabinoid Tic Modulation (reversible next-gen MAGL)",
+            "Neuroinflammation & Movement Disorders",
+        ),
+        therapeutic_moa=(
+            "Reversible non-covalent catalytic inhibitor (avoids CB1 desensitization from "
+            "irreversible covalent Lu AG06466)"
+        ),
+        desired_state="Non-covalent catalytic inhibited",
+        primary_pdb_id="9F8D",
+        secondary_pdb_ids=("7ZPG", "3PE6", "5ZUN"),
+        primary_anchor_residue="Ser122",
+        hotspot_residues=(
+            "Ser122",
+            "Ala51",
+            "Met123",
+            "His121",
+            "Arg57",
+            "Tyr194",
+            "Glu53",
+            "Leu184",
+        ),
+        hotspot_isoform_aliases=(),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="MGLL Reversible Tool (9F8D / A1IA1)",
+                canonical_smiles="O=C1COc2ccc(C(=O)N3CCC(c4c[nH]c5ccc(Cl)cc45)CC3)cc2N1",
+                clinical_status="1.14 A human non-covalent X-ray benchmark (Jan 2025)",
+                role="100% reversible non-covalent MGLL inhibitor",
+            ),
+            ClinicalReferenceDrug(
+                name="Lu AG06466 (Elcubragistat)",
+                canonical_smiles=("O=C(OC(C(F)(F)F)C(F)(F)F)N1CCN(Cc2ccc(C(F)(F)F)cc2N2CCCC2)CC1"),
+                clinical_status="Phase 2a discontinued in adult TS (covalent CB1 tolerance lesson)",
+                role="Historical covalent comparator (avoid HFIP-carbamate warhead)",
+            ),
+        ),
+        notes=(
+            "9F8D (1.14 A X-ray, 0 covalent _struct_conn links); Ser122 oxyanion/catalytic anchor."
+        ),
+        disease_area="tourette",
+        moa_class="INHIBITOR",
+        counter_targets=(),
+    ),
+    "PDE1B": CNSTargetSpec(
+        target_id="PDE1B",
+        gene_symbol="PDE1B",
+        name="Phosphodiesterase 1B",
+        target_class="Cyclic Nucleotide Phosphodiesterase (Zn2+/Mg2+ metalloenzyme)",
+        uniprot_id="Q01064",
+        chembl_id="CHEMBL4425",
+        indications=(
+            "Tourette Syndrome Striatal D1-MSN Modulation",
+            "Schizophrenia Cognitive Impairment (CIAS)",
+            "Parkinson & Movement Disorders",
+        ),
+        therapeutic_moa="Selective catalytic-site inhibitor (Zn2+/Mg2+ bimetallic cleft)",
+        desired_state="Catalytic inhibited (Gln421 clamp engaged)",
+        primary_pdb_id="5UOY",
+        secondary_pdb_ids=("4NPW", "5B25", "5UP0"),
+        primary_anchor_residue="Gln421",
+        hotspot_residues=(
+            "Gln421",
+            "His373",
+            "Phe424",
+            "Leu388",
+            "Met389",
+            "Tyr222",
+            "Pro408",
+            "Leu409",
+        ),
+        hotspot_isoform_aliases=(),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="PDE1B Co-Crystal Inhibitor (5UOY / 8HM)",
+                canonical_smiles="COc1ccc(Cn2c(=O)n3ncnc3c3c4c(sc32)CN(CC2CCOCC2)CC4)cc1",
+                clinical_status="1.82 A human X-ray lead-optimization benchmark",
+                role="Selective non-basic-amine PDE1B inhibitor",
+            ),
+        ),
+        notes="Retains catalytic Zn2+/Mg2+ ions cleanly via featurizer.py; complements PDE10A.",
+        disease_area="tourette",
+        moa_class="INHIBITOR",
+        counter_targets=("PDE10A",),
+    ),
+    "GPR52": CNSTargetSpec(
+        target_id="GPR52",
+        gene_symbol="GPR52",
+        name="G-Protein Coupled Receptor 52",
+        target_class="Orphan Striatal GPCR (Class A)",
+        uniprot_id="Q9Y2T5",
+        chembl_id="CHEMBL3297639",
+        indications=(
+            "Non-D2 Antipsychotic Mechanism (HTL0048149 Phase 2-ready)",
+            "Striatal D2-MSN Indirect-Pathway Tic Brake (Tourette Syndrome)",
+        ),
+        therapeutic_moa="Gs-coupled side-pocket agonist (non-basic-amine, anti-D2 striatal brake)",
+        desired_state="Active (Gs-coupled agonist-bound)",
+        primary_pdb_id="8HMP",
+        secondary_pdb_ids=("6LI0", "9IJR"),
+        primary_anchor_residue="Cys40",
+        hotspot_residues=(
+            "Cys40",
+            "Asp38",
+            "Glu191",
+            "Ile189",
+            "Asp188",
+            "Cys94",
+            "Phe117",
+        ),
+        hotspot_isoform_aliases=(),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="Compound c17 (8HMP / EN6)",
+                canonical_smiles=("Cc1nn(-c2cccc3cc(Cc4cccc(C(F)(F)F)c4)sc23)c(CO)c1C(=O)NCCO"),
+                clinical_status="Co-crystallized active Gs-coupled agonist (8HMP)",
+                role="Non-basic-amine GPR52 agonist",
+            ),
+            ClinicalReferenceDrug(
+                name="FTBMT",
+                canonical_smiles="Cc1cc(-n2nc(Cc3cc(F)cc(C(F)(F)F)c3)nc2C)ccc1C(N)=O",
+                clinical_status="Preclinical gold-standard tool agonist",
+                role="Selective GPR52 agonist",
+            ),
+        ),
+        notes="8HMP (2.77 A Active Gs EM) avoids the GPCRdb=Inactive trap of X-ray 6LI0.",
+        disease_area="schizophrenia",
+        moa_class="AGONIST",
+        counter_targets=("DRD2",),
+    ),
+    # --- 6 New Alzheimer's Disease Targets ---
+    "ACHE": CNSTargetSpec(
+        target_id="ACHE",
+        gene_symbol="ACHE",
+        name="Acetylcholinesterase",
+        target_class="Cholinesterase (alpha/beta-Hydrolase Gorge)",
+        uniprot_id="P22303",
+        chembl_id="CHEMBL220",
+        indications=(
+            "Alzheimer's Disease Symptomatic Cognition (FDA Standard of Care)",
+            "Lewy Body Dementia & Geriatric Cholinergic Deficit",
+        ),
+        therapeutic_moa=(
+            "Reversible dual CAS+PAS inhibitor (>100x selective over BCHE; de-risk donepezil hERG)"
+        ),
+        desired_state="Reversible dual CAS+PAS inhibited",
+        primary_pdb_id="4EY7",
+        secondary_pdb_ids=("6O4W", "4EY6", "4EY5"),
+        primary_anchor_residue="Phe295",
+        hotspot_residues=(
+            "Phe295",
+            "Trp86",
+            "Trp286",
+            "Tyr337",
+            "Tyr341",
+            "Tyr124",
+            "Glu202",
+            "Ser203",
+            "His447",
+            "Tyr72",
+        ),
+        hotspot_isoform_aliases=(),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="Donepezil",
+                canonical_smiles="COc1cc2c(cc1OC)C(=O)[C@H](CC1CCN(Cc3ccccc3)CC1)C2",
+                clinical_status="FDA-approved AD standard of care (in 4EY7; Known-TdP hERG risk)",
+                role="Dual CAS+PAS reversible AChE inhibitor",
+            ),
+            ClinicalReferenceDrug(
+                name="Galantamine",
+                canonical_smiles="COc1ccc2c3c1O[C@H]1C[C@@H](O)C=C[C@@]31CCN(C)C2",
+                clinical_status="FDA-approved AD therapy (in 4EY6; clean hERG profile)",
+                role="Reversible AChE inhibitor & nAChR allosteric modulator",
+            ),
+            ClinicalReferenceDrug(
+                name="Rivastigmine",
+                canonical_smiles="CCN(C)C(=O)Oc1cccc([C@H](C)N(C)C)c1",
+                clinical_status="FDA-approved AD & PD dementia therapy",
+                role="Pseudo-irreversible carbamate cholinesterase inhibitor",
+            ),
+        ),
+        notes=(
+            "Dual Trp286 (PAS) + Phe295 (mid-gorge) + Trp86 (CAS) engagement drives "
+            "ACHE/BCHE selectivity."
+        ),
+        disease_area="alzheimer",
+        moa_class="INHIBITOR",
+        counter_targets=("BCHE",),
+    ),
+    "OGA": CNSTargetSpec(
+        target_id="OGA",
+        gene_symbol="MGEA5",
+        name="O-GlcNAcase (Beta-Hexosaminidase)",
+        target_class="Glycoside Hydrolase (GH84)",
+        uniprot_id="O60502",
+        chembl_id="CHEMBL5921",
+        indications=(
+            "Alzheimer's Disease Tau O-GlcNAcylation / Anti-Tangle Stabilization",
+            "Progressive Supranuclear Palsy (Primary Tauopathy)",
+        ),
+        therapeutic_moa="Non-sugar BBB-penetrant catalytic OGA inhibitor (precision occupancy)",
+        desired_state="Catalytic inhibited (Asp174/Asp175/Asp285 cleft)",
+        primary_pdb_id="9BA8",
+        secondary_pdb_ids=("11LJ", "5M7S", "7OU6"),
+        primary_anchor_residue="Asp285",
+        hotspot_residues=(
+            "Asp285",
+            "Asp174",
+            "Asp175",
+            "Lys98",
+            "Asn280",
+            "Tyr219",
+            "Tyr69",
+            "Trp278",
+        ),
+        # Partner-protomer arm-exchanged homodimer ceiling residues present in 11LJ full dimer
+        hotspot_isoform_aliases=("Trp645", "Trp679"),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="Ceperognastat (LY3372689)",
+                canonical_smiles="CC(=O)Nc1nc(F)c(CN2CC[C@H](OCc3noc(C)n3)C[C@@H]2C)s1",
+                clinical_status="Phase 2 PROSPECT-ALZ (reduced tau-PET/p-tau217; in 9BA8)",
+                role="Clinical non-sugar CNS OGA inhibitor",
+            ),
+            ClinicalReferenceDrug(
+                name="Janssen 5-Azaindole (11LJ / A1DE3)",
+                canonical_smiles="Cc1ccnc(c1Nc2c3ccn(c3ccn2)CC(=O)N(C)C)C(C)C",
+                clinical_status="2026 preclinical/clinical-track 5-azaindole (in 11LJ)",
+                role="High-MPO non-sugar OGA inhibitor",
+            ),
+            ClinicalReferenceDrug(
+                name="Thiamet-G",
+                canonical_smiles="CCN=C1N[C@@H]2[C@@H](O)[C@H](O)[C@@H](CO)O[C@@H]2S1",
+                clinical_status="Preclinical sugar-mimetic tool (in 5M7S)",
+                role="Polar glycoside-mimetic OGA inhibitor",
+            ),
+        ),
+        notes=(
+            "Verified human single-protein ChEMBL ID is CHEMBL5921. 9BA8 (2.54 A, 2025) is "
+            "clean monomeric chain A; 11LJ (2.33 A, 2026) retains arm-exchanged dimer ceiling."
+        ),
+        disease_area="alzheimer",
+        moa_class="INHIBITOR",
+        counter_targets=(),
+    ),
+    "NLRP3": CNSTargetSpec(
+        target_id="NLRP3",
+        gene_symbol="NLRP3",
+        name="NLRP3 Inflammasome NACHT Domain",
+        target_class="NOD-Like Receptor ATPase (Allosteric NACHT Clamp)",
+        uniprot_id="Q96P20",
+        chembl_id="CHEMBL1741208",
+        indications=(
+            "Alzheimer's Disease Microglial Neuroinflammation (TARBELA-AD Ph2 / NT-0796 / VTX3232)",
+            "Parkinson's Disease & Neurodegeneration",
+        ),
+        therapeutic_moa=(
+            "Brain-penetrant non-sulfonylurea NACHT allosteric clamp locking inactive ADP state"
+        ),
+        desired_state="Inactive ADP-bound NACHT allosteric inhibited",
+        primary_pdb_id="9GU4",
+        secondary_pdb_ids=("9HG4", "8WSM", "7ALV"),
+        primary_anchor_residue="Arg578",
+        hotspot_residues=(
+            "Arg578",
+            "Glu629",
+            "Ala228",
+            "Tyr443",
+            "Phe575",
+            "Met661",
+            "Ile411",
+            "Thr439",
+        ),
+        hotspot_isoform_aliases=(),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="NP3-253 (9GU4 / A1IPJ)",
+                canonical_smiles="CCN1CCC[C@@H](Nc2ccc(-c3c(C)cc(C(F)(F)F)cc3O)nn2)C1",
+                clinical_status="2024 brain-penetrant aminopyridazine lead (in 9GU4)",
+                role="CNS-penetrant non-sulfonylurea NLRP3 inhibitor",
+            ),
+            ClinicalReferenceDrug(
+                name="Ruvonoflast (NT-0796)",
+                canonical_smiles=("CC(C)OC(=O)[C@@H](Cc1ncccn1)OC(=O)Nc1c2c(cc3c1CCC3)CCC2"),
+                clinical_status="Phase 1b/2a positive CSF IL-1b/IL-6 normalization",
+                role="Microglial CES1-activated CNS NLRP3 prodrug",
+            ),
+            ClinicalReferenceDrug(
+                name="DFV890 (9HG4 / A1IUG)",
+                canonical_smiles=("CC(C)(O)c1ncc([S@](N)(=O)=NC(=O)Nc2c3c(cc4c2CCC4)CCC3)s1"),
+                clinical_status="Phase 2 clinical NLRP3 inhibitor (Novartis, in 9HG4)",
+                role="Sulfonimidamide NLRP3 NACHT inhibitor",
+            ),
+        ),
+        notes=(
+            "CRITICAL: Retains integral Walker A/B ADP702 cofactor (7.56 A from ligand in 9GU4) "
+            "via keep_cofactors=('ADP',) to preserve inactive NACHT electrostatics."
+        ),
+        disease_area="alzheimer",
+        moa_class="INHIBITOR",
+        keep_cofactors=("ADP",),
+        counter_targets=(),
+    ),
+    "MAOB": CNSTargetSpec(
+        target_id="MAOB",
+        gene_symbol="MAOB",
+        name="Monoamine Oxidase B",
+        target_class="Flavoenzyme Amine Oxidase (FAD-Dependent)",
+        uniprot_id="P27338",
+        chembl_id="CHEMBL2039",
+        indications=(
+            "Alzheimer's Disease Reactive Astrocyte Tonic GABA (KDS2010 Ph2a MCI/AD)",
+            "Parkinson's Disease (FDA-approved Safinamide)",
+        ),
+        therapeutic_moa=(
+            "Reversible bipartite inhibitor (>100-1000x selective over MAOA; no cheese effect)"
+        ),
+        desired_state="Reversible open-gate (Ile199) FAD-bound inhibited",
+        primary_pdb_id="2V5Z",
+        secondary_pdb_ids=("6FW0", "9FJT"),
+        primary_anchor_residue="Gln206",
+        hotspot_residues=(
+            "Gln206",
+            "Tyr435",
+            "Tyr398",
+            "Ile199",
+            "Tyr326",
+            "Cys172",
+            "Trp119",
+            "Leu164",
+        ),
+        hotspot_isoform_aliases=(),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="Safinamide",
+                canonical_smiles="C[C@H](NCc1ccc(OCc2cccc(F)c2)cc1)C(N)=O",
+                clinical_status="FDA-approved PD reversible MAO-B inhibitor (in 2V5Z)",
+                role="Reversible >100x selective MAO-B inhibitor",
+            ),
+            ClinicalReferenceDrug(
+                name="Tisolagiline (KDS2010)",
+                canonical_smiles="C[C@H](NCc1ccc(-c2ccc(C(F)(F)F)cc2)cc1)C(N)=O",
+                clinical_status="Phase 2a MCI/mild Alzheimer's disease (NeuroBiogen)",
+                role="Reversible >1000x selective astrocyte MAO-B inhibitor",
+            ),
+            ClinicalReferenceDrug(
+                name="Sembragiline (RO4602522)",
+                canonical_smiles="CC(=O)N[C@H]1CC(=O)N(c2ccc(OCc3cccc(F)c3)cc2)C1",
+                clinical_status="Phase 2b MAYA evaluated in AD (neutral low-hERG scaffold)",
+                role="Reversible neutral-lactam MAO-B inhibitor",
+            ),
+        ),
+        notes=(
+            "CRITICAL: Retains integral FAD600 cofactor (3.00 A contact in 2V5Z) via "
+            "keep_cofactors=('FAD',). 2V5Z (1.60 A) is detergent-free (no C15 artifact)."
+        ),
+        disease_area="alzheimer",
+        moa_class="INHIBITOR",
+        keep_cofactors=("FAD",),
+        counter_targets=("MAOA",),
+    ),
+    "GSK3B": CNSTargetSpec(
+        target_id="GSK3B",
+        gene_symbol="GSK3B",
+        name="Glycogen Synthase Kinase-3 Beta",
+        target_class="Serine/Threonine Protein Kinase (CMGC)",
+        uniprot_id="P49841",
+        chembl_id="CHEMBL262",
+        indications=(
+            "Alzheimer's Disease Tau Hyperphosphorylation",
+            "Bipolar Disorder & Neurodegeneration",
+        ),
+        therapeutic_moa=(
+            "ATP-hinge / back-pocket paralog-selective inhibitor (>100x selective over CDK2)"
+        ),
+        desired_state="ATP-hinge inhibited (DFG-in, Val135/Asp133 hinge)",
+        primary_pdb_id="7SXJ",
+        secondary_pdb_ids=("1Q5K", "4AFJ", "7B6F"),
+        primary_anchor_residue="Val135",
+        hotspot_residues=(
+            "Val135",
+            "Asp133",
+            "Lys85",
+            "Asp200",
+            "Cys199",
+            "Leu132",
+            "Tyr134",
+            "Gln185",
+            "Ile62",
+        ),
+        hotspot_isoform_aliases=(),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="BRD0705",
+                canonical_smiles="CC[C@@]1(c2ccccc2)C2=C(CC(C)(C)CC2=O)Nc2n[nH]cc21",
+                clinical_status="Paralog-selective GSK3 benchmark (co-crystallized in 7SXJ)",
+                role="Selective ATP-competitive GSK3 inhibitor",
+            ),
+            ClinicalReferenceDrug(
+                name="Tideglusib",
+                canonical_smiles="O=c1sn(-c2cccc3ccccc23)c(=O)n1Cc1ccccc1",
+                clinical_status="Phase 2 ARGO evaluated in AD & PSP",
+                role="Non-ATP-competitive GSK3B inhibitor",
+            ),
+        ),
+        notes=(
+            "7SXJ (1.85 A, 351 aa kinase domain) avoids the AKT2+peptide false-positive PDB trap "
+            "(2JDO/3QKL). Counter-screen against CDK2 (6Q4G) via Cys199/Leu132 selectivity handle."
+        ),
+        disease_area="alzheimer",
+        moa_class="INHIBITOR",
+        counter_targets=("CDK2",),
+    ),
+    "BACE1": CNSTargetSpec(
+        target_id="BACE1",
+        gene_symbol="BACE1",
+        name="Beta-Secretase 1 (Memapsin-2)",
+        target_class="Aspartyl Protease (Pepsin A1)",
+        uniprot_id="P56817",
+        chembl_id="CHEMBL4822",
+        indications=(
+            "Alzheimer's Disease Amyloidogenic APP Processing (Low-Occupancy Primary Prevention)",
+            "CNS Low-Efflux Polar-Warhead Benchmark",
+        ),
+        therapeutic_moa=(
+            "Reversible catalytic aspartyl-dyad inhibitor (low-occupancy, >10-100x vs BACE2/CTSD)"
+        ),
+        desired_state="Flap-closed catalytic dyad (Asp32/Asp228) inhibited",
+        primary_pdb_id="6EQM",
+        secondary_pdb_ids=("5HU1", "7MYI", "6UWP"),
+        primary_anchor_residue="Asp32",
+        hotspot_residues=(
+            "Asp32",
+            "Asp228",
+            "Tyr71",
+            "Gly230",
+            "Gly34",
+            "Phe108",
+            "Ser35",
+            "Trp115",
+        ),
+        # Exact +61 precursor offset in 5HU1 (Asp93=Asp32, Asp289=Asp228, Tyr132=Tyr71)
+        hotspot_isoform_aliases=("Asp93", "Asp289", "Tyr132"),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="Umibecestat (CNP520)",
+                canonical_smiles=(
+                    "C[C@@]1(c2nc(NC(=O)c3ncc(C(F)(F)F)cc3Cl)ccc2F)CO[C@@](C)(C(F)(F)F)C(N)=N1"
+                ),
+                clinical_status="Phase 2/3 Generation Study evaluated (co-crystallized in 6EQM)",
+                role="Fluorinated amino-oxazine BACE1 inhibitor",
+            ),
+            ClinicalReferenceDrug(
+                name="Verubecestat (MK-8931)",
+                canonical_smiles="CN1C(N)=N[C@](C)(c2cc(NC(=O)c3ccc(F)cn3)ccc2F)CS1(=O)=O",
+                clinical_status="Phase 3 EPOCH/APECS evaluated (matched pair in 5HU1 & BACE2 7D5B)",
+                role="Iminothiadiazine dioxide BACE1 inhibitor",
+            ),
+            ClinicalReferenceDrug(
+                name="Elenbecestat (E2609)",
+                canonical_smiles=(
+                    "C[C@H]1OC[C@]2(c3cc(NC(=O)c4cnc(C(F)F)cn4)ccc3F)N=C(N)SC[C@H]12"
+                ),
+                clinical_status="Phase 3 MissionAD evaluated",
+                role="Aminothiazine BACE1 inhibitor",
+            ),
+        ),
+        notes=(
+            "6EQM (1.35 A, mature numbering Asp32/Asp228) is primary; 5HU1 (1.50 A, verubecestat) "
+            "uses +61 precursor numbering (Asp93/Asp289/Tyr132) mapped via hotspot_isoform_aliases."
+        ),
+        disease_area="alzheimer",
+        moa_class="INHIBITOR",
+        counter_targets=("BACE2",),
+    ),
+}
+
+# ---------------------------------------------------------------------------
+# 3. Matched Structural Selectivity & Avoid-ome Counter-Targets (7 Human PDBs)
+# ---------------------------------------------------------------------------
+
+V4_COUNTER_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
+    "BCHE": CNSTargetSpec(
+        target_id="BCHE",
+        gene_symbol="BCHE",
+        name="Butyrylcholinesterase (ACHE Counter-Target)",
+        target_class="Cholinesterase (Selectivity Counter-Target)",
+        uniprot_id="P06276",
+        chembl_id="CHEMBL1914",
+        indications=("Selectivity Counter-Target for ACHE (Peripheral Cholinergic Margin)",),
+        therapeutic_moa="Counter-screen to spare peripheral BCHE (avoid GI/bradycardia)",
+        desired_state="Catalytic gorge inhibited (counter-screen)",
+        primary_pdb_id="4BDS",
+        secondary_pdb_ids=("6ZWI", "6EQP"),
+        primary_anchor_residue="Trp82",
+        hotspot_residues=("Trp82", "Ser198", "His438", "Glu197", "Ala328", "Leu286", "Tyr332"),
+        hotspot_isoform_aliases=(),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="Tacrine",
+                canonical_smiles="Nc1c2c(nc3ccccc13)CCCC2",
+                clinical_status="Historical AD drug (withdrawn for hepatotoxicity; in 4BDS)",
+                role="Dual AChE/BChE reference ligand",
+            ),
+        ),
+        notes="Larger ~500 A^3 aliphatic gorge vs ACHE ~300 A^3 aromatic gorge.",
+        disease_area="counter",
+        moa_class="INHIBITOR",
+    ),
+    "MAOA": CNSTargetSpec(
+        target_id="MAOA",
+        gene_symbol="MAOA",
+        name="Monoamine Oxidase A (MAOB Anti-Tyramine Counter-Target)",
+        target_class="Flavoenzyme Amine Oxidase (Selectivity Counter-Target)",
+        uniprot_id="P21397",
+        chembl_id="CHEMBL1951",
+        indications=("Selectivity Counter-Target for MAOB (Avoid Tyramine Hypertensive Crisis)",),
+        therapeutic_moa="Counter-screen to maintain >100-1000x MAOB/MAOA selectivity",
+        desired_state="Monopartite FAD-bound cavity (counter-screen)",
+        primary_pdb_id="2Z5X",
+        secondary_pdb_ids=("2Z5Y",),
+        primary_anchor_residue="Phe208",
+        hotspot_residues=("Phe208", "Ile335", "Gln215", "Tyr407", "Tyr444", "Asn181", "Phe352"),
+        hotspot_isoform_aliases=(),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="Harmine",
+                canonical_smiles="COc1ccc2c(c1)[nH]c1c(C)nccc12",
+                clinical_status="Reversible selective MAO-A tool (in 2Z5X)",
+                role="MAOA reference ligand",
+            ),
+        ),
+        notes=(
+            "Retains integral FAD600 cofactor via keep_cofactors=('FAD',); "
+            "Phe208/Ile335 steric gate."
+        ),
+        disease_area="counter",
+        moa_class="INHIBITOR",
+        keep_cofactors=("FAD",),
+    ),
+    "CDK2": CNSTargetSpec(
+        target_id="CDK2",
+        gene_symbol="CDK2",
+        name="Cyclin-Dependent Kinase 2 (GSK3B Anti-Cell-Cycle Counter-Target)",
+        target_class="Serine/Threonine Protein Kinase (Selectivity Counter-Target)",
+        uniprot_id="P24941",
+        chembl_id="CHEMBL301",
+        indications=("Selectivity Counter-Target for GSK3B (Avoid Cell-Cycle/Wnt Toxicity)",),
+        therapeutic_moa="Counter-screen to maintain >50-100x GSK3B/CDK2 selectivity",
+        desired_state="ATP-hinge inhibited (counter-screen)",
+        primary_pdb_id="6Q4G",
+        secondary_pdb_ids=("1HCK",),
+        primary_anchor_residue="Leu83",
+        hotspot_residues=("Leu83", "Glu81", "Phe80", "Lys33", "Asp145", "Ala144", "Ile10"),
+        hotspot_isoform_aliases=(),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="CDK2 Purine Tool (6Q4G / HJK)",
+                canonical_smiles="Nc1nc(-c2cccc(CC(=O)O)c2)c2nc[nH]c2n1",
+                clinical_status="0.98 A atomic-resolution human CDK2 counter-screen (in 6Q4G)",
+                role="CDK2 ATP-hinge reference",
+            ),
+        ),
+        notes="Bulky Phe80 gatekeeper & Ala144 contrast with GSK3B Leu132 & Cys199.",
+        disease_area="counter",
+        moa_class="INHIBITOR",
+    ),
+    "BACE2": CNSTargetSpec(
+        target_id="BACE2",
+        gene_symbol="BACE2",
+        name="Beta-Secretase 2 (BACE1 Matched-Ligand Counter-Target)",
+        target_class="Aspartyl Protease (Selectivity Counter-Target)",
+        uniprot_id="Q9Y5Z0",
+        chembl_id="CHEMBL2525",
+        indications=("Selectivity Counter-Target for BACE1 (Avoid PMEL/Pigmentation Toxicity)",),
+        therapeutic_moa="Matched-ligand counter-screen using Verubecestat (66F) in 7D5B vs 5HU1",
+        desired_state="Catalytic dyad inhibited (counter-screen)",
+        primary_pdb_id="7D5B",
+        secondary_pdb_ids=("7N4N", "6JSZ"),
+        primary_anchor_residue="Asp48",
+        hotspot_residues=("Asp48", "Asp241", "Tyr87", "Gly243", "Phe121", "Trp128", "Ser51"),
+        hotspot_isoform_aliases=(),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="Verubecestat (66F)",
+                canonical_smiles="CN1C(N)=N[C@](C)(c2cc(NC(=O)c3ccc(F)cn3)ccc2F)CS1(=O)=O",
+                clinical_status="Exact matched co-crystal ligand in BACE1 5HU1 & BACE2 7D5B",
+                role="Matched-pair selectivity benchmark ligand",
+            ),
+        ),
+        notes="1.31 A human BACE2 with exact Verubecestat (66F) for matched-pair delta-delta-G.",
+        disease_area="counter",
+        moa_class="INHIBITOR",
+    ),
+    "HTR2B": CNSTargetSpec(
+        target_id="HTR2B",
+        gene_symbol="HTR2B",
+        name="Serotonin 5-HT2B Receptor (Cardiac Valvulopathy Avoid-ome)",
+        target_class="Aminergic GPCR (Avoid-ome Kill-Switch)",
+        uniprot_id="P41595",
+        chembl_id="CHEMBL1833",
+        indications=("Avoid-ome Kill-Switch: Fatal Cardiac Valvulopathy (Mandatory Off-Target)",),
+        therapeutic_moa="Mandatory Avoid-ome counter-screen (EC50 > 10 uM / zero agonism)",
+        desired_state="Active agonist-bound (valvulopathy counter-screen)",
+        primary_pdb_id="7SRQ",
+        secondary_pdb_ids=("4IB4",),
+        primary_anchor_residue="Asp135",
+        hotspot_residues=("Asp135", "Ser139", "Val136", "Leu209", "Phe340", "Phe341", "Asn344"),
+        hotspot_isoform_aliases=(),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="Ergotamine",
+                canonical_smiles=(
+                    "CN1C[C@H](C(=O)N[C@]2(C)O[C@@]3(O)[C@@H]4CCCN4C(=O)[C@H](Cc4ccccc4)N3C2=O)"
+                    "C=C2c3cccc4[nH]cc(c34)C[C@H]21"
+                ),
+                clinical_status="Known 5-HT2B valvulopathy positive control (in 4IB4)",
+                role="Avoid-ome positive control",
+            ),
+        ),
+        notes="Every dopaminergic/serotonergic CNS amine must clear 5-HT2B valvulopathy risk.",
+        disease_area="counter",
+        moa_class="AGONIST",
+    ),
+    "HRH1": CNSTargetSpec(
+        target_id="HRH1",
+        gene_symbol="HRH1",
+        name="Histamine H1 Receptor (Sedation & Weight-Gain Avoid-ome)",
+        target_class="Aminergic GPCR (Avoid-ome Kill-Switch)",
+        uniprot_id="P35367",
+        chembl_id="CHEMBL231",
+        indications=("Avoid-ome Kill-Switch: Daytime Sedation & Antipsychotic Weight Gain",),
+        therapeutic_moa="Avoid-ome counter-screen minimizing H1 antagonism",
+        desired_state="Inactive antagonist-bound (counter-screen)",
+        primary_pdb_id="8X5Y",
+        secondary_pdb_ids=("3RZE",),
+        primary_anchor_residue="Asp107",
+        hotspot_residues=("Asp107", "Tyr108", "Thr112", "Trp428", "Tyr431", "Phe432", "Lys191"),
+        hotspot_isoform_aliases=(),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="Doxepin",
+                canonical_smiles="CN(C)CC/C=C1/c2ccccc2COc2ccccc21",
+                clinical_status="FDA-approved H1 antagonist positive control (in 3RZE)",
+                role="Avoid-ome positive control",
+            ),
+        ),
+        notes="Primary driver of olanzapine/clozapine metabolic weight gain & pediatric sedation.",
+        disease_area="counter",
+        moa_class="ANTAGONIST",
+    ),
+    "CHRM3": CNSTargetSpec(
+        target_id="CHRM3",
+        gene_symbol="CHRM3",
+        name="Muscarinic Acetylcholine Receptor M3 (Peripheral GI/Cardiac Avoid-ome)",
+        target_class="Aminergic GPCR (Avoid-ome Kill-Switch)",
+        uniprot_id="P20309",
+        chembl_id="CHEMBL245",
+        indications=("Avoid-ome Counter-Screen for CHRM4/CHRM1 (Peripheral GI/Salivation)",),
+        therapeutic_moa="Counter-screen sparing peripheral M3 agonism/antagonism",
+        desired_state="Active agonist-bound (counter-screen)",
+        primary_pdb_id="8EA0",
+        secondary_pdb_ids=(),
+        primary_anchor_residue="Asp148",
+        hotspot_residues=("Asp148", "Tyr149", "Ser152", "Trp504", "Tyr507", "Asn508", "Tyr530"),
+        hotspot_isoform_aliases=(),
+        reference_drugs=(
+            ClinicalReferenceDrug(
+                name="Xanomeline",
+                canonical_smiles="CCCCCCOc1nsnc1C1=CCCN(C)C1",
+                clinical_status="Clinical comparator requiring peripheral trospium co-dosing",
+                role="Non-selective muscarinic agonist reference",
+            ),
+        ),
+        notes="Selectivity over CHRM3 is the defining goal of trospium-free next-gen M4/M1 drugs.",
+        disease_area="counter",
+        moa_class="AGONIST",
+    ),
+}
+
+# Unified 24-Target Tri-Disorder Primary Atlas (12 v3.1 + 6 TS/SCZ + 6 AD)
+TRI_DISORDER_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
+    **CNS_TARGET_REGISTRY,
+    **V4_EXPANSION_TARGET_REGISTRY,
+}
+
+# Complete 31-Target Human Structural Registry (24 Primary + 7 Matched Counter-Targets)
+ALL_CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
+    **TRI_DISORDER_TARGET_REGISTRY,
+    **V4_COUNTER_TARGET_REGISTRY,
+}
+
+# Alias map supporting target IDs, gene symbols (SLC18A2, SLC6A4, SLC6A3, SLC6A9, MGEA5),
+# ChEMBL IDs, and UniProt IDs across ALL 31 registered human targets.
 _TARGET_ALIAS_MAP: dict[str, str] = {}
-for _tid, _spec in CNS_TARGET_REGISTRY.items():
+for _tid, _spec in ALL_CNS_TARGET_REGISTRY.items():
     _TARGET_ALIAS_MAP[_tid.upper()] = _tid
     _TARGET_ALIAS_MAP[_spec.gene_symbol.upper()] = _tid
     _TARGET_ALIAS_MAP[_spec.chembl_id.upper()] = _tid
     _TARGET_ALIAS_MAP[_spec.uniprot_id.upper()] = _tid
+# Common pharmacology aliases
+_TARGET_ALIAS_MAP.update(
+    {
+        "MAGL": "MGLL",
+        "5-HT2B": "HTR2B",
+        "5-HT1A": "HTR1A",
+        "5-HT2A": "HTR2A",
+        "H1": "HRH1",
+        "H3": "HRH3",
+        "M1": "CHRM1",
+        "M3": "CHRM3",
+        "M4": "CHRM4",
+    }
+)
 
 
 def get_cns_target(identifier: str) -> CNSTargetSpec:
@@ -642,23 +1600,62 @@ def get_cns_target(identifier: str) -> CNSTargetSpec:
     key = identifier.strip().upper()
     resolved = _TARGET_ALIAS_MAP.get(key)
     if resolved is None:
-        valid = ", ".join(sorted(CNS_TARGET_REGISTRY.keys()))
+        valid = ", ".join(sorted(ALL_CNS_TARGET_REGISTRY.keys()))
         raise KeyError(f"Unknown CNS target {identifier!r}. Registered targets: {valid}")
-    return CNS_TARGET_REGISTRY[resolved]
+    return ALL_CNS_TARGET_REGISTRY[resolved]
 
 
-def list_cns_targets(indication_filter: str | None = None) -> list[CNSTargetSpec]:
-    """Return all 12 curated human CNS target specs, optionally filtered by indication keyword."""
-    specs = list(CNS_TARGET_REGISTRY.values())
+def list_cns_targets(
+    indication_filter: str | None = None,
+    *,
+    disease_area: str | None = None,
+    include_v4: bool = False,
+    include_counters: bool = False,
+) -> list[CNSTargetSpec]:
+    """Return curated human CNS target specs with 100% v3.1 backward compatibility.
+
+    - Called with no arguments (``list_cns_targets()``), returns the 12 core v3.1 targets.
+    - Pass ``include_v4=True`` or ``disease_area=...`` (``"tourette"``, ``"schizophrenia"``,
+      ``"psychiatry"``, ``"alzheimer"``, ``"counter"``, or ``"all"``) to query the expanded
+      24-target Tri-Disorder Human CNS Atlas (plus optional matched counter-targets).
+    """
+    use_v4 = include_v4 or (disease_area is not None)
+    if include_counters or (disease_area is not None and disease_area.strip().lower() == "counter"):
+        pool = list(ALL_CNS_TARGET_REGISTRY.values())
+    elif use_v4:
+        pool = list(TRI_DISORDER_TARGET_REGISTRY.values())
+    else:
+        pool = list(CNS_TARGET_REGISTRY.values())
+
+    if disease_area is not None and disease_area.strip():
+        area = disease_area.strip().lower()
+        if area != "all":
+            pool = [spec for spec in pool if spec.disease_area.lower() == area]
+
     if indication_filter is None or not indication_filter.strip():
-        return specs
+        return pool
+
     needle = indication_filter.strip().lower()
     return [
         spec
-        for spec in specs
+        for spec in pool
         if any(needle in ind.lower() for ind in spec.indications)
         or needle in spec.therapeutic_moa.lower()
+        or needle in spec.disease_area.lower()
     ]
+
+
+def list_tri_disorder_targets(
+    *,
+    disease_area: str | None = None,
+    include_counters: bool = False,
+) -> list[CNSTargetSpec]:
+    """Return all 24 verified *Homo sapiens* Tri-Disorder targets (or filter by area)."""
+    return list_cns_targets(
+        disease_area=disease_area or "all",
+        include_v4=True,
+        include_counters=include_counters,
+    )
 
 
 def find_local_pocket_files(
@@ -670,26 +1667,33 @@ def find_local_pocket_files(
     """Locate pre-cleaned ``*_pocket.pdb`` and ``*_lig.sdf`` under ``structures_dir``."""
     spec = get_cns_target(target_id)
     root = Path(structures_dir)
-    clean_dir = root / "clean_pockets"
+    candidate_roots = [root]
+    # When using the default v3.1 directory, also search v4_expansion/structures automatically
+    # without breaking offline CI isolation when callers pass a custom tmp_path structures_dir.
+    if root == DEFAULT_CNS_STRUCTURES_DIR and DEFAULT_V4_STRUCTURES_DIR.exists():
+        candidate_roots.append(DEFAULT_V4_STRUCTURES_DIR)
+
     candidate_pdbs = (pdb_id.strip().upper(),) if pdb_id else spec.all_pdb_ids
 
-    if clean_dir.exists():
-        for pid in candidate_pdbs:
-            matches = sorted(clean_dir.glob(f"{pid}_{spec.target_id}_*_pocket.pdb"))
-            if not matches:
-                matches = sorted(clean_dir.glob(f"{pid}_*_pocket.pdb"))
-            if matches:
-                pocket_path = matches[0]
-                sdf_candidate = Path(str(pocket_path).replace("_pocket.pdb", "_lig.sdf"))
-                return pocket_path, (sdf_candidate if sdf_candidate.exists() else None)
+    for base in candidate_roots:
+        clean_dir = base / "clean_pockets"
+        if clean_dir.exists():
+            for pid in candidate_pdbs:
+                matches = sorted(clean_dir.glob(f"{pid}_{spec.target_id}_*_pocket.pdb"))
+                if not matches:
+                    matches = sorted(clean_dir.glob(f"{pid}_*_pocket.pdb"))
+                if matches:
+                    pocket_path = matches[0]
+                    sdf_candidate = Path(str(pocket_path).replace("_pocket.pdb", "_lig.sdf"))
+                    return pocket_path, (sdf_candidate if sdf_candidate.exists() else None)
 
-    raw_dir = root / "raw_cif"
-    if raw_dir.exists():
-        for pid in candidate_pdbs:
-            for suffix in (".cif", ".pdb"):
-                raw_path = raw_dir / f"{pid}{suffix}"
-                if raw_path.exists():
-                    return raw_path, None
+        raw_dir = base / "raw_cif"
+        if raw_dir.exists():
+            for pid in candidate_pdbs:
+                for suffix in (".cif", ".pdb"):
+                    raw_path = raw_dir / f"{pid}{suffix}"
+                    if raw_path.exists():
+                        return raw_path, None
     return None
 
 
@@ -727,14 +1731,13 @@ def load_cns_target_pocket(
 ) -> PocketFeatures:
     """Load and featurize a human CNS target's 3D binding pocket into ``PocketFeatures``.
 
-    Prefers pre-cleaned ligand-free pockets + CCD-bonded ligand SDFs from
-    ``data/cns_neuro/structures/clean_pockets/``. If unavailable locally and
-    ``allow_fetch=True``, downloads the requested RCSB PDB/mmCIF structure and safely
-    strips non-protein HETATMs via ``featurizer._load_protein_heavy_atoms``.
+    Automatically propagates target-specific ``spec.keep_cofactors`` (e.g., ``("FAD",)`` for
+    ``MAOB``/``MAOA`` and ``("ADP",)`` for ``NLRP3``) to ``featurizer.py``.
     """
     spec = get_cns_target(target_id)
     chosen_pdb = (pdb_id or spec.primary_pdb_id).strip().upper()
     local = find_local_pocket_files(spec.target_id, pdb_id=pdb_id, structures_dir=structures_dir)
+    cofactors = spec.keep_cofactors
 
     if local is not None:
         pocket_path, lig_sdf = local
@@ -748,12 +1751,14 @@ def load_cns_target_pocket(
                 pocket_cutoff=pocket_cutoff,
                 contact_cutoff=contact_cutoff,
                 max_atoms=max_atoms,
+                keep_cofactors=cofactors,
             )
         return featurize_pdb_pocket_inference(
             pocket_path,
             pocket_cutoff=pocket_cutoff,
             max_atoms=max_atoms,
             pdb_id=chosen_pdb.lower(),
+            keep_cofactors=cofactors,
         )
 
     if not allow_fetch:
@@ -768,6 +1773,7 @@ def load_cns_target_pocket(
         pocket_cutoff=pocket_cutoff,
         max_atoms=max_atoms,
         pdb_id=chosen_pdb.lower(),
+        keep_cofactors=cofactors,
     )
 
 
@@ -783,12 +1789,7 @@ def audit_pocket_hotspots(
     ligand_sdf: str | Path | None = None,
     contact_cutoff: float = 4.5,
 ) -> dict[str, Any]:
-    """Audit whether canonical pharmacological hotspot residues appear in a 3D pocket.
-
-    If ``ligand_sdf`` is supplied, also verifies which hotspot residues (including known
-    isoform-numbering aliases such as ``ADRA2A Asp128`` or ``PDE10A Gln716``) lie within
-    ``contact_cutoff`` Angstroms of any ligand heavy atom.
-    """
+    """Audit whether canonical pharmacological hotspot residues and cofactors appear in a pocket."""
     path = Path(pocket_pdb)
     parser: Any = (
         MMCIFParser(QUIET=True)
@@ -817,17 +1818,24 @@ def audit_pocket_hotspots(
 
     all_expected = {r.lower(): r for r in target_spec.hotspot_residues}
     alias_expected = {r.lower(): r for r in target_spec.hotspot_isoform_aliases}
-    anchor_keys = {
-        target_spec.primary_anchor_residue.lower(),
-        *(a.lower() for a in target_spec.hotspot_isoform_aliases[:1]),
-    }
+    anchor_prefix = target_spec.primary_anchor_residue[:3].lower()
+    anchor_keys = {target_spec.primary_anchor_residue.lower()}
+    if target_spec.hotspot_isoform_aliases:
+        first_alias = target_spec.hotspot_isoform_aliases[0]
+        if first_alias[:3].lower() == anchor_prefix:
+            anchor_keys.add(first_alias.lower())
 
+    expected_cofactors = {c.strip().upper() for c in target_spec.keep_cofactors}
+    present_cofactors: set[str] = set()
     present_hotspots: set[str] = set()
     contact_hotspots: set[str] = set()
     anchor_in_contact = False
 
     for chain in model:
         for residue in chain:
+            resname_up = str(residue.get_resname()).strip().upper()
+            if resname_up in expected_cofactors:
+                present_cofactors.add(resname_up)
             if str(residue.id[0]) != " ":
                 continue
             label = _normalize_residue_label(str(residue.get_resname()), int(residue.id[1]))
@@ -863,19 +1871,29 @@ def audit_pocket_hotspots(
             if target_spec.hotspot_residues
             else 0.0
         ),
+        "expected_cofactors": sorted(expected_cofactors),
+        "present_cofactors": sorted(present_cofactors),
     }
 
 
 __all__ = [
+    "ALL_CNS_TARGET_REGISTRY",
     "CNS_TARGET_REGISTRY",
     "DEFAULT_CNS_STRUCTURES_DIR",
+    "DEFAULT_V4_STRUCTURES_DIR",
     "RCSB_DOWNLOAD_URL",
+    "TRI_DISORDER_TARGET_REGISTRY",
+    "V4_COUNTER_TARGET_REGISTRY",
+    "V4_EXPANSION_TARGET_REGISTRY",
     "CNSTargetSpec",
     "ClinicalReferenceDrug",
+    "DiseaseArea",
+    "MoAClass",
     "audit_pocket_hotspots",
     "fetch_rcsb_structure",
     "find_local_pocket_files",
     "get_cns_target",
     "list_cns_targets",
+    "list_tri_disorder_targets",
     "load_cns_target_pocket",
 ]

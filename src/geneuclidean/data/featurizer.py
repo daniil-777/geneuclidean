@@ -76,6 +76,7 @@ _RESIDUE_ALIASES: dict[str, str] = {
 
 _WATER_RESNAMES: frozenset[str] = frozenset({"HOH", "WAT", "DOD", "SOL"})
 _MODIFIED_POLYMER_RESNAMES: frozenset[str] = frozenset({"MSE"})
+DEFAULT_STRUCTURAL_COFACTORS: frozenset[str] = frozenset({"FAD", "ADP"})
 _BACKBONE_ATOMS: frozenset[str] = frozenset({"N", "CA", "C", "O", "OXT"})
 _BACKBONE_ROLE_TO_IDX: dict[str, int] = {"N": 0, "CA": 1, "C": 2, "O": 3, "OXT": 3}
 
@@ -273,17 +274,18 @@ def _compute_52d_node_features(
         res_idx = _RESIDUE_TO_IDX.get(resname, 20)
         feats[idx, 10 + res_idx] = 1.0
 
-        # 3. Backbone / sidechain role (5)
-        role_idx = _BACKBONE_ROLE_TO_IDX.get(atom_name, 4)
+        # 3. Backbone / sidechain role (5) — restrict peptide backbone flags to polymer residues
+        is_std_polymer = res_idx < 20
+        role_idx = _BACKBONE_ROLE_TO_IDX.get(atom_name, 4) if is_std_polymer else 4
         feats[idx, 31 + role_idx] = 1.0
 
         # 4. Pharmacophore & E(3)-invariant scalars (16)
-        is_backbone = 1.0 if atom_name in _BACKBONE_ATOMS else 0.0
+        is_backbone = 1.0 if (is_std_polymer and atom_name in _BACKBONE_ATOMS) else 0.0
         is_aromatic = 1.0 if atom_name in _AROMATIC_ATOMS.get(resname, frozenset()) else 0.0
         is_hba = (
             1.0
             if (
-                atom_name in ("O", "OXT")
+                (is_std_polymer and atom_name in ("O", "OXT"))
                 or atom_name in _HBA_SIDECHAIN.get(resname, frozenset())
                 or (res_idx == 20 and element in ("O", "N"))
             )
@@ -292,7 +294,7 @@ def _compute_52d_node_features(
         is_hbd = (
             1.0
             if (
-                (atom_name == "N" and resname != "PRO")
+                (is_std_polymer and atom_name == "N" and resname != "PRO")
                 or atom_name in _HBD_SIDECHAIN.get(resname, frozenset())
             )
             else 0.0
@@ -363,15 +365,26 @@ def _load_protein_heavy_atoms(
     structure_path: Path,
     *,
     include_metals: bool = True,
+    keep_metals: bool | None = None,
+    keep_cofactors: Sequence[str] | frozenset[str] | None = DEFAULT_STRUCTURAL_COFACTORS,
 ) -> tuple[np.ndarray, list[tuple[str, str, str]]]:
     """Load heavy (non-H, non-water, non-ligand) protein atoms from a PDB or mmCIF file.
 
     Filters out non-protein HETATM records (co-crystal organic ligands, membrane lipids,
     buffers, cryoprotectants, and solvents) to prevent ligand-atom leakage when parsing raw
     holo PDB/mmCIF structures. Retains standard polymer amino-acid residues
-    (``residue.id[0] == " "``), selenomethionine (``MSE``), and optionally catalytic metal
-    ions (``ZN, MG, CA, FE, MN, CU, CO, NI, K, NA``).
+    (``residue.id[0] == " "``), selenomethionine (``MSE``), optionally catalytic metal ions
+    (``ZN, MG, CA, FE, MN, CU, CO, NI, K, NA``), and optionally whitelisted integral
+    structural cofactors (default ``("FAD", "ADP")`` for ``MAOB``/``MAOA`` and ``NLRP3``).
+    Pass ``keep_cofactors=None`` or ``()`` to strip all organic cofactors.
     """
+    effective_metals = include_metals if keep_metals is None else bool(keep_metals)
+    cofactor_set: frozenset[str] = (
+        frozenset(str(c).strip().upper() for c in keep_cofactors if str(c).strip())
+        if keep_cofactors
+        else frozenset()
+    )
+
     suffix = structure_path.suffix.lower()
     if suffix in (".cif", ".mmcif"):
         parser: Any = MMCIFParser(QUIET=True)
@@ -389,14 +402,20 @@ def _load_protein_heavy_atoms(
                 continue
             hetflag = str(residue.id[0])
             is_polymer = hetflag == " " or resname in _MODIFIED_POLYMER_RESNAMES
-            is_metal_ion = include_metals and resname in _METAL_ELEMENTS
-            if not (is_polymer or is_metal_ion):
+            is_metal_ion = effective_metals and resname in _METAL_ELEMENTS
+            is_cofactor = resname in cofactor_set
+            if not (is_polymer or is_metal_ion or is_cofactor):
                 continue
             for atom in residue.get_atoms():
                 element = _infer_element(atom)
                 if element == "H" or element == "D":
                     continue
-                if is_metal_ion and not is_polymer and element not in _METAL_ELEMENTS:
+                if (
+                    is_metal_ion
+                    and not is_polymer
+                    and not is_cofactor
+                    and element not in _METAL_ELEMENTS
+                ):
                     continue
                 coord = np.asarray(atom.get_coord(), dtype=np.float32)
                 if not np.all(np.isfinite(coord)):
@@ -579,6 +598,8 @@ def extract_pocket_from_files(
     pocket_cutoff: float = 10.0,
     contact_cutoff: float = 4.5,
     max_atoms: int = 384,
+    keep_metals: bool = True,
+    keep_cofactors: Sequence[str] | frozenset[str] | None = DEFAULT_STRUCTURAL_COFACTORS,
 ) -> PocketFeatures:
     """Extract centered 3D coordinates, 52-dim E(3)-invariant features, and ligand targets.
 
@@ -588,7 +609,11 @@ def extract_pocket_from_files(
     """
     pocket_path = Path(pocket_pdb)
     pid = (pdb_id or pocket_path.stem.split("_")[0]).strip().lower()
-    prot_coords, prot_meta = _load_protein_heavy_atoms(pocket_path)
+    prot_coords, prot_meta = _load_protein_heavy_atoms(
+        pocket_path,
+        keep_metals=keep_metals,
+        keep_cofactors=keep_cofactors,
+    )
     if len(prot_coords) == 0:
         raise ValueError(f"No heavy protein atoms found in {pocket_path}")
 
@@ -658,6 +683,8 @@ def featurize_pdb_pocket_inference(
     pocket_cutoff: float = 10.0,
     max_atoms: int = 384,
     pdb_id: str | None = None,
+    keep_metals: bool = True,
+    keep_cofactors: Sequence[str] | frozenset[str] | None = DEFAULT_STRUCTURAL_COFACTORS,
 ) -> PocketFeatures:
     """Featurize a novel protein PDB/mmCIF pocket for ligand-free de novo inference.
 
@@ -668,6 +695,9 @@ def featurize_pdb_pocket_inference(
         pocket_cutoff: Inclusion radius in Angstroms from ``center``.
         max_atoms: Maximum number of heavy atoms retained (closest to ``center``).
         pdb_id: Optional identifier label.
+        keep_metals: Retain catalytic metal ions (default ``True``).
+        keep_cofactors: Whitelist of integral structural cofactor residue names to retain
+            (default ``("FAD", "ADP")``); pass ``None`` or ``()`` to strip cofactors.
 
     Returns:
         ``PocketFeatures`` with centered ``float32`` coordinates and 52-dim E(3)-invariant
@@ -675,7 +705,11 @@ def featurize_pdb_pocket_inference(
     """
     path = Path(pdb_path)
     pid = (pdb_id or path.stem.split("_")[0]).strip().lower()
-    prot_coords, prot_meta = _load_protein_heavy_atoms(path)
+    prot_coords, prot_meta = _load_protein_heavy_atoms(
+        path,
+        keep_metals=keep_metals,
+        keep_cofactors=keep_cofactors,
+    )
     if len(prot_coords) == 0:
         raise ValueError(f"No heavy protein atoms found in {path}")
 
@@ -712,6 +746,7 @@ def featurize_pdb_pocket_inference(
 
 
 __all__ = [
+    "DEFAULT_STRUCTURAL_COFACTORS",
     "LIGAND_FP_DIM",
     "LIGAND_PROP_NAMES",
     "POCKET_NODE_DIM",
