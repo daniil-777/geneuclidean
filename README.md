@@ -1,38 +1,104 @@
-# GenEuclidean v3.0
+# GenEuclidean v3.1
 
-**SE(3)-Equivariant 3D Protein Pocket-Conditioned Chemical Foundation Transformers, Local LLMs & Binding Affinity Prediction**
+**SE(3)-Equivariant 3D Protein Pocket-Conditioned Chemical Foundation Transformers, Calibrated CNS-Safe & Subtype-Selective *De Novo* Drug Design, and Interactive 3D Molecular Studio**
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-3776AB.svg?logo=python&logoColor=white)](pyproject.toml)
 [![PyTorch 2.x](https://img.shields.io/badge/PyTorch-2.x%20(MPS%20%7C%20CUDA%20%7C%20CPU)-EE4C2C.svg?logo=pytorch&logoColor=white)](pyproject.toml)
 [![Transformers 5.x · PEFT](https://img.shields.io/badge/Transformers%205.x-PEFT%20LoRA-FFD21E.svg)](docs/llm_research.md)
 [![e3nn 0.6](https://img.shields.io/badge/e3nn-0.6-6E40C9.svg)](docs/architecture.md)
 [![RDKit 2026.3](https://img.shields.io/badge/RDKit-2026.3-2C7BB6.svg)](pyproject.toml)
-[![CI](https://img.shields.io/badge/CI-ruff%20%C2%B7%20mypy%20%C2%B7%20pytest%20(167)-2EA44F.svg)](.github/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v3.0.0-0969DA.svg)](pyproject.toml)
+[![CI](https://img.shields.io/badge/CI-ruff%20%C2%B7%20mypy%20%C2%B7%20pytest%20(187)-2EA44F.svg)](.github/workflows/ci.yml)
+[![Release](https://img.shields.io/badge/release-v3.1.0-0969DA.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-F59E0B.svg)](pyproject.toml)
+
+![Flagship Tourette DRD1 3D Studio Hero Complex](results/figures/15a_drd1_tourette_3d_hero.png)
+*GenEuclidean v3.1 dark-studio 3D render of flagship *in silico* Tourette Syndrome `DRD1` (`9LLG`) de novo lead `DRD1_1` (`-9.26 kcal/mol`, `LE = 0.488`, $\Delta\Delta G_{\text{mean}} = -1.31\text{ kcal/mol}$ vs. off-target `DRD2:6CM4/6LUQ`, `CNS MPO v2 = 5.67`, `P(hERG) = 0.08`, `PoseBusters PASS`) rendered directly from verified `PocketPerceiverResampler` attention and `interactions3d.py` contacts. Open the full 12-target interactive `3Dmol.js` WebGL gallery in [`results/viz3d/cns_tourette_3d_studio.html`](results/viz3d/cns_tourette_3d_studio.html).*
 
 ---
 
 ## Executive Summary
 
-**GenEuclidean v3.0** bridges our mathematically verified chiral **$SE(3)$-equivariant 3D protein pocket encoder (`PaiNN-SE3`)**, **TamGen-style `PocketCVAE`**, and **multi-task biophysical heads (`pKd` + `DrugCLIP`)** directly into **pretrained billion-molecule Chemical Foundation Transformers (`ibm-research/GP-MoLFormer-Uniq`, `entropy/gpt2_zinc_87m`) and compact local general LLMs (`Qwen/Qwen2.5-0.5B`)** via a permutation- & $SE(3)$-invariant **`PocketPerceiverResampler` (`M = 24` soft prefix)**, **`ScaleMatchRMSNorm`**, **LoRA (`r = 16`)**, **11.15× KV-cached Classifier-Free Guidance (CFG)**, and **LoRA-only Stabilized RPO-DPO**.
+**GenEuclidean v3.1** bridges our mathematically verified chiral **$SE(3)$-equivariant 3D protein pocket encoder (`PaiNN-SE3`)**, **TamGen-style `PocketCVAE`**, and **multi-task biophysical heads (`pKd` + `DrugCLIP`)** directly into **pretrained billion-molecule Chemical Foundation Transformers (`ibm-research/GP-MoLFormer-Uniq`, `entropy/gpt2_zinc_87m`) and compact local general LLMs (`Qwen/Qwen2.5-0.5B`)** via a permutation- & $SE(3)$-invariant **`PocketPerceiverResampler` (`M = 24` soft prefix)**, **`ScaleMatchRMSNorm`**, **LoRA (`r = 16`)**, **11.15× KV-cached Classifier-Free Guidance (CFG)**, and **LoRA-only Stabilized RPO-DPO**.
 
-Running natively on **Apple Silicon MPS** (as well as **Google Colab T4/L4/A100 GPUs** via our end-to-end notebook + SHA256 local bundle importer), v3.0 scales the generative chemical prior **2,600×–4,400×** (from 249k ZINC SMILES in v2.0 to **650M unique / 1.1B ZINC+PubChem SMILES** in `GP-MoLFormer-Uniq`) while storing trained 3D adapters in only **19.91 MB** and preserving `pKd` (`r = 0.746`) and `DrugCLIP` (`R@5 = 62.1%`, `AUC = 0.937`) bit-for-bit.
+New in **v3.1**, we extend GenEuclidean beyond PDBbind/CASF-2016 into **pharmaceutical-grade CNS neuroscience *de novo* drug design** across **12 verified *Homo sapiens* Tourette Syndrome and psychiatric 3D targets** (`DRD1`, `DRD2`, `DRD3`, `VMAT2`, `ADRA2A`, `HRH3`, `PDE10A`, `CHRM4`, `HTR2A`, `SERT`, `TAAR1`, `DAT`) with **Pfizer CNS MPO v1/v2**, **5-fold Bemis-Murcko scaffold-CV calibrated ADMET oracles (`B3DB`, `Pgp_Broccatelli`, `hERG_Karim`) with ECFP4 Applicability Domains**, **Applicability-Domain-damped `CNS-RPO-DPO`**, **6-channel 3D non-covalent interaction profiling (`interactions3d.py`)**, and a **dual-mode 3D WebGL + 300-DPI static studio visualizer (`viz3d.py`)**—all running natively on a single **Apple M3 Pro** (and **Google Colab T4/L4/A100 GPUs** via our end-to-end notebook + SHA256 local bundle importer).
 
-Originally begun as a 2021 ETH Zürich MODLAB semester thesis (*De novo drug design using protein structural information and Generative neural network models*, preserved at git tag `v1.0.0-thesis-2021`), GenEuclidean's three-generation progression on **zero-leakage CASF-2016** demonstrates consistent gains across chemical quality, 3D interpretability, and physical plausibility:
+Originally begun as a 2021 ETH Zürich MODLAB semester thesis (*De novo drug design using protein structural information and Generative neural network models*, preserved at git tag `v1.0.0-thesis-2021`), GenEuclidean's progression across **zero-leakage CASF-2016** and **12 human CNS neuroscience targets** demonstrates consistent, auditable gains:
 
-| Dimension | 2021 Thesis (`v1.0.0-thesis-2021`) | GenEuclidean v2.0 (`PaiNN-SE3 + RPO-DPO`) | GenEuclidean v3.0 (`PaiNN-SE3 + GP-MoLFormer + RPO-DPO`) |
-| :--- | :--- | :--- | :--- |
-| **3D Geometry & Symmetry** | `.long()` int-truncated coords; `BatchNorm1d`; `2.0 Å` cutoff | Strict `float32` `10.0 Å` pocket / `5.5 Å` kNN; chiral `PaiNN-SE3` (`< 8e-6` $SE(3)$) | Frozen `PaiNN-SE3` + `PocketPerceiverResampler` (`SO(3)` prefix `4.05e-6`, logits `4.73e-5`, exact `0.0` pad attn) |
-| **Chemical Prior Scale** | `0` (trained from scratch on 4k PDBbind) | `249k` ZINC SMILES (`4.77M` RoPE+SwiGLU) | **`650M uniq / 1.1B`** ZINC+PubChem (`46.8M` `GP-MoLFormer-Uniq`, `19.91 MB` LoRA+Perceiver adapter) |
-| **Chemical Validity (Raw / MPO)** | `65.0%` (uncanonicalized) | `91.6%` raw / `100.0%` MPO Top-10 | **`94.9%` raw** (`+3.3 pp` vs v2, `+29.9 pp` vs Thesis) / **`100.0%` MPO Top-10** |
-| **Medicinal Chemistry (Raw / MPO)** | QED `0.450`, SA `4.00` | QED `0.521` (`0.618` MPO), SA `3.36` (`3.11` MPO), Lipinski `96.3%` | **QED `0.560` (`0.673` MPO)**, **SA `2.79` (`2.57` MPO)**, Lipinski `95.3%` (`99.6%` MPO), PAINS-free **`97.8%` (`100.0%` MPO)** |
-| **Causal 3D Pocket Specificity** | Dice `0.29` mislabeled; 95% seq-id leakage | Zero-leakage CASF-2016: True Tan `0.157`, Count Dice `0.317` (vs Shuf `0.201`), MW `r = 0.928` | **True Tan `0.163`** (vs Shuf `0.101`, Wilcoxon `p = 2.78e-12`, MWU `p = 3.64e-133`), Count Dice `0.309` (vs `0.204`), MW/LogP `r = 0.793 / 0.800` |
-| **3D Interpretability (`<4.5 Å` Attn)** | Not supported | `1.66×` `<4.5 Å` contact enrichment | **`6.31×`** (`52.5%` contact mass — **`3.8×` sharper** than v2.0, preserved bit-exact by LoRA RPO-DPO) |
-| **Binding Affinity & Retrieval (285p)** | `pKd r = 0.503` (random 5-fold CV) | **`pKd r = 0.746`** (`RMSE 1.448`), **`DrugCLIP R@1 = 30.5% / R@5 = 62.1% / AUC = 0.937`** | **`pKd r = 0.746`** (`RMSE 1.448`), **`DrugCLIP R@1 = 30.5% / R@5 = 62.1% / AUC = 0.937`** (bit-for-bit preserved) |
-| **30-Pocket AutoDock Vina + PoseBusters** | None | **Top-1 `-8.193 kcal/mol`** (`58.6%` HA), PB `94.6%`, 0-clash `95.2%`, Strain `50.60`, Docked QED `0.648` / SA `2.92` | Top-1 `-7.960` (med `-8.017`, `53.6%` HA), **PB `96.6%`**, **0-clash `96.6%`**, **Strain `41.96` (`-46.2%` vs v2 Base)**, **Docked QED `0.676` / SA `2.61`** |
+| Dimension | 2021 Thesis (`v1.0.0-thesis-2021`) | GenEuclidean v2.0 (`PaiNN-SE3 + RPO-DPO`) | GenEuclidean v3.0 (`GP-MoLFormer + RPO-DPO`) | **GenEuclidean v3.1 (`CNS-Safe & Selective 3D-LLM`)** |
+| :--- | :--- | :--- | :--- | :--- |
+| **3D Geometry & Symmetry** | `.long()` int-truncated coords; `2.0 Å` cutoff | Strict `float32` chiral `PaiNN-SE3` (`< 8e-6` $SE(3)$) | Frozen `PaiNN-SE3` + `Perceiver` (`SO(3)` `4.05e-6`, exact `0.0` pad attn) | **Bit-exact `0.0` 3D drift**; organic `HETATM` leak patched; **`7.12×`** `<4.5 Å` CNS contact attn |
+| **Chemical Prior & Domain** | `0` (4k PDBbind from scratch) | `249k` ZINC SMILES (`4.77M`) | `650M uniq / 1.1B` `GP-MoLFormer-Uniq` (`19.91 MB` adapter) | **1.1B SMILES + 12 *Homo sapiens* CNS targets** (36k ChEMBL, B3DB, TDC, 29 clean PDBs) |
+| **Chemical Validity / Novelty** | `65.0%` / `65.0%` | `91.6%` / `98.2%` | `94.9%` / `97.5%` (CASF-2016) | **`99.4%` raw valid / `98.9%` strict novelty / `IntDiv1 0.852`** (`95.9%` CASF-2016 retained) |
+| **MedChem & CNS Safety** | QED `0.450`, SA `4.00` | QED `0.521`, SA `3.36`, PAINS `97.1%` | QED `0.560` (`0.673` MPO), SA `2.79` (`2.57` MPO) | **CNS MPO v2 `5.00`**, `P(BBB+) 0.827`, `P(hERG) 0.155` (`-71%`), **Joint CNS-Safe `37.0%`** (`5×` SFT) |
+| **3D Interpretability & PLIF** | Not supported | `1.66×` `<4.5 Å` attn | `6.31×` `<4.5 Å` attn (`52.5%` mass) | **`7.12×` `<4.5 Å` CNS attn** (`4.25×` hotspots); **6-channel 3D PLIF + Interactive WebGL Studio** |
+| **Affinity & Retrieval (285p)** | `pKd r = 0.503` (random CV) | `pKd r = 0.746`, `CLIP R@5 = 62.1%` | `pKd r = 0.746`, `CLIP R@5 = 62.1%` | **`pKd r = 0.7461`, `CLIP R@5 = 62.1%`** (bit-for-bit preserved on CASF-2016) |
+| **Independent 3D Docking** | None | CASF-2016 Top-1 `-8.193`, PB `94.6%` | CASF-2016 PB `96.6%`, Strain `41.96` | **Gate 1 redock `1.02 Å` med**; Iter-3 **`100.0%` PB**, **`LLE 3.90`**, **`92.0%` Phys+Safe**, **$10\times 10$ $p=0.0081$** |
 
-> **Deep Technical Docs:** See [`docs/architecture.md`](docs/architecture.md) for the complete mathematical & parameter specification (v2.0 + v3.0), [`docs/llm_research.md`](docs/llm_research.md) for our 2024–2026 Chemical/Local LLM scouting & tokenization study, and [`docs/legacy_audit.md`](docs/legacy_audit.md) for the line-by-line forensic audit of v1.0 defects.
+> **Deep Technical & Scientific Docs:**
+> - [`docs/neuro_tourette_psychiatry.md`](docs/neuro_tourette_psychiatry.md) — **Full v3.1 Computational Chemistry Manuscript** (Gates 0–3, Basic-Amine CNS Paradox, AD-Damping Proof, $10\times 10$ Cross-Target Selectivity, Tourette `DRD1` vs. `DRD2`, and Curated Top-12 Dossiers).
+> - [`docs/industry_datasets.md`](docs/industry_datasets.md) — **2024–2026 Industry Pharma Dataset Architecture** (PLINDER-2026, HiQBind, SAIR, MISATO, GPCRdb, B3DB, TDC, Biogen/Polaris, OpenADMET, and 7 empirically caught data-hygiene traps).
+> - [`docs/architecture.md`](docs/architecture.md) | [`docs/llm_research.md`](docs/llm_research.md) | [`docs/legacy_audit.md`](docs/legacy_audit.md) — Core `v2.0` / `v3.0` mathematical specifications, LLM scouting, and `v1.0` forensic audit.
+
+---
+
+## GenEuclidean v3.1: Publishable CNS Neuroscience (Tourette Syndrome & Psychiatry) & Industry Datasets
+
+> **Translational Research Disclaimer:** All CNS molecules generated, scored, docked, or showcased in GenEuclidean v3.1 are strictly ***in silico* computational hypotheses** for academic drug-discovery research. They are **not** clinically tested medicines or medical advice.
+
+Inspired by **Emalex Biosciences / Teva's Phase 3 D1AMOND breakthrough of ecopipam** (`DRD1` selective antagonist for Tourette Syndrome without $\text{D}_2$ EPS/tardive dyskinesia; *JAMA Neurology* 2026, FDA Priority Review), **BMS/Karuna's Cobenfy** (`CHRM4`/`CHRM1`, FDA Sep 2024), and **2023–2026 human cryo-EM structures** (`DRD1 9LLG/9URL`, `VMAT2 8T69/9KQ8`, `CHRM4 8FX5`, `TAAR1 8W88`, `DAT 9JKI/8Y2G`), v3.1 executes a **4-Gate, 3-Iteration Closed-Loop Study** where **AutoDock Vina v1.2.7 is 100% excluded from all training rewards** (strict anti-Goodhart separation):
+
+### Four Headline v3.1 Scientific Findings ([`docs/neuro_tourette_psychiatry.md`](docs/neuro_tourette_psychiatry.md))
+
+1. **Gates 0–2 Trustworthiness Passed:** Multi-seed unbiased 2D-to-3D native redocking across 10 core human CNS pockets achieves **`1.02 Å` median Top-1 $\text{RMSD}_{\text{sym}}$** (`1.00 Å` Best-of-3, **`90.0% <= 2.0 Å`**, **`96.7%` canonical anchor recovery**, **`100.0%` PoseBusters**; [`cns_gate1_redocking.md`](results/tables/cns_gate1_redocking.md)). Strict 5-fold Bemis-Murcko scaffold-CV ADMET oracles (`0` leakage) achieve **`BBB` ROC-AUC `0.9150` (`ECE 0.0304`)**, **`P-gp` inhibition `0.9269` (`ECE 0.0253`)**, **`hERG_Karim` `0.8532` (`ECE 0.0126`; external non-overlapping Wang hERG `0.9118`)**, and 12-target selectivity QSAR mean AUC **`0.9794`** (`DRD1 0.9901`, `DRD2 0.9698`; [`cns_admet_cv_metrics.json`](results/tables/cns_admet_cv_metrics.json)).
+2. **Resolving the Basic-Amine CNS Paradox (Iter 0 → Iter 1 → Iter 2):** Zero-shot `v3.0` (`Iter-0`) lacks aminergic GPCR pharmacophores (`9.2%` basic amines). Human ChEMBL 3D LoRA SFT (`Iter-1`) learns authentic CNS amines (`58.3%`), causing `P(hERG)` to spike to **`0.531`** (matching clinical neuroleptics `Ref-Clinical = 0.509`; Joint CNS-Safe `7.5%`). Applicability-Domain-damped LoRA-only `CNS-RPO-DPO` (`Iter-2`) **preserves `50.0%` basic amines** (`5.4×` `Iter-0`, `2.3×` MW/LogP-matched ZINC `Ctrl-0B`) while slashing `P(hERG)` **`-71%`** (`0.155`, $\delta = -0.70$, $p = 4.88\times 10^{-4}$) and `P(P-gp)` **`-76%`** (`0.121`), lifting Joint CNS-Safe **`5×`** to **`37.0%`** (`+29.5 pp` vs. `Iter-1`, `11/12` Holm; `+27.4 pp` vs. `Ctrl-0B`, `12/12` Holm) with **`99.4%` validity**, **`98.9%` strict novelty**, **`IntDiv1 = 0.852`**, and **bit-exact `0.0` 3D drift** ([`cns_study_summary.md`](results/tables/cns_study_summary.md)).
+3. **Anti-Reward-Hacking Proof (Ablation A3):** Disabling Applicability-Domain damping (`A3_NoAD`) induces out-of-domain exploitation (`Min AD 0.326 → 0.300`, $p = 9.77\times 10^{-4}$), drops CNS scaffold fidelity (`Test-Scaf SNN -0.024`, $p = 4.88\times 10^{-4}$), and crashes verified In-AD Joint CNS-Safe by **`-10.6 pp`** (`37.0% → 26.5%`).
+4. **Independent 100%-Held-Out 3D Physics (`1,423` Vina Dockings) & $10\times 10$ Selectivity:** `Iter-2` achieves **`100.0%` PoseBusters & Zero-Clash (`120/120`)**, peak **`LLE_Vina = 3.90`**, **`92.0%` Core-10 (`93.3%` All-12) Joint Physics + CNS-Safe** (`+58.0 pp` vs. `Ctrl-0A`, `+34.0 pp` vs. `Iter-1`, `+16.0 pp` vs. MW/LogP-matched `Ctrl-0B`), and beats `Iter-2_Shuffled` on every held-out 3D metric ($\Delta G -0.38\text{ kcal/mol}$, `95% CI [-0.71, -0.04]`, Top-1 Anchor `25.0% vs. 13.0%`). Across the **$10\times 10$ cross-target docking matrix (`500` runs)**, 10,000× permutation tests verify global diagonal dominance on **raw $\Delta G$ ($p = 0.0268$)**, **column-Z (`+0.346`, $p = 0.0081$, `9/10` above mean, `DRD1` ranked `#1/10`)**, and **double-centered interaction Z (`+0.617`, $p = 0.0235$)** ([`cns_iter3_summary.md`](results/tables/cns_iter3_summary.md)).
+
+### Table 0 — GenEuclidean v3.1 Closed-Loop CNS Progression & Held-Out 3D Physics Summary (12 Human Targets)
+
+| Arm | Valid | Strict Nov | IntDiv1 | Basic Amines | MPO v2 | `P(hERG)` ↓ | Joint CNS-Safe (All-12) ↑ | Held-Out Vina $\Delta G$ (Core-10) | `LLE_Vina` ↑ | PoseBusters ↑ | Top-1 Anchor ↑ | **Joint Phys + CNS-Safe ↑** |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **`Ctrl-0A` (Random ZINC)** | 100.0% | 1.5% | 0.878 | 11.7% | 4.85 | 0.215 | 3.5% | -8.10 (`LE 0.382`) | 3.61 | 98.0% | 15.0% | 34.0% |
+| **`Ctrl-0B` (MW/LogP ZINC)** | 100.0% | 1.6% | 0.897 | 21.7% | 4.94 | 0.162 | 9.6% | -7.72 (`LE 0.409`) | 3.63 | 97.0% | 11.0% | 76.0% |
+| **`Iter-0` (`v3.0` Zero-Shot)** | 98.2% | 98.9% | 0.856 | 9.2% | 4.80 | 0.177 | 16.2% | -7.81 (`LE 0.426`) | 3.23 | 99.0% | 10.0% | 82.0% |
+| **`Iter-1` (`v3.1` CNS SFT)** | 98.5% | **99.2%** | 0.863 | **58.3%** | 4.36 | 0.531 | 7.5% | -7.87 (`LE 0.399`) | 3.58 | 97.0% | **31.0%** | 58.0% |
+| **`Iter-2` (`v3.1` CNS-RPO-DPO)** | **99.4%** | **98.9%** | **0.852** | **50.0%** | **5.00** | **0.155** | **37.0%** | **-7.79** (`LE 0.402`) | **3.90** | **100.0%** | **25.0%** | **92.0%** *(93.3% All-12)* |
+| `Iter-2_Shuffled` (3D Control) | 99.4% | 99.1% | 0.854 | 54.2% | 4.99 | 0.156 | 32.2% | -7.42 (`LE 0.385`) | 3.47 | 94.0% | 13.0% | 82.0% |
+| `A3_NoAD` (No AD-Damping) | 98.8% | 99.1% | 0.874 | — | 5.04 | 0.147 | **26.5%** (`-10.6 pp`) | — | — | — | — | — |
+
+#### Highlighted Flagship Curated *In Silico* Tourette & Psychiatric Leads (`100%` PoseBusters Pass, `Max ChEMBL Tan <= 0.53`)
+
+| Target (`PDB`) | Lead | Vina $\Delta G$ | LE | $\Delta\Delta G_{\text{vs DRD2}}$ | Anchor (Å) | MPO v2 | BBB / P-gp / hERG | Max ChEMBL Tan. | Canonical SMILES |
+| :--- | :--- | ---: | ---: | ---: | :--- | ---: | :---: | ---: | :--- |
+| **`DRD1`** (`9LLG`) | **`DRD1_1`** | **-9.26** | 0.488 | **-1.31** *(vs Ecopipam `-1.04`)* | `Asp103` (3.02, m4) | **5.67** | 0.94 / 0.09 / **0.08** | 0.53 | `CN1CCN(C(=O)c2ccc3ccccc3n2)CC1` |
+| **`DRD1`** (`9LLG`) | **`DRD1_2`** | **-8.65** | 0.432 | **-1.04** | **`Asp103` (3.02, m1)** | **5.57** | 0.88 / 0.06 / **0.06** | 0.42 | `CN1CCc2cccc(C(=O)N3CCC(O)CC3)c2C1` |
+| **`VMAT2`** (`8T69`) | **`VMAT2_1`** | **-9.01** | 0.409 | **-0.66** | `Glu312` (3.99, m2) | **5.90** | 0.87 / 0.04 / 0.15 | 0.45 | `COc1cc2c(cc1OC)[C@H]1CCC(C(=O)N(C)C)N1CC2` |
+| **`CHRM4`** (`8FX5`) | **`CHRM4_1`** | **-9.26** | **0.514** | **-0.85** | `Asp112` (3.39, m2) | 4.58 | 0.96 / 0.08 / 0.12 | 0.48 | `CN1CCCC(CCNC(=O)c2ccccc2)C1` |
+| **`HRH3`** (`7F61`) | **`HRH3_1`** | **-9.05** | 0.476 | — | **`Asp114` (3.63, m1)** | 4.58 | 0.96 / 0.09 / 0.10 | 0.37 | `CN1CCCC(C(=O)NCc2cccc(Cl)c2F)C1` |
+| **`PDE10A`** (`5SJX`) | **`PDE10A_2`** | **-8.71** | 0.415 | +0.94 | **`Gln726` (3.48, m1)** | **6.00** | 0.81 / 0.10 / 0.10 | 0.43 | `Cc1cnc(C)c(-c2ccc(C(=O)N3CCCC3)cc2)n1` |
+| **`SERT`** (`5I6X`) | **`SERT_1`** | **-9.49** | **0.500** | **-1.54** | `Asp98` (2.77, m4) | 5.12 | **0.98** / 0.06 / **0.06** | 0.41 | `O=C1CC(c2ccccc2)(c2ccccc2)CCN1` |
+| **`DAT`** (`9JKI`) | **`DAT_1`** | **-9.33** | 0.466 | — | **`Asp79` (3.31, m1)** | **5.79** | 0.92 / 0.05 / 0.12 | 0.38 | `CC(C)N1CCC(C(=O)c2ccc3c(c2)OCO3)CC1` |
+
+*(Full 12-target curated dossiers, statistical CIs, and transparent medicinal-chemistry triage notes on `DRD3_1` [DCU] & `PDE10A_1` [VMAT2 ADMET sink] are in [`docs/neuro_tourette_psychiatry.md`](docs/neuro_tourette_psychiatry.md).)*
+
+### v3.1 CNS Neuroscience & 3D Studio Figures (Figures 12–16 + Interactive WebGL Gallery)
+
+- **Interactive 12-Target 3D WebGL Studio (`3Dmol.js`, zero backend required):** Open [`results/viz3d/cns_tourette_3d_studio.html`](results/viz3d/cns_tourette_3d_studio.html) in any browser to inspect all 12 curated human CNS protein–ligand complexes with toggleable molecular surface, `PocketPerceiverResampler` attention coloring, native crystal ghost overlay, 6-channel dashed non-covalent contact cylinders, and CNS MPO/ADMET/Vina HUD!
+
+#### 12. Gates 1 & 2 Trustworthiness Audit (Multi-Seed Redocking, Scaffold-CV ADMET Calibration & 3D CNS Attention)
+![GenEuclidean v3.1 Gates 1 & 2 Trustworthiness](results/figures/12_cns_gates12_trustworthiness.png)
+
+#### 13. Closed-Loop Progression, Basic-Amine CNS Paradox Resolution & AD-Damping Proof (Ablations A1–A5)
+![GenEuclidean v3.1 Closed-Loop Progression](results/figures/13_cns_closed_loop_progression.png)
+
+#### 14. Independent Held-Out 3D Physics, $10\times 10$ Cross-Target Selectivity & Tourette `DRD1` vs. `DRD2`
+![GenEuclidean v3.1 Selectivity and Docking](results/figures/14_cns_selectivity_and_docking.png)
+
+#### 15. Studio 3D Binding-Complex Showcase Across Flagship Tourette & Psychiatric Targets
+![GenEuclidean v3.1 3D Complex Showcase](results/figures/15_cns_3d_complex_showcase.png)
+
+#### 16. Curated Top-12 Novel *De Novo* CNS Candidate Portfolio (2D Structures & Verified KPIs)
+![GenEuclidean v3.1 Curated Top-12 CNS Leads 2D Grid](results/figures/16_cns_showcase_molecules_2d.png)
 
 ---
 
@@ -216,7 +282,7 @@ Measured in `float32` across 5 Haar-uniform 3D rotations $\mathbf{R} \in SO(3)$ 
 
 ---
 
-## Visual Results Gallery (11 Publication Figures, 300 DPI)
+## CASF-2016 Visual Results Gallery (Figures 01–11, 300 DPI)
 
 ### GenEuclidean v3.0 Chemical Foundation Transformer & Local LLM Figures
 
@@ -270,12 +336,12 @@ Measured in `float32` across 5 Haar-uniform 3D rotations $\mathbf{R} \in SO(3)$ 
 
 ## Quickstart & Installation
 
-GenEuclidean v3.0 uses [`uv`](https://docs.astral.sh/uv/) and targets **Python 3.12+** on Apple Silicon (MPS), NVIDIA GPUs (CUDA), or CPU.
+GenEuclidean v3.1 uses [`uv`](https://docs.astral.sh/uv/) and targets **Python 3.12+** on Apple Silicon (MPS), NVIDIA GPUs (CUDA), or CPU.
 
 > **Important RDKit Pin:** [`pyproject.toml`](pyproject.toml) explicitly pins `rdkit>=2026.3,<2026.9` to avoid an ARM64 `MurckoDecompose` C++ `RuntimeError ("bad any cast")` observed in newer nightly builds.
 
 ```bash
-# 1. Create virtual environment & install editable with v3.0 LLM + dev extras
+# 1. Create virtual environment & install editable with v3.1 LLM + dev extras
 uv venv --python 3.12
 uv pip install --python .venv/bin/python -e ".[llm,dev]"
 
@@ -285,7 +351,7 @@ uv pip install --python .venv/bin/python -e ".[llm,docking,dev]"
 # 2. Verify environment, device auto-selection (mps > cuda > cpu), LLM extra & caches
 .venv/bin/geneuclidean info
 
-# 3. Run lint, strict mypy, and full 167-test suite (including SE(3)/E(3) & LLM bridge tests)
+# 3. Run lint, strict mypy, and full 187-test suite (SE(3)/E(3), LLM, CNS ADMET & 3D viz tests)
 make lint && make typecheck && make test
 ```
 
@@ -312,11 +378,11 @@ Need an NVIDIA **T4 / L4 / A100** to run full multi-architecture sweeps (includi
 
 ## CLI Reference (`geneuclidean`)
 
-The Typer + Rich CLI ([`src/geneuclidean/cli.py`](src/geneuclidean/cli.py)) exposes **10 subcommands** covering the complete v2.0 + v3.0 SBDD lifecycle:
+The Typer + Rich CLI ([`src/geneuclidean/cli.py`](src/geneuclidean/cli.py)) exposes **13 subcommands** covering the complete v2.0 + v3.0 + v3.1 CNS & 3D Studio SBDD lifecycle:
 
 | Subcommand | Description | Example Usage |
 | :--- | :--- | :--- |
-| `info` | Display version (`3.0.0`), active device, `[llm]` extra status, HF cache & dataset readiness | `geneuclidean info` |
+| `info` | Display version, active device, `[llm]` extra status, HF cache & dataset readiness | `geneuclidean info` |
 | `download` | Download lean dataset stack (PDBbind, LP-PDBBind, CASF-2016, ZINC-250k, AutoDock Vina v1.2.7) | `geneuclidean download --include-vina` |
 | `prepare` | Extract `float32` 3D pocket graphs, build leak-proof splits, and fit JSON vocabularies | `geneuclidean prepare -c configs/geneuclidean_v2_painn.yaml` |
 | `pretrain` | Run Stage-1 unconditional chemical LM pretraining on ZINC-250k | `geneuclidean pretrain -c configs/pretrain_zinc.yaml` |
@@ -326,14 +392,30 @@ The Typer + Rich CLI ([`src/geneuclidean/cli.py`](src/geneuclidean/cli.py)) expo
 | **`sample-llm`** | **Sample de novo ligands via a v3.0 `best_adapter.pt` with KV-cached CFG + MPO reranking** | `geneuclidean sample-llm --adapter runs/geneuclidean_v3_gpmolformer_dpo/best_adapter.pt --pdb-id 1q8t --cfg-scale 1.3 --num-samples 32` |
 | `evaluate` | Run the 5-tier SBDD evaluation suite on any split and write JSON + summary PNGs | `geneuclidean evaluate --checkpoint runs/geneuclidean_v2_painn_dpo/best.pt --split test --split-type casf2016` |
 | `fetch-pdb` | Fetch any novel protein–ligand complex live from RCSB PDB and extract its 10 Å 3D pocket | `geneuclidean fetch-pdb --pdb-id 7l10` |
+| **`cns-targets`** | **List/inspect all 12 verified *Homo sapiens* Tourette & psychiatric 3D targets & anchors** | `geneuclidean cns-targets --target DRD1` |
+| **`cns-admet`** | **Score SMILES with Pfizer CNS MPO v1/v2 + calibrated BBB/P-gp/hERG + ECFP4 AD** | `geneuclidean cns-admet "CN1CCN(C(=O)c2ccc3ccccc3n2)CC1"` |
+| **`viz3d`** | **Profile 6-channel 3D contacts & render interactive `3Dmol.js` WebGL HTML + 300-DPI PNG** | `geneuclidean viz3d --pocket pocket.pdb --ligand hit.sdf --out-html complex.html --out-png complex.png --theme dark` |
 
 ---
 
-## Reproducing Full v2.0 & v3.0 Paper Experiments
+## Reproducing Full v2.0, v3.0 & v3.1 Paper Experiments
 
-All end-to-end training, RPO-DPO alignment, 5-tier CASF-2016 benchmarking, CFG/decoding Pareto sweeps, AutoDock Vina docking, and 11-figure rendering are scripted reproducibly under [`scripts/`](scripts/):
+All end-to-end training, RPO-DPO alignment, 5-tier CASF-2016 benchmarking, v3.1 CNS closed-loop study (Gates 0–3), AutoDock Vina docking, and 17-figure + WebGL rendering are scripted reproducibly under [`scripts/`](scripts/):
 
 ```bash
+# --- v3.1 CNS Neuroscience (Tourette & Psychiatry) Closed-Loop Study (Gates 0-3) ---
+# 1. Gate 1: Multi-seed unbiased native redocking & 3D PLIF across 17 Homo sapiens CNS complexes
+.venv/bin/python scripts/run_cns_redocking.py
+
+# 2. Gates 0/2 + Iterations 0 -> 1 -> 2 + Ablations A1-A5 (Apple M3 Pro MPS GPU)
+.venv/bin/python scripts/run_cns_study.py --stage all --device mps
+
+# 3. Iteration 3: 100%-held-out Vina 3D physics, 10x10 selectivity matrix & DRD1 vs DRD2
+.venv/bin/python scripts/run_cns_docking_selectivity.py
+
+# 4. Render v3.1 Publication Figures (12-16 + 15a Hero) & Interactive 3Dmol.js WebGL Studio
+.venv/bin/python scripts/generate_cns_figures.py --phase all
+
 # --- v2.0 Foundation (Stage-1 ZINC Prior -> Stage-2 PaiNN-SE3 Core -> Stage-3 RPO-DPO) ---
 .venv/bin/python scripts/run_pretrain.py --config configs/pretrain_zinc.yaml --epochs 6 --batch-size 128
 .venv/bin/python scripts/run_stage2_suite.py \
@@ -362,7 +444,7 @@ All end-to-end training, RPO-DPO alignment, 5-tier CASF-2016 benchmarking, CFG/d
   --samples-file results/tables/samples_v3_gpmolformer_dpo.json \
   --split casf2016 --dock-pockets 30 --dock-top-k 5 --dock-exhaustiveness 4 --dock-workers 4 --device cpu
 
-# 5. Re-render all 11 publication figures (300 DPI)
+# 5. Re-render all 11 CASF-2016 figures (300 DPI)
 .venv/bin/python scripts/generate_figures.py && .venv/bin/python scripts/generate_v3_figures.py
 ```
 
@@ -373,8 +455,11 @@ All end-to-end training, RPO-DPO alignment, 5-tier CASF-2016 benchmarking, CFG/d
 Every commit is validated by local Make targets ([`Makefile`](Makefile)) and GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)):
 
 - **Lint & Formatting:** `ruff check src tests scripts` and `ruff format --check src tests scripts` (100-char lines, Python 3.12 ruleset).
-- **Strict Static Typing:** `mypy src` (`disallow_untyped_defs`, `no_implicit_optional`, PEP 561 `py.typed` across all 38 modules).
-- **167 Passing Unit, Equivariance, LLM Bridge, Colab Bundle & End-to-End Tests (`pytest --cov=geneuclidean`):**
+- **Strict Static Typing:** `mypy src` (`disallow_untyped_defs`, `no_implicit_optional`, PEP 561 `py.typed` across all 44 modules).
+- **187 Passing Unit, Equivariance, LLM Bridge, CNS ADMET, 3D Visualizer, Colab Bundle & End-to-End Tests (`pytest --cov=geneuclidean`):**
+  - [`tests/test_cns.py`](tests/test_cns.py) — Offline CI-safe Pfizer CNS MPO v1/v2 exact boundary tests, scaffold-CV ADMET/AD oracle verification, all 12 human `CNSTargetSpec` IDs, and AD-damped composite CNS reward.
+  - [`tests/test_viz3d.py`](tests/test_viz3d.py) — 6-channel 3D non-covalent interaction profiler (`interactions3d.py`), symmetry-corrected RMSD, dark/light 300-DPI complex PNGs, and self-contained `3Dmol.js` WebGL gallery tests.
+  - [`tests/test_cli.py`](tests/test_cli.py) — Offline CI-safe CLI tests for `cns-targets`, `cns-admet`, and `viz3d`.
   - [`tests/test_equivariance.py`](tests/test_equivariance.py) — Exact $SO(3)$, $SE(3)$, chirality, atom permutation, and dummy-atom zero-leakage checks across all 4 encoders on CPU & MPS.
   - [`tests/test_llm_bridge.py`](tests/test_llm_bridge.py) — Offline & live MPS `GP-MoLFormer-Uniq` / `GPT2-ZINC-87M` / `Qwen2.5-0.5B` tests: $SO(3)$ prefix/logit invariance, exact `0.0` pad attention, `ScaleMatchRMSNorm`, KV-cache logit parity, bit-exact adapter checkpoints, and MPS `float16` rejection.
   - [`tests/test_llm_trainer.py`](tests/test_llm_trainer.py) — `LLMConfig` & all 3 v3 YAML validations, 2-phase `PocketLLMTrainer` (Phase A freezes LoRA; Phase B updates LoRA), prompt loss masking, and LoRA-only `run_llm_rpo_dpo` non-LoRA immutability.
@@ -391,19 +476,23 @@ geneuclidean/
 ├── data/
 │   └── metadata/                  # Preserved PDBbind v2019, CASF-2016 & CASF-2013 label CSVs
 ├── docs/
+│   ├── neuro_tourette_psychiatry.md  # Full v3.1 CNS Tourette & psychiatric computational chemistry manuscript
+│   ├── industry_datasets.md       # 2024–2026 pharma dataset architecture, licensing & 7 data-hygiene traps
 │   ├── architecture.md            # Mathematical specification, param counts & equivariance bounds (v2 + v3)
 │   ├── llm_research.md            # 2024–2026 Chemical/Local LLM scouting, tokenization & MPS systems report
 │   └── legacy_audit.md            # Forensic audit of 2021 ETH thesis defects & v2.0 fixes
 ├── notebooks/
 │   └── GenEuclidean_v3_EndToEnd_Colab.ipynb  # End-to-end T4/L4/A100 GPU pipeline & checksummed bundle exporter
 ├── results/
-│   ├── figures/                   # 11 publication-grade 300 DPI figures (01..11_*.png)
-│   └── tables/                    # Verified v2/v3 CSV/MD/JSON benchmarks, CFG sweeps & Vina docking tables
-├── scripts/                       # 8 reproducible CLI drivers (v2/v3 training, eval, docking, plotting, Colab import)
+│   ├── figures/                   # 17 publication-grade 300 DPI figures (01..16_*.png + 15a dark-studio hero)
+│   ├── viz3d/                     # Interactive 3Dmol.js WebGL studio gallery (cns_tourette_3d_studio.html)
+│   └── tables/                    # Verified v2/v3 CASF-2016 + v3.1 CNS Gates 0–3 JSON/MD/CSV benchmarks
+├── scripts/                       # 12 reproducible CLI drivers (v2/v3 + v3.1 CNS redocking, study, docking, figs)
 ├── src/geneuclidean/
-│   ├── cli.py                     # 10-subcommand Typer + Rich CLI (`geneuclidean`)
+│   ├── cli.py                     # 13-subcommand Typer + Rich CLI (`geneuclidean`)
 │   ├── config.py                  # Pydantic v2 hierarchical config (`ExperimentConfig` + `LLMConfig`)
-│   ├── data/                      # fp32 3D featurizer, regex/SELFIES tokenizers, leak-proof splits, RCSB fetch
+│   ├── cns/                       # Pfizer CNS MPO v1/v2, scaffold-CV ADMET+AD oracles, 12 human CNS targets
+│   ├── data/                      # fp32 3D featurizer (organic HETATM-clean), tokenizers, leak-proof splits
 │   ├── models/
 │   │   ├── encoders/              # PaiNN-SE3, EGNN, e3nn v0.6, SchNet, Bessel/Gaussian RBFs
 │   │   ├── decoders/              # RoPE+SwiGLU GatedXAttn Transformer & Masked Bahdanau LSTM
@@ -414,11 +503,11 @@ geneuclidean/
 │   │   └── geneuclidean.py        # Unified v2.0 GenEuclideanModel with CFG null_pocket_token
 │   ├── training/                  # Stage-1 pretrainer, v2 PocketTrainer, v3 PocketLLMTrainer, RPO-DPO
 │   ├── sampling/                  # v2/v3 Min-p, Top-p, Typical, DBS, 11.15× KV-cached CFG & MaxMin MPO reranker
-│   └── evaluation/                # 5-tier SBDD metrics, ETKDGv3/Vina/PoseBusters, publication plots
-├── tests/                         # 11 test modules (167 passing tests across CPU & MPS)
+│   └── evaluation/                # 5-tier SBDD metrics, ETKDGv3/Vina/PoseBusters, interactions3d, viz3d studio
+├── tests/                         # 14 test modules (187 passing tests across CPU & MPS)
 ├── .github/workflows/ci.yml       # Automated Python 3.12 ruff, mypy, and pytest CI
 ├── Makefile                       # Developer workflow targets
-└── pyproject.toml                 # Package metadata (v3.0.0), pinned deps, [llm]/[docking]/[dev] extras
+└── pyproject.toml                 # Package metadata, pinned deps, [llm]/[docking]/[dev] extras
 ```
 
 ### Historical Git Archive Tags
@@ -432,6 +521,7 @@ All research milestones remain intact in git history:
 - `v3.0.0-alpha.1-llm` — v3.0 3D-to-LLM bridge (`hf_backbones`, `PocketPerceiverResampler`, KV-cached CFG, `PocketLLMTrainer`, CLI)
 - `v3.0.0-rc.1` — v3.0 release candidate with verified 4-architecture Chemical/Local LLM benchmarks, Vina docking, Colab pipeline, and Figures 10–11
 - `v3.0.0` — Full GenEuclidean v3.0 release (`SE(3)`-equivariant 3D pocket-conditioned Chemical Foundation Transformer & Local LLM platform)
+- `v3.1.0` — Publishable CNS Neuroscience (Tourette & Psychiatry) closed-loop study, calibrated scaffold-CV ADMET/AD oracles, 6-channel 3D PLIF profiler, dual-mode WebGL/300-DPI 3D Studio, and Industry Datasets architecture
 
 ---
 
@@ -442,9 +532,9 @@ If you use GenEuclidean in your research, please cite:
 ```bibtex
 @software{emtsev2026geneuclidean,
   author       = {Emtsev, Daniil},
-  title        = {{GenEuclidean v3.0: SE(3)-Equivariant 3D Protein Pocket-Conditioned Chemical Foundation Transformers, Local LLMs, and Binding Affinity Prediction}},
+  title        = {{GenEuclidean v3.1: SE(3)-Equivariant 3D Protein Pocket-Conditioned Chemical Foundation Transformers, Calibrated CNS-Safe De Novo Drug Design, and 3D Molecular Studio}},
   year         = {2026},
-  version      = {3.0.0},
+  version      = {3.1.0},
   url          = {https://github.com/daniil-777/geneuclidean}
 }
 ```
@@ -467,4 +557,7 @@ Released under the **MIT License** (see [`pyproject.toml`](pyproject.toml)).
 10. Skinnider, M. A. *Invalid SMILES are beneficial rather than detrimental to chemical language models.* Nature Machine Intelligence, 2024.
 11. Buttenschoen, M., Morris, G. M., & Deane, C. M. *PoseBusters: AI-based docking methods fail to generate physically valid poses or generalise to novel sequences.* Chemical Science, 2024.
 12. Pang, R. Y. et al. *Iterative Reasoning Preference Optimization (RPO).* NeurIPS 2024; Nguyen, M. et al. *Turning Up the Heat: Min-p Sampling.* ICLR 2025 (Oral).
-13. Eberhardt, J. et al. *AutoDock Vina 1.2.0: New Docking Methods, Expanded Force Field, and Python Bindings.* J. Chem. Inf. Model., 2021.
+13. Eberhardt, J. et al. *AutoDock Vina 1.2.0: New Docking Methods, Expanded Force Field, and Python Bindings.* J. Chem. Inf. Model., 2021; Meli, R. & Biggin, P. C. *spyrmsd.* J. Cheminform., 2020.
+14. Wager, T. T. et al. *Pfizer CNS MPO v1 & v2.* ACS Chem. Neurosci., 2010 & 2016; Rankovic, Z. *CNS Physicochemical Space.* J. Med. Chem., 2015 & 2017.
+15. Meng, F. et al. *B3DB.* Scientific Data, 2021; Huang, K. et al. *Therapeutics Data Commons.* NeurIPS, 2021; Karim, A. et al. *hERG_Karim.* J. Cheminform., 2021; Fang, C. et al. *Biogen Prospective ADME.* JCIM, 2023.
+16. Gilbert, D. L. et al. *Phase 3 D1AMOND Ecopipam Trial in Tourette Syndrome.* JAMA Neurology, 2026; Pidathala, S. et al. *Human VMAT2 Cryo-EM.* Nature, 2023; Burger, W. A. C. et al. *Human CHRM4-Xanomeline Cryo-EM.* Nat. Commun., 2023; Durairaj, J. et al. *PLINDER.* NeurIPS MLSB, 2024; Wang, Y. et al. *HiQBind.* Digital Discovery, 2025.

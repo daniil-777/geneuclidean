@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "geneuclidean"
-version = "3.0.0"
-description = "SE(3)/E(3)-equivariant 3D protein pocket-conditioned de novo molecular generation with Chemical Foundation Transformers, Local LLMs, and binding affinity prediction"
+version = "3.1.0"
+description = "SE(3)/E(3)-equivariant 3D protein pocket-conditioned de novo molecular generation with Chemical Foundation Transformers, Local LLMs, CNS ADMET/MPO optimization, and 3D interaction studio visualizers"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
