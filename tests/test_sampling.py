@@ -1240,3 +1240,72 @@ def test_cvae_refine_handles_value_error_ligand_encoder_fallback() -> None:
         seed_ligand_fp=torch.rand(16),
     )
     assert len(smiles) == 2
+
+
+def test_rpo_dpo_freezes_non_decoder_normalizes_and_accumulates() -> None:
+    """Verify stabilized Stage-3 RPO-DPO keeps non-decoder params bit-for-bit identical."""
+    torch.manual_seed(42)
+    tokenizer = _MockTokenizer()
+    cfg = ExperimentConfig()
+    cfg.train.device = "cpu"
+
+    model = _ToyPocketModel(vocab_size=tokenizer.vocab_size, d_model=32, use_cvae=True)
+    ref_model = copy.deepcopy(model)
+    non_decoder_before = {
+        name: param.detach().clone()
+        for name, param in model.named_parameters()
+        if not name.startswith("decoder.")
+    }
+    decoder_before = {
+        name: param.detach().clone()
+        for name, param in model.named_parameters()
+        if name.startswith("decoder.")
+    }
+
+    pocket_single = _make_pocket_batch(batch_size=1, seed=19)
+    pairs = build_preference_pairs_from_mpo(
+        pocket_single,
+        smiles_list=["CCCCCO", "CCCO", "CCN", "CCC", "CC", "C"],
+        mpo_scores=[0.95, 0.85, 0.70, 0.30, 0.20, 0.10],
+        min_margin=0.10,
+        max_pairs=3,
+    )
+    assert len(pairs) == 3
+
+    res = run_dpo_alignment(
+        model=model,
+        ref_model=ref_model,
+        preference_pairs=pairs,
+        cfg=cfg,
+        device="cpu",
+        tokenizer=tokenizer,
+        epochs=2,
+        beta=0.5,
+        lr=1e-3,
+        length_normalize=True,
+        freeze_non_decoder=True,
+        sft_nll_weight=0.25,
+        grad_accum_steps=2,
+        save_dir=None,
+    )
+    assert res["epochs"] == 2
+    hist = res["history"]
+    assert all(math.isfinite(float(row["dpo_loss"])) for row in hist)
+    assert all(math.isfinite(float(row["sft_nll"])) for row in hist)
+    assert all(math.isfinite(float(row["total_loss"])) for row in hist)
+    # 3 pairs with grad_accum_steps=2 => 2 optimizer steps per epoch (window sizes 2 and 1)
+    assert hist[0]["optimizer_steps"] == 2
+    assert float(hist[-1]["reward_margin"]) > float(hist[0]["reward_margin"])
+
+    # Every non-decoder parameter must be bit-for-bit identical and have requires_grad restored
+    for name, before in non_decoder_before.items():
+        after = dict(model.named_parameters())[name]
+        assert torch.equal(after.detach(), before), f"Frozen param modified: {name}"
+        assert after.requires_grad is True
+
+    # At least one decoder parameter must have moved cleanly
+    decoder_deltas = [
+        float((dict(model.named_parameters())[name].detach() - before).abs().max().item())
+        for name, before in decoder_before.items()
+    ]
+    assert max(decoder_deltas) > 0.0

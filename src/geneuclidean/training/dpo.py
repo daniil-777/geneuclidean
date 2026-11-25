@@ -119,13 +119,35 @@ def _encode_sequence_to_io(
     return inp, tgt
 
 
+def _compute_decoder_logps(
+    decoder: nn.Module,
+    memory: Tensor,
+    memory_mask: Tensor,
+    input_ids: Tensor,
+    target_ids: Tensor,
+    pad_id: int = 0,
+    length_normalize: bool = True,
+) -> tuple[Tensor, Tensor]:
+    """Compute sequence log-probs and per-token mean log-probs from pocket memory."""
+    dec_out = decoder(input_ids, memory=memory, memory_mask=memory_mask, return_attn=False)
+    logits: Tensor = dec_out[0] if isinstance(dec_out, tuple) else dec_out
+
+    log_probs = F.log_softmax(logits, dim=-1)
+    token_logps = log_probs.gather(dim=-1, index=target_ids.unsqueeze(-1)).squeeze(-1)
+    valid_mask = (target_ids != pad_id).to(dtype=token_logps.dtype)
+    summed = (token_logps * valid_mask).sum(dim=-1)
+    lengths = valid_mask.sum(dim=-1).clamp(min=1.0)
+    per_token = summed / lengths
+    return (per_token if length_normalize else summed), per_token
+
+
 def compute_sequence_logps(
     model: nn.Module,
     pocket_batch: Mapping[str, Any],
     input_ids: Tensor,
     target_ids: Tensor,
     pad_id: int = 0,
-    length_normalize: bool = False,
+    length_normalize: bool = True,
 ) -> Tensor:
     """Compute conditional sequence log-probabilities ``log p(y | pocket)``.
 
@@ -135,7 +157,8 @@ def compute_sequence_logps(
         input_ids: Teacher-forced prefix token IDs ``[B, L]``.
         target_ids: Next-token target IDs ``[B, L]``.
         pad_id: Padding token ID excluded from summation.
-        length_normalize: Whether to divide summed log-probs by non-pad sequence length.
+        length_normalize: Whether to divide summed log-probs by non-pad sequence length
+            (default ``True`` to keep DPO gradients scale-invariant across SMILES lengths).
 
     Returns:
         Sequence log-probabilities of shape ``[B]``.
@@ -160,17 +183,36 @@ def compute_sequence_logps(
         use_null_pocket=False,
     )
     decoder: nn.Module = model.decoder  # type: ignore[assignment]
-    dec_out = decoder(input_ids, memory=memory, memory_mask=memory_mask, return_attn=False)
-    logits: Tensor = dec_out[0] if isinstance(dec_out, tuple) else dec_out
-
-    log_probs = F.log_softmax(logits, dim=-1)
-    token_logps = log_probs.gather(dim=-1, index=target_ids.unsqueeze(-1)).squeeze(-1)
-    valid_mask = (target_ids != pad_id).to(dtype=token_logps.dtype)
-    seq_logps = (token_logps * valid_mask).sum(dim=-1)
-    if length_normalize:
-        lengths = valid_mask.sum(dim=-1).clamp(min=1.0)
-        seq_logps = seq_logps / lengths
+    seq_logps, _ = _compute_decoder_logps(
+        decoder,
+        memory,
+        memory_mask,
+        input_ids,
+        target_ids,
+        pad_id=pad_id,
+        length_normalize=length_normalize,
+    )
     return seq_logps
+
+
+def _encode_pocket_memory(
+    model: nn.Module,
+    pocket_batch: Mapping[str, Any],
+    device: torch.device,
+) -> tuple[Tensor, Tensor]:
+    """Encode a single pocket once into deterministic ``(memory, memory_mask)`` tensors."""
+    coords = pocket_batch["coords"].to(device=device)
+    node_feats = pocket_batch["node_feats"].to(device=device)
+    atom_mask = pocket_batch["atom_mask"].to(device=device)
+    pocket_out = model.encode_pocket(coords, node_feats, atom_mask)  # type: ignore[operator]
+    z_tokens = _extract_z_tokens_deterministic(model, pocket_out.pooled_emb)
+    memory, memory_mask = model.build_memory(  # type: ignore[operator]
+        pocket_out,
+        atom_mask,
+        z_tokens=z_tokens,
+        use_null_pocket=False,
+    )
+    return memory.detach(), memory_mask.detach()
 
 
 def _unpack_pair(
@@ -202,19 +244,23 @@ def run_dpo_alignment(
     device: torch.device | str | None = None,
     *,
     tokenizer: Any | None = None,
-    epochs: int = 2,
-    beta: float = 0.1,
-    lr: float = 5e-5,
+    epochs: int = 1,
+    beta: float = 0.5,
+    lr: float = 1e-5,
     weight_decay: float = 1e-2,
     grad_clip: float | None = None,
-    length_normalize: bool = False,
+    length_normalize: bool = True,
+    freeze_non_decoder: bool = True,
+    sft_nll_weight: float = 0.25,
+    grad_accum_steps: int = 8,
     save_dir: str | Path | None = None,
 ) -> dict[str, Any]:
-    """Run lightweight Stage-3 MPO-guided DPO preference alignment (1–3 epochs).
+    """Run stabilized Stage-3 MPO-guided RPO-DPO preference alignment.
 
-    Updates ``model`` to increase likelihood of high-MPO (potent, drug-like, PAINS-free)
-    ligands relative to low-MPO rejected ligands while remaining KL-regularized to the
-    frozen ``ref_model``.
+    Updates ``model`` to prefer high-MPO (potent, drug-like, PAINS-free) ligands over
+    low-MPO rejected ligands while preventing likelihood displacement via length-normalized
+    log-probabilities, an RPO/SFT NLL anchor on chosen sequences, gradient accumulation,
+    and optional freezing of the 3D encoder/CVAE/multi-task heads.
 
     Args:
         model: Policy ``GenEuclideanModel`` to align in place.
@@ -224,12 +270,19 @@ def run_dpo_alignment(
         cfg: Experiment configuration.
         device: Execution device (defaults to ``select_device(cfg.train.device)``).
         tokenizer: ``MolecularTokenizer`` used to encode SMILES strings.
-        epochs: Number of alignment epochs (typically 1–3).
-        beta: DPO KL-regularization strength.
-        lr: Fine-tuning learning rate.
+        epochs: Number of alignment epochs (default ``1``).
+        beta: DPO KL-regularization strength (default ``0.5``).
+        lr: Fine-tuning learning rate (default ``1e-5``).
         weight_decay: AdamW weight decay.
         grad_clip: Max gradient norm (defaults to ``cfg.train.grad_clip``).
-        length_normalize: Whether to length-normalize sequence log-probs.
+        length_normalize: Divide sequence log-probs by non-pad token count (default ``True``).
+        freeze_non_decoder: Freeze all non-``decoder`` parameters (encoder, CVAE, multi-task
+            heads) during DPO so binding affinity and DrugCLIP representations remain intact,
+            restoring original ``requires_grad`` flags upon exit (default ``True``).
+        sft_nll_weight: RPO/SFT NLL anchor weight on length-normalized chosen log-probs
+            (default ``0.25``).
+        grad_accum_steps: Number of preference pairs accumulated per optimizer step
+            (default ``8``).
         save_dir: Optional directory where ``dpo_aligned.pt`` and ``dpo_history.jsonl`` are saved.
 
     Returns:
@@ -247,6 +300,8 @@ def run_dpo_alignment(
     pad_id = int(getattr(eff_tokenizer, "PAD_ID", 0))
     max_len = cfg.data.max_seq_len
     eff_grad_clip = cfg.train.grad_clip if grad_clip is None else grad_clip
+    eff_accum = max(1, int(grad_accum_steps))
+    eff_sft_weight = max(0.0, float(sft_nll_weight))
 
     model = model.to(eff_device)
     ref_model = ref_model.to(eff_device)
@@ -257,99 +312,205 @@ def run_dpo_alignment(
     if len(preference_pairs) == 0:
         return {"epochs": 0, "history": [], "ckpt_path": None}
 
-    # Pre-encode preference pairs and cache frozen reference log-probabilities once
-    cached_items: list[
-        tuple[Mapping[str, Any], Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]
-    ] = []
-    with torch.no_grad():
-        for raw_pair in preference_pairs:
-            pocket_batch, chosen_smi, rejected_smi = _unpack_pair(raw_pair)
-            pos_in, pos_tgt = _encode_sequence_to_io(chosen_smi, eff_tokenizer, max_len, eff_device)
-            neg_in, neg_tgt = _encode_sequence_to_io(
-                rejected_smi, eff_tokenizer, max_len, eff_device
-            )
-            ref_pos = compute_sequence_logps(
-                ref_model,
-                pocket_batch,
-                pos_in,
-                pos_tgt,
-                pad_id=pad_id,
-                length_normalize=length_normalize,
-            ).detach()
-            ref_neg = compute_sequence_logps(
-                ref_model,
-                pocket_batch,
-                neg_in,
-                neg_tgt,
-                pad_id=pad_id,
-                length_normalize=length_normalize,
-            ).detach()
-            cached_items.append((pocket_batch, pos_in, pos_tgt, neg_in, neg_tgt, ref_pos, ref_neg))
-
-    optimizer = AdamW(
-        [p for p in model.parameters() if p.requires_grad],
-        lr=lr,
-        weight_decay=weight_decay,
-    )
-
+    orig_requires_grad: dict[str, bool] = {
+        name: param.requires_grad for name, param in model.named_parameters()
+    }
     history: list[dict[str, float | int]] = []
-    for epoch in range(1, max(1, epochs) + 1):
-        t0 = time.perf_counter()
-        model.train()
-        loss_sum = 0.0
-        pos_reward_sum = 0.0
-        neg_reward_sum = 0.0
-        margin_sum = 0.0
-        correct = 0
 
-        for pocket_batch, pos_in, pos_tgt, neg_in, neg_tgt, ref_pos, ref_neg in cached_items:
+    try:
+        if freeze_non_decoder:
+            for name, param in model.named_parameters():
+                if not name.startswith("decoder."):
+                    param.requires_grad = False
+                    param.grad = None
+
+        trainable_params = [p for p in model.parameters() if p.requires_grad]
+        if not trainable_params:
+            raise RuntimeError("No trainable parameters available for DPO alignment.")
+
+        # Pre-encode preference pairs, reference log-probs, and (when frozen) pocket memory once
+        cached_items: list[
+            tuple[
+                Mapping[str, Any],
+                Tensor | None,
+                Tensor | None,
+                Tensor,
+                Tensor,
+                Tensor,
+                Tensor,
+                Tensor,
+                Tensor,
+            ]
+        ] = []
+        ref_decoder: nn.Module = ref_model.decoder  # type: ignore[assignment]
+        with torch.no_grad():
+            for raw_pair in preference_pairs:
+                pocket_batch, chosen_smi, rejected_smi = _unpack_pair(raw_pair)
+                pos_in, pos_tgt = _encode_sequence_to_io(
+                    chosen_smi, eff_tokenizer, max_len, eff_device
+                )
+                neg_in, neg_tgt = _encode_sequence_to_io(
+                    rejected_smi, eff_tokenizer, max_len, eff_device
+                )
+                mem, mem_mask = _encode_pocket_memory(ref_model, pocket_batch, eff_device)
+                ref_pos, _ = _compute_decoder_logps(
+                    ref_decoder,
+                    mem,
+                    mem_mask,
+                    pos_in,
+                    pos_tgt,
+                    pad_id=pad_id,
+                    length_normalize=length_normalize,
+                )
+                ref_neg, _ = _compute_decoder_logps(
+                    ref_decoder,
+                    mem,
+                    mem_mask,
+                    neg_in,
+                    neg_tgt,
+                    pad_id=pad_id,
+                    length_normalize=length_normalize,
+                )
+                cached_items.append(
+                    (
+                        pocket_batch,
+                        mem.cpu() if freeze_non_decoder else None,
+                        mem_mask.cpu() if freeze_non_decoder else None,
+                        pos_in,
+                        pos_tgt,
+                        neg_in,
+                        neg_tgt,
+                        ref_pos.detach(),
+                        ref_neg.detach(),
+                    )
+                )
+
+        optimizer = AdamW(
+            trainable_params,
+            lr=lr,
+            weight_decay=weight_decay,
+        )
+        policy_decoder: nn.Module = model.decoder  # type: ignore[assignment]
+        n_total = len(cached_items)
+
+        for epoch in range(1, max(1, epochs) + 1):
+            t0 = time.perf_counter()
+            if freeze_non_decoder:
+                model.eval()
+                policy_decoder.train()
+            else:
+                model.train()
+
+            dpo_loss_sum = 0.0
+            sft_nll_sum = 0.0
+            total_loss_sum = 0.0
+            pos_reward_sum = 0.0
+            neg_reward_sum = 0.0
+            margin_sum = 0.0
+            correct = 0
+            opt_steps = 0
+
             optimizer.zero_grad(set_to_none=True)
-            pi_pos = compute_sequence_logps(
-                model,
+            for idx, (
                 pocket_batch,
+                cached_mem,
+                cached_mem_mask,
                 pos_in,
                 pos_tgt,
-                pad_id=pad_id,
-                length_normalize=length_normalize,
-            )
-            pi_neg = compute_sequence_logps(
-                model,
-                pocket_batch,
                 neg_in,
                 neg_tgt,
-                pad_id=pad_id,
-                length_normalize=length_normalize,
-            )
-            loss = compute_dpo_loss(pi_pos, pi_neg, ref_pos, ref_neg, beta=beta)
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(
-                [p for p in model.parameters() if p.requires_grad],
-                max_norm=eff_grad_clip,
-            )
-            optimizer.step()
+                ref_pos,
+                ref_neg,
+            ) in enumerate(cached_items):
+                if freeze_non_decoder and cached_mem is not None and cached_mem_mask is not None:
+                    mem_dev = cached_mem.to(device=eff_device)
+                    mask_dev = cached_mem_mask.to(device=eff_device)
+                    pi_pos, pi_pos_norm = _compute_decoder_logps(
+                        policy_decoder,
+                        mem_dev,
+                        mask_dev,
+                        pos_in,
+                        pos_tgt,
+                        pad_id=pad_id,
+                        length_normalize=length_normalize,
+                    )
+                    pi_neg, _ = _compute_decoder_logps(
+                        policy_decoder,
+                        mem_dev,
+                        mask_dev,
+                        neg_in,
+                        neg_tgt,
+                        pad_id=pad_id,
+                        length_normalize=length_normalize,
+                    )
+                else:
+                    pi_pos = compute_sequence_logps(
+                        model,
+                        pocket_batch,
+                        pos_in,
+                        pos_tgt,
+                        pad_id=pad_id,
+                        length_normalize=length_normalize,
+                    )
+                    pi_neg = compute_sequence_logps(
+                        model,
+                        pocket_batch,
+                        neg_in,
+                        neg_tgt,
+                        pad_id=pad_id,
+                        length_normalize=length_normalize,
+                    )
+                    if length_normalize:
+                        pi_pos_norm = pi_pos
+                    else:
+                        pos_len = (pos_tgt != pad_id).to(pi_pos.dtype).sum(dim=-1).clamp(min=1.0)
+                        pi_pos_norm = pi_pos / pos_len
 
-            chosen_r = float((beta * (pi_pos.detach() - ref_pos)).mean().item())
-            rejected_r = float((beta * (pi_neg.detach() - ref_neg)).mean().item())
-            margin = chosen_r - rejected_r
-            loss_sum += float(loss.detach().item())
-            pos_reward_sum += chosen_r
-            neg_reward_sum += rejected_r
-            margin_sum += margin
-            if margin > 0.0:
-                correct += 1
+                dpo_loss = compute_dpo_loss(pi_pos, pi_neg, ref_pos, ref_neg, beta=beta)
+                sft_nll = -pi_pos_norm.mean()
+                loss = dpo_loss + eff_sft_weight * sft_nll
 
-        n_pairs = float(len(cached_items))
-        history.append(
-            {
-                "epoch": epoch,
-                "dpo_loss": loss_sum / n_pairs,
-                "chosen_reward": pos_reward_sum / n_pairs,
-                "rejected_reward": neg_reward_sum / n_pairs,
-                "reward_margin": margin_sum / n_pairs,
-                "preference_accuracy": float(correct) / n_pairs,
-                "elapsed_sec": time.perf_counter() - t0,
-            }
-        )
+                window_start = (idx // eff_accum) * eff_accum
+                window_size = min(eff_accum, n_total - window_start)
+                (loss / float(window_size)).backward()
+
+                if ((idx + 1) % eff_accum == 0) or ((idx + 1) == n_total):
+                    torch.nn.utils.clip_grad_norm_(trainable_params, max_norm=eff_grad_clip)
+                    optimizer.step()
+                    optimizer.zero_grad(set_to_none=True)
+                    opt_steps += 1
+
+                chosen_r = float((beta * (pi_pos.detach() - ref_pos)).mean().item())
+                rejected_r = float((beta * (pi_neg.detach() - ref_neg)).mean().item())
+                margin = chosen_r - rejected_r
+                dpo_loss_sum += float(dpo_loss.detach().item())
+                sft_nll_sum += float(sft_nll.detach().item())
+                total_loss_sum += float(loss.detach().item())
+                pos_reward_sum += chosen_r
+                neg_reward_sum += rejected_r
+                margin_sum += margin
+                if margin > 0.0:
+                    correct += 1
+
+            n_pairs = float(n_total)
+            history.append(
+                {
+                    "epoch": epoch,
+                    "dpo_loss": dpo_loss_sum / n_pairs,
+                    "sft_nll": sft_nll_sum / n_pairs,
+                    "total_loss": total_loss_sum / n_pairs,
+                    "chosen_reward": pos_reward_sum / n_pairs,
+                    "rejected_reward": neg_reward_sum / n_pairs,
+                    "reward_margin": margin_sum / n_pairs,
+                    "preference_accuracy": float(correct) / n_pairs,
+                    "optimizer_steps": opt_steps,
+                    "elapsed_sec": time.perf_counter() - t0,
+                }
+            )
+    finally:
+        for name, param in model.named_parameters():
+            if name in orig_requires_grad:
+                param.requires_grad = orig_requires_grad[name]
 
     ckpt_path_str: str | None = None
     if save_dir is not None:

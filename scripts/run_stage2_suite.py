@@ -585,7 +585,8 @@ def _run_stage3_dpo(
     print(
         f"[{spec.name}] split={cfg.data.split_type} device={device.type} "
         f"init={init_ckpt} pockets={n_pockets} M={dpo_sampling_cfg.num_samples} "
-        f"epochs={dpo_epochs} beta={args.dpo_beta} lr={args.dpo_lr}",
+        f"epochs={dpo_epochs} beta={args.dpo_beta} lr={args.dpo_lr} "
+        f"sft_w={args.dpo_sft_weight} accum={args.dpo_grad_accum}",
         flush=True,
     )
 
@@ -679,6 +680,10 @@ def _run_stage3_dpo(
         lr=float(args.dpo_lr),
         weight_decay=cfg.train.weight_decay,
         grad_clip=cfg.train.grad_clip,
+        length_normalize=True,
+        freeze_non_decoder=True,
+        sft_nll_weight=float(args.dpo_sft_weight),
+        grad_accum_steps=int(args.dpo_grad_accum),
         save_dir=None,
     )
 
@@ -695,6 +700,7 @@ def _run_stage3_dpo(
             "config": cfg.model_dump(mode="python"),
             "current_epoch": len(dpo_history),
             "best_val_objective": float(val_metrics["val_objective"]),
+            "val_objective_version": 2,
             "dpo_history": dpo_history,
             "val_metrics": val_metrics,
         },
@@ -912,11 +918,23 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--dpo-epochs",
         type=int,
-        default=2,
+        default=1,
         help="Default number of DPO alignment epochs (when --epochs is not set).",
     )
-    parser.add_argument("--dpo-beta", type=float, default=0.1, help="DPO KL regularization beta.")
-    parser.add_argument("--dpo-lr", type=float, default=5e-5, help="DPO alignment learning rate.")
+    parser.add_argument("--dpo-beta", type=float, default=0.5, help="DPO KL regularization beta.")
+    parser.add_argument("--dpo-lr", type=float, default=1e-5, help="DPO alignment learning rate.")
+    parser.add_argument(
+        "--dpo-sft-weight",
+        type=float,
+        default=0.25,
+        help="RPO/SFT NLL anchor weight on length-normalized chosen log-probs.",
+    )
+    parser.add_argument(
+        "--dpo-grad-accum",
+        type=int,
+        default=8,
+        help="Number of preference pairs accumulated per optimizer step during DPO.",
+    )
     parser.add_argument(
         "--dpo-min-margin",
         type=float,
