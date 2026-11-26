@@ -1,5 +1,15 @@
 """Data acquisition, tokenization, 3D pocket featurization, splitting, and PyTorch datasets."""
 
+from geneuclidean.data.chem_corpora import (
+    CorpusStats,
+    NoveltyReport,
+    canonical_or_none,
+    corpus_statistics,
+    deduplicate_smiles,
+    load_smiles_file,
+    novelty_report,
+    write_smiles_file,
+)
 from geneuclidean.data.dataset import (
     PocketLigandDataset,
     ZincSMILESDataset,
@@ -86,9 +96,11 @@ __all__ = [
     "SPECIAL_TOKENS",
     "UNK_ID",
     "UNK_TOKEN",
+    "CorpusStats",
     "CorpusVariant",
     "CrossDockedPair",
     "MolecularTokenizer",
+    "NoveltyReport",
     "PocketConvention",
     "PocketFeatures",
     "PocketLigandDataset",
@@ -98,8 +110,14 @@ __all__ = [
     "build_all_splits",
     "build_processed_cache",
     "build_rmsd_filtered_pairs",
+    "canonical_or_none",
+    "corpus_statistics",
     "crossdocked_download_plan",
+    "deduplicate_smiles",
     "extract_pocket_group",
+    "load_smiles_file",
+    "novelty_report",
+    "write_smiles_file",
     "group_pairs_by_pocket",
     "iter_crossdocked_types",
     "make_pocket_disjoint_split",
