@@ -1,9 +1,12 @@
 """Pool-based Active-Learning DMTA (Lab-in-a-Loop) engine with uncertainty & diversity.
 
-Supports both *in silico* scoring oracles (AutoDock Vina, Boltz-2, ``PoseRealityAuditor``)
-and external wet-lab CSV assay ingestion across iterative Design-Make-Test-Analyze rounds,
-using bootstrap-ensemble / Split-Conformal uncertainty (``ucb``, ``thompson``, ``greedy``,
-``maxmin_diverse_ucb``) and SHA-256 provenance digests compatible with ``CredibilityDossier``.
+Preserves 100% backward compatibility with GenEuclidean v5.0's :class:`ActiveLearningDMTA`,
+:class:`ActiveLearningRoundSummary`, and :data:`AcquisitionStrategy` while cleanly
+upgrading and delegating to the v5.1 :mod:`geneuclidean.active_learning` flagship engine
+(:class:`~geneuclidean.active_learning.engine.ActiveLearningEngine`,
+:class:`~geneuclidean.active_learning.surrogates.TanimotoGP`,
+:class:`~geneuclidean.active_learning.acquisitions.ACQUISITION_REGISTRY`,
+:class:`DMTAQuery`, :class:`DMTARoundSummary`, :class:`DMTALedger`).
 """
 
 from __future__ import annotations
@@ -20,9 +23,36 @@ import numpy as np
 from numpy.typing import NDArray
 from sklearn.ensemble import RandomForestRegressor
 
+from geneuclidean.active_learning.acquisitions import (
+    AcquisitionContext,
+    run_acquisition,
+)
+from geneuclidean.active_learning.engine import (
+    DMTALedger,
+    DMTAQuery,
+    DMTARoundSummary,
+)
+from geneuclidean.active_learning.surrogates import (
+    SurrogateProtocol,
+    build_surrogate,
+)
 from geneuclidean.screening.encoders import featurize_ecfp4_batch
 
-AcquisitionStrategy = Literal["ucb", "thompson", "greedy", "maxmin_diverse_ucb"]
+AcquisitionStrategy = Literal[
+    "ucb",
+    "thompson",
+    "greedy",
+    "maxmin_diverse_ucb",
+    "maxmin_ucb",
+    "ei",
+    "log_ei",
+    "pi",
+    "uncertainty",
+    "kriging_believer",
+    "dpp_ucb",
+    "constrained_ei",
+    "avoidome_feasibility_ucb",
+]
 
 
 @dataclass(frozen=True)
@@ -58,7 +88,13 @@ class ActiveLearningRoundSummary:
 
 
 class ActiveLearningDMTA:
-    """Iterative pool-based active learning for virtual screening & wet-lab DMTA cycles."""
+    """Iterative pool-based active learning for virtual screening & wet-lab DMTA cycles.
+
+    Backward-compatible v5.0 facade enhanced with optional v5.1 ``surrogate``
+    (``"rf_legacy"`` default preserves exact v5.0 RF behavior; pass ``"tanimoto_gp"``,
+    ``"minmax_gp"``, ``"ensemble"``, ``"conformal_tanimoto_gp"``, or any
+    :class:`SurrogateProtocol`) and full :data:`ACQUISITION_REGISTRY` strategy support.
+    """
 
     def __init__(
         self,
@@ -68,6 +104,7 @@ class ActiveLearningDMTA:
         diversity_weight: float = 0.25,
         n_estimators: int = 64,
         fp_bits: int = 1024,
+        surrogate: str | SurrogateProtocol = "rf_legacy",
         seed: int = 42,
     ) -> None:
         self.strategy: AcquisitionStrategy = strategy
@@ -75,11 +112,14 @@ class ActiveLearningDMTA:
         self.diversity_weight = float(diversity_weight)
         self.n_estimators = int(n_estimators)
         self.fp_bits = int(fp_bits)
+        self.surrogate_spec: str | SurrogateProtocol = surrogate
         self.seed = int(seed)
         self._rng = np.random.default_rng(self.seed)
         self.observed: dict[str, float] = {}
         self.history: list[ActiveLearningRoundSummary] = []
+        self.ledger = DMTALedger()
         self._surrogate: RandomForestRegressor | None = None
+        self._v51_surrogate: SurrogateProtocol | None = None
 
     def ingest_observations(self, observations: Mapping[str, float]) -> int:
         """Record experimental or oracle values ``{smiles: higher_is_better_score}``."""
@@ -112,11 +152,23 @@ class ActiveLearningDMTA:
                 obs[s] = -val if negate_values else val
         return self.ingest_observations(obs)
 
-    def _fit_surrogate(self) -> RandomForestRegressor | None:
+    def _fit_surrogate(self) -> RandomForestRegressor | SurrogateProtocol | None:
         if len(self.observed) < 4:
             return None
         smis = list(self.observed.keys())
-        ys = np.array([self.observed[s] for s in smis], dtype=np.float32)
+        ys = [self.observed[s] for s in smis]
+
+        if self.surrogate_spec != "rf_legacy":
+            mdl = (
+                build_surrogate(self.surrogate_spec, seed=self.seed + len(self.history))
+                if isinstance(self.surrogate_spec, str)
+                else self.surrogate_spec
+            )
+            mdl.fit(smis, ys)
+            self._v51_surrogate = mdl
+            return mdl
+
+        ys_arr = np.array(ys, dtype=np.float32)
         x_mat, valid = featurize_ecfp4_batch(smis, n_bits=self.fp_bits)
         if int(valid.sum()) < 4:
             return None
@@ -126,16 +178,27 @@ class ActiveLearningDMTA:
             random_state=self.seed + len(self.history),
             n_jobs=1,
         )
-        rf.fit(x_mat[valid], ys[valid])
+        rf.fit(x_mat[valid], ys_arr[valid])
         self._surrogate = rf
         return rf
 
     def predict_mean_and_std(
         self, pool_smiles: Sequence[str]
     ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
-        """Predict surrogate mean and tree-ensemble epistemic uncertainty across ``pool_smiles``."""
+        """Predict surrogate mean and epistemic/total uncertainty across ``pool_smiles``."""
         n = len(pool_smiles)
-        if self._surrogate is None or n == 0:
+        if n == 0:
+            return np.zeros(0, dtype=np.float32), np.zeros(0, dtype=np.float32)
+
+        if self._v51_surrogate is not None:
+            pred = self._v51_surrogate.predict(pool_smiles)
+            means = np.where(pred.valid & np.isfinite(pred.mean), pred.mean, -1e9).astype(
+                np.float32
+            )
+            stds = np.where(pred.valid & np.isfinite(pred.std), pred.std, 0.0).astype(np.float32)
+            return means, stds
+
+        if self._surrogate is None:
             return np.zeros(n, dtype=np.float32), np.ones(n, dtype=np.float32)
         x_pool, valid = featurize_ecfp4_batch(pool_smiles, n_bits=self.fp_bits)
         means = np.full(n, -1e9, dtype=np.float32)
@@ -154,6 +217,7 @@ class ActiveLearningDMTA:
         *,
         batch_size: int = 16,
         prior_scores: Sequence[float] | None = None,
+        feasibility_probs: Sequence[float] | NDArray[np.float64] | None = None,
     ) -> list[str]:
         """Select the next ``batch_size`` unobserved compounds from ``pool_smiles``."""
         unseen_idx = [i for i, s in enumerate(pool_smiles) if s.strip() not in self.observed]
@@ -162,8 +226,8 @@ class ActiveLearningDMTA:
         unseen_smis = [pool_smiles[i].strip() for i in unseen_idx]
         k = min(len(unseen_smis), max(1, int(batch_size)))
 
-        rf = self._fit_surrogate()
-        if rf is None:
+        fitted = self._fit_surrogate()
+        if fitted is None:
             if prior_scores is not None and len(prior_scores) == len(pool_smiles):
                 p_arr = np.array([float(prior_scores[i]) for i in unseen_idx], dtype=np.float64)
                 order = np.argsort(p_arr)[::-1][:k]
@@ -171,40 +235,29 @@ class ActiveLearningDMTA:
             chosen = self._rng.choice(len(unseen_smis), size=k, replace=False)
             return [unseen_smis[int(i)] for i in chosen]
 
-        mean, std = self.predict_mean_and_std(unseen_smis)
-        if self.strategy == "greedy":
-            acq = mean
-        elif self.strategy == "thompson":
-            acq = mean + self._rng.normal(0.0, 1.0, size=len(mean)).astype(np.float32) * std
-        else:
-            acq = mean + float(self.ucb_beta) * std
-
-        if self.strategy != "maxmin_diverse_ucb" or k <= 1:
-            order = np.argsort(acq)[::-1][:k]
-            return [unseen_smis[int(i)] for i in order]
-
-        # Diversity-aware greedy MaxMin-UCB selection over top candidate shortlist
-        shortlist_k = min(len(unseen_smis), max(k * 8, 64))
-        short_idx = np.argsort(acq)[::-1][:shortlist_k]
-        short_smis = [unseen_smis[int(i)] for i in short_idx]
-        short_acq = acq[short_idx]
-        a_lo, a_hi = float(np.min(short_acq)), float(np.max(short_acq))
-        acq_norm = (short_acq - a_lo) / max(a_hi - a_lo, 1e-6)
-
-        fp_mat, _ = featurize_ecfp4_batch(short_smis, n_bits=self.fp_bits)
-        norms = fp_mat.sum(axis=1)
-        inter = fp_mat @ fp_mat.T
-        union = norms[:, None] + norms[None, :] - inter
-        tan = np.divide(inter, union, out=np.zeros_like(inter), where=union > 0.0)
-
-        picked: list[int] = [int(np.argmax(acq_norm))]
-        w_div = float(self.diversity_weight)
-        for _ in range(1, k):
-            max_sim = np.max(tan[:, picked], axis=1)
-            scores = (1.0 - w_div) * acq_norm + w_div * (1.0 - max_sim)
-            scores[picked] = -1e9
-            picked.append(int(np.argmax(scores)))
-        return [short_smis[p] for p in picked]
+        mean32, std32 = self.predict_mean_and_std(unseen_smis)
+        mean64 = np.where(mean32 > -1e8, mean32.astype(np.float64), float("nan"))
+        std64 = std32.astype(np.float64)
+        feas_unseen = (
+            np.array([float(feasibility_probs[i]) for i in unseen_idx], dtype=np.float64)
+            if feasibility_probs is not None and len(feasibility_probs) == len(pool_smiles)
+            else None
+        )
+        best_obs = max(self.observed.values()) if self.observed else float("-inf")
+        ctx = AcquisitionContext(
+            pool_smiles=tuple(unseen_smis),
+            mean=mean64,
+            std=std64,
+            best_observed=best_obs,
+            batch_size=k,
+            beta=self.ucb_beta,
+            diversity_weight=self.diversity_weight,
+            surrogate=self._v51_surrogate,
+            feasibility_probs=feas_unseen,
+            seed=self.seed + len(self.history) * 17,
+        )
+        sel = run_acquisition(self.strategy, ctx)
+        return list(sel.smiles)
 
     def run_round(
         self,
@@ -213,9 +266,15 @@ class ActiveLearningDMTA:
         *,
         batch_size: int = 16,
         prior_scores: Sequence[float] | None = None,
+        feasibility_probs: Sequence[float] | NDArray[np.float64] | None = None,
     ) -> ActiveLearningRoundSummary:
         """Execute one full propose -> oracle-evaluate -> update DMTA round."""
-        proposed = self.propose_batch(pool_smiles, batch_size=batch_size, prior_scores=prior_scores)
+        proposed = self.propose_batch(
+            pool_smiles,
+            batch_size=batch_size,
+            prior_scores=prior_scores,
+            feasibility_probs=feasibility_probs,
+        )
         if not proposed:
             raise ValueError("No unobserved compounds remain in pool_smiles.")
         values = [float(v) for v in oracle_fn(proposed)]
@@ -244,6 +303,46 @@ class ActiveLearningDMTA:
             acquired_values=tuple(values),
         )
         self.history.append(summary)
+        # Synchronize the chained v5.1 SHA-256 DMTALedger alongside legacy history
+        pre_round = DMTARoundSummary(
+            round_index=summary.round_index,
+            strategy=str(summary.strategy),
+            surrogate_name=(
+                self._v51_surrogate.name
+                if self._v51_surrogate is not None
+                else str(self.surrogate_spec)
+            ),
+            n_acquired=summary.n_acquired,
+            n_total_observed=summary.n_total_observed,
+            n_pending=0,
+            mean_acquired_value=summary.mean_acquired_value,
+            max_acquired_value=summary.max_acquired_value,
+            best_overall_value=summary.best_overall_value,
+            best_overall_smiles=summary.best_overall_smiles,
+            mean_batch_internal_tanimoto=0.0,
+            round_sha256=summary.round_sha256,
+            chain_sha256="",
+            acquired_smiles=summary.acquired_smiles,
+            acquired_values=summary.acquired_values,
+        )
+        chain_hash = self.ledger.record_round(pre_round)
+        self.ledger.rounds[-1] = DMTARoundSummary(
+            round_index=pre_round.round_index,
+            strategy=pre_round.strategy,
+            surrogate_name=pre_round.surrogate_name,
+            n_acquired=pre_round.n_acquired,
+            n_total_observed=pre_round.n_total_observed,
+            n_pending=pre_round.n_pending,
+            mean_acquired_value=pre_round.mean_acquired_value,
+            max_acquired_value=pre_round.max_acquired_value,
+            best_overall_value=pre_round.best_overall_value,
+            best_overall_smiles=pre_round.best_overall_smiles,
+            mean_batch_internal_tanimoto=pre_round.mean_batch_internal_tanimoto,
+            round_sha256=pre_round.round_sha256,
+            chain_sha256=chain_hash,
+            acquired_smiles=pre_round.acquired_smiles,
+            acquired_values=pre_round.acquired_values,
+        )
         return summary
 
 
@@ -251,4 +350,7 @@ __all__ = [
     "AcquisitionStrategy",
     "ActiveLearningDMTA",
     "ActiveLearningRoundSummary",
+    "DMTALedger",
+    "DMTAQuery",
+    "DMTARoundSummary",
 ]
