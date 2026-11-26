@@ -709,6 +709,27 @@ def test_runs_inside_the_full_geneuclidean_pipeline(arch: str) -> None:
     assert any(p.grad is not None for p in model.decoder.parameters())
 
 
+def test_shipped_chemlm_config_stays_in_sync_with_its_scale_preset() -> None:
+    """``configs/geneuclidean_v6_chemlm.yaml`` must not drift from ``SCALE_PRESETS``."""
+    from pathlib import Path
+
+    from geneuclidean.config import ExperimentConfig
+
+    config_path = Path(__file__).resolve().parents[1] / "configs" / "geneuclidean_v6_chemlm.yaml"
+    assert config_path.is_file(), f"missing shipped config: {config_path}"
+
+    cfg = ExperimentConfig.from_yaml(config_path)
+    assert cfg.decoder.arch == "chemlm"
+
+    preset = SCALE_PRESETS["small"]
+    assert (
+        cfg.decoder.d_model,
+        cfg.decoder.n_layers,
+        cfg.decoder.n_heads,
+        cfg.decoder.d_ff,
+    ) == (preset.d_model, preset.n_layers, preset.n_heads, preset.d_ff)
+
+
 def test_build_chemlm_decoder_respects_cross_attn_gate_init() -> None:
     cfg = DecoderConfig(arch="chemlm", vocab_size=VOCAB, d_model=32, n_heads=4, d_ff=64, n_layers=1)
     dec = build_chemlm_decoder(cfg, cross_attn_gate_init=0.75)
