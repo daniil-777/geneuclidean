@@ -294,7 +294,26 @@ class Registry(Generic[T]):  # noqa: UP046  # Keep Python 3.11 runtime compatibi
 # Built-in Global Extension Registries (Zero Heavy Dependency Overhead)
 # ---------------------------------------------------------------------------
 
-BUILTIN_ENCODER_NAMES: frozenset[str] = frozenset({"painn", "egnn", "e3nn", "schnet"})
+BUILTIN_ENCODER_NAMES: frozenset[str] = frozenset(
+    {
+        "painn",
+        "egnn",
+        "e3nn",
+        "schnet",
+        "dense_painn_se3",
+        "cartformer_se3",
+        "atomgs_se3",
+        "subpocket_vn_jepa",
+    }
+)
+BUILTIN_ENCODER_ARCHS: frozenset[str] = BUILTIN_ENCODER_NAMES
+BUILTIN_ENCODER_ALIASES: dict[str, str] = {
+    "cartformer": "cartformer_se3",
+    "atomgs": "atomgs_se3",
+    "subpocket_vn": "subpocket_vn_jepa",
+    "vn_jepa": "subpocket_vn_jepa",
+    "dense_painn": "dense_painn_se3",
+}
 BUILTIN_DECODER_NAMES: frozenset[str] = frozenset({"transformer", "lstm"})
 BUILTIN_SAMPLING_STRATEGY_NAMES: frozenset[str] = frozenset(
     {"min_p", "top_p", "top_k", "temperature", "greedy", "typical", "diverse_beam"}
@@ -618,6 +637,8 @@ def ensure_builtin_registry_loaded(kind: str) -> None:
 __all__ = [
     "BACKBONE_CATALOG",
     "BUILTIN_DECODER_NAMES",
+    "BUILTIN_ENCODER_ALIASES",
+    "BUILTIN_ENCODER_ARCHS",
     "BUILTIN_ENCODER_NAMES",
     "BUILTIN_FILTER_NAMES",
     "BUILTIN_SAMPLING_STRATEGY_NAMES",

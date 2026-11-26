@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from geneuclidean.registry import (
     BUILTIN_DECODER_NAMES,
+    BUILTIN_ENCODER_ALIASES,
     BUILTIN_ENCODER_NAMES,
     BUILTIN_SAMPLING_STRATEGY_NAMES,
     DECODER_REGISTRY,
@@ -73,18 +74,57 @@ class EncoderConfig(_StrictBaseModel):
     e3nn_lmax: int = Field(default=1, ge=0, le=3)
     use_se3_chirality: bool = True
     dropout: float = Field(default=0.1, ge=0.0, lt=1.0)
+    tensor_dim: int = Field(
+        default=24,
+        ge=4,
+        description="Rank-2 3x3 Cartesian tensor channel width (CartFormer-SE3).",
+    )
+    num_heads: int = Field(
+        default=8,
+        ge=1,
+        description="Number of geometric attention heads for transformer-based 3D encoders.",
+    )
+    num_landmarks: int = Field(
+        default=8,
+        ge=0,
+        description="Number of equivariant global virtual landmark tokens.",
+    )
+    num_subpockets: int = Field(
+        default=24,
+        ge=4,
+        description="Number of competitive equivariant sub-pocket slots (SubPocketVN-JEPA).",
+    )
+    global_attn_mode: Literal["landmarks", "full_scalar"] = Field(
+        default="landmarks",
+        description="Unified global interaction mode across all atom counts.",
+    )
+    enable_3d_overlap: bool = Field(
+        default=True,
+        description="Enable analytical 3D Gaussian field / ROCS overlap outputs (AtomGS-SE3).",
+    )
+    use_coulomb_bias: bool = Field(
+        default=True,
+        description="Enable long-range screened 1/r latent-charge electrostatic bias (LES).",
+    )
+    jepa_ssl_ckpt: str | None = Field(
+        default=None,
+        description="Optional path to self-supervised 3D JEPA encoder weights.",
+    )
 
     @field_validator("arch")
     @classmethod
     def _validate_encoder_arch(cls, value: str) -> str:
         cleaned = value.strip()
-        if cleaned.lower() in BUILTIN_ENCODER_NAMES:
-            return cleaned.lower()
+        lowered = cleaned.lower()
+        canonical = BUILTIN_ENCODER_ALIASES.get(lowered, lowered)
+        if canonical in BUILTIN_ENCODER_NAMES:
+            return canonical
         if cleaned in ENCODER_REGISTRY:
             return cleaned
         valid = sorted(BUILTIN_ENCODER_NAMES | set(ENCODER_REGISTRY.names()))
         raise ValueError(
             f"Unknown encoder architecture {value!r}. Expected one of {valid} "
+            f"(aliases: {sorted(BUILTIN_ENCODER_ALIASES)}) "
             "or register a custom encoder via geneuclidean.register_encoder(...)."
         )
 
