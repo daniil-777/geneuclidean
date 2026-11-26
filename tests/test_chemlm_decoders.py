@@ -23,6 +23,8 @@ from geneuclidean.models.decoders.chemlm import (
     SparseMoEFeedForward,
     build_chemlm_decoder,
     build_chemlm_moe_decoder,
+    cross_attention_gate_magnitudes,
+    pocket_reliance_report,
     resolve_scale,
     scaled_decoder_config,
 )
@@ -707,6 +709,94 @@ def test_runs_inside_the_full_geneuclidean_pipeline(arch: str) -> None:
 
     out.logits.float().mean().backward()
     assert any(p.grad is not None for p in model.decoder.parameters())
+
+
+def test_pocket_reliance_detects_a_decoder_that_ignores_its_pocket() -> None:
+    """The diagnostic must flag a decoder with cross-attention disabled.
+
+    This is the dominant silent failure mode: docking score hides it (TargetDiff beats
+    the crystal ligand on raw Glide while capturing 47% of its specificity), so a
+    likelihood-based probe is the only cheap guard.
+    """
+    torch.manual_seed(0)
+    deaf = _tiny_decoder(use_cross_attn=False)
+    ids = torch.randint(4, VOCAB, (4, 10))
+    memory = torch.randn(4, 8, 32)
+    mask = torch.ones(4, 8, dtype=torch.bool)
+
+    report = pocket_reliance_report(deaf, ids, memory, mask)
+    assert report.delta_permuted == pytest.approx(0.0, abs=1e-6)
+    assert report.delta_null == pytest.approx(0.0, abs=1e-6)
+    assert report.uses_specific_pocket is False
+    assert report.gate_magnitudes == []
+
+
+def test_pocket_reliance_sees_a_decoder_that_does_use_its_pocket() -> None:
+    """A decoder trained to depend on its pocket must show a positive delta."""
+    torch.manual_seed(0)
+    dec = _tiny_decoder(n_layers=2, cross_attn_gate_init=1.0)
+    ids = torch.randint(4, VOCAB, (4, 10))
+    memory = torch.randn(4, 8, 32) * 2.0
+    mask = torch.ones(4, 8, dtype=torch.bool)
+
+    # Teach it that each pocket predicts its own ligand.
+    opt = torch.optim.AdamW(dec.parameters(), lr=5e-3)
+    dec.train()
+    for _ in range(120):
+        logits, _ = dec(ids, memory=memory, memory_mask=mask)
+        loss = torch.nn.functional.cross_entropy(
+            logits[:, :-1].reshape(-1, VOCAB).float(), ids[:, 1:].reshape(-1)
+        )
+        opt.zero_grad(set_to_none=True)
+        loss.backward()
+        opt.step()
+
+    report = pocket_reliance_report(dec, ids, memory, mask)
+    assert report.nll_true < report.nll_permuted, report.to_dict()
+    assert report.delta_permuted > 0.0
+    assert len(report.gate_magnitudes) == 2
+    assert all(g >= 0.0 for g in report.gate_magnitudes)
+
+
+def test_pocket_reliance_requires_a_permutable_batch() -> None:
+    dec = _tiny_decoder()
+    with pytest.raises(ValueError, match="batch_size >= 2"):
+        pocket_reliance_report(dec, torch.randint(4, VOCAB, (1, 8)), torch.randn(1, 6, 32))
+
+
+def test_pocket_reliance_restores_training_mode() -> None:
+    """A diagnostic must not silently leave the model in eval mode mid-training."""
+    dec = _tiny_decoder()
+    dec.train()
+    pocket_reliance_report(dec, torch.randint(4, VOCAB, (2, 8)), torch.randn(2, 6, 32))
+    assert dec.training is True
+
+
+def test_pocket_reliance_report_is_json_serializable() -> None:
+    import json
+
+    dec = _tiny_decoder()
+    payload = pocket_reliance_report(
+        dec, torch.randint(4, VOCAB, (2, 8)), torch.randn(2, 6, 32)
+    ).to_dict()
+    assert json.loads(json.dumps(payload))["uses_specific_pocket"] in (True, False)
+    assert "delta_permuted" in payload
+
+
+def test_gate_magnitudes_track_the_gate_parameter() -> None:
+    """Gate magnitude is a free readout of whether a layer is using the pocket."""
+    dec = _tiny_decoder(n_layers=3, cross_attn_gate_init=0.0)
+    assert cross_attention_gate_magnitudes(dec) == pytest.approx([0.0, 0.0, 0.0])
+
+    with torch.no_grad():
+        for block in dec.blocks:
+            block.cross_attn.gate.fill_(1.0)
+    expected = float(torch.tanh(torch.tensor(1.0)))
+    assert cross_attention_gate_magnitudes(dec) == pytest.approx([expected] * 3)
+
+
+def test_gate_magnitudes_empty_without_cross_attention() -> None:
+    assert cross_attention_gate_magnitudes(_tiny_decoder(use_cross_attn=False)) == []
 
 
 def test_shipped_chemlm_config_stays_in_sync_with_its_scale_preset() -> None:

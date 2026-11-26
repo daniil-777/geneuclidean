@@ -42,6 +42,7 @@ import torch
 import torch.nn.functional as F
 
 from geneuclidean.config import seed_everything, select_device
+from geneuclidean.data.chem_corpora import novelty_report
 from geneuclidean.data.tokenizer import MolecularTokenizer
 from geneuclidean.models.decoders.chemlm import SCALE_PRESETS, ChemLMDecoder
 
@@ -482,8 +483,11 @@ def run_tier3(
     decoded = [tokenizer.decode(row.tolist()) for row in sampled.cpu()]
     mols = [(s, Chem.MolFromSmiles(s)) for s in decoded if s]
     valid = [(s, m) for s, m in mols if m is not None]
-    canonical = {Chem.MolToSmiles(m) for _, m in valid}
-    train_set = {c for c in (Chem.CanonSmiles(s) for s in corpus[:5000]) if c}
+
+    # Novelty against the FULL corpus. Scoring against a subset inflates it: an earlier
+    # version of this script compared against only the first 5,000 of 249,455 molecules
+    # (2%) and duly reported novelty 1.0, which measured almost nothing.
+    reliance = novelty_report(decoded, corpus)
 
     qed_scores: list[float] = []
     for _, mol in valid:
@@ -503,11 +507,10 @@ def run_tier3(
         "first_loss": round(statistics.mean(losses[:10]), 4),
         "final_loss": round(statistics.mean(losses[-10:]), 4),
         "num_sampled": num_samples,
-        "validity": round(len(valid) / max(1, num_samples), 4),
-        "uniqueness": round(len(canonical) / max(1, len(valid)), 4) if valid else 0.0,
-        "novelty": (
-            round(len(canonical - train_set) / max(1, len(canonical)), 4) if canonical else 0.0
-        ),
+        "validity": round(reliance.validity, 4),
+        "uniqueness": round(reliance.uniqueness, 4),
+        "novelty": round(reliance.novelty, 4),
+        "novelty_reference_size": reliance.n_reference,
         "mean_qed": round(statistics.mean(qed_scores), 4) if qed_scores else 0.0,
         "kv_cached_sample_seconds": round(cached_s, 2),
         "example_valid_smiles": [s for s, _ in valid[:10]],
@@ -521,6 +524,7 @@ def run_tier3(
         "validity",
         "uniqueness",
         "novelty",
+        "novelty_reference_size",
         "mean_qed",
         "kv_cached_sample_seconds",
     ):

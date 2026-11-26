@@ -35,11 +35,12 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Literal, cast
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch import Tensor
 from torch.utils.checkpoint import checkpoint
 
@@ -62,10 +63,13 @@ __all__ = [
     "ConditioningMode",
     "DecoderScale",
     "FourierPropertyEmbedding",
+    "PocketRelianceReport",
     "PropertyConditioner",
     "SparseMoEFeedForward",
     "build_chemlm_decoder",
     "build_chemlm_moe_decoder",
+    "cross_attention_gate_magnitudes",
+    "pocket_reliance_report",
     "resolve_scale",
     "scaled_decoder_config",
 ]
@@ -473,6 +477,26 @@ class SparseMoEFeedForward(nn.Module):
     Dispatch uses a gather / expert-apply / ``index_add`` scatter loop over experts. This
     avoids custom kernels entirely, so it runs identically on CUDA, Apple Silicon MPS and
     CPU, at the cost of a Python loop of length ``num_experts``.
+
+    .. warning::
+       **Unvalidated for molecular generation; keep it off unless you are measuring it.**
+       A survey of the literature found no evidence that sparse Mixture-of-Experts helps
+       molecule generation at any scale, and no dense-vs-MoE comparison at matched FLOPs.
+       The two chemistry papers that use the name are something else: Mol-MoE routes
+       *densely* (every expert fires on every token) and is really model merging, while
+       MoL-MoE is late fusion of frozen encoders for property prediction whose own paper
+       concedes it "does not consistently outperform the best-performing uni-modal
+       baseline".
+
+       The deeper problem is that the premise runs backwards here. MoE buys parameters at
+       roughly fixed FLOPs -- valuable only where parameters buy quality. For de novo
+       design they demonstrably do not: goal-directed performance saturates beyond ~5M
+       parameters, and for SMILES the fitted parameter exponent (0.0171) is ~25x smaller
+       than the data exponent (0.4299). See :data:`SCALE_PRESETS`.
+
+       It is provided so the question can be settled with a measurement rather than an
+       assumption. Compare against a dense decoder at matched FLOPs, not matched
+       parameters, and treat a win as surprising.
 
     Args:
         d_model: Hidden width.
@@ -1350,6 +1374,160 @@ class ChemLMDecoder(nn.Module):
 # ---------------------------------------------------------------------------
 # 6. Registry factories
 # ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class PocketRelianceReport:
+    """Whether a decoder actually uses *which* pocket it was given.
+
+    Attributes:
+        nll_true: Mean NLL in nats/token conditioned on the correct pocket.
+        nll_permuted: Mean NLL with pockets cyclically permuted across the batch, so
+            every ligand is paired with some *other* real pocket.
+        nll_null: Mean NLL with no pocket at all (the unconditional prior).
+        delta_permuted: ``nll_permuted - nll_true``. The headline number.
+        delta_null: ``nll_null - nll_true``.
+        gate_magnitudes: ``|tanh(gate)|`` per cross-attention block.
+    """
+
+    nll_true: float
+    nll_permuted: float
+    nll_null: float
+    gate_magnitudes: list[float] = field(default_factory=list)
+
+    @property
+    def delta_permuted(self) -> float:
+        """Nats/token lost by swapping in the wrong pocket. Near zero means trouble."""
+        return self.nll_permuted - self.nll_true
+
+    @property
+    def delta_null(self) -> float:
+        """Nats/token lost by removing the pocket entirely."""
+        return self.nll_null - self.nll_true
+
+    @property
+    def uses_specific_pocket(self) -> bool:
+        """``True`` when the wrong pocket costs a non-trivial amount of likelihood."""
+        return self.delta_permuted > 0.01
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a JSON-serializable summary including the derived deltas."""
+        return {
+            "nll_true": round(self.nll_true, 6),
+            "nll_permuted": round(self.nll_permuted, 6),
+            "nll_null": round(self.nll_null, 6),
+            "delta_permuted": round(self.delta_permuted, 6),
+            "delta_null": round(self.delta_null, 6),
+            "uses_specific_pocket": self.uses_specific_pocket,
+            "mean_gate_magnitude": (
+                round(sum(self.gate_magnitudes) / len(self.gate_magnitudes), 6)
+                if self.gate_magnitudes
+                else None
+            ),
+            "gate_magnitudes": [round(g, 6) for g in self.gate_magnitudes],
+        }
+
+
+def cross_attention_gate_magnitudes(decoder: nn.Module) -> list[float]:
+    """Read ``|tanh(gate)|`` from every gated cross-attention block.
+
+    The Flamingo-style gate is a literal scalar readout of "is this layer using the
+    pocket?". Logging it during training gives an early warning that costs nothing: if
+    the gates decay toward zero, the decoder is on its way to ignoring the conditioning.
+    Prefix-style conditioning has no equivalent readout.
+
+    Args:
+        decoder: Any module containing gated :class:`PocketCrossAttention` sublayers.
+
+    Returns:
+        One magnitude per gated cross-attention block, in module order.
+    """
+    magnitudes: list[float] = []
+    for module in decoder.modules():
+        if isinstance(module, PocketCrossAttention) and module.gate is not None:
+            magnitudes.append(float(torch.tanh(module.gate.detach()).abs()))
+    return magnitudes
+
+
+@torch.no_grad()
+def pocket_reliance_report(
+    decoder: nn.Module,
+    input_ids: Tensor,
+    memory: Tensor,
+    memory_mask: Tensor | None = None,
+    *,
+    pad_id: int = 0,
+) -> PocketRelianceReport:
+    """Measure whether a decoder conditions on *which* pocket it was given.
+
+    This is the cheapest guard against the dominant failure mode in structure-based
+    design, and the reason it matters is that docking scores actively hide it. On
+    CrossDocked2020, TargetDiff beats the real crystal ligand on raw Glide score while
+    capturing only 47% of its pocket *specificity*; Shape2Mol sits at the
+    zero-conditioning floor, and a random ZINC draw beats the crystal ligand 22.4% of the
+    time (Delta Score, arXiv:2311.12035). A decoder that has learned to emit
+    generically-good druglike molecules while ignoring the pocket still posts a
+    respectable Vina number -- TacoGFN puts the entire value of pocket conditioning at
+    0.31-0.41 kcal/mol.
+
+    So instead of asking "is the affinity good?", this asks "does the correct pocket
+    raise the likelihood of the correct ligand, relative to a different real pocket?".
+    Pockets are cyclically permuted across the batch, which keeps the distribution of
+    pocket inputs identical and changes only the *pairing*.
+
+    Interpretation:
+        * ``delta_permuted`` near zero: the decoder is ignoring the pocket. Nothing
+          downstream will fix this.
+        * ``delta_permuted`` near ``delta_null``: it knows a pocket is present but not
+          which one.
+        * ``delta_permuted`` clearly positive: genuine pocket specificity.
+
+    Requires a batch size of at least 2, since a permutation of one element is identity.
+
+    Args:
+        decoder: Any decoder honouring ``(input_ids, memory, memory_mask)``, so this
+            works for the legacy ``transformer`` decoder too, not just :class:`ChemLMDecoder`.
+        input_ids: Ground-truth ligand token ids ``[B, L]``.
+        memory: Pocket memory ``[B, M, D]``, correctly paired with ``input_ids``.
+        memory_mask: Optional boolean pocket mask ``[B, M]`` (``True`` = valid).
+        pad_id: Padding token id, excluded from the NLL.
+
+    Returns:
+        A :class:`PocketRelianceReport`.
+
+    Raises:
+        ValueError: If the batch holds fewer than 2 examples.
+    """
+    batch_size = int(input_ids.shape[0])
+    if batch_size < 2:
+        raise ValueError(
+            f"pocket_reliance_report needs batch_size >= 2 to permute pockets, got {batch_size}"
+        )
+
+    was_training = decoder.training
+    decoder.eval()
+
+    def _nll(mem: Tensor | None, mask: Tensor | None) -> float:
+        out = decoder(input_ids, memory=mem, memory_mask=mask)
+        logits = out[0] if isinstance(out, tuple) else out
+        shift_logits = logits[:, :-1, :].reshape(-1, int(logits.shape[-1])).float()
+        shift_labels = input_ids[:, 1:].reshape(-1)
+        return float(F.cross_entropy(shift_logits, shift_labels, ignore_index=int(pad_id)).detach())
+
+    # Roll by one along the batch so every ligand sees a different real pocket.
+    permuted_memory = torch.roll(memory, shifts=1, dims=0)
+    permuted_mask = None if memory_mask is None else torch.roll(memory_mask, shifts=1, dims=0)
+
+    report = PocketRelianceReport(
+        nll_true=_nll(memory, memory_mask),
+        nll_permuted=_nll(permuted_memory, permuted_mask),
+        nll_null=_nll(None, None),
+        gate_magnitudes=cross_attention_gate_magnitudes(decoder),
+    )
+
+    if was_training:
+        decoder.train()
+    return report
 
 
 def build_chemlm_decoder(
