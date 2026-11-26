@@ -978,6 +978,149 @@ def test_additional_mathematical_invariants_and_regressions() -> None:
     assert al_facade.ledger.verify_chain() is True
 
 
+def test_verifier_qa_regression_suite(tmp_path: Path) -> None:
+    """Regression tests for all 4 adversarial QA findings (MO aliasing, NaN safety, edge cases)."""
+    # 1. Multi-objective engine MUST NEVER alias ConformalSurrogate across objectives
+    conf_template = ConformalSurrogate(
+        TanimotoGP(n_bits=512, optimize_hyperparams=False),
+        alpha=0.10,
+        mode="normalized",
+        seed=42,
+    )
+    mo_eng = ActiveLearningEngine(
+        surrogate=conf_template,
+        acquisition="pareto_scalarized_ucb",
+        objective_names=("potency", "mpo"),
+        seed=42,
+    )
+    seed_smis = list(_DRUG_DECK[:10])
+    mo_eng.ingest_observations(
+        {s: (8.5 + 0.1 * i, 0.35 + 0.01 * i) for i, s in enumerate(seed_smis)}
+    )
+    preds_mo = mo_eng.predict(list(_DRUG_DECK[10:15]))
+    assert len(mo_eng._surrogates) == 2
+    assert mo_eng._surrogates[0] is not mo_eng._surrogates[1]
+    assert isinstance(mo_eng._surrogates[0], ConformalSurrogate)
+    assert isinstance(mo_eng._surrogates[1], ConformalSurrogate)
+    assert mo_eng._surrogates[0].base_surrogate is not mo_eng._surrogates[1].base_surrogate
+    # Objective 0 (~8.5-9.4) and Objective 1 (~0.35-0.44) must stay completely distinct!
+    assert float(np.mean(preds_mo[0].mean)) > 7.0
+    assert float(np.mean(preds_mo[1].mean)) < 1.0
+
+    # 2. CombinatorialThompsonSampler strictly enforces total_budget on NaN/inf oracle returns
+    acids = [
+        "Cc1ccc(C(=O)O)cc1",
+        "Fc1ccc(C(=O)O)cc1",
+        "Clc1ccc(C(=O)O)cc1",
+        "COc1ccc(C(=O)O)cc1",
+    ]
+    amines = ["CN1CCNCC1", "C1COCCN1", "CCN", "CC(C)N"]
+    actual_calls = {"n": 0}
+
+    def _nan_oracle(prods: Sequence[str]) -> list[float]:
+        actual_calls["n"] += len(prods)
+        return [float("nan") if i % 4 == 0 else 6.0 + 0.1 * i for i in range(len(prods))]
+
+    ts_nan = CombinatorialThompsonSampler(
+        reaction_name="amide_coupling_acid_amine",
+        warmup_per_reagent=1,
+        triage_filter=True,
+        seed=42,
+    )
+    res_nan = ts_nan.run(acids, amines, _nan_oracle, total_budget=8, batch_size=4)
+    assert actual_calls["n"] <= 8
+    assert res_nan.n_oracle_calls == actual_calls["n"]
+    assert res_nan.metadata["n_invalid_oracle_scores"] > 0
+    assert len(res_nan.all_products) == res_nan.n_oracle_calls - int(
+        res_nan.metadata["n_invalid_oracle_scores"]
+    )
+
+    # 3. ActiveLearningEngine.run_round safely handles partial-NaN AND all-NaN oracle outputs
+    eng_nan = ActiveLearningEngine(
+        surrogate="tanimoto_gp",
+        surrogate_kwargs={"n_bits": 512},
+        acquisition="ucb",
+        cold_start="random",
+        seed=42,
+    )
+    # Round 1: ALL NaN -> must NOT crash, must NOT leave stuck pending, must emit valid RFC JSON
+    r_all_nan = eng_nan.run_round(
+        list(_DRUG_DECK[:12]),
+        lambda xs: [float("nan")] * len(xs),
+        batch_size=2,
+    )
+    assert r_all_nan.n_acquired == 0
+    assert r_all_nan.n_pending == 0
+    assert eng_nan.pending.n_pending == 0
+    assert len(eng_nan.pending.failed_blacklist) == 2
+    assert eng_nan.ledger.verify_chain() is True
+    json.dumps(r_all_nan.to_dict(), allow_nan=False)
+
+    # Round 2: Partial NaN ([7.5, nan]) -> valid score recorded, NaN blacklisted, 0 pending
+    r_part_nan = eng_nan.run_round(
+        list(_DRUG_DECK[:12]),
+        lambda xs: [7.5, float("nan")][: len(xs)],
+        batch_size=2,
+    )
+    assert r_part_nan.n_acquired == 1
+    assert r_part_nan.n_pending == 0
+    assert eng_nan.pending.n_pending == 0
+    assert abs(r_part_nan.mean_acquired_value - 7.5) < 1e-12
+    assert abs(r_part_nan.max_acquired_value - 7.5) < 1e-12
+    assert eng_nan.ledger.verify_chain() is True
+    saved_ledger = eng_nan.ledger.save_json(tmp_path / "nan_safe_ledger.json")
+    json.loads(saved_ledger.read_text(encoding="utf-8"))
+
+    # 4a. ActiveLearningDMTA.propose_batch deduplicates repeated SMILES in pool_smiles
+    al_dup = ActiveLearningDMTA(strategy="ucb", surrogate="tanimoto_gp", seed=42)
+    al_dup.ingest_observations(
+        dict(zip(_DRUG_DECK[:6], _deterministic_sar_oracle(_DRUG_DECK[:6]), strict=True))
+    )
+    dup_pool_legacy = [_DRUG_DECK[7], _DRUG_DECK[7], _DRUG_DECK[6], _DRUG_DECK[8]]
+    prop_legacy = al_dup.propose_batch(dup_pool_legacy, batch_size=2)
+    assert len(prop_legacy) == 2 and len(set(prop_legacy)) == 2
+
+    # 4b. MultiFidelityDMTA VOI cost-ratio check is NOT bypassed when EI underflows to 0
+    truth_v = {s: 5.0 for s in _DRUG_DECK[:20]}
+    truth_v[_DRUG_DECK[0]] = 50.0  # huge incumbent forces EI == 0 everywhere else
+    mf_voi = MultiFidelityDMTA(
+        [
+            # Constant low proxy -> rho = 0 -> info_gain = 0.25 -> 0.25 / 10.0 = 0.025 < 1/20 = 0.05
+            FidelityTierSpec("expensive_low", 0, 10.0, lambda xs: [1.0] * len(xs)),
+            FidelityTierSpec("high", 1, 20.0, lambda xs: [truth_v[s] for s in xs]),
+        ],
+        enable_correlation_gate=False,
+        n_bits=512,
+        seed=42,
+    )
+    mf_voi.run_round(list(_DRUG_DECK[:20]), high_batch_size=6, remaining_budget=500.0)
+    r2_voi = mf_voi.run_round(list(_DRUG_DECK[:20]), high_batch_size=4, remaining_budget=500.0)
+    # Even though EI underflows and tier.cost < high.cost, 0.25/10 < 1/20 -> low tier skipped!
+    assert r2_voi.tier_evaluated_counts["expensive_low"] == 0
+
+    # 4c. acquire_kriging_believer shortlists via _kb_step_scores for kb_base='ei'/'log_ei', beta=0
+    # Construct 140 candidates (> min_shortlist=128) where index 139 has slightly lower mean
+    # than indices 0..138 (so beta=0 greedy UCB excludes 139 from the 128 shortlist),
+    # yet huge std so its EI/log_ei is strictly highest!
+    big_smis = tuple(f"C{'C' * (i % 15)}N" for i in range(140))
+    big_mu = np.linspace(5.0, 4.0, 140, dtype=np.float64)
+    big_sd = np.full(140, 0.01, dtype=np.float64)
+    big_mu[139] = 3.9
+    big_sd[139] = 5.0  # huge uncertainty -> highest EI / log_ei!
+    ctx_kb_ei = AcquisitionContext(
+        pool_smiles=big_smis,
+        mean=big_mu,
+        std=big_sd,
+        best_observed=6.0,
+        batch_size=2,
+        beta=0.0,
+        kb_base="log_ei",
+        shortlist_multiplier=2,
+    )
+    sel_kb_ei = run_acquisition("kriging_believer", ctx_kb_ei)
+    assert sel_kb_ei.indices[0] == 139
+
+
 def test_invalid_inputs_raise_clean_errors() -> None:
     """Sanity checks on clear error handling for edge cases."""
     with pytest.raises(ValueError):

@@ -833,7 +833,7 @@ def _finite_sample_quantile(scores: NDArray[np.float64], alpha: float) -> float:
 
 
 def _clone_surrogate(surrogate: SurrogateProtocol, seed_offset: int = 0) -> SurrogateProtocol:
-    """Create a fresh unfitted copy of ``surrogate`` for leak-free CV+ folds."""
+    """Create a fresh unfitted copy of ``surrogate`` for leak-free CV+ folds or MO objectives."""
     if isinstance(surrogate, TanimotoGP):
         clone = surrogate._clone_unfitted()
         clone.seed = surrogate.seed + seed_offset
@@ -842,11 +842,14 @@ def _clone_surrogate(surrogate: SurrogateProtocol, seed_offset: int = 0) -> Surr
         clone_e = surrogate._clone_unfitted()
         clone_e.seed = surrogate.seed + seed_offset
         return clone_e
+    if isinstance(surrogate, ConformalSurrogate):
+        clone_c = surrogate._clone_unfitted(seed_offset=seed_offset)
+        return clone_c
     if hasattr(surrogate, "_clone_unfitted"):
         return surrogate._clone_unfitted()  # type: ignore[no-any-return]
     raise TypeError(
-        f"Cannot clone custom surrogate {type(surrogate).__name__} for CV+; "
-        "implement _clone_unfitted() or call fit_calibrated() with an explicit split."
+        f"Cannot clone custom surrogate {type(surrogate).__name__} for CV+ or multi-objective; "
+        "implement _clone_unfitted() or pass a registered surrogate name."
     )
 
 
@@ -935,6 +938,21 @@ class ConformalSurrogate:
     @property
     def name(self) -> str:
         return f"conformal_{self.base_surrogate.name}"
+
+    def _clone_unfitted(self, *, seed_offset: int = 0) -> ConformalSurrogate:
+        """Create a fresh unfitted copy, recursively cloning ``base_surrogate``."""
+        cloned_base = _clone_surrogate(self.base_surrogate, seed_offset=seed_offset)
+        return ConformalSurrogate(
+            cloned_base,
+            alpha=self.alpha,
+            mode=self.mode,
+            cal_fraction=self.cal_fraction,
+            scaffold_split_cal=self.scaffold_split_cal,
+            weight_gamma=self.weight_gamma,
+            min_sigma=self.min_sigma,
+            min_split_n=self.min_split_n,
+            seed=self.seed + seed_offset,
+        )
 
     def _compute_scores(
         self,

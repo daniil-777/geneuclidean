@@ -18,6 +18,7 @@ Orchestrates end-to-end Design-Make-Test-Analyze (DMTA) cycles with:
 
 from __future__ import annotations
 
+import copy
 import csv
 import hashlib
 import json
@@ -156,7 +157,10 @@ class DMTARoundSummary:
             "round_sha256": self.round_sha256,
             "chain_sha256": self.chain_sha256,
             "acquired_smiles": list(self.acquired_smiles),
-            "acquired_values": [round(float(v), 4) for v in self.acquired_values],
+            "acquired_values": [
+                round(float(v), 4) if math.isfinite(float(v)) else None
+                for v in self.acquired_values
+            ],
             "stopping_report": self.stopping_report,
             "pareto_hypervolume": (
                 round(self.pareto_hypervolume, 6)
@@ -195,6 +199,7 @@ class DMTALedger:
             {"prev": prev_hash, "kind": kind, "payload": payload},
             sort_keys=True,
             separators=(",", ":"),
+            allow_nan=False,
         ).encode("utf-8")
         return hashlib.sha256(canonical).hexdigest()
 
@@ -228,7 +233,10 @@ class DMTALedger:
             "strategy": summary.strategy,
             "surrogate_name": summary.surrogate_name,
             "acquired_smiles": list(summary.acquired_smiles),
-            "acquired_values": [round(float(v), 6) for v in summary.acquired_values],
+            "acquired_values": [
+                round(float(v), 6) if math.isfinite(float(v)) else None
+                for v in summary.acquired_values
+            ],
             "round_sha256": summary.round_sha256,
         }
         prev = self.head_sha256
@@ -270,7 +278,9 @@ class DMTALedger:
     def save_json(self, path: str | Path) -> Path:
         out = Path(path)
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps(self.to_dict(), indent=2) + "\n", encoding="utf-8")
+        out.write_text(
+            json.dumps(self.to_dict(), indent=2, allow_nan=False) + "\n", encoding="utf-8"
+        )
         return out
 
 
@@ -441,11 +451,28 @@ class ActiveLearningEngine:
             kw = dict(self._surrogate_kwargs)
             kw.setdefault("seed", self.seed + offset)
             return build_surrogate(self._surrogate_spec, **kw)
-        if offset == 0:
+        if not self.is_multi_objective and offset == 0:
             return self._surrogate_spec
         if hasattr(self._surrogate_spec, "_clone_unfitted"):
-            return self._surrogate_spec._clone_unfitted()  # type: ignore[no-any-return]
-        return self._surrogate_spec
+            cloned_any: Any = self._surrogate_spec._clone_unfitted()
+            if hasattr(cloned_any, "seed") and isinstance(getattr(cloned_any, "seed", None), int):
+                cloned_any.seed = int(getattr(self._surrogate_spec, "seed", self.seed)) + offset
+            cloned: SurrogateProtocol = cloned_any
+            return cloned
+        try:
+            deep = copy.deepcopy(self._surrogate_spec)
+        except Exception as exc:
+            raise TypeError(
+                f"Cannot clone surrogate instance {type(self._surrogate_spec).__name__} "
+                "for multi-objective or multi-round isolation; implement _clone_unfitted() "
+                "or pass a registered surrogate name."
+            ) from exc
+        if deep is self._surrogate_spec:
+            raise TypeError(
+                f"deepcopy returned the same {type(self._surrogate_spec).__name__} instance; "
+                "multi-objective surrogates must be distinct instances."
+            )
+        return deep
 
     def ingest_observations(
         self,
@@ -785,21 +812,44 @@ class ActiveLearningEngine:
                 raise ValueError("feasible_check_fn returned mismatched length.")
             feas_map = dict(zip(query.smiles, flags, strict=True))
 
+        invalid_smis: list[str] = []
+        valid_smis: list[str] = []
+        scalar_vals: list[float] = []
         if self.is_multi_objective:
             obs_dict: dict[str, tuple[float, ...]] = {}
             for s, v in zip(query.smiles, raw_vals, strict=True):
                 if isinstance(v, Mapping):
-                    obs_dict[s] = tuple(float(v[k]) for k in self.objective_names)
+                    vec = tuple(float(v[k]) for k in self.objective_names)
                 else:
-                    obs_dict[s] = tuple(float(x) for x in v)
-            self.ingest_observations(obs_dict, feasible_flags=feas_map)
-            scalar_vals = [v[0] for v in obs_dict.values()]
+                    vec = tuple(float(x) for x in v)
+                if len(vec) != len(self.objective_names) or not all(math.isfinite(x) for x in vec):
+                    invalid_smis.append(s)
+                    continue
+                obs_dict[s] = vec
+                valid_smis.append(s)
+                scalar_vals.append(vec[0])
+            if obs_dict:
+                self.ingest_observations(obs_dict, feasible_flags=feas_map)
         else:
-            obs_scalar = {s: float(v) for s, v in zip(query.smiles, raw_vals, strict=True)}
-            self.ingest_observations(obs_scalar, feasible_flags=feas_map)
-            scalar_vals = list(obs_scalar.values())
+            obs_scalar: dict[str, float] = {}
+            for s, v in zip(query.smiles, raw_vals, strict=True):
+                fval = float(v)
+                if not math.isfinite(fval):
+                    invalid_smis.append(s)
+                    continue
+                obs_scalar[s] = fval
+                valid_smis.append(s)
+                scalar_vals.append(fval)
+            if obs_scalar:
+                self.ingest_observations(obs_scalar, feasible_flags=feas_map)
 
-        best_smi, best_val = max(self.observed.items(), key=lambda kv: kv[1])
+        if invalid_smis:
+            self.pending.mark_failed(invalid_smis, blacklist=True)
+
+        if self.observed:
+            best_smi, best_val = max(self.observed.items(), key=lambda kv: kv[1])
+        else:
+            best_smi, best_val = "", float("nan")
         pareto_hv: float | None = None
         if self.is_multi_objective and self.observed_multi:
             y_all = np.array(list(self.observed_multi.values()), dtype=np.float64)
@@ -813,7 +863,7 @@ class ActiveLearningEngine:
         # Refit and run stopping advisor diagnostics on remaining pool
         models = self._fit_surrogates()
         stop_rep: StoppingReport | None = None
-        if models:
+        if models and math.isfinite(best_val):
             excluded = set(self.observed.keys()) | self.pending.excluded_set()
             rem_smis = [s.strip() for s in pool_smiles if s.strip() and s.strip() not in excluded]
             if rem_smis:
@@ -834,16 +884,18 @@ class ActiveLearningEngine:
                 )
                 self._last_stopping_report = stop_rep
 
-        int_tan = compute_batch_internal_tanimoto(query.smiles)
+        int_tan = compute_batch_internal_tanimoto(valid_smis if valid_smis else query.smiles)
         round_idx = len(self.history) + 1
         round_digest = hashlib.sha256(
             json.dumps(
                 {
                     "round": round_idx,
-                    "smiles": list(query.smiles),
+                    "smiles": valid_smis,
                     "values": [round(float(v), 6) for v in scalar_vals],
+                    "failed_nonfinite_smiles": invalid_smis,
                 },
                 sort_keys=True,
+                allow_nan=False,
             ).encode("utf-8")
         ).hexdigest()[:16]
 
@@ -853,7 +905,7 @@ class ActiveLearningEngine:
             round_index=round_idx,
             strategy=query.strategy,
             surrogate_name=surrogate_name,
-            n_acquired=len(query.smiles),
+            n_acquired=len(valid_smis),
             n_total_observed=self.n_observed,
             n_pending=self.pending.n_pending,
             mean_acquired_value=float(np.mean(scalar_vals)) if scalar_vals else float("nan"),
@@ -863,11 +915,15 @@ class ActiveLearningEngine:
             mean_batch_internal_tanimoto=int_tan,
             round_sha256=round_digest,
             chain_sha256="",
-            acquired_smiles=query.smiles,
+            acquired_smiles=tuple(valid_smis),
             acquired_values=tuple(float(v) for v in scalar_vals),
             stopping_report=stop_rep.to_dict() if stop_rep is not None else None,
             pareto_hypervolume=pareto_hv,
-            metadata={"query_id": query.query_id},
+            metadata={
+                "query_id": query.query_id,
+                "n_failed_nonfinite": len(invalid_smis),
+                "failed_nonfinite_smiles": list(invalid_smis),
+            },
         )
         chain_hash = self.ledger.record_round(pre_summary)
         final_summary = DMTARoundSummary(

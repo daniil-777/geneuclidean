@@ -442,11 +442,9 @@ class MultiFidelityDMTA:
                 rho_cur = self.paired_spearman_rho.get(tier.level, 0.5)
                 info_gain = max(0.25, float(rho_cur**2)) if math.isfinite(rho_cur) else 0.5
 
-                # Cost-normalized VOI check: screen lower tier when VOI_L > VOI_H
-                max_ei_val = float(np.nanmax(ei_lo[valid_lo])) if bool(valid_lo.any()) else 0.0
-                voi_low = (max_ei_val * info_gain) / tier.cost
-                voi_high = max_ei_val / self.high_tier.cost
-                if voi_low > voi_high or max_ei_val <= 1e-12:
+                # Cost-normalized VOI check: screen lower tier strictly when
+                # info_gain / tier.cost > 1.0 / high_tier.cost (never bypassed on EI underflow)
+                if (info_gain / tier.cost) > (1.0 / self.high_tier.cost):
                     n_funnel = min(
                         len(unseen_lo),
                         max(1, int(high_batch_size) * max(1, int(low_funnel_multiplier))),

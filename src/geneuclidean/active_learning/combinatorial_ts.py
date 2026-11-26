@@ -346,6 +346,8 @@ class CombinatorialThompsonSampler:
         obs_triples: list[tuple[int, int, float]] = []
         n_rxn_fail = 0
         n_triage_filt = 0
+        oracle_calls_made = 0
+        n_invalid_oracle_scores = 0
 
         # ------------------------------------------------------------------
         # Phase 1: Balanced O(N_A + N_B) Warm-up (capped at warmup_cap_fraction)
@@ -375,16 +377,23 @@ class CombinatorialThompsonSampler:
             var_obs: float | None,
             std_floor: float,
         ) -> None:
+            nonlocal oracle_calls_made, n_invalid_oracle_scores
             if not pending_batch:
                 return
-            smis = [item[2] for item in pending_batch]
+            remaining = budget - oracle_calls_made
+            if remaining <= 0:
+                return
+            batch_to_eval = pending_batch[:remaining]
+            smis = [item[2] for item in batch_to_eval]
+            oracle_calls_made += len(batch_to_eval)
             vals = [float(v) for v in oracle_fn(smis)]
-            if len(vals) != len(pending_batch):
+            if len(vals) != len(batch_to_eval):
                 raise ValueError(
-                    f"oracle_fn returned {len(vals)} scores for {len(pending_batch)} products."
+                    f"oracle_fn returned {len(vals)} scores for {len(batch_to_eval)} products."
                 )
-            for (ai, bi, psmi, tr_ok), score in zip(pending_batch, vals, strict=True):
+            for (ai, bi, psmi, tr_ok), score in zip(batch_to_eval, vals, strict=True):
                 if not math.isfinite(score):
+                    n_invalid_oracle_scores += 1
                     continue
                 step_num = len(records) + 1
                 records.append(
@@ -419,7 +428,7 @@ class CombinatorialThompsonSampler:
 
         batch_buf: list[tuple[int, int, str, bool]] = []
         for ai, bi in warmup_queue:
-            if len(records) + len(batch_buf) >= target_warmup:
+            if oracle_calls_made + len(batch_buf) >= target_warmup:
                 break
             if (ai, bi) in attempted:
                 continue
@@ -439,7 +448,7 @@ class CombinatorialThompsonSampler:
                 _flush_batch(batch_buf, "warmup", None, None, None, 0.1)
                 batch_buf = []
         _flush_batch(batch_buf, "warmup", None, None, None, 0.1)
-        n_warmup = len(records)
+        n_warmup = oracle_calls_made
 
         # Initialize empirical global prior and conjugate posteriors from warm-up scores
         if records:
@@ -460,12 +469,12 @@ class CombinatorialThompsonSampler:
         # ------------------------------------------------------------------
         # Phase 2: O(N_A + N_B) Factorized Thompson Sampling
         # ------------------------------------------------------------------
-        max_stalls = max(200, (budget - len(records)) * 8)
+        max_stalls = max(200, (budget - oracle_calls_made) * 8)
         stalls = 0
         top_frontier = min(12, max(n_a, n_b))
 
-        while len(records) < budget and stalls < max_stalls and len(attempted) < n_space:
-            need = min(bs, budget - len(records))
+        while oracle_calls_made < budget and stalls < max_stalls and len(attempted) < n_space:
+            need = min(bs, budget - oracle_calls_made)
             samp_buf: list[tuple[int, int, str, bool]] = []
             mu_a = np.array([p.mean for p in post_a], dtype=np.float64)
             sd_a = np.array([p.std for p in post_a], dtype=np.float64)
@@ -557,10 +566,12 @@ class CombinatorialThompsonSampler:
                     "reaction": self.reaction_name,
                     "n_a": n_a,
                     "n_b": n_b,
-                    "n_calls": len(records),
+                    "n_calls": oracle_calls_made,
+                    "n_valid_records": len(records),
                     "products": [(r.product_smiles, round(r.score, 6)) for r in ranked[:top_k]],
                 },
                 sort_keys=True,
+                allow_nan=False,
             ).encode("utf-8")
         ).hexdigest()
 
@@ -570,12 +581,12 @@ class CombinatorialThompsonSampler:
             n_reactants_a=n_a,
             n_reactants_b=n_b,
             n_virtual_space=n_space,
-            n_oracle_calls=len(records),
+            n_oracle_calls=oracle_calls_made,
             n_warmup_calls=n_warmup,
-            n_sampling_calls=len(records) - n_warmup,
+            n_sampling_calls=oracle_calls_made - n_warmup,
             n_reaction_failures=n_rxn_fail,
             n_triage_filtered=n_triage_filt,
-            fraction_explored=float(len(records) / max(n_space, 1)),
+            fraction_explored=float(oracle_calls_made / max(n_space, 1)),
             best_score=best_score,
             best_product=best_prod,
             top_products=tuple(ranked[:top_k]),
@@ -591,6 +602,8 @@ class CombinatorialThompsonSampler:
                 "temperature": self.temperature,
                 "warmup_per_reagent": self.warmup_per_reagent,
                 "triage_filter": self.triage_filter,
+                "n_valid_records": len(records),
+                "n_invalid_oracle_scores": n_invalid_oracle_scores,
             },
         )
 

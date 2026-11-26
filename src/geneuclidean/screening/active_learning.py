@@ -220,7 +220,13 @@ class ActiveLearningDMTA:
         feasibility_probs: Sequence[float] | NDArray[np.float64] | None = None,
     ) -> list[str]:
         """Select the next ``batch_size`` unobserved compounds from ``pool_smiles``."""
-        unseen_idx = [i for i, s in enumerate(pool_smiles) if s.strip() not in self.observed]
+        unseen_idx: list[int] = []
+        seen_pool: set[str] = set()
+        for i, raw_s in enumerate(pool_smiles):
+            s = raw_s.strip()
+            if s and s not in self.observed and s not in seen_pool:
+                seen_pool.add(s)
+                unseen_idx.append(i)
         if not unseen_idx:
             return []
         unseen_smis = [pool_smiles[i].strip() for i in unseen_idx]

@@ -571,10 +571,19 @@ def acquire_kriging_believer(ctx: AcquisitionContext) -> AcquisitionSelection:
     """
     mu, sd = _as_1d_mean_std(ctx)
     fin = np.isfinite(mu) & np.isfinite(sd) & (sd >= 0.0)
-    base_all = np.where(fin, mu + float(ctx.beta) * sd, float("-inf"))
     n_valid = int(fin.sum())
     if n_valid == 0:
-        return _select_top_k(ctx, base_all, "kriging_believer")
+        return _select_top_k(ctx, np.full_like(mu, float("-inf")), "kriging_believer")
+
+    raw_base = _kb_step_scores(
+        np.where(fin, mu, float("nan")),
+        np.where(fin, sd, float("nan")),
+        base=ctx.kb_base,
+        beta=ctx.beta,
+        best_observed=ctx.best_observed,
+        xi=ctx.xi,
+    )
+    base_all = np.where(fin & np.isfinite(raw_base), raw_base, float("-inf"))
 
     k = min(n_valid, max(1, int(ctx.batch_size)))
     gp = _unwrap_tanimoto_gp(ctx.surrogate)
@@ -583,11 +592,21 @@ def acquire_kriging_believer(ctx: AcquisitionContext) -> AcquisitionSelection:
         gp_eff = gp.condition_on_fantasies(ctx.pending_smiles) if ctx.pending_smiles else gp
         if ctx.pending_smiles:
             pred_eff = gp_eff.predict(ctx.pool_smiles)
-            eff_scores = np.where(
-                pred_eff.valid & np.isfinite(pred_eff.mean),
-                pred_eff.mean + float(ctx.beta) * pred_eff.epistemic_std,
-                float("-inf"),
+            eff_fin = (
+                pred_eff.valid & np.isfinite(pred_eff.mean) & np.isfinite(pred_eff.epistemic_std)
             )
+            if bool(eff_fin.any()):
+                eff_raw = _kb_step_scores(
+                    np.where(eff_fin, pred_eff.mean, float("nan")),
+                    np.where(eff_fin, pred_eff.epistemic_std, float("nan")),
+                    base=ctx.kb_base,
+                    beta=ctx.beta,
+                    best_observed=ctx.best_observed,
+                    xi=ctx.xi,
+                )
+                eff_scores = np.where(eff_fin & np.isfinite(eff_raw), eff_raw, float("-inf"))
+            else:
+                eff_scores = np.full_like(mu, float("-inf"))
         else:
             eff_scores = base_all
 
