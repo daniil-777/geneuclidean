@@ -1,0 +1,161 @@
+{
+  "device": "mps",
+  "torch_version": "2.15.0",
+  "platform": "macOS-27.3-arm64-arm-64bit",
+  "batch_size": 32,
+  "seq_len": 96,
+  "pocket_atoms": 128,
+  "tier1_throughput": [
+    {
+      "label": "tiny-dense",
+      "scale": "tiny",
+      "params_m": 3.45,
+      "d_model": 256,
+      "n_layers": 4,
+      "moe": false,
+      "gradient_checkpointing": false,
+      "forward_ms": 42.5,
+      "fwd_bwd_ms": 200.48,
+      "peak_mem_mb": 57.2,
+      "tokens_per_s": 15322.9
+    },
+    {
+      "label": "small-dense",
+      "scale": "small",
+      "params_m": 27.47,
+      "d_model": 512,
+      "n_layers": 8,
+      "moe": false,
+      "gradient_checkpointing": false,
+      "forward_ms": 193.9,
+      "fwd_bwd_ms": 719.58,
+      "peak_mem_mb": 431.0,
+      "tokens_per_s": 4269.2
+    },
+    {
+      "label": "base-dense",
+      "scale": "base",
+      "params_m": 94.5,
+      "d_model": 768,
+      "n_layers": 12,
+      "moe": false,
+      "gradient_checkpointing": false,
+      "forward_ms": 443.42,
+      "fwd_bwd_ms": 1872.87,
+      "peak_mem_mb": 1498.3,
+      "tokens_per_s": 1640.3
+    },
+    {
+      "label": "base-moe8x2",
+      "scale": "base",
+      "params_m": 490.93,
+      "d_model": 768,
+      "n_layers": 12,
+      "moe": true,
+      "gradient_checkpointing": false,
+      "forward_ms": 771.57,
+      "fwd_bwd_ms": 4693.0,
+      "peak_mem_mb": 7583.2,
+      "tokens_per_s": 654.6
+    },
+    {
+      "label": "base-dense-ckpt",
+      "scale": "base",
+      "params_m": 94.5,
+      "d_model": 768,
+      "n_layers": 12,
+      "moe": false,
+      "gradient_checkpointing": true,
+      "forward_ms": 324.34,
+      "fwd_bwd_ms": 1493.82,
+      "peak_mem_mb": 1500.7,
+      "tokens_per_s": 2056.5
+    }
+  ],
+  "tier2_correctness": {
+    "kv_cache_max_abs_diff": 9.5367431640625e-07,
+    "device_vs_cpu_max_abs_diff": 1.430511474609375e-06,
+    "padded_pocket_max_abs_diff": 0.0,
+    "all_masked_pocket_finite": true,
+    "pocket_sensitivity_max_abs_diff": 0.15392261743545532,
+    "property_sensitivity_max_abs_diff": 1.1418981552124023
+  },
+  "tier3_chemistry": {
+    "scale": "small",
+    "params_m": 27.45,
+    "vocab_size": 66,
+    "corpus_size": 249455,
+    "train_steps": 5000,
+    "train_seconds": 1599.3,
+    "ms_per_step": 319.9,
+    "first_loss": 2.9203,
+    "final_loss": 0.6121,
+    "num_sampled": 512,
+    "validity": 0.957,
+    "uniqueness": 1.0,
+    "novelty": 0.9939,
+    "novelty_reference_size": 249455,
+    "mean_qed": 0.7372,
+    "kv_cached_sample_seconds": 1.78,
+    "example_valid_smiles": [
+      "CC(=O)Nc1ccc(C(=O)N2CCC[C@@H](C(=O)N3CCOCC3)C2)cc1",
+      "Cc1ccc2c(c1)C(=O)N(c1ccc(-c3cscn3)cc1)C2=O",
+      "CCC(C)(C)C(=O)N1CCN(C(=O)[C@@H](C)Oc2ccccc2C)CC1",
+      "O=C(NC1CCN(C(=O)COc2cccc(F)c2)CC1)c1ccc(Br)o1",
+      "Cc1ccccc1-c1noc(CCC(=O)N(C)[C@H](C)c2nccs2)n1",
+      "CC1(C)CCC[C@H]1NS(=O)(=O)c1ccc(Cl)c(C(=O)NCCc2ccccc2)c1",
+      "Cc1ccc(N2C[C@H](c3nnc(SCC(=O)N(C)C)o3)CC2=O)cc1C",
+      "CC[C@@H](CO)NC(=O)c1n[nH]c2c1CCCC2",
+      "C[C@H](C(=O)NNc1nncs1)c1ccc(S(N)(=O)=O)cc1",
+      "O=C(Nc1ccc2[nH]nc(C(F)F)c2c1)c1ccc(Cl)c([N+](=O)[O-])c1"
+    ]
+  },
+  "tier4_property_conditioning": {
+    "scale": "small",
+    "params_m": 28.52,
+    "properties": [
+      "qed",
+      "mol_wt",
+      "log_p"
+    ],
+    "corpus_size": 249455,
+    "train_steps": 5000,
+    "train_seconds": 1696.8,
+    "first_loss": 2.9783,
+    "final_loss": 0.5949,
+    "corpus_mean": [
+      0.7318,
+      332.1391,
+      2.4571
+    ],
+    "corpus_stdev": [
+      0.1386,
+      61.9434,
+      1.4343
+    ],
+    "low_target_z": -1.5,
+    "high_target_z": 1.5,
+    "low": {
+      "n_valid": 468,
+      "validity": 0.9141,
+      "mean_qed": 0.6453,
+      "mean_mol_wt": 240.2187,
+      "mean_log_p": 0.0924
+    },
+    "high": {
+      "n_valid": 429,
+      "validity": 0.8379,
+      "mean_qed": 0.6728,
+      "mean_mol_wt": 418.567,
+      "mean_log_p": 4.5441
+    },
+    "qed_separation": 0.0275,
+    "mol_wt_separation": 178.3483,
+    "log_p_separation": 4.4517
+  },
+  "provenance": {
+    "note": "tier3 is from the corrected run that measures novelty against the full 249,455-molecule corpus; tier1 and tier4 are from the preceding run of the same configuration. tier3 novelty in the earlier run was inflated because it compared against only the first 5,000 corpus molecules.",
+    "novelty_sample_count": 512,
+    "novelty_caveat": "Novelty decays with sample count, so this figure at n=512 is NOT comparable to published novelty measured at n=30,000 or higher."
+  }
+}
