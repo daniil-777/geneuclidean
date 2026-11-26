@@ -102,16 +102,20 @@ def _forward_unconditional(model: nn.Module, input_ids: Tensor) -> Tensor:
 
 
 def _instantiate_default_decoder(cfg: ExperimentConfig, tokenizer: Any) -> nn.Module:
-    """Lazily instantiate the configured chemical decoder for Stage-1 pretraining."""
+    """Lazily instantiate the configured chemical decoder for Stage-1 pretraining.
+
+    Dispatches through :func:`geneuclidean.models.decoders.build_decoder` so every
+    registered token-autoregressive decoder — including ``chemlm`` and ``chemlm_moe`` —
+    and any third-party decoder registered via :func:`geneuclidean.register_decoder` can
+    be pretrained as an unconditional chemical prior, rather than only the two
+    historically hard-coded architectures.
+    """
     vocab_size = int(getattr(tokenizer, "vocab_size", cfg.decoder.vocab_size))
     dec_cfg = cfg.decoder.model_copy(update={"vocab_size": vocab_size})
-    if dec_cfg.arch == "transformer":
-        from geneuclidean.models.decoders.transformer import PocketTransformerDecoder
 
-        return PocketTransformerDecoder(dec_cfg)
-    from geneuclidean.models.decoders.lstm import PocketLSTMDecoder
+    from geneuclidean.models.decoders import build_decoder
 
-    return PocketLSTMDecoder(dec_cfg)
+    return build_decoder(dec_cfg)
 
 
 @torch.no_grad()

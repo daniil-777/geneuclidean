@@ -13,6 +13,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from geneuclidean.registry import (
+    BUILTIN_DECODER_ALIASES,
     BUILTIN_DECODER_NAMES,
     BUILTIN_ENCODER_ALIASES,
     BUILTIN_ENCODER_NAMES,
@@ -163,19 +164,26 @@ class DecoderConfig(_StrictBaseModel):
     @classmethod
     def _validate_decoder_arch(cls, value: str) -> str:
         cleaned = value.strip()
-        if cleaned.lower() in BUILTIN_DECODER_NAMES:
-            return cleaned.lower()
+        lowered = cleaned.lower()
+        canonical = BUILTIN_DECODER_ALIASES.get(lowered, lowered)
+        if canonical in BUILTIN_DECODER_NAMES:
+            return canonical
         if cleaned in DECODER_REGISTRY:
             return cleaned
         valid = sorted(BUILTIN_DECODER_NAMES | set(DECODER_REGISTRY.names()))
         raise ValueError(
             f"Unknown decoder architecture {value!r}. Expected one of {valid} "
+            f"(aliases: {sorted(BUILTIN_DECODER_ALIASES)}) "
             "or register a custom decoder via geneuclidean.register_decoder(...)."
         )
 
     @model_validator(mode="after")
     def _validate_heads(self) -> DecoderConfig:
-        if self.arch == "transformer" and self.d_model % self.n_heads != 0:
+        if (
+            self.arch
+            in ("transformer", "geom_transformer", "flow3d", "ar3d", "chemlm", "chemlm_moe")
+            and self.d_model % self.n_heads != 0
+        ):
             msg = f"d_model ({self.d_model}) must be divisible by n_heads ({self.n_heads})"
             raise ValueError(msg)
         return self
