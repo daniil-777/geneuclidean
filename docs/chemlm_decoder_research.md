@@ -66,9 +66,22 @@ training molecules — and ~45% of that corpus were duplicates. Deduplicating to
 unique lifted novelty to 0.390. Novelty also *decays* with sample count: 0.390 @30k →
 0.340 @1B → 0.214 @10B.
 
-**Acted on:** the notebook hard-deduplicates on canonical SMILES before training and
-reports novelty against the deduplicated set. This is the cheapest available metric
-improvement and does not need a single extra parameter.
+**Acted on:** `data/chem_corpora.py` provides canonical-form deduplication and a novelty
+report, and the notebook deduplicates before training and measures novelty against the
+deduplicated set.
+
+**[M] Measured correction — this particular win does not apply here.** ZINC-250k as
+shipped in this repo is *already* clean: 20,000 molecules sampled gave **0 duplicates and
+0 invalid (0.0% duplicate rate)**. The 45%-duplicate figure comes from large scraped
+corpora (PubChem / ZINC-22 merges), so deduplication becomes valuable only when moving
+to those. Stated explicitly so the dedup step is not credited with an improvement it
+cannot produce on the current corpus.
+
+The `novelty_report` half matters regardless, and two of its details are deliberate:
+invalid strings stay in the validity denominator (scoring only the valid subset silently
+inflates validity), and `n_generated` is recorded alongside novelty, because novelty
+decays with sample count and a novelty figure without its sample size is not
+interpretable.
 
 ---
 
@@ -224,9 +237,13 @@ a perturbation. The test suite therefore asserts bitwise zero for dense decoders
 ## 8. Ranked next steps
 
 1. **Build the ChEMBL ⋈ UniProt ⋈ pocket join.** Largest single data win available, and
-   data is worth ~25× parameters for SMILES.
-2. **Deduplicate every corpus and report novelty at production sample count.** Cheapest
-   quality win; novelty decays with sample count, so report it where it matters.
+   data is worth ~25× parameters for SMILES. The repo already carries a curated panel of
+   31 CNS targets (including a 24-target Tourette / schizophrenia / Alzheimer registry)
+   with verified UniProt, ChEMBL and PDB identifiers, so the target side of the join
+   exists — what is missing is the activity pull and the join itself.
+2. **Report novelty at the production sample count** using
+   `chem_corpora.novelty_report`. Deduplication is already in place but is a no-op on
+   ZINC-250k (measured 0.0% duplicates); it becomes load-bearing on PubChem / ZINC-22.
 3. **Add RL / preference finetuning** (REINVENT-style Hill Climbing or GRPO) with an
    anti-collapse penalty. NovoMolGen's gains over baselines come from this stage, not from
    model size. Budget a real hyperparameter search.
