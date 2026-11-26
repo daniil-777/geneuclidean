@@ -2013,5 +2013,40 @@ def info(
     console.print(data_table)
 
 
+@app.command("studio")
+def studio(
+    host: str = typer.Option(
+        "127.0.0.1",
+        "--host",
+        help="Host interface to bind the local Circuit Studio HTTP API.",
+    ),
+    port: int = typer.Option(
+        8765,
+        "--port",
+        help="TCP port for the local Circuit Studio HTTP API.",
+    ),
+    cors_origin: str = typer.Option(
+        "*",
+        "--cors-origin",
+        help="Allowed CORS Access-Control-Allow-Origin header value.",
+    ),
+    quiet: bool = typer.Option(
+        False,
+        "--quiet",
+        help="Suppress per-request HTTP access logs.",
+    ),
+) -> None:
+    """Launch the local zero-dependency Circuit Studio Python HTTP API server."""
+    from geneuclidean.studio.catalog import BLOCK_CATALOG, FLAGSHIP_PRESETS
+    from geneuclidean.studio.server import run_studio_server
+
+    console.print(
+        f"[bold cyan]GenEuclidean Circuit Studio API v{geneuclidean.__version__}[/bold cyan] "
+        f"listening on [green]http://{escape(host)}:{port}[/green] "
+        f"({len(BLOCK_CATALOG)} blocks · {len(FLAGSHIP_PRESETS)} presets · Ctrl-C to stop)"
+    )
+    run_studio_server(host=host, port=port, cors_origin=cors_origin, quiet=quiet)
+
+
 if __name__ == "__main__":
     app()
