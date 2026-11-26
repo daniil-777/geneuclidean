@@ -10,6 +10,7 @@ import {
   Layers,
   ShieldCheck,
   Sparkles,
+  Workflow,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Mol3DViewer } from '../components/Mol3DViewer';
@@ -171,6 +172,15 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
               <Atom className="h-4 w-4" />
               Explore {kpi.n_targets} 3D Complexes
               <ArrowRight className="h-4 w-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onNavigate('circuit')}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm bg-cyan-500/15 text-cyan-700 dark:text-cyan-200 border border-cyan-500/35 hover:bg-cyan-500/25 transition-all cursor-pointer"
+            >
+              <Workflow className="h-4 w-4" />
+              Circuit Studio
             </button>
 
             <button

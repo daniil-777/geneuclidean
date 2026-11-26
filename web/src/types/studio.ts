@@ -1,6 +1,7 @@
 export type StudioTab =
   | 'overview'
   | 'studio3d'
+  | 'circuit'
   | 'generator'
   | 'experiments'
   | 'disorders'
