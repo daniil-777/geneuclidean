@@ -656,6 +656,59 @@ def test_decoder_overfits_a_single_batch(use_moe: bool) -> None:
     assert last < first * 0.6, f"loss did not drop: {first:.3f} -> {last:.3f}"
 
 
+@pytest.mark.parametrize("arch", ["chemlm", "chemlm_moe"])
+def test_runs_inside_the_full_geneuclidean_pipeline(arch: str) -> None:
+    """The decoder must drop into ``GenEuclideanModel`` by config alone.
+
+    This is the integration that was previously impossible: the strong attention
+    primitives lived outside the registry, so ``build_decoder`` could not reach them and
+    the real training pipeline was stuck with the cache-less ``transformer`` decoder.
+    """
+    from geneuclidean.config import ExperimentConfig
+    from geneuclidean.models.geneuclidean import GenEuclideanModel
+
+    cfg = ExperimentConfig()
+    cfg.decoder.arch = arch
+    cfg.decoder.vocab_size = VOCAB
+    cfg.decoder.d_model = 64
+    cfg.decoder.n_heads = 4
+    cfg.decoder.n_layers = 2
+    cfg.decoder.d_ff = 128
+    cfg.encoder.hidden_dim = 32
+    cfg.encoder.vector_dim = 16
+    cfg.encoder.out_dim = 64
+    cfg.encoder.num_layers = 2
+    cfg.cvae.latent_dim = 16
+
+    model = GenEuclideanModel(cfg)
+    assert isinstance(model.decoder, ChemLMDecoder)
+    assert model.decoder.is_moe is (arch == "chemlm_moe")
+
+    batch_size, n_atoms, seq_len = 2, 40, 12
+    batch = {
+        "coords": torch.randn(batch_size, n_atoms, 3),
+        "node_feats": torch.randn(batch_size, n_atoms, 52),
+        "atom_mask": torch.ones(batch_size, n_atoms, dtype=torch.bool),
+        "input_ids": torch.randint(4, VOCAB, (batch_size, seq_len)),
+        "ligand_fp": torch.rand(batch_size, 1024),
+        "props": torch.randn(batch_size, 8),
+        "pkd": torch.randn(batch_size),
+    }
+
+    model.train()
+    out = model(batch, cfg_drop=True, return_attn=True)
+
+    assert out.logits.shape == (batch_size, seq_len, VOCAB)
+    assert torch.isfinite(out.logits).all()
+    # Cross-attention memory is pocket atoms plus the CVAE latent tokens.
+    assert out.attn_weights is not None
+    assert out.attn_weights.shape[-1] == n_atoms + cfg.cvae.num_latent_tokens
+    assert out.pred_pkd is not None and out.pred_pkd.shape == (batch_size,)
+
+    out.logits.float().mean().backward()
+    assert any(p.grad is not None for p in model.decoder.parameters())
+
+
 def test_build_chemlm_decoder_respects_cross_attn_gate_init() -> None:
     cfg = DecoderConfig(arch="chemlm", vocab_size=VOCAB, d_model=32, n_heads=4, d_ff=64, n_layers=1)
     dec = build_chemlm_decoder(cfg, cross_attn_gate_init=0.75)

@@ -27,10 +27,12 @@ Run::
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import platform
 import random
 import statistics
+import sys
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -179,28 +181,53 @@ def run_tier1(
     configs.append((f"{scales[-1]}-dense-ckpt", scales[-1], False, True))
 
     for label, scale, use_moe, ckpt in configs:
-        row = _measure_one_config(
-            device,
-            label=label,
-            scale=scale,
-            use_moe=use_moe,
-            ckpt=ckpt,
-            vocab_size=vocab_size,
-            batch_size=batch_size,
-            seq_len=seq_len,
-            pocket_atoms=pocket_atoms,
-            iters=iters,
-        )
-        rows.append(row)
-        print(
-            f"  {row.label:<22} {row.params_m:>7.2f}M  fwd {row.forward_ms:>8.2f} ms  "
-            f"fwd+bwd {row.fwd_bwd_ms:>8.2f} ms  {row.tokens_per_s:>9.0f} tok/s  "
-            f"{row.peak_mem_mb:>7.1f} MB"
-        )
-        if device.type == "mps":
-            torch.mps.empty_cache()
-        elif device.type == "cuda":
-            torch.cuda.empty_cache()
+        try:
+            row = _measure_one_config(
+                device,
+                label=label,
+                scale=scale,
+                use_moe=use_moe,
+                ckpt=ckpt,
+                vocab_size=vocab_size,
+                batch_size=batch_size,
+                seq_len=seq_len,
+                pocket_atoms=pocket_atoms,
+                iters=iters,
+            )
+        except (RuntimeError, torch.cuda.OutOfMemoryError) as exc:
+            # A large config exhausting GPU memory must not abort the later tiers, which
+            # carry the correctness and chemistry results. MPS raises a plain RuntimeError
+            # ("MPS backend out of memory") rather than a typed OOM error.
+            message = str(exc).splitlines()[0][:160]
+            print(f"  {label:<22} SKIPPED: {message}")
+            rows.append(
+                ThroughputRow(
+                    label=label,
+                    scale=scale,
+                    params_m=0.0,
+                    d_model=0,
+                    n_layers=0,
+                    moe=use_moe,
+                    gradient_checkpointing=ckpt,
+                    forward_ms=float("nan"),
+                    fwd_bwd_ms=float("nan"),
+                    peak_mem_mb=float("nan"),
+                    tokens_per_s=0.0,
+                )
+            )
+        else:
+            rows.append(row)
+            print(
+                f"  {row.label:<22} {row.params_m:>7.2f}M  fwd {row.forward_ms:>8.2f} ms  "
+                f"fwd+bwd {row.fwd_bwd_ms:>8.2f} ms  {row.tokens_per_s:>9.0f} tok/s  "
+                f"{row.peak_mem_mb:>7.1f} MB"
+            )
+        finally:
+            gc.collect()
+            if device.type == "mps":
+                torch.mps.empty_cache()
+            elif device.type == "cuda":
+                torch.cuda.empty_cache()
 
     return rows
 
