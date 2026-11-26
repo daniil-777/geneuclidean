@@ -10,6 +10,7 @@ import {
   Moon,
   Sparkles,
   Sun,
+  Workflow,
 } from 'lucide-react';
 import type { StudioTab, ThemeMode } from '../types/studio';
 
@@ -25,6 +26,7 @@ interface NavbarProps {
 const NAV_ITEMS: { id: StudioTab; label: string; shortLabel: string; icon: typeof Layers; badge?: string }[] = [
   { id: 'overview', label: 'Overview', shortLabel: 'Overview', icon: Layers },
   { id: 'studio3d', label: '3D & 2D Studio', shortLabel: '3D Studio', icon: Atom },
+  { id: 'circuit', label: 'Circuit Studio', shortLabel: 'Circuit', icon: Workflow, badge: 'NEW' },
   { id: 'generator', label: 'Live AI Generator', shortLabel: 'AI Gen', icon: Sparkles, badge: 'AI' },
   { id: 'experiments', label: 'Experiments', shortLabel: 'Benchmarks', icon: BarChart3 },
   { id: 'disorders', label: 'Disorder Portals', shortLabel: 'Disorders', icon: Brain },

@@ -15,6 +15,7 @@ import type {
   ThemeMode,
   V4BenchmarksData,
 } from './types/studio';
+import { CircuitBuilderView } from './views/CircuitBuilderView';
 import { DisordersView } from './views/DisordersView';
 import { ExperimentsView } from './views/ExperimentsView';
 import { FiguresView } from './views/FiguresView';
@@ -153,6 +154,15 @@ export function App() {
             />
           )}
 
+          {activeTab === 'circuit' && (
+            <CircuitBuilderView
+              molecules={moleculesIdx.molecules}
+              v4Benchmarks={v4Benchmarks}
+              theme={theme}
+              onInspectIn3D={(target) => handleNavigate('studio3d', target, 'All')}
+            />
+          )}
+
           {activeTab === 'generator' && (
             <GeneratorView
               molecules={moleculesIdx.molecules}
@@ -191,18 +201,20 @@ export function App() {
         </ErrorBoundary>
       </main>
 
-      <footer className="border-t border-[var(--border-subtle)] py-4 px-5 mt-8">
-        <div className="mx-auto max-w-[1600px] flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--text-muted)]">
-          <div>
-            <strong className="text-[var(--text-secondary)]">GenEuclidean {overview.version}</strong>{' '}
-            · SE(3)-Equivariant 3D Pocket-Conditioned Molecular Studio · MIT License
+      {activeTab !== 'circuit' && (
+        <footer className="border-t border-[var(--border-subtle)] py-4 px-5 mt-8">
+          <div className="mx-auto max-w-[1600px] flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--text-muted)]">
+            <div>
+              <strong className="text-[var(--text-secondary)]">GenEuclidean {overview.version}</strong>{' '}
+              · SE(3)-Equivariant 3D Pocket-Conditioned Molecular Studio · MIT License
+            </div>
+            <div>
+              Strictly <em>in silico</em> computational research hypotheses — not clinically tested
+              medicines.
+            </div>
           </div>
-          <div>
-            Strictly <em>in silico</em> computational research hypotheses — not clinically tested
-            medicines.
-          </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 }
