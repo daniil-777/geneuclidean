@@ -830,11 +830,13 @@ def test_gaussianformer2_occupancy_4d_fusion_and_super_ellipsoid_pool(device: st
     covs_4d_rot = torch.einsum("pa,...ab,qb->...pq", rot, covs_4d, rot)
     mean_c_r, fused_s_r = geom.fuse_4d_md_covariances(centers_4d @ rot.T + trans, covs_4d_rot)
     assert float((mean_c_r - (mean_c @ rot.T + trans.squeeze(0))).abs().max().item()) < 1e-4
+    # Adding trans=[50, -75, 25] in fp32 introduces ~7.6e-6 coordinate ULP rounding,
+    # amplified by ~2*||delta|| in Cov(mu) (~1-2e-5 on x86_64 AVX2 vs ARM64).
     assert (
         float(
             (fused_s_r - torch.einsum("pa,...ab,qb->...pq", rot, fused_s, rot)).abs().max().item()
         )
-        < 1e-5
+        < 5e-5
     )
 
     # fuse_multiconformer_fields wrapper + differing offsets dummy-slot I_3 guard

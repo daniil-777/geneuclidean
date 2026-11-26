@@ -230,11 +230,12 @@ def test_all_encoders_so3_rotation_and_translation_equivariance(
     with torch.no_grad():
         ref = encoder(coords, node_feats, atom_mask)
 
-    # Pure rotation (no t~100 fp32 quantization) is < 1e-5 on CPU; with t in [-100, 100]^3
+    # Pure rotation (no t~100 fp32 quantization) is <= 2.5e-5 on CPU (across ARM64 &
+    # x86_64 AVX2/oneDNN matmul reduction orders) and <= 5e-5 on MPS; with t in [-100, 100]^3
     # fp32 translation quantization (~1.2e-5 A) * Bessel frequency yields <= 2e-4 on vectors.
     tol_rot_trans = 1e-4
     tol_vec_rot_trans = 2e-4
-    tol_pure_rot = 1e-5 if device == "cpu" else 5e-5
+    tol_pure_rot = 2.5e-5 if device == "cpu" else 5e-5
     gen = torch.Generator(device="cpu").manual_seed(2026)
 
     for _ in range(5):
