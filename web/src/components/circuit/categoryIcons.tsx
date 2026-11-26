@@ -1,10 +1,10 @@
 import {
-  Cpu,
   Database,
   FlaskConical,
-  RefreshCw,
+  Network,
+  Orbit,
+  Repeat,
   Search,
-  Share2,
   ShieldCheck,
   Sparkles,
   type LucideIcon,
@@ -13,11 +13,11 @@ import type { BlockCategoryId } from '../../types/circuit';
 
 export const CATEGORY_ICONS: Record<BlockCategoryId, LucideIcon> = {
   inputs: Database,
-  encoders: Cpu,
+  encoders: Orbit,
   generators: Sparkles,
   screening: Search,
-  active_learning: RefreshCw,
+  active_learning: Repeat,
   physics_audit: ShieldCheck,
   leadopt_admet: FlaskConical,
-  outputs: Share2,
+  outputs: Network,
 };

@@ -257,7 +257,7 @@ export type NodeRuntimeStatus = 'idle' | 'running' | 'ok' | 'simulated_fallback'
 
 export type RightDrawerTab = 'inspector' | 'python' | 'telemetry';
 
-export interface ActiveWiringDraft {
+export interface WiringDraft {
   sourceNodeId: string;
   sourcePortId: string;
   signalType: SignalType;
@@ -269,9 +269,9 @@ export interface ActiveWiringDraft {
     nodeId: string;
     portId: string;
     compatible: boolean;
-    wouldBeFeedback: boolean;
-    remediation?: string;
+    willBeFeedback: boolean;
+    hint?: string;
   } | null;
 }
 
-export type WiringDraft = ActiveWiringDraft;
+export type ActiveWiringDraft = WiringDraft;

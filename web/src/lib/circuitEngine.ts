@@ -24,11 +24,19 @@ import {
 // ===========================================================================
 
 export const NODE_WIDTH = 224;
-export const NODE_HEADER_HEIGHT = 56;
-export const PORT_AREA_TOP_PAD = 8;
-export const PORT_ROW_HEIGHT = 24;
-export const PORT_AREA_BOTTOM_PAD = 10;
-export const NODE_TELEMETRY_FOOTER_HEIGHT = 28;
+export const NODE_TOP_CAP = 3;
+export const NODE_HEADER_H = 42;
+export const NODE_SUBTITLE_H = 24;
+export const NODE_PORT_PAD_TOP = 8;
+export const NODE_PORT_ROW_H = 26;
+export const NODE_PORT_PAD_BOTTOM = 8;
+export const NODE_FOOTER_H = 26;
+
+export const NODE_HEADER_HEIGHT = NODE_TOP_CAP + NODE_HEADER_H + NODE_SUBTITLE_H;
+export const PORT_AREA_TOP_PAD = NODE_PORT_PAD_TOP;
+export const PORT_ROW_HEIGHT = NODE_PORT_ROW_H;
+export const PORT_AREA_BOTTOM_PAD = NODE_PORT_PAD_BOTTOM;
+export const NODE_TELEMETRY_FOOTER_HEIGHT = NODE_FOOTER_H;
 
 export function estimateNodeHeight(node: CircuitNode, hasTelemetryFooter = false): number {
   const def = BLOCK_CATALOG_MAP[node.blockType];
