@@ -139,13 +139,16 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
             </h1>
 
             <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed max-w-2xl">
-              Uniting frozen chiral <code className="font-mono-num text-cyan-600 dark:text-cyan-300">PaiNN-SE3</code>{' '}
-              3D pocket geometry with three local chemical foundation LLMs (
-              <strong className="text-[var(--text-primary)]">SAFE-GPT-87M</strong>,{' '}
-              <strong className="text-[var(--text-primary)]">NovoMolGen-157M</strong>,{' '}
-              <strong className="text-[var(--text-primary)]">GP-MoLFormer</strong>),{' '}
-              <strong>4-Channel GDPO + L_XP-DPO</strong>, 12-endpoint industrial Avoid-ome/DMPK oracles,
-              and a live <strong>1.79 MB in-browser neural generator</strong>.
+              Uniting chiral 3D SE(3) geometry (
+              <code className="font-mono-num text-cyan-600 dark:text-cyan-300">CartFormer-SE3</code>,{' '}
+              <code className="font-mono-num text-cyan-600 dark:text-cyan-300">AtomGS</code>,{' '}
+              <code className="font-mono-num text-cyan-600 dark:text-cyan-300">PaiNN-SE3</code>),
+              first-principles Chemical NLP (<strong className="text-[var(--text-primary)]">RoPE+GQA</strong>,{' '}
+              <strong className="text-[var(--text-primary)]">LoRA DPO/GRPO</strong>,{' '}
+              <strong className="text-[var(--text-primary)]">SAFE-GPT-87M</strong>),{' '}
+              <strong className="text-[var(--text-primary)]">NanoFold3</strong> all-atom co-folding,
+              and a <strong>49-block visual Circuit Studio</strong> + 12-endpoint Avoid-ome/DMPK
+              oracles and <strong>1.79 MB in-browser neural generator</strong>.
             </p>
 
             {/* Live verified v4.0 KPI pills */}
@@ -180,7 +183,7 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm bg-cyan-500/15 text-cyan-700 dark:text-cyan-200 border border-cyan-500/35 hover:bg-cyan-500/25 transition-all cursor-pointer"
             >
               <Workflow className="h-4 w-4" />
-              Circuit Studio
+              49-Block Circuit Studio
             </button>
 
             <button

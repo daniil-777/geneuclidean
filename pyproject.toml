@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "geneuclidean"
-version = "4.0.0"
-description = "SE(3)/E(3)-equivariant 3D protein pocket-conditioned de novo molecular generation with Chemical Foundation Transformers, Local LLMs, CNS ADMET/MPO optimization, and 3D interaction studio visualizers"
+version = "5.3.0"
+description = "SE(3)-Equivariant 3D Molecular Encoding, Chemical NLP, NanoFold3 Co-Folding, Active Learning & Apple Circuit Studio for Structure-Based Drug Design"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
@@ -14,7 +14,10 @@ keywords = [
     "drug-design",
     "de-novo-generation",
     "equivariant-neural-networks",
-    "e3nn",
+    "alphafold3",
+    "co-folding",
+    "active-learning",
+    "posebusters",
     "painn",
     "protein-ligand",
     "cheminformatics",
@@ -57,6 +60,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/daniil-777/geneuclidean"
 Documentation = "https://github.com/daniil-777/geneuclidean/blob/main/docs/library_api.md"
+Changelog = "https://github.com/daniil-777/geneuclidean/blob/main/CHANGELOG.md"
 Repository = "https://github.com/daniil-777/geneuclidean"
 Issues = "https://github.com/daniil-777/geneuclidean/issues"
 "Live 3D Studio" = "https://daniil-777.github.io/geneuclidean/"

@@ -1,7 +1,7 @@
-"""GenEuclidean Circuit Studio compiler, 36-block catalog, and local stdlib HTTP bridge.
+"""GenEuclidean Circuit Studio compiler, 49-block catalog, and local stdlib HTTP bridge.
 
-Zero heavy ML/chemistry dependencies are imported at module load time; RDKit and
-GenEuclidean execution subsystems load lazily on first circuit execution.
+Zero heavy ML/chemistry dependencies are imported at module load time; RDKit,
+PyTorch, and GenEuclidean execution subsystems load lazily on first execution.
 """
 
 from __future__ import annotations

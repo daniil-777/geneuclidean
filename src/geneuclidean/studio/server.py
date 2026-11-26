@@ -7,7 +7,7 @@ dependencies and keeps cold imports instantaneous.
 Endpoints:
 - ``OPTIONS /api/*``          — CORS preflight (HTTP 204)
 - ``GET  /api/health``        — Live backend status, versions, v5.1 AL flag, catalog count
-- ``GET  /api/catalog``       — Full 10-signal, 8-category, 36-block, 5-preset catalog JSON
+- ``GET  /api/catalog``       — Full 10-signal, 8-category, 49-block, 7-preset catalog JSON
 - ``POST /api/circuit/validate`` — Strict ``CircuitGraphV1`` validation diagnostics
 - ``POST /api/circuit/codegen``  — AST-verified Python SDK code generation + SHA-256
 - ``POST /api/circuit/run``      — Safe allowlisted local Python execution + SHA-256 ledger

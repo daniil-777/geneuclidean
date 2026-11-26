@@ -19,9 +19,9 @@ function highlightPythonLine(line: string): React.ReactNode {
     return <span className="text-emerald-700 dark:text-emerald-300/90">{line}</span>;
   }
 
-  // Lightweight Xcode-style token highlight: strings, keywords, ge. symbols, numbers
+  // Lightweight Xcode-style token highlight: strings, keywords, ge*/SDK symbols, numbers
   const regex =
-    /("(?:\\.|[^"\\])*"|\b(?:import|from|as|for|in|range|if|else|and|or|True|False|None|print)\b|\bge\.[A-Za-z0-9_.]+\b|\b\d+(?:\.\d+)?\b)/g;
+    /("(?:\\.|[^"\\])*"|\b(?:import|from|as|for|in|range|if|else|and|or|True|False|None|print)\b|\bge(?:_encoders|_geom|_nlp|_folding)?\.[A-Za-z0-9_.]+\b|\b\d+(?:\.\d+)?\b)/g;
   const parts = line.split(regex);
   return parts.map((part, idx) => {
     if (!part) return null;
@@ -39,7 +39,7 @@ function highlightPythonLine(line: string): React.ReactNode {
         </span>
       );
     }
-    if (part.startsWith('ge.')) {
+    if (/^ge(?:_encoders|_geom|_nlp|_folding)?\./.test(part)) {
       return (
         <span key={idx} className="text-cyan-700 dark:text-cyan-300 font-semibold">
           {part}
@@ -111,7 +111,7 @@ export function CodeExportDrawer({
             <span className="text-xs font-bold text-[var(--text-primary)]">Live Python SDK</span>
           </div>
           <span className="inline-flex items-center gap-1 font-mono-num text-[9.5px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
-            <ShieldCheck className="h-3 w-3" /> SDK v5.1
+            <ShieldCheck className="h-3 w-3" /> SDK v5.3
           </span>
         </div>
 

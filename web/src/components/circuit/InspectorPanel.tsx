@@ -129,7 +129,11 @@ export function InspectorPanel({
               {spec.label}
             </label>
             {isCompact ? (
-              <div className="grid grid-cols-3 gap-1">
+              <div
+                className={
+                  spec.options.length === 2 ? 'grid grid-cols-2 gap-1' : 'grid grid-cols-3 gap-1'
+                }
+              >
                 {spec.options.map((opt) => {
                   const active = String(opt) === String(value);
                   return (

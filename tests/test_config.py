@@ -20,7 +20,7 @@ from geneuclidean.config import (
 
 
 def test_version() -> None:
-    assert geneuclidean.__version__ == "4.0.0"
+    assert geneuclidean.__version__ == "5.3.0"
 
 
 def test_experiment_config_defaults_and_yaml_roundtrip(tmp_path: Path) -> None:

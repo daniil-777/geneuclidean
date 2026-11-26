@@ -109,15 +109,17 @@ export const BLOCK_CATEGORIES: BlockCategoryMeta[] = [
     shortLabel: 'Encoders',
     darkHex: '#818CF8',
     lightHex: '#4F46E5',
-    description: 'Chiral PaiNN-SE(3), EGNN-3D, E3NN Irreps, DrugCLIP hypersphere, and IBM MMELON (84M).',
+    description:
+      'CartFormer-SE(3), DensePaiNN, AtomGS 3D/4D Gaussians, SubPocketVN-JEPA, RoITr Cross-Attn, PaiNN, EGNN, E3NN, DrugCLIP & IBM MMELON.',
   },
   {
     id: 'generators',
-    label: 'De Novo Generators & Steering',
+    label: 'De Novo Generators & Chemical NLP',
     shortLabel: 'Generators',
     darkHex: '#34D399',
     lightHex: '#059669',
-    description: 'SAFE-GPT-87M, GP-MoLFormer / NovoMolGen, contrastive multi-pocket CFG, and MTL alignment.',
+    description:
+      'SAFE-GPT-87M, Perceiver Bridge, RoPE+GQA Chemical LM, LoRA DPO/GRPO RL, MDLM Inpainter, Ensemble CFG & MTL Alignment.',
   },
   {
     id: 'screening',
@@ -137,11 +139,12 @@ export const BLOCK_CATEGORIES: BlockCategoryMeta[] = [
   },
   {
     id: 'physics_audit',
-    label: '3D Physics & 7-Axis Pose Reality',
-    shortLabel: '3D Physics',
+    label: 'Co-Folding, 3D Physics & 7-Axis QA',
+    shortLabel: 'Co-Fold & 3D',
     darkHex: '#2DD4BF',
     lightHex: '#0D9488',
-    description: 'pH 7.4 ionization, AutoDock Vina v1.2.7, Cremer–Pople ring/torsion strain & 7-Axis PoseRealityAuditor.',
+    description:
+      'Pairformer/SimpleFold Trunk, NanoFold3 EDM Co-Fold, 50-bin ConfidenceHead, Boltz2/AF3/Protenix Hub, Vina v1.2.7 & 7-Axis PoseRealityAuditor.',
   },
   {
     id: 'leadopt_admet',
@@ -323,7 +326,7 @@ export const BLOCK_CATALOG: BlockDefinition[] = [
         label: 'On-Target Pocket',
         type: 'select',
         default: 'DRD1',
-        options: ['DRD1', 'ACHE', 'MAOB', 'BACE1', 'CHRM4', 'SERT', 'GRM5', 'GABRA5'],
+        options: ['DRD1', 'DRD2', 'CHRM4', 'ACHE', 'MAOB', 'BACE1', 'SERT', 'GRM5', 'GABRA5'],
       },
       {
         key: 'n_conformers',
@@ -737,9 +740,191 @@ export const BLOCK_CATALOG: BlockDefinition[] = [
       { key: 'device', label: 'Device', type: 'select', default: 'auto', options: ['auto', 'mps', 'cuda', 'cpu'] },
     ],
   },
+  {
+    blockType: 'dense_painn_se3',
+    name: 'DensePaiNN-SE(3)',
+    shortName: 'DensePaiNN',
+    category: 'encoders',
+    pythonSymbol: 'geneuclidean.models.encoders.DensePaiNNSE3Encoder',
+    executionTier: 'optional_torch',
+    badge: 'MPS 1.5×',
+    summary:
+      'Zero-scatter dense k-NN chiral SE(3) PaiNN encoder delivering 1.5× faster Apple Silicon MPS throughput with adaptive cutoff and exact tie-safe SO(3) invariance.',
+    inputs: [
+      { id: 'pocket', label: 'pocket', signalType: 'POCKET_3D', direction: 'input', required: true, multi: false },
+    ],
+    outputs: [
+      {
+        id: 'pocket_graph',
+        label: 'pocket_graph',
+        signalType: 'SE3_GRAPH',
+        direction: 'output',
+        multi: true,
+        shapeHint: '[B, N, 256] + [B, N, 64, 3]',
+      },
+      { id: 'pocket_vec', label: 'pocket_vec', signalType: 'LATENT_VEC', direction: 'output', multi: true, shapeHint: '[B, 256]' },
+    ],
+    params: [
+      { key: 'num_layers', label: 'Layers', type: 'number', default: 4, min: 2, max: 8, step: 1 },
+      { key: 'hidden_dim', label: 'Hidden Dim', type: 'select', default: 192, options: [128, 192, 256, 384] },
+      { key: 'vector_dim', label: 'Vector Dim', type: 'select', default: 64, options: [32, 64, 128] },
+      { key: 'out_dim', label: 'Output Dim', type: 'select', default: 256, options: [128, 256, 512] },
+      { key: 'cutoff', label: 'Edge Cutoff', type: 'number', default: 5.5, min: 3.5, max: 8.0, step: 0.5, unit: 'Å' },
+      { key: 'max_neighbors', label: 'Max Neighbors', type: 'number', default: 24, min: 8, max: 48, step: 4 },
+      { key: 'adaptive_cutoff', label: 'Adaptive Smooth Cutoff', type: 'boolean', default: true },
+      { key: 'use_se3_chirality', label: 'SE(3) Chiral Cross-Product', type: 'boolean', default: true },
+    ],
+  },
+  {
+    blockType: 'cartformer_se3',
+    name: 'CartFormer-SE(3)',
+    shortName: 'CartFormer-SE3',
+    category: 'encoders',
+    pythonSymbol: 'geneuclidean.models.encoders.CartFormerSE3Encoder',
+    executionTier: 'optional_torch',
+    badge: 'Rank-2 I+A+S',
+    summary:
+      'Zero-e3nn rank-2 Cartesian tensor (I+A+S: 0e+1o+1e+2e) quadrupole SE(3) transformer with chiral axial vectors, global landmarks, and screened 1/r LES bias.',
+    inputs: [
+      { id: 'pocket', label: 'pocket', signalType: 'POCKET_3D', direction: 'input', required: true, multi: false },
+    ],
+    outputs: [
+      {
+        id: 'pocket_graph',
+        label: 'pocket_graph',
+        signalType: 'SE3_GRAPH',
+        direction: 'output',
+        multi: true,
+        shapeHint: '0e+1o+1e+2e [B, N, 256]',
+      },
+      { id: 'pocket_vec', label: 'pocket_vec', signalType: 'LATENT_VEC', direction: 'output', multi: true, shapeHint: '[B, 256]' },
+    ],
+    params: [
+      { key: 'num_layers', label: 'Layers', type: 'number', default: 4, min: 2, max: 8, step: 1 },
+      { key: 'hidden_dim', label: 'Hidden Dim', type: 'select', default: 192, options: [128, 192, 256, 384] },
+      { key: 'vector_dim', label: 'Vector Dim', type: 'select', default: 64, options: [32, 64, 128] },
+      { key: 'tensor_dim', label: 'Rank-2 Tensor Dim', type: 'select', default: 24, options: [12, 16, 24, 32] },
+      { key: 'num_heads', label: 'Attention Heads', type: 'select', default: 8, options: [4, 8] },
+      { key: 'num_landmarks', label: 'Global Landmarks', type: 'number', default: 8, min: 0, max: 24, step: 4 },
+      { key: 'use_se3_chirality', label: 'Chiral 1e Axial Coupling', type: 'boolean', default: true },
+      { key: 'use_coulomb_bias', label: 'Screened 1/r LES Bias', type: 'boolean', default: true },
+    ],
+  },
+  {
+    blockType: 'atomgs_se3',
+    name: 'AtomGS-SE(3)',
+    shortName: 'AtomGS-SE3',
+    category: 'encoders',
+    pythonSymbol: 'geneuclidean.models.encoders.AtomGSSE3Encoder',
+    executionTier: 'optional_torch',
+    badge: '3D/4D Gauss',
+    summary:
+      'Anisotropic SPD 3D/4D atomic Gaussian field encoder computing differentiable ROCS shape Tanimoto overlap, GaussianFormer occupancy, and 4DGS ensemble fusion.',
+    inputs: [
+      { id: 'pocket', label: 'pocket', signalType: 'POCKET_3D', direction: 'input', required: true, multi: false },
+      { id: 'poses', label: 'poses', signalType: 'POSE_3D', direction: 'input', required: false, multi: false },
+    ],
+    outputs: [
+      {
+        id: 'pocket_graph',
+        label: 'pocket_graph',
+        signalType: 'SE3_GRAPH',
+        direction: 'output',
+        multi: true,
+        shapeHint: 'AtomicGaussianField + [B,N,256]',
+      },
+      { id: 'pocket_vec', label: 'pocket_vec', signalType: 'LATENT_VEC', direction: 'output', multi: true, shapeHint: '[B, 256]' },
+      {
+        id: 'overlap_scores',
+        label: 'overlap_scores',
+        signalType: 'ORACLE_SCORES',
+        direction: 'output',
+        multi: true,
+        shapeHint: 'ROCS Tanimoto + 4DGS',
+      },
+    ],
+    params: [
+      { key: 'num_layers', label: 'Layers', type: 'number', default: 4, min: 2, max: 8, step: 1 },
+      { key: 'hidden_dim', label: 'Hidden Dim', type: 'select', default: 192, options: [128, 192, 256] },
+      { key: 'num_landmarks', label: 'Super-Ellipsoids', type: 'number', default: 16, min: 4, max: 32, step: 4 },
+      { key: 'global_attn_mode', label: 'Global Attention', type: 'select', default: 'landmarks', options: ['landmarks', 'full_scalar'] },
+      { key: 'enable_3d_overlap', label: 'Analytical ROCS 3D Overlap', type: 'boolean', default: true },
+      { key: 'use_coulomb_bias', label: 'Screened 1/r LES Bias', type: 'boolean', default: true },
+      { key: 'fuse_4d_ensemble', label: '4DGS Multi-Conformer Fusion', type: 'boolean', default: false },
+    ],
+  },
+  {
+    blockType: 'subpocket_vn_jepa',
+    name: 'SubPocketVN-JEPA',
+    shortName: 'SubPocketVN-JEPA',
+    category: 'encoders',
+    pythonSymbol: 'geneuclidean.models.encoders.SubPocketVNJEPAEncoder',
+    executionTier: 'optional_torch',
+    badge: 'M=24 · JEPA',
+    summary:
+      'Chiral Vector-Neuron sub-pocket encoder pooling atoms into M=24 Dora salient sub-pocket tokens with Sonata/Concerto 3D JEPA self-supervised pretraining.',
+    inputs: [
+      { id: 'pocket', label: 'pocket', signalType: 'POCKET_3D', direction: 'input', required: true, multi: false },
+    ],
+    outputs: [
+      {
+        id: 'pocket_graph',
+        label: 'pocket_graph',
+        signalType: 'SE3_GRAPH',
+        direction: 'output',
+        multi: true,
+        shapeHint: 'M=24 Salient Slots + [B,N,256]',
+      },
+      { id: 'pocket_vec', label: 'pocket_vec', signalType: 'LATENT_VEC', direction: 'output', multi: true, shapeHint: '[B, 256]' },
+    ],
+    params: [
+      { key: 'num_layers', label: 'VN Layers', type: 'number', default: 4, min: 2, max: 8, step: 1 },
+      { key: 'hidden_dim', label: 'Hidden Dim', type: 'select', default: 192, options: [128, 192, 256] },
+      { key: 'num_subpockets', label: 'Sub-Pocket Slots (M)', type: 'number', default: 24, min: 8, max: 48, step: 4 },
+      { key: 'num_salient_slots', label: 'Dora Salient Slots', type: 'number', default: 8, min: 4, max: 16, step: 2 },
+      { key: 'num_perceiver_tokens', label: 'Perceiver Tokens', type: 'number', default: 16, min: 8, max: 32, step: 4 },
+      { key: 'use_se3_chirality', label: 'Chiral VN Cross-Product', type: 'boolean', default: true },
+      { key: 'use_coulomb_bias', label: 'Screened 1/r LES Bias', type: 'boolean', default: true },
+    ],
+  },
+  {
+    blockType: 'se3_complex_cross_attn',
+    name: 'SE(3) Complex Cross-Attention',
+    shortName: 'SE(3) Cross-Attn',
+    category: 'encoders',
+    pythonSymbol: 'geneuclidean.geom.SE3ComplexCrossAttention',
+    executionTier: 'optional_torch',
+    badge: 'RoITr PPF',
+    summary:
+      'RoITr point-pair-feature (PPF) joint 3D protein-pocket <-> ligand SE(3) cross-attention with chiral directional frames and screened Coulomb bias.',
+    inputs: [
+      { id: 'pocket_graph', label: 'pocket_graph', signalType: 'SE3_GRAPH', direction: 'input', required: true, multi: false },
+      { id: 'poses', label: 'poses', signalType: 'POSE_3D', direction: 'input', required: false, multi: false },
+    ],
+    outputs: [
+      {
+        id: 'complex_graph',
+        label: 'complex_graph',
+        signalType: 'SE3_GRAPH',
+        direction: 'output',
+        multi: true,
+        shapeHint: 'Pocket↔Ligand SE(3)',
+      },
+      { id: 'interaction_vec', label: 'interaction_vec', signalType: 'LATENT_VEC', direction: 'output', multi: true, shapeHint: '[B, 256]' },
+      { id: 'contact_scores', label: 'contact_scores', signalType: 'ORACLE_SCORES', direction: 'output', multi: true, shapeHint: 'PPF Cross-Attn' },
+    ],
+    params: [
+      { key: 'emb_dim', label: 'Embedding Dim', type: 'select', default: 256, options: [128, 192, 256, 384] },
+      { key: 'vector_dim', label: 'Vector Dim', type: 'select', default: 64, options: [32, 64, 128] },
+      { key: 'num_heads', label: 'Attention Heads', type: 'select', default: 8, options: [4, 8] },
+      { key: 'cutoff', label: 'Interface Cutoff', type: 'number', default: 8.0, min: 4.0, max: 12.0, step: 0.5, unit: 'Å' },
+      { key: 'use_se3_chirality', label: 'Chiral PPF Frame', type: 'boolean', default: true },
+      { key: 'use_coulomb_bias', label: 'Screened 1/r LES Bias', type: 'boolean', default: true },
+    ],
+  },
 
   // =========================================================================
-  // Category 3 — De Novo Generators & Steering (4 blocks)
+  // Category 3 — De Novo Generators & Steering (8 blocks)
   // =========================================================================
   {
     blockType: 'safe_gpt',
@@ -840,6 +1025,7 @@ export const BLOCK_CATALOG: BlockDefinition[] = [
     inputs: [
       { id: 'pocket_graph', label: 'pocket_graph', signalType: 'SE3_GRAPH', direction: 'input', required: true, multi: false },
       { id: 'off_pocket', label: 'off_pocket', signalType: 'POCKET_3D', direction: 'input', required: false, multi: false },
+      { id: 'lm_candidates', label: 'lm_candidates', signalType: 'MOL_BATCH', direction: 'input', required: false, multi: false },
     ],
     outputs: [
       { id: 'molecules', label: 'molecules', signalType: 'MOL_BATCH', direction: 'output', multi: true, shapeHint: 'Steered Batch[n]' },
@@ -896,6 +1082,134 @@ export const BLOCK_CATALOG: BlockDefinition[] = [
       { key: 'mtl_strategy', label: 'MTL Conflict Policy', type: 'select', default: 'aim_policy', options: ['aim_policy', 'pcgrad', 'scalarized'] },
       { key: 'gdpo_beta', label: 'GDPO KL β', type: 'number', default: 0.04, min: 0.01, max: 0.5, step: 0.01 },
       { key: 'steps', label: 'Tuning Steps', type: 'number', default: 30, min: 10, max: 200, step: 10 },
+    ],
+  },
+  {
+    blockType: 'nlp_perceiver_bridge',
+    name: 'Pocket Perceiver Bridge',
+    shortName: 'Perceiver Bridge',
+    category: 'generators',
+    pythonSymbol: 'geneuclidean.nlp.PocketPerceiverBridge',
+    executionTier: 'optional_torch',
+    badge: '3D → Q Tokens',
+    summary:
+      'Permutation- and SE(3)-invariant cross-attention resampler compressing variable-size 3D pocket graphs [B, N, D] into Q soft prefix tokens [B, Q, D_lm] with ScaleMatchRMSNorm.',
+    inputs: [
+      { id: 'pocket_graph', label: 'pocket_graph', signalType: 'SE3_GRAPH', direction: 'input', required: true, multi: false },
+    ],
+    outputs: [
+      { id: 'pocket_tokens', label: 'pocket_tokens', signalType: 'LATENT_VEC', direction: 'output', multi: true, shapeHint: '[B, Q, D_lm] Prefix' },
+      { id: 'bridge_graph', label: 'bridge_graph', signalType: 'SE3_GRAPH', direction: 'output', multi: true, shapeHint: 'Q-Token Context' },
+    ],
+    params: [
+      { key: 'num_queries', label: 'Perceiver Queries (Q)', type: 'number', default: 16, min: 4, max: 32, step: 4 },
+      { key: 'num_layers', label: 'Bridge Layers', type: 'number', default: 2, min: 1, max: 4, step: 1 },
+      { key: 'n_heads', label: 'Attention Heads', type: 'select', default: 8, options: [4, 8] },
+      { key: 'd_out', label: 'LM Token Dim', type: 'select', default: 256, options: [128, 256, 512, 768] },
+      { key: 'output_rms_scale', label: 'ScaleMatch RMS', type: 'number', default: 1.0, min: 0.2, max: 2.0, step: 0.1 },
+    ],
+  },
+  {
+    blockType: 'nlp_rope_gqa_lm',
+    name: 'RoPE+GQA Chemical LM',
+    shortName: 'RoPE+GQA LM',
+    category: 'generators',
+    pythonSymbol: 'geneuclidean.nlp.PocketConditionedChemicalLM',
+    executionTier: 'optional_torch',
+    badge: 'RoPE · GQA',
+    summary:
+      'First-principles pure-PyTorch RoPE/YaRN + Grouped-Query Attention + SwiGLU chemical transformer with KV-cached beam/nucleus decoding and SMILESValenceGrammarMask.',
+    inputs: [
+      { id: 'pocket_tokens', label: 'pocket_tokens', signalType: 'LATENT_VEC', direction: 'input', required: true, multi: false },
+      { id: 'seed_mols', label: 'seed_mols', signalType: 'MOL_BATCH', direction: 'input', required: false, multi: false },
+      {
+        id: 'feedback_scores',
+        label: 'feedback',
+        signalType: 'ORACLE_SCORES',
+        direction: 'input',
+        required: false,
+        multi: false,
+        acceptsFeedback: true,
+      },
+    ],
+    outputs: [
+      { id: 'molecules', label: 'molecules', signalType: 'MOL_BATCH', direction: 'output', multi: true, shapeHint: 'Grammar-Valid SMILES' },
+      { id: 'lm_latent', label: 'lm_latent', signalType: 'LATENT_VEC', direction: 'output', multi: true, shapeHint: '[B, T, D_lm] Logits' },
+    ],
+    params: [
+      { key: 'd_model', label: 'Model Dim', type: 'select', default: 256, options: [128, 256, 512] },
+      { key: 'n_layers', label: 'Transformer Layers', type: 'number', default: 4, min: 2, max: 12, step: 1 },
+      { key: 'n_heads', label: 'Query Heads', type: 'select', default: 8, options: [4, 8] },
+      { key: 'n_kv_heads', label: 'GQA KV Heads', type: 'select', default: 2, options: [1, 2, 4, 8] },
+      { key: 'conditioning_mode', label: 'Conditioning Mode', type: 'select', default: 'cross_attn', options: ['cross_attn', 'prefix', 'none'] },
+      { key: 'decode_mode', label: 'Decode Mode', type: 'select', default: 'beam_grammar', options: ['beam_grammar', 'nucleus_top_p', 'min_p'] },
+      { key: 'beam_width', label: 'Beam Width', type: 'number', default: 4, min: 1, max: 16, step: 1 },
+      { key: 'temperature', label: 'Temperature', type: 'number', default: 0.9, min: 0.4, max: 1.4, step: 0.05 },
+      { key: 'use_grammar_mask', label: 'SMILES Valence Grammar Mask', type: 'boolean', default: true },
+      { key: 'rope_scaling_type', label: 'RoPE Context Scaling', type: 'select', default: 'yarn', options: ['none', 'ntk', 'yarn'] },
+    ],
+  },
+  {
+    blockType: 'nlp_lora_rl_aligner',
+    name: 'LoRA + DPO/GRPO Aligner',
+    shortName: 'LoRA DPO/GRPO',
+    category: 'generators',
+    pythonSymbol: 'geneuclidean.nlp.grpo_policy_loss',
+    executionTier: 'optional_torch',
+    badge: 'LoRA · RL',
+    summary:
+      'Zero-PEFT pure-PyTorch LoRALinear adapter injection with critic-free DPO/cDPO/IPO or GRPO policy alignment optimizing potency, CNS MPO v2, and 12-endpoint Avoid-ome.',
+    inputs: [
+      { id: 'molecules', label: 'molecules', signalType: 'MOL_BATCH', direction: 'input', required: true, multi: false },
+      {
+        id: 'rewards',
+        label: 'rewards',
+        signalType: 'ORACLE_SCORES',
+        direction: 'input',
+        required: false,
+        multi: false,
+        acceptsFeedback: true,
+      },
+      { id: 'lm_latent', label: 'lm_latent', signalType: 'LATENT_VEC', direction: 'input', required: false, multi: false },
+    ],
+    outputs: [
+      { id: 'aligned_mols', label: 'aligned_mols', signalType: 'MOL_BATCH', direction: 'output', multi: true, shapeHint: 'RL-Aligned SMILES' },
+      { id: 'rl_scores', label: 'rl_scores', signalType: 'ORACLE_SCORES', direction: 'output', multi: true, shapeHint: 'DPO/GRPO Advantage' },
+      { id: 'rl_report', label: 'rl_report', signalType: 'PROVENANCE_REPORT', direction: 'output', multi: true, shapeHint: 'LoRA + KL Report' },
+    ],
+    params: [
+      { key: 'rl_objective', label: 'RL Objective', type: 'select', default: 'grpo', options: ['grpo', 'dpo', 'cdpo', 'ipo'] },
+      { key: 'lora_rank', label: 'LoRA Rank r', type: 'select', default: 8, options: [4, 8, 16, 32] },
+      { key: 'lora_alpha', label: 'LoRA Alpha', type: 'number', default: 16.0, min: 4.0, max: 64.0, step: 4.0 },
+      { key: 'kl_beta', label: 'KL Penalty β', type: 'number', default: 0.04, min: 0.01, max: 0.3, step: 0.01 },
+      { key: 'clip_eps', label: 'GRPO Clip ε', type: 'number', default: 0.2, min: 0.05, max: 0.4, step: 0.05 },
+      { key: 'merge_adapters', label: 'Merge LoRA Weights', type: 'boolean', default: true },
+    ],
+  },
+  {
+    blockType: 'nlp_masked_diffusion',
+    name: 'Discrete Masked Diffusion (MDLM)',
+    shortName: 'MDLM Inpainter',
+    category: 'generators',
+    pythonSymbol: 'geneuclidean.nlp.DiscreteMaskedDiffusionStep',
+    executionTier: 'optional_torch',
+    badge: 'MDLM · SAFE',
+    summary:
+      'Non-autoregressive Discrete Masked Diffusion (MDLM) supporting cosine/linear corruption schedules and pinned-scaffold SAFE fragment inpainting.',
+    inputs: [
+      { id: 'seed_mols', label: 'seed_mols', signalType: 'MOL_BATCH', direction: 'input', required: true, multi: false },
+      { id: 'pocket_tokens', label: 'pocket_tokens', signalType: 'LATENT_VEC', direction: 'input', required: false, multi: false },
+    ],
+    outputs: [
+      { id: 'inpainted_mols', label: 'inpainted_mols', signalType: 'MOL_BATCH', direction: 'output', multi: true, shapeHint: 'Inpainted Batch' },
+      { id: 'diffusion_report', label: 'diffusion_report', signalType: 'PROVENANCE_REPORT', direction: 'output', multi: true, shapeHint: 'MDLM Trace' },
+    ],
+    params: [
+      { key: 'schedule', label: 'Noise Schedule', type: 'select', default: 'cosine', options: ['cosine', 'linear'] },
+      { key: 'mask_ratio', label: 'Mask Ratio t', type: 'number', default: 0.35, min: 0.1, max: 0.85, step: 0.05 },
+      { key: 'num_steps', label: 'Denoising Steps', type: 'number', default: 8, min: 2, max: 32, step: 2 },
+      { key: 'pin_scaffold', label: 'Pin Core Scaffold', type: 'boolean', default: true },
+      { key: 'temperature', label: 'Unmask Temperature', type: 'number', default: 0.85, min: 0.4, max: 1.3, step: 0.05 },
     ],
   },
 
@@ -1327,6 +1641,122 @@ export const BLOCK_CATALOG: BlockDefinition[] = [
       { key: 'strict_input_charge', label: 'Strict Input Charge', type: 'boolean', default: false },
     ],
   },
+  {
+    blockType: 'pairformer_stack',
+    name: 'Pairformer / SimpleFold Trunk',
+    shortName: 'Pairformer Trunk',
+    category: 'physics_audit',
+    pythonSymbol: 'geneuclidean.folding.PairformerStack',
+    executionTier: 'optional_torch',
+    badge: 'O(L³) / O(L²)',
+    summary:
+      'Toggleable AlphaFold 3 PairformerStack (O(L³) Triangle Updates + Triangle Attention) vs Apple SimpleFoldTrunk (O(L²) RoPE + LES) co-folding trunk.',
+    inputs: [
+      { id: 'pocket', label: 'pocket', signalType: 'POCKET_3D', direction: 'input', required: true, multi: false },
+      { id: 'molecules', label: 'molecules', signalType: 'MOL_BATCH', direction: 'input', required: false, multi: false },
+    ],
+    outputs: [
+      { id: 'trunk_graph', label: 'trunk_graph', signalType: 'SE3_GRAPH', direction: 'output', multi: true, shapeHint: 'Single s + Pair z' },
+      { id: 'trunk_vec', label: 'trunk_vec', signalType: 'LATENT_VEC', direction: 'output', multi: true, shapeHint: '[B, c_s] Trunk' },
+    ],
+    params: [
+      { key: 'trunk_mode', label: 'Trunk Architecture', type: 'select', default: 'pairformer', options: ['pairformer', 'simplefold', 'hybrid'] },
+      { key: 'num_blocks', label: 'Trunk Blocks', type: 'number', default: 6, min: 1, max: 16, step: 1 },
+      { key: 'c_s', label: 'Single Dim (c_s)', type: 'select', default: 192, options: [64, 128, 192, 256] },
+      { key: 'c_z', label: 'Pair Dim (c_z)', type: 'select', default: 64, options: [32, 64, 128] },
+      { key: 'head_dim', label: 'MPS Flash Head Dim', type: 'select', default: 32, options: [32, 64] },
+      { key: 'use_coulomb_bias', label: 'Screened 1/r LES Bias', type: 'boolean', default: true },
+      { key: 'outer_product_mean', label: 'Outer Product Mean', type: 'boolean', default: false },
+    ],
+  },
+  {
+    blockType: 'nanofold3_cofold',
+    name: 'NanoFold3 All-Atom Co-Fold',
+    shortName: 'NanoFold3 Co-Fold',
+    category: 'physics_audit',
+    pythonSymbol: 'geneuclidean.folding.NanoFold3',
+    executionTier: 'optional_torch',
+    badge: 'EDM · det=+1',
+    summary:
+      'Trainable mini-AlphaFold 3 all-atom EDM / Flow-Matching co-folding diffusion with chirality-preserving Kabsch det=+1 rigid alignment.',
+    inputs: [
+      { id: 'trunk_graph', label: 'trunk_graph', signalType: 'SE3_GRAPH', direction: 'input', required: true, multi: false },
+      { id: 'molecules', label: 'molecules', signalType: 'MOL_BATCH', direction: 'input', required: false, multi: false },
+    ],
+    outputs: [
+      { id: 'cofold_graph', label: 'cofold_graph', signalType: 'SE3_GRAPH', direction: 'output', multi: true, shapeHint: 'Trunk (s,z) + x_pred' },
+      { id: 'poses', label: 'poses', signalType: 'POSE_3D', direction: 'output', multi: true, shapeHint: 'All-Atom [det=+1]' },
+      { id: 'diffusion_report', label: 'diffusion_report', signalType: 'PROVENANCE_REPORT', direction: 'output', multi: true, shapeHint: 'EDM/FM Trace' },
+    ],
+    params: [
+      { key: 'preset', label: 'NanoFold3 Preset', type: 'select', default: 'nano', options: ['nano', 'small', 'medium'] },
+      { key: 'diffusion_mode', label: 'Diffusion Schedule', type: 'select', default: 'edm', options: ['edm', 'flow_matching'] },
+      { key: 'num_steps', label: 'Diffusion Steps', type: 'number', default: 20, min: 4, max: 50, step: 2 },
+      { key: 'recycles', label: 'Trunk Recycles', type: 'number', default: 2, min: 1, max: 4, step: 1 },
+      {
+        key: 'flex_mode',
+        label: 'Flexibility Mode',
+        type: 'select',
+        default: 'flexible_pocket_and_ligand',
+        options: ['flexible_pocket_and_ligand', 'rigid_pocket_flexible_ligand', 'de_novo_all_atom'],
+      },
+      { key: 'num_samples', label: 'Diffusion Samples', type: 'number', default: 2, min: 1, max: 8, step: 1 },
+    ],
+  },
+  {
+    blockType: 'confidence_head',
+    name: 'AF3 Confidence & Affinity Head',
+    shortName: 'Confidence Head',
+    category: 'physics_audit',
+    pythonSymbol: 'geneuclidean.folding.ConfidenceHead',
+    executionTier: 'optional_torch',
+    badge: 'pLDDT · ipTM',
+    summary:
+      '50-bin per-atom pLDDT, 64-bin PAE/PDE, pTM/ipTM ranking score, and optional Boltz-2-style AffinityHead (pKd + binder probability) for co-folded complexes.',
+    inputs: [
+      { id: 'cofold_graph', label: 'cofold_graph', signalType: 'SE3_GRAPH', direction: 'input', required: true, multi: false },
+      { id: 'poses', label: 'poses', signalType: 'POSE_3D', direction: 'input', required: false, multi: false },
+    ],
+    outputs: [
+      { id: 'scored_poses', label: 'scored_poses', signalType: 'POSE_3D', direction: 'output', multi: true, shapeHint: 'Ranked Poses' },
+      { id: 'confidence_scores', label: 'confidence_scores', signalType: 'ORACLE_SCORES', direction: 'output', multi: true, shapeHint: 'pLDDT / ipTM / pKd' },
+      { id: 'confidence_report', label: 'confidence_report', signalType: 'PROVENANCE_REPORT', direction: 'output', multi: true, shapeHint: '50-Bin pLDDT + PAE' },
+    ],
+    params: [
+      { key: 'num_blocks', label: 'Head Blocks', type: 'number', default: 2, min: 1, max: 4, step: 1 },
+      { key: 'trunk_mode', label: 'Head Trunk Mode', type: 'select', default: 'pairformer', options: ['pairformer', 'simplefold', 'hybrid'] },
+      { key: 'enable_affinity_head', label: 'Enable Boltz-2 AffinityHead', type: 'boolean', default: true },
+      { key: 'min_iptm', label: 'Min ipTM Gate', type: 'number', default: 0.6, min: 0.2, max: 0.95, step: 0.05 },
+      { key: 'min_plddt', label: 'Min pLDDT Gate', type: 'number', default: 70.0, min: 40.0, max: 95.0, step: 5.0 },
+    ],
+  },
+  {
+    blockType: 'external_folder_runner',
+    name: 'Open-Weights Folder Hub',
+    shortName: 'External Folder',
+    category: 'physics_audit',
+    pythonSymbol: 'geneuclidean.folding.FOLDING_BACKEND_REGISTRY',
+    executionTier: 'zero_torch',
+    badge: 'AF3 · Boltz2',
+    summary:
+      'Unified co-folding runner and spec exporter across Boltz-2 YAML, ByteDance Protenix JSON, AlphaFold 3 JSON, ESMFold API, and local NanoFold3 via FOLDING_BACKEND_REGISTRY.',
+    inputs: [
+      { id: 'pocket', label: 'pocket', signalType: 'POCKET_3D', direction: 'input', required: true, multi: false },
+      { id: 'molecules', label: 'molecules', signalType: 'MOL_BATCH', direction: 'input', required: false, multi: false },
+    ],
+    outputs: [
+      { id: 'poses', label: 'poses', signalType: 'POSE_3D', direction: 'output', multi: true, shapeHint: 'Folded Poses' },
+      { id: 'confidence_scores', label: 'confidence_scores', signalType: 'ORACLE_SCORES', direction: 'output', multi: true, shapeHint: 'pLDDT / ipTM' },
+      { id: 'job_manifest', label: 'job_manifest', signalType: 'PROVENANCE_REPORT', direction: 'output', multi: true, shapeHint: 'Boltz2 / AF3 Spec' },
+    ],
+    params: [
+      { key: 'backend', label: 'Folding Backend', type: 'select', default: 'boltz2', options: ['boltz2', 'protenix', 'alphafold3', 'esmfold_api', 'nanofold3'] },
+      { key: 'num_samples', label: 'Samples / Seeds', type: 'number', default: 1, min: 1, max: 5, step: 1 },
+      { key: 'predict_affinity', label: 'Predict Binding Affinity', type: 'boolean', default: true },
+      { key: 'run_audit', label: 'Auto 7-Axis Pose Audit', type: 'boolean', default: true },
+      { key: 'allow_network', label: 'Allow Remote API (ESMFold)', type: 'boolean', default: false },
+    ],
+  },
 
   // =========================================================================
   // Category 7 — Lead-Opt, ADMET & Synthesis (4 blocks)
@@ -1593,9 +2023,9 @@ export function getWiringRemediationHint(source: SignalType, target: SignalType)
   const key = `${source}->${target}`;
   const hints: Record<string, string> = {
     'POCKET_3D->SE3_GRAPH':
-      'Insert PaiNN-SE(3), EGNN-3D, or E3NN Irreps to encode the 3D pocket into an equivariant graph.',
+      'Insert CartFormer-SE(3), DensePaiNN-SE(3), AtomGS-SE(3), SubPocketVN-JEPA, PaiNN-SE(3), or Pairformer Trunk to encode the 3D pocket into an equivariant graph.',
     'MOL_BATCH->POSE_3D':
-      'Insert AutoDock Vina 3D (or Boltz-2 / AF3 Co-Fold) to generate 3D ligand poses before geometry auditing.',
+      'Insert AutoDock Vina 3D, NanoFold3 Co-Fold, or Open-Weights Folder Hub to generate 3D ligand poses before geometry auditing.',
     'MOL_BATCH->LATENT_VEC':
       'Insert DrugCLIP Encoder or IBM MMELON (84M) to embed SMILES into L2-normalized vectors.',
     'REAGENTS->MOL_BATCH':
@@ -1637,6 +2067,32 @@ export function formatNodeParamSummary(node: CircuitNode): string {
       return `${p.backend === 'ecfp4_binary' ? 'ECFP4' : 'CLIP'} · ${p.clip_dim ?? 128}D`;
     case 'ibm_mmelon':
       return `84M · 768D · ${String(p.device ?? 'auto')}`;
+    case 'dense_painn_se3':
+      return `${p.num_layers ?? 4}L · d=${p.hidden_dim ?? 192} · ${p.adaptive_cutoff ? 'Adap' : 'Fix'}`;
+    case 'cartformer_se3':
+      return `I+A+S · T=${p.tensor_dim ?? 24} · L=${p.num_landmarks ?? 8}`;
+    case 'atomgs_se3':
+      return `${p.global_attn_mode === 'full_scalar' ? 'Full' : `SE=${p.num_landmarks ?? 16}`} · ${p.fuse_4d_ensemble ? '4DGS' : 'ROCS'}`;
+    case 'subpocket_vn_jepa':
+      return `M=${p.num_subpockets ?? 24} · S=${p.num_salient_slots ?? 8} · JEPA`;
+    case 'se3_complex_cross_attn':
+      return `PPF · ${p.num_heads ?? 8}H · ${p.cutoff ?? 8.0}Å`;
+    case 'nlp_perceiver_bridge':
+      return `Q=${p.num_queries ?? 16} · ${p.num_layers ?? 2}L · d=${p.d_out ?? 256}`;
+    case 'nlp_rope_gqa_lm':
+      return `${p.n_layers ?? 4}L · ${p.n_heads ?? 8}/${p.n_kv_heads ?? 2} GQA · ${p.use_grammar_mask ? 'Gram' : 'Free'}`;
+    case 'nlp_lora_rl_aligner':
+      return `${String(p.rl_objective ?? 'grpo').toUpperCase()} · r=${p.lora_rank ?? 8} · β=${p.kl_beta ?? 0.04}`;
+    case 'nlp_masked_diffusion':
+      return `${p.schedule ?? 'cosine'} · t=${p.mask_ratio ?? 0.35} · ${p.num_steps ?? 8}st`;
+    case 'pairformer_stack':
+      return `${p.trunk_mode === 'simplefold' ? 'O(L²)' : p.trunk_mode === 'hybrid' ? 'Hybrid' : 'O(L³)'} · ${p.num_blocks ?? 6}L`;
+    case 'nanofold3_cofold':
+      return `${p.diffusion_mode === 'flow_matching' ? 'FM' : 'EDM'} · ${p.num_steps ?? 20}st · det=+1`;
+    case 'confidence_head':
+      return `50b · ipTM≥${p.min_iptm ?? 0.6}${p.enable_affinity_head ? ' · pKd' : ''}`;
+    case 'external_folder_runner':
+      return `${String(p.backend ?? 'boltz2')} · n=${p.num_samples ?? 1}${p.predict_affinity ? ' · Aff' : ''}`;
     case 'safe_gpt':
       return `${p.mode === 'decorate_scaffold' ? 'Decor' : 'DeNovo'} · n=${p.num_samples ?? 32} · w=${Number(p.cfg_scale ?? 1.6).toFixed(1)}`;
     case 'chemical_llm': {
@@ -1720,7 +2176,7 @@ export function formatNodeParamSummary(node: CircuitNode): string {
 }
 
 // ===========================================================================
-// 5 Flagship One-Click End-to-End Presets (exact CircuitGraphV1 contract)
+// 7 Flagship One-Click End-to-End Presets (exact CircuitGraphV1 contract)
 // ===========================================================================
 
 export const CIRCUIT_PRESETS: CircuitPreset[] = [
@@ -1862,7 +2318,7 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
   },
   {
     id: 'al_dmta_closed_loop',
-    shortLabel: 'AL DMTA Loop',
+    shortLabel: 'AL DMTA',
     name: 'Multi-Fidelity Active Learning DMTA Closed Loop',
     tagline:
       '5-round Lab-in-a-Loop over 400 Murcko DRD1 scaffolds: TanimotoGP → Split-Conformal UQ → KrigingBeliever → Multi-Fidelity Router → Vina with live DMTA Feedback Loop.',
@@ -1991,7 +2447,7 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
   },
   {
     id: 'paralog_selectivity_mmp',
-    shortLabel: 'Selectivity & MMP',
+    shortLabel: 'Selectivity',
     name: 'Paralog Selectivity & Avoid-ome MMP Rescue',
     tagline:
       'Multi-conformer DRD1 vs. DRD2 contrastive CFG steering + 1-step makeable reaction chemistry + Roche-style Avoid-ome 1-cut MMP rescue + OpenFE RBFE.',
@@ -2118,7 +2574,7 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
   },
   {
     id: 'boltz2_audit_conformal_dmpk',
-    shortLabel: 'Boltz-2 7-Axis',
+    shortLabel: 'Boltz-2 QA',
     name: 'Boltz-2 / AF3 7-Axis Audit & Conformal DMPK',
     tagline:
       'Zero-PyTorch QA circuit auditing a co-folded ACHE complex across Cremer–Pople ring/torsion strain, 7-Axis PoseRealityAuditor, 90% Conformal DMPK & MCP tools.',
@@ -2221,11 +2677,283 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
     },
   },
   {
+    id: 'nanofold3_cofold_audit',
+    shortLabel: 'NanoFold3',
+    name: 'NanoFold3 Co-Fold + 7-Axis Audit',
+    tagline:
+      'AlphaFold 3-class all-atom co-folding: DRD1 Pocket + ChEMBL → Pairformer Trunk → NanoFold3 EDM (det=+1) → 50-bin ConfidenceHead → 7-Axis Audit → AtomGS ROCS → 3D Studio.',
+    badge: 'v5.3 Co-Fold',
+    graph: {
+      schemaVersion: SCHEMA_VERSION,
+      id: 'preset_nanofold3_cofold_audit',
+      name: 'NanoFold3 Co-Fold + 7-Axis Audit',
+      description:
+        'End-to-end AlphaFold 3-class all-atom co-folding & verification circuit uniting PairformerStack / SimpleFoldTrunk, NanoFold3 EDM diffusion (Kabsch det=+1), 50-bin ConfidenceHead + AffinityHead, 7-Axis PoseRealityAuditor, AtomGS-SE(3) ROCS overlap, and 3D Studio.',
+      metadata: {
+        presetId: 'nanofold3_cofold_audit',
+        author: 'GenEuclidean v5.3',
+        tags: ['NanoFold3', 'Pairformer', 'ConfidenceHead', 'AtomGS', '7-Axis'],
+      },
+      execution: {
+        mode: 'browser_sim',
+        seed: 42,
+        dmtaRounds: 1,
+        targetContext: 'DRD1',
+        budget: 16,
+      },
+      nodes: [
+        // Row 1: Protein Pocket -> Pairformer Trunk -> NanoFold3 Co-Fold -> Confidence Head
+        {
+          id: 'n_pocket',
+          blockType: 'protein_pocket',
+          position: { x: 32, y: 40 },
+          params: { target_id: 'DRD1', pocket_cutoff: 10.0, max_atoms: 384, keep_cofactors: true },
+        },
+        {
+          id: 'n_trunk',
+          blockType: 'pairformer_stack',
+          position: { x: 324, y: 40 },
+          params: {
+            trunk_mode: 'pairformer',
+            num_blocks: 6,
+            c_s: 192,
+            c_z: 64,
+            head_dim: 32,
+            use_coulomb_bias: true,
+            outer_product_mean: false,
+          },
+        },
+        {
+          id: 'n_nf3',
+          blockType: 'nanofold3_cofold',
+          position: { x: 616, y: 40 },
+          params: {
+            preset: 'nano',
+            diffusion_mode: 'edm',
+            num_steps: 20,
+            recycles: 2,
+            flex_mode: 'flexible_pocket_and_ligand',
+            num_samples: 2,
+          },
+        },
+        {
+          id: 'n_conf_head',
+          blockType: 'confidence_head',
+          position: { x: 908, y: 40 },
+          params: {
+            num_blocks: 2,
+            trunk_mode: 'pairformer',
+            enable_affinity_head: true,
+            min_iptm: 0.6,
+            min_plddt: 70.0,
+          },
+        },
+        // Row 2: ChEMBL Pool -> 7-Axis Auditor -> AtomGS-SE(3) ROCS -> 3D Studio
+        {
+          id: 'n_pool',
+          blockType: 'chembl_pool',
+          position: { x: 32, y: 316 },
+          params: { dataset: 'DRD1_chembl37_400', pool_size: 400, dedup_murcko: true },
+        },
+        {
+          id: 'n_audit',
+          blockType: 'pose_reality_auditor',
+          position: { x: 324, y: 316 },
+          params: {
+            property_profile: 'cns_mpo_v2',
+            ring_strain_threshold_kcal: 3.0,
+            torsion_barrier_threshold_kcal: 2.5,
+            torsion_max_red: 0,
+            strict_input_charge: false,
+          },
+        },
+        {
+          id: 'n_atomgs',
+          blockType: 'atomgs_se3',
+          position: { x: 616, y: 316 },
+          params: {
+            num_layers: 4,
+            hidden_dim: 192,
+            num_landmarks: 16,
+            global_attn_mode: 'landmarks',
+            enable_3d_overlap: true,
+            use_coulomb_bias: true,
+            fuse_4d_ensemble: false,
+          },
+        },
+        {
+          id: 'n_studio3d',
+          blockType: 'studio_3d_inspector',
+          position: { x: 908, y: 316 },
+          params: { theme: 'dark', show_native_ghost: true, highlight_anchors: true },
+        },
+      ],
+      edges: [
+        { id: 'e1', source: 'n_pocket', sourcePort: 'pocket', target: 'n_trunk', targetPort: 'pocket', signalType: 'POCKET_3D', kind: 'forward' },
+        { id: 'e2', source: 'n_pool', sourcePort: 'molecules', target: 'n_trunk', targetPort: 'molecules', signalType: 'MOL_BATCH', kind: 'forward' },
+        { id: 'e3', source: 'n_trunk', sourcePort: 'trunk_graph', target: 'n_nf3', targetPort: 'trunk_graph', signalType: 'SE3_GRAPH', kind: 'forward' },
+        { id: 'e4', source: 'n_nf3', sourcePort: 'cofold_graph', target: 'n_conf_head', targetPort: 'cofold_graph', signalType: 'SE3_GRAPH', kind: 'forward' },
+        { id: 'e5', source: 'n_nf3', sourcePort: 'poses', target: 'n_conf_head', targetPort: 'poses', signalType: 'POSE_3D', kind: 'forward' },
+        { id: 'e6', source: 'n_conf_head', sourcePort: 'scored_poses', target: 'n_audit', targetPort: 'poses', signalType: 'POSE_3D', kind: 'forward' },
+        { id: 'e7', source: 'n_pocket', sourcePort: 'pocket', target: 'n_audit', targetPort: 'pocket', signalType: 'POCKET_3D', kind: 'forward' },
+        { id: 'e8', source: 'n_audit', sourcePort: 'verified_poses', target: 'n_atomgs', targetPort: 'poses', signalType: 'POSE_3D', kind: 'forward' },
+        { id: 'e9', source: 'n_pocket', sourcePort: 'pocket', target: 'n_atomgs', targetPort: 'pocket', signalType: 'POCKET_3D', kind: 'forward' },
+        { id: 'e10', source: 'n_pocket', sourcePort: 'pocket', target: 'n_studio3d', targetPort: 'pocket', signalType: 'POCKET_3D', kind: 'forward' },
+        { id: 'e11', source: 'n_audit', sourcePort: 'verified_poses', target: 'n_studio3d', targetPort: 'poses', signalType: 'POSE_3D', kind: 'forward' },
+        { id: 'e12', source: 'n_atomgs', sourcePort: 'overlap_scores', target: 'n_studio3d', targetPort: 'scores', signalType: 'ORACLE_SCORES', kind: 'forward' },
+        { id: 'e13', source: 'n_audit', sourcePort: 'audit_report', target: 'n_studio3d', targetPort: 'audit_report', signalType: 'PROVENANCE_REPORT', kind: 'forward' },
+      ],
+    },
+  },
+  {
+    id: 'tourette_scz_champion',
+    shortLabel: 'TS/SCZ Champ',
+    name: 'Tourette & Schizophrenia Champion Pipeline',
+    tagline:
+      'DRD1/DRD2/CHRM4 Champion: Multi-Conformer → CartFormer-SE(3) → Perceiver Bridge → RoPE+GQA LM → Ensemble CFG → LoRA GRPO → Vina → 7-Axis Audit → MMP → OpenFE RBFE.',
+    badge: 'v5.3 Flagship',
+    graph: {
+      schemaVersion: SCHEMA_VERSION,
+      id: 'preset_tourette_scz_champion',
+      name: 'Tourette & Schizophrenia Champion Pipeline',
+      description:
+        'Flagship neuropsychiatric discovery circuit (DRD1/DRD2/CHRM4) combining Multi-Conformer Ensemble, rank-2 CartFormer-SE(3), PocketPerceiverBridge, RoPE+GQA Chemical LM, Contrastive Ensemble CFG, LoRA DPO/GRPO RL, AutoDock Vina, 7-Axis PoseRealityAuditor, Avoid-ome MMP, and charge-matched OpenFE RBFE.',
+      metadata: {
+        presetId: 'tourette_scz_champion',
+        author: 'GenEuclidean v5.3',
+        tags: ['Tourette', 'Schizophrenia', 'CartFormer', 'RoPE+GQA', 'GRPO', 'OpenFE'],
+      },
+      execution: {
+        mode: 'browser_sim',
+        seed: 42,
+        dmtaRounds: 1,
+        targetContext: 'DRD1',
+        budget: 32,
+      },
+      nodes: [
+        // Row 1: Multi-Conformer -> CartFormer-SE(3) -> Perceiver Bridge -> RoPE+GQA LM
+        {
+          id: 'n_ens',
+          blockType: 'multiconformer_ensemble',
+          position: { x: 32, y: 32 },
+          params: { on_target_id: 'DRD1', n_conformers: 3, off_target_id: 'DRD2', weighting: 'resolution_weighted' },
+        },
+        {
+          id: 'n_cart',
+          blockType: 'cartformer_se3',
+          position: { x: 324, y: 32 },
+          params: {
+            num_layers: 4,
+            hidden_dim: 192,
+            vector_dim: 64,
+            tensor_dim: 24,
+            num_heads: 8,
+            num_landmarks: 8,
+            use_se3_chirality: true,
+            use_coulomb_bias: true,
+          },
+        },
+        {
+          id: 'n_bridge',
+          blockType: 'nlp_perceiver_bridge',
+          position: { x: 616, y: 32 },
+          params: { num_queries: 16, num_layers: 2, n_heads: 8, d_out: 256, output_rms_scale: 1.0 },
+        },
+        {
+          id: 'n_lm',
+          blockType: 'nlp_rope_gqa_lm',
+          position: { x: 908, y: 32 },
+          params: {
+            d_model: 256,
+            n_layers: 4,
+            n_heads: 8,
+            n_kv_heads: 2,
+            conditioning_mode: 'cross_attn',
+            decode_mode: 'beam_grammar',
+            beam_width: 4,
+            temperature: 0.9,
+            use_grammar_mask: true,
+            rope_scaling_type: 'yarn',
+          },
+        },
+        // Row 2: Ensemble CFG -> LoRA DPO/GRPO -> AutoDock Vina -> 7-Axis Auditor
+        {
+          id: 'n_cfg',
+          blockType: 'pocket_ensemble_cfg',
+          position: { x: 32, y: 304 },
+          params: { backbone_id: 'datamol-io/safe-gpt', w_on: 1.6, w_off: 0.65, num_samples: 32, compute_pmi_3d: true },
+        },
+        {
+          id: 'n_rl',
+          blockType: 'nlp_lora_rl_aligner',
+          position: { x: 324, y: 304 },
+          params: { rl_objective: 'grpo', lora_rank: 8, lora_alpha: 16.0, kl_beta: 0.04, clip_eps: 0.2, merge_adapters: true },
+        },
+        {
+          id: 'n_vina',
+          blockType: 'autodock_vina',
+          position: { x: 616, y: 304 },
+          params: { exhaustiveness: 8, num_modes: 9, box_mode: 'tight_per_axis', max_ring_confs: 4, protonate_ph74: true },
+        },
+        {
+          id: 'n_audit',
+          blockType: 'pose_reality_auditor',
+          position: { x: 908, y: 304 },
+          params: {
+            property_profile: 'cns_mpo_v2',
+            ring_strain_threshold_kcal: 3.0,
+            torsion_barrier_threshold_kcal: 2.5,
+            torsion_max_red: 0,
+            strict_input_charge: false,
+          },
+        },
+        // Row 3 (centered 4x2+2): Avoid-ome MMP -> OpenFE RBFE Exporter
+        {
+          id: 'n_mmp',
+          blockType: 'leadopt_mmp_sar',
+          position: { x: 324, y: 592 },
+          params: { mode: 'mmp_and_cliffs', property_profile: 'cns_mpo_v2', max_proposals: 20, cliff_threshold: 1.0, triage_filter: true },
+        },
+        {
+          id: 'n_openfe',
+          blockType: 'openfe_rbfe_exporter',
+          position: { x: 616, y: 592 },
+          params: {
+            require_same_charge: true,
+            filter_ring_strain: true,
+            max_ring_strain_kcal: 3.0,
+            add_cycle_closures: true,
+            out_dir: 'results/openfe_tourette_scz_champion',
+          },
+        },
+      ],
+      edges: [
+        { id: 'e1', source: 'n_ens', sourcePort: 'on_pockets', target: 'n_cart', targetPort: 'pocket', signalType: 'POCKET_3D', kind: 'forward' },
+        { id: 'e2', source: 'n_cart', sourcePort: 'pocket_graph', target: 'n_bridge', targetPort: 'pocket_graph', signalType: 'SE3_GRAPH', kind: 'forward' },
+        { id: 'e3', source: 'n_bridge', sourcePort: 'pocket_tokens', target: 'n_lm', targetPort: 'pocket_tokens', signalType: 'LATENT_VEC', kind: 'forward' },
+        { id: 'e4', source: 'n_bridge', sourcePort: 'bridge_graph', target: 'n_cfg', targetPort: 'pocket_graph', signalType: 'SE3_GRAPH', kind: 'forward' },
+        { id: 'e5', source: 'n_ens', sourcePort: 'off_pocket', target: 'n_cfg', targetPort: 'off_pocket', signalType: 'POCKET_3D', kind: 'forward' },
+        { id: 'e6', source: 'n_lm', sourcePort: 'molecules', target: 'n_cfg', targetPort: 'lm_candidates', signalType: 'MOL_BATCH', kind: 'forward' },
+        { id: 'e7', source: 'n_cfg', sourcePort: 'molecules', target: 'n_rl', targetPort: 'molecules', signalType: 'MOL_BATCH', kind: 'forward' },
+        { id: 'e8', source: 'n_cfg', sourcePort: 'pmi_scores', target: 'n_rl', targetPort: 'rewards', signalType: 'ORACLE_SCORES', kind: 'forward' },
+        { id: 'e9', source: 'n_rl', sourcePort: 'aligned_mols', target: 'n_vina', targetPort: 'molecules', signalType: 'MOL_BATCH', kind: 'forward' },
+        { id: 'e10', source: 'n_ens', sourcePort: 'on_pockets', target: 'n_vina', targetPort: 'pocket', signalType: 'POCKET_3D', kind: 'forward' },
+        { id: 'e11', source: 'n_vina', sourcePort: 'poses', target: 'n_audit', targetPort: 'poses', signalType: 'POSE_3D', kind: 'forward' },
+        { id: 'e12', source: 'n_ens', sourcePort: 'on_pockets', target: 'n_audit', targetPort: 'pocket', signalType: 'POCKET_3D', kind: 'forward' },
+        { id: 'e13', source: 'n_rl', sourcePort: 'aligned_mols', target: 'n_mmp', targetPort: 'molecules', signalType: 'MOL_BATCH', kind: 'forward' },
+        { id: 'e14', source: 'n_audit', sourcePort: 'reality_scores', target: 'n_mmp', targetPort: 'scores', signalType: 'ORACLE_SCORES', kind: 'forward' },
+        { id: 'e15', source: 'n_mmp', sourcePort: 'rescued_mols', target: 'n_openfe', targetPort: 'molecules', signalType: 'MOL_BATCH', kind: 'forward' },
+        { id: 'e16', source: 'n_audit', sourcePort: 'verified_poses', target: 'n_openfe', targetPort: 'poses', signalType: 'POSE_3D', kind: 'forward' },
+        { id: 'e17', source: 'n_ens', sourcePort: 'on_pockets', target: 'n_openfe', targetPort: 'pocket', signalType: 'POCKET_3D', kind: 'forward' },
+      ],
+    },
+  },
+  {
     id: 'blank_breadboard',
     shortLabel: 'Blank',
     name: 'Blank Breadboard',
     tagline:
-      'Start from an empty canvas — drag or click any of the 36 GenEuclidean blocks from the dock to compose your own discovery circuit.',
+      'Start from an empty canvas — drag or click any of the 49 GenEuclidean 3D, NLP & NanoFold3 blocks from the dock to compose your own discovery circuit.',
     graph: {
       schemaVersion: SCHEMA_VERSION,
       id: 'preset_blank_breadboard',

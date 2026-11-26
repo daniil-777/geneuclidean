@@ -720,6 +720,33 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
     imports.add('from geneuclidean.config import EncoderConfig');
     imports.add('from geneuclidean.models.encoders import build_encoder');
   }
+  if (
+    typesPresent.has('dense_painn_se3') ||
+    typesPresent.has('cartformer_se3') ||
+    typesPresent.has('atomgs_se3') ||
+    typesPresent.has('subpocket_vn_jepa')
+  ) {
+    imports.add('import geneuclidean.models.encoders as ge_encoders');
+  }
+  if (typesPresent.has('atomgs_se3') || typesPresent.has('se3_complex_cross_attn')) {
+    imports.add('import geneuclidean.geom as ge_geom');
+  }
+  if (
+    typesPresent.has('nlp_perceiver_bridge') ||
+    typesPresent.has('nlp_rope_gqa_lm') ||
+    typesPresent.has('nlp_lora_rl_aligner') ||
+    typesPresent.has('nlp_masked_diffusion')
+  ) {
+    imports.add('import geneuclidean.nlp as ge_nlp');
+  }
+  if (
+    typesPresent.has('pairformer_stack') ||
+    typesPresent.has('nanofold3_cofold') ||
+    typesPresent.has('confidence_head') ||
+    typesPresent.has('external_folder_runner')
+  ) {
+    imports.add('import geneuclidean.folding as ge_folding');
+  }
   if (typesPresent.has('selectivity_mtl_aligner')) {
     imports.add('from geneuclidean.training.mtl_intervention import GradientConflictMediator');
   }
@@ -784,7 +811,7 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
       const p = node.params;
       const def = BLOCK_CATALOG_MAP[node.blockType];
       const out: string[] = [
-        `${indent}# [${def?.shortName ?? node.blockType}]`,
+        `${indent}# [${node.id}] ${def?.shortName ?? node.blockType}`,
       ];
 
       switch (node.blockType) {
@@ -927,6 +954,101 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
           );
           break;
         }
+        case 'dense_painn_se3': {
+          const pkt = portVar(incomingFor(node.id, 'pocket'), 'pocket');
+          out.push(
+            ...pyCall(indent, `${v}_enc`, 'ge_encoders.DensePaiNNSE3Encoder', [
+              `hidden_dim=${pyNum(p.hidden_dim, 192)}`,
+              `vector_dim=${pyNum(p.vector_dim, 64)}`,
+              `out_dim=${pyNum(p.out_dim, 256)}`,
+              `num_layers=${pyNum(p.num_layers, 4)}`,
+              `cutoff=${pyNum(p.cutoff, 5.5)}`,
+              `max_neighbors=${pyNum(p.max_neighbors, 24)}`,
+              `use_se3_chirality=${pyBool(p.use_se3_chirality ?? true)}`,
+              `adaptive_cutoff=${pyBool(p.adaptive_cutoff ?? true)}`,
+            ]),
+          );
+          out.push(`${indent}${v}_pocket_graph = {"pocket": ${pkt}, "encoder": ${v}_enc}`);
+          out.push(`${indent}${v}_pocket_vec = ${v}_pocket_graph`);
+          break;
+        }
+        case 'cartformer_se3': {
+          const pkt = portVar(incomingFor(node.id, 'pocket'), 'pocket');
+          out.push(
+            ...pyCall(indent, `${v}_enc`, 'ge_encoders.CartFormerSE3Encoder', [
+              `hidden_dim=${pyNum(p.hidden_dim, 192)}`,
+              `vector_dim=${pyNum(p.vector_dim, 64)}`,
+              `tensor_dim=${pyNum(p.tensor_dim, 24)}`,
+              `num_layers=${pyNum(p.num_layers, 4)}`,
+              `num_heads=${pyNum(p.num_heads, 8)}`,
+              `num_landmarks=${pyNum(p.num_landmarks, 8)}`,
+              `use_se3_chirality=${pyBool(p.use_se3_chirality ?? true)}`,
+              `use_coulomb_bias=${pyBool(p.use_coulomb_bias ?? true)}`,
+            ]),
+          );
+          out.push(`${indent}${v}_pocket_graph = {"pocket": ${pkt}, "encoder": ${v}_enc}`);
+          out.push(`${indent}${v}_pocket_vec = ${v}_pocket_graph`);
+          break;
+        }
+        case 'atomgs_se3': {
+          const pkt = portVar(incomingFor(node.id, 'pocket'), 'pocket');
+          const poses = portVar(incomingFor(node.id, 'poses'), '[]');
+          out.push(
+            ...pyCall(indent, `${v}_enc`, 'ge_encoders.AtomGSSE3Encoder', [
+              `hidden_dim=${pyNum(p.hidden_dim, 192)}`,
+              `num_layers=${pyNum(p.num_layers, 4)}`,
+              `num_landmarks=${pyNum(p.num_landmarks, 16)}`,
+              `global_attn_mode=${pyStr(p.global_attn_mode ?? 'landmarks')}`,
+              `enable_3d_overlap=${pyBool(p.enable_3d_overlap ?? true)}`,
+              `use_coulomb_bias=${pyBool(p.use_coulomb_bias ?? true)}`,
+            ]),
+          );
+          out.push(`${indent}${v}_pocket_graph = {"pocket": ${pkt}, "encoder": ${v}_enc}`);
+          out.push(`${indent}${v}_pocket_vec = ${v}_pocket_graph`);
+          out.push(
+            `${indent}${v}_overlap_scores = {`,
+            `${indent}    "n_poses": len(${poses}) if isinstance(${poses}, list) else 0,`,
+            `${indent}    "rocs_op": ge_geom.rocs_shape_tanimoto.__name__,`,
+            `${indent}    "fuse_4d": ${pyBool(p.fuse_4d_ensemble ?? false)},`,
+            `${indent}}`,
+          );
+          break;
+        }
+        case 'subpocket_vn_jepa': {
+          const pkt = portVar(incomingFor(node.id, 'pocket'), 'pocket');
+          out.push(
+            ...pyCall(indent, `${v}_enc`, 'ge_encoders.SubPocketVNJEPAEncoder', [
+              `hidden_dim=${pyNum(p.hidden_dim, 192)}`,
+              `num_layers=${pyNum(p.num_layers, 4)}`,
+              `num_subpockets=${pyNum(p.num_subpockets, 24)}`,
+              `num_salient_slots=${pyNum(p.num_salient_slots, 8)}`,
+              `num_perceiver_tokens=${pyNum(p.num_perceiver_tokens, 16)}`,
+              `use_se3_chirality=${pyBool(p.use_se3_chirality ?? true)}`,
+              `use_coulomb_bias=${pyBool(p.use_coulomb_bias ?? true)}`,
+            ]),
+          );
+          out.push(`${indent}${v}_pocket_graph = {"pocket": ${pkt}, "encoder": ${v}_enc}`);
+          out.push(`${indent}${v}_pocket_vec = ${v}_pocket_graph`);
+          break;
+        }
+        case 'se3_complex_cross_attn': {
+          const pg = portVar(incomingFor(node.id, 'pocket_graph'), 'pocket_graph');
+          const poses = portVar(incomingFor(node.id, 'poses'), '[]');
+          out.push(
+            ...pyCall(indent, `${v}_xattn`, 'ge_geom.SE3ComplexCrossAttention', [
+              `emb_dim=${pyNum(p.emb_dim, 256)}`,
+              `vector_dim=${pyNum(p.vector_dim, 64)}`,
+              `num_heads=${pyNum(p.num_heads, 8)}`,
+              `cutoff=${pyNum(p.cutoff, 8.0)}`,
+              `use_se3_chirality=${pyBool(p.use_se3_chirality ?? true)}`,
+              `use_coulomb_bias=${pyBool(p.use_coulomb_bias ?? true)}`,
+            ]),
+          );
+          out.push(`${indent}${v}_complex_graph = {"pocket_graph": ${pg}, "cross_attn": ${v}_xattn}`);
+          out.push(`${indent}${v}_interaction_vec = ${v}_complex_graph`);
+          out.push(`${indent}${v}_contact_scores = {"n_poses": len(${poses}), "cutoff": ${pyNum(p.cutoff, 8.0)}}`);
+          break;
+        }
         case 'safe_gpt': {
           const graph = portVar(incomingFor(node.id, 'pocket_graph'), 'pocket_graph');
           out.push(
@@ -1015,6 +1137,82 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
               `gdpo_beta=${pyNum(p.gdpo_beta, 0.04)}`,
               `steps=${pyNum(p.steps, 30)}`,
             ]),
+          );
+          break;
+        }
+        case 'nlp_perceiver_bridge': {
+          const pg = portVar(incomingFor(node.id, 'pocket_graph'), 'pocket_graph');
+          out.push(
+            ...pyCall(indent, `${v}_bridge`, 'ge_nlp.PocketPerceiverBridge', [
+              'd_in=256',
+              `d_out=${pyNum(p.d_out, 256)}`,
+              `num_queries=${pyNum(p.num_queries, 16)}`,
+              `num_layers=${pyNum(p.num_layers, 2)}`,
+              `n_heads=${pyNum(p.n_heads, 8)}`,
+              `output_rms_scale=${pyNum(p.output_rms_scale, 1.0)}`,
+            ]),
+          );
+          out.push(`${indent}${v}_pocket_tokens = {"pocket_graph": ${pg}, "bridge": ${v}_bridge}`);
+          out.push(`${indent}${v}_bridge_graph = ${v}_pocket_tokens`);
+          break;
+        }
+        case 'nlp_rope_gqa_lm': {
+          const pt = portVar(incomingFor(node.id, 'pocket_tokens'), 'pocket_tokens');
+          out.push(`${indent}${v}_tok = ge_nlp.AtomLevelSMILESTokenizer()`);
+          out.push(
+            `${indent}${v}_grammar = ge_nlp.SMILESValenceGrammarMask(${v}_tok) if ${pyBool(p.use_grammar_mask ?? true)} else None`,
+          );
+          out.push(
+            ...pyCall(indent, `${v}_lm`, 'ge_nlp.PocketConditionedChemicalLM', [
+              `vocab_size=${v}_tok.vocab_size`,
+              `d_model=${pyNum(p.d_model, 256)}`,
+              `n_layers=${pyNum(p.n_layers, 4)}`,
+              `n_heads=${pyNum(p.n_heads, 8)}`,
+              `n_kv_heads=${pyNum(p.n_kv_heads, 2)}`,
+              `conditioning_mode=${pyStr(p.conditioning_mode ?? 'cross_attn')}`,
+              `rope_scaling_type=${pyStr(p.rope_scaling_type ?? 'yarn')}`,
+            ]),
+          );
+          out.push(
+            `${indent}${v}_molecules = [d.canonical_smiles for d in ge.get_target(${pyStr(circuit.execution.targetContext)}).reference_drugs]`,
+          );
+          out.push(
+            `${indent}${v}_lm_latent = {"model": ${v}_lm, "pocket_tokens": ${pt}, "grammar": ${v}_grammar, "beam_width": ${pyNum(p.beam_width, 4)}}`,
+          );
+          break;
+        }
+        case 'nlp_lora_rl_aligner': {
+          const mols = portVar(incomingFor(node.id, 'molecules'), 'molecules');
+          const rew = portVar(incomingFor(node.id, 'rewards'), '{}');
+          const obj = String(p.rl_objective ?? 'grpo');
+          const lossFn = obj === 'grpo' ? 'ge_nlp.grpo_policy_loss' : 'ge_nlp.dpo_preference_loss';
+          out.push(
+            `${indent}${v}_rl_report = {`,
+            `${indent}    "objective": ${pyStr(obj)},`,
+            `${indent}    "loss_fn": ${lossFn}.__name__,`,
+            `${indent}    "lora_rank": ${pyNum(p.lora_rank, 8)},`,
+            `${indent}    "lora_alpha": ${pyNum(p.lora_alpha, 16.0)},`,
+            `${indent}    "kl_beta": ${pyNum(p.kl_beta, 0.04)},`,
+            `${indent}    "clip_eps": ${pyNum(p.clip_eps, 0.2)},`,
+            `${indent}    "merge_adapters": ${pyBool(p.merge_adapters ?? true)},`,
+            `${indent}}`,
+          );
+          out.push(`${indent}${v}_aligned_mols = list(${mols})`);
+          out.push(`${indent}${v}_rl_scores = dict(${rew}) if isinstance(${rew}, dict) else {}`);
+          break;
+        }
+        case 'nlp_masked_diffusion': {
+          const seeds = portVar(incomingFor(node.id, 'seed_mols'), 'molecules');
+          out.push(`${indent}${v}_tok = ge_nlp.AtomLevelSMILESTokenizer()`);
+          out.push(
+            ...pyCall(indent, `${v}_mdlm`, 'ge_nlp.DiscreteMaskedDiffusionStep', [
+              `mask_token_id=${v}_tok.mask_id`,
+              `schedule=${pyStr(p.schedule ?? 'cosine')}`,
+            ]),
+          );
+          out.push(`${indent}${v}_inpainted_mols = list(${seeds})`);
+          out.push(
+            `${indent}${v}_diffusion_report = {"schedule": ${pyStr(p.schedule ?? 'cosine')}, "mask_ratio": ${pyNum(p.mask_ratio, 0.35)}, "num_steps": ${pyNum(p.num_steps, 8)}}`,
           );
           break;
         }
@@ -1261,6 +1459,126 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
           out.push(`${indent}${v}_reality_scores = {r.smiles: {"reality": r.reality_score} for r in ${v}_audit_report}`);
           break;
         }
+        case 'pairformer_stack': {
+          const pkt = portVar(incomingFor(node.id, 'pocket'), 'pocket');
+          const mols = portVar(incomingFor(node.id, 'molecules'), '[]');
+          const tMode = String(p.trunk_mode ?? 'pairformer');
+          if (tMode === 'pairformer') {
+            out.push(
+              ...pyCall(indent, `${v}_trunk`, 'ge_folding.PairformerStack', [
+                `num_blocks=${pyNum(p.num_blocks, 6)}`,
+                `c_s=${pyNum(p.c_s, 192)}`,
+                `c_z=${pyNum(p.c_z, 64)}`,
+                `head_dim=${pyNum(p.head_dim, 32)}`,
+                `outer_product_mean=${pyBool(p.outer_product_mean ?? false)}`,
+              ]),
+            );
+          } else {
+            out.push(
+              ...pyCall(indent, `${v}_trunk`, 'ge_folding.SimpleFoldTrunk', [
+                `c_s=${pyNum(p.c_s, 192)}`,
+                `c_z=${pyNum(p.c_z, 64)}`,
+                `num_layers=${pyNum(p.num_blocks, 6)}`,
+                `head_dim=${pyNum(p.head_dim, 32)}`,
+                `trunk_mode=${pyStr(tMode)}`,
+                `use_coulomb_bias=${pyBool(p.use_coulomb_bias ?? true)}`,
+              ]),
+            );
+          }
+          out.push(`${indent}${v}_trunk_graph = {"pocket": ${pkt}, "molecules": ${mols}, "trunk": ${v}_trunk}`);
+          out.push(`${indent}${v}_trunk_vec = ${v}_trunk_graph`);
+          break;
+        }
+        case 'nanofold3_cofold': {
+          const trunkEdge = incomingFor(node.id, 'trunk_graph');
+          const trunk = portVar(trunkEdge, '{}');
+          const molsEdge = incomingFor(node.id, 'molecules');
+          const defaultLig = '"CN1CCN(C(=O)c2ccc3ccccc3n2)CC1"';
+          out.push(
+            ...pyCall(indent, `${v}_model`, 'ge_folding.build_nanofold3', [
+              `preset=${pyStr(p.preset ?? 'nano')}`,
+              `diffusion_mode=${pyStr(p.diffusion_mode ?? 'edm')}`,
+              'enable_affinity_head=True',
+            ]),
+          );
+          if (molsEdge) {
+            const mols = portVar(molsEdge, '[]');
+            out.push(`${indent}${v}_mols = list(${mols})`);
+            out.push(`${indent}${v}_lig_smi = ${v}_mols[0] if ${v}_mols else ${defaultLig}`);
+          } else if (trunkEdge) {
+            out.push(
+              `${indent}${v}_mols = ${trunk}.get("molecules", []) if isinstance(${trunk}, dict) else []`,
+            );
+            out.push(`${indent}${v}_lig_smi = ${v}_mols[0] if ${v}_mols else ${defaultLig}`);
+          } else {
+            out.push(`${indent}${v}_lig_smi = ${defaultLig}`);
+          }
+          out.push(
+            ...pyCall(indent, `${v}_res`, 'ge_folding.fold_complex', [
+              'protein_sequence="ACDEFGHIKLMNPQRSTVWY"',
+              `ligand_smiles=${v}_lig_smi`,
+              'backend="nanofold3"',
+              `num_samples=${pyNum(p.num_samples, 2)}`,
+              `num_steps=${pyNum(p.num_steps, 20)}`,
+              `num_recycles=${pyNum(p.recycles, 2)}`,
+              'predict_affinity=True',
+              'run_audit=False',
+            ]),
+          );
+          out.push(`${indent}${v}_poses = [${v}_res.ligand_mol_3d] if ${v}_res.ligand_mol_3d else []`);
+          out.push(`${indent}${v}_cofold_graph = {"trunk": ${trunk}, "model": ${v}_model, "result": ${v}_res}`);
+          out.push(
+            `${indent}${v}_diffusion_report = {"mode": ${pyStr(p.diffusion_mode ?? 'edm')}, "plddt": ${v}_res.plddt_mean, "iptm": ${v}_res.iptm}`,
+          );
+          break;
+        }
+        case 'confidence_head': {
+          const cg = portVar(incomingFor(node.id, 'cofold_graph'), '{}');
+          const poses = portVar(incomingFor(node.id, 'poses'), '[]');
+          out.push(
+            ...pyCall(indent, `${v}_head`, 'ge_folding.ConfidenceHead', [
+              'c_s=192',
+              'c_z=64',
+              `num_blocks=${pyNum(p.num_blocks, 2)}`,
+              `trunk_mode=${pyStr(p.trunk_mode ?? 'pairformer')}`,
+              `enable_affinity_head=${pyBool(p.enable_affinity_head ?? true)}`,
+            ]),
+          );
+          out.push(`${indent}${v}_scored_poses = list(${poses})`);
+          out.push(
+            `${indent}${v}_confidence_scores = {"min_iptm": ${pyNum(p.min_iptm, 0.6)}, "min_plddt": ${pyNum(p.min_plddt, 70.0)}}`,
+          );
+          out.push(
+            `${indent}${v}_confidence_report = {"cofold": ${cg}, "head": ${v}_head.__class__.__name__, "affinity": ${pyBool(p.enable_affinity_head ?? true)}}`,
+          );
+          break;
+        }
+        case 'external_folder_runner': {
+          const molsEdge = incomingFor(node.id, 'molecules');
+          const defaultLig = '"CN1CCN(C(=O)c2ccc3ccccc3n2)CC1"';
+          const backend = String(p.backend ?? 'boltz2');
+          if (molsEdge) {
+            const mols = portVar(molsEdge, '[]');
+            out.push(`${indent}${v}_lig_smi = ${mols}[0] if ${mols} else ${defaultLig}`);
+          } else {
+            out.push(`${indent}${v}_lig_smi = ${defaultLig}`);
+          }
+          out.push(
+            ...pyCall(indent, `${v}_job`, 'ge_folding.FoldingJobSpec', [
+              `name=${pyStr(`${circuit.execution.targetContext}_${backend}`)}`,
+              'protein_chains=(("A", "ACDEFGHIKLMNPQRSTVWY"),)',
+              `ligand_smiles=(("L", ${v}_lig_smi),)`,
+              `num_samples=${pyNum(p.num_samples, 1)}`,
+              `predict_affinity=${pyBool(p.predict_affinity ?? true)}`,
+            ]),
+          );
+          out.push(`${indent}${v}_poses = [${v}_lig_smi]`);
+          out.push(`${indent}${v}_confidence_scores = {"backend": ${pyStr(backend)}}`);
+          out.push(
+            `${indent}${v}_job_manifest = {"backend": ${pyStr(backend)}, "registry": ge_folding.list_folding_backends(), "job": ${v}_job.name}`,
+          );
+          break;
+        }
         case 'reaction_enumerator': {
           const reag = portVar(incomingFor(node.id, 'reagents'), 'reagents');
           out.push(
@@ -1389,7 +1707,7 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
           out.push(
             ...pyCall(indent, `${v}_dossier`, 'ge.build_credibility_dossier', [
               `model_name=${pyStr(circuit.name)}`,
-              'model_version="5.1.0"',
+              'model_version="5.3.0"',
               `ei_saturation_tol=${pyNum(p.ei_saturation_tol, 0.02)}`,
               `jaccard_stability_tol=${pyNum(p.jaccard_stability_tol, 0.85)}`,
               `export_fda_ema=${pyBool(p.export_fda_ema_dossier ?? true)}`,
@@ -1621,6 +1939,112 @@ export async function simulateCircuitInBrowser(
           outputShapes.embeddings = `[N, ${node.blockType === 'ibm_mmelon' ? 768 : p.clip_dim ?? 128}]`;
           summary = node.blockType === 'ibm_mmelon' ? '84M → 768D unit vec' : `CLIP ${p.clip_dim ?? 128}D`;
           break;
+        case 'dense_painn_se3':
+          durationMs = Math.round(15 + jitter * 12);
+          outputShapes.pocket_graph = `[1, 384, ${p.out_dim ?? 256}]`;
+          metrics.speedup_mps = '1.52×';
+          metrics.so3_err = 4.2e-6;
+          summary = `1.5× MPS · SO(3) < 5e-6`;
+          break;
+        case 'cartformer_se3':
+          durationMs = Math.round(21 + jitter * 15);
+          outputShapes.pocket_graph = `I+A+S [1, 384, 256]`;
+          metrics.tensor_dim = Number(p.tensor_dim ?? 24);
+          metrics.landmarks = Number(p.num_landmarks ?? 8);
+          metrics.les_bias = Boolean(p.use_coulomb_bias ?? true);
+          summary = `Rank-2 T=${p.tensor_dim ?? 24} · L=${p.num_landmarks ?? 8}`;
+          break;
+        case 'atomgs_se3': {
+          const rocs = Number((0.79 + jitter * 0.11).toFixed(3));
+          durationMs = Math.round(19 + jitter * 14);
+          outputShapes.overlap_scores = `ROCS Tanimoto ${rocs}`;
+          metrics.rocs_tanimoto = rocs;
+          metrics.fuse_4d = Boolean(p.fuse_4d_ensemble ?? false);
+          summary = `ROCS ${rocs.toFixed(2)} · ${p.fuse_4d_ensemble ? '4DGS' : '3DGS'}`;
+          break;
+        }
+        case 'subpocket_vn_jepa':
+          durationMs = Math.round(22 + jitter * 16);
+          outputShapes.pocket_graph = `M=${p.num_subpockets ?? 24} VN Slots`;
+          metrics.num_subpockets = Number(p.num_subpockets ?? 24);
+          metrics.salient_slots = Number(p.num_salient_slots ?? 8);
+          summary = `M=${p.num_subpockets ?? 24} Dora · 3D JEPA`;
+          break;
+        case 'se3_complex_cross_attn':
+          durationMs = Math.round(17 + jitter * 13);
+          outputShapes.complex_graph = `PPF Joint SE(3)`;
+          metrics.cutoff = Number(p.cutoff ?? 8.0);
+          metrics.heads = Number(p.num_heads ?? 8);
+          summary = `RoITr PPF · ${p.cutoff ?? 8.0}Å`;
+          break;
+        case 'nlp_perceiver_bridge':
+          durationMs = Math.round(12 + jitter * 9);
+          outputShapes.pocket_tokens = `[B, ${p.num_queries ?? 16}, ${p.d_out ?? 256}]`;
+          metrics.num_queries = Number(p.num_queries ?? 16);
+          metrics.rms_scale = Number(p.output_rms_scale ?? 1.0);
+          summary = `3D → ${p.num_queries ?? 16}×${p.d_out ?? 256} tokens`;
+          break;
+        case 'nlp_rope_gqa_lm': {
+          const validPct = p.use_grammar_mask ? 100.0 : Number((94.2 + jitter * 3.1).toFixed(1));
+          durationMs = Math.round(28 + jitter * 18);
+          outputShapes.molecules = `${validPct}% valid SMILES`;
+          metrics.validity_pct = validPct;
+          metrics.gqa_ratio = `${p.n_heads ?? 8}:${p.n_kv_heads ?? 2}`;
+          metrics.rope = String(p.rope_scaling_type ?? 'yarn');
+          summary = `${validPct.toFixed(0)}% valid · ${p.n_heads ?? 8}/${p.n_kv_heads ?? 2} GQA`;
+          break;
+        }
+        case 'nlp_lora_rl_aligner':
+          durationMs = Math.round(24 + jitter * 16);
+          outputShapes.aligned_mols = `RL-Aligned Leads`;
+          metrics.objective = String(p.rl_objective ?? 'grpo').toUpperCase();
+          metrics.lora_rank = Number(p.lora_rank ?? 8);
+          metrics.kl_div = Number((0.021 + jitter * 0.014).toFixed(3));
+          summary = `${String(p.rl_objective ?? 'grpo').toUpperCase()} r=${p.lora_rank ?? 8} · KL ${metrics.kl_div}`;
+          break;
+        case 'nlp_masked_diffusion':
+          durationMs = Math.round(22 + jitter * 15);
+          outputShapes.inpainted_mols = `MDLM Inpainted`;
+          metrics.schedule = String(p.schedule ?? 'cosine');
+          metrics.steps = Number(p.num_steps ?? 8);
+          summary = `${p.schedule ?? 'cosine'} · ${p.num_steps ?? 8}st inpaint`;
+          break;
+        case 'pairformer_stack': {
+          const isSf = p.trunk_mode === 'simplefold';
+          durationMs = Math.round((isSf ? 18 : 34) + jitter * 16);
+          outputShapes.trunk_graph = `s[${p.c_s ?? 192}] + z[${p.c_z ?? 64}]`;
+          metrics.complexity = isSf ? 'O(L²)' : 'O(L³)';
+          metrics.blocks = Number(p.num_blocks ?? 6);
+          summary = `${isSf ? 'SimpleFold O(L²)' : 'Pairformer O(L³)'} · ${p.num_blocks ?? 6}L`;
+          break;
+        }
+        case 'nanofold3_cofold': {
+          const stepsCount = Number(p.num_steps ?? 20);
+          durationMs = Math.round(32 + stepsCount * 1.1 + jitter * 18);
+          outputShapes.poses = `All-Atom 3D [det=+1]`;
+          metrics.diffusion_mode = String(p.diffusion_mode ?? 'edm');
+          metrics.kabsch_det = 1.0;
+          summary = `${p.diffusion_mode === 'flow_matching' ? 'FM' : 'EDM'} ${stepsCount}st · det=+1`;
+          break;
+        }
+        case 'confidence_head': {
+          const plddt = Number((84.2 + jitter * 7.8).toFixed(1));
+          const iptm = Number((0.76 + jitter * 0.14).toFixed(2));
+          durationMs = Math.round(14 + jitter * 9);
+          outputShapes.confidence_scores = `pLDDT ${plddt} · ipTM ${iptm}`;
+          metrics.plddt_mean = plddt;
+          metrics.iptm = iptm;
+          metrics.predicted_pkd = p.enable_affinity_head ? Number((8.35 + jitter * 0.65).toFixed(2)) : null;
+          summary = `pLDDT ${plddt} · ipTM ${iptm}${p.enable_affinity_head ? ` · pKd ${metrics.predicted_pkd}` : ''}`;
+          break;
+        }
+        case 'external_folder_runner':
+          durationMs = Math.round(16 + jitter * 12);
+          outputShapes.job_manifest = `${String(p.backend ?? 'boltz2')} spec`;
+          metrics.backend = String(p.backend ?? 'boltz2');
+          metrics.predict_affinity = Boolean(p.predict_affinity ?? true);
+          summary = `Hub: ${String(p.backend ?? 'boltz2')} · n=${p.num_samples ?? 1}`;
+          break;
         case 'safe_gpt':
         case 'chemical_llm': {
           const nSamp = Number(p.num_samples ?? 32);
@@ -1851,7 +2275,9 @@ export async function simulateCircuitInBrowser(
     circuit.nodes.some((n) => !n.disabled && n.blockType === 'leadopt_mmp_sar') &&
     v4Benchmarks?.clinical_rescues?.length
   ) {
-    const rescue = v4Benchmarks.clinical_rescues[0];
+    const rescue =
+      v4Benchmarks.clinical_rescues.find((r) => r.target_id === primaryTarget) ??
+      v4Benchmarks.clinical_rescues[0];
     molecules.unshift({
       id: `rescue_${rescue.id}`,
       name: `${rescue.drug_name} Rescue (${rescue.target_id})`,
@@ -1922,12 +2348,12 @@ export async function checkLocalEngineHealth(
     return {
       reachable: true,
       checking: false,
-      version: String(data.version ?? '5.1.0'),
+      version: String(data.version ?? '5.3.0'),
       python: String(data.python ?? '3.12'),
       rdkit: Boolean(data.rdkit),
       torch: Boolean(data.torch),
       activeLearningV51: Boolean(data.activeLearningV51),
-      catalogCount: Number(data.catalogCount ?? 36),
+      catalogCount: Number(data.catalogCount ?? 49),
     };
   } catch {
     return {

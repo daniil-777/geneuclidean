@@ -175,7 +175,7 @@ print(json.dumps({
         check=True,
     )
     info = json.loads(proc.stdout.strip())
-    assert info["version"] == "4.0.0"
+    assert info["version"] == "5.3.0"
     assert info["elapsed_ms"] < 200.0, f"Lazy import took {info['elapsed_ms']} ms (>= 200 ms)"
     assert info["loaded_heavy"] == [], f"Heavy modules eagerly imported: {info['loaded_heavy']}"
     assert info["n_backbones"] >= 6

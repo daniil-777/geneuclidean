@@ -388,7 +388,7 @@ def test_cli_info(tmp_path: Path) -> None:
         ],
     )
     assert res.exit_code == 0
-    assert "4.0.0" in res.stdout
+    assert "5.3.0" in res.stdout
     assert "painn" in res.stdout
     assert "MISSING" in res.stdout
 

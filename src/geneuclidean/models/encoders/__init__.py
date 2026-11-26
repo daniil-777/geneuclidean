@@ -1,8 +1,11 @@
 """Registry-backed factory and exports for pluggable 3D SE(3)/E(3) pocket encoders.
 
-Built-in encoders (``painn``, ``egnn``, ``e3nn``, ``schnet``) register automatically
-into :data:`~geneuclidean.registry.ENCODER_REGISTRY` on import. External researchers
-can plug in new equivariant architectures without modifying GenEuclidean source::
+All 8 built-in 3D pocket encoders (``painn``, ``egnn``, ``e3nn``, ``schnet``,
+``dense_painn_se3``, ``cartformer_se3``, ``atomgs_se3``, ``subpocket_vn_jepa``) and their
+canonical short aliases (``dense_painn``, ``cartformer``, ``atomgs``, ``subpocket_vn``,
+``vn_jepa``) register automatically into :data:`~geneuclidean.registry.ENCODER_REGISTRY` on
+import. External researchers can plug in new equivariant architectures without modifying
+GenEuclidean source::
 
     import geneuclidean as ge
 
@@ -16,8 +19,45 @@ from __future__ import annotations
 import torch.nn as nn
 
 from geneuclidean.config import EncoderConfig
+from geneuclidean.models.encoders.atomgs import (
+    AtomGSComplexOutput,
+    AtomGSLocalOverlapLayer,
+    AtomGSOverlapScorer,
+    AtomGSSE3Encoder,
+    AtomGSSuperEllipsoidLandmarkBlock,
+    AtomicGaussianField,
+    EquivariantGaussianFieldBuilder,
+    build_atomgs_se3,
+    fuse_ensemble_4d,
+)
+from geneuclidean.models.encoders.cartformer import (
+    CartesianTensorLinear,
+    CartFormerAttentionLayer,
+    CartFormerFFN,
+    CartFormerLandmarkBlock,
+    CartFormerSE3Encoder,
+    build_cartformer_se3,
+)
+from geneuclidean.models.encoders.complex_cross import SE3ComplexCrossAttention
+from geneuclidean.models.encoders.dense_knn import (
+    DenseKNNGraph,
+    build_dense_knn_graph,
+    center_masked_coords_with_offset,
+    gather_neighbors,
+    safe_masked_softmax,
+)
+from geneuclidean.models.encoders.dense_painn import (
+    DensePaiNNMessageLayer,
+    DensePaiNNSE3Encoder,
+    DensePaiNNUpdateLayer,
+    build_dense_painn_se3,
+)
 from geneuclidean.models.encoders.e3nn_encoder import E3NNEncoder
 from geneuclidean.models.encoders.egnn import EGNNEncoder
+from geneuclidean.models.encoders.electrostatics import (
+    GeoTransformerPairTripletBias,
+    ScreenedCoulombBias,
+)
 from geneuclidean.models.encoders.painn import PaiNNEncoder
 from geneuclidean.models.encoders.rbf import (
     BesselRBF,
@@ -31,6 +71,28 @@ from geneuclidean.models.encoders.rbf import (
     center_masked_coords,
 )
 from geneuclidean.models.encoders.schnet import SchNetEncoder
+from geneuclidean.models.encoders.subpocket_vn import (
+    ChiralLocalVNAttention,
+    ChiralVNSwiGLU,
+    CompetitiveSubPocketSlotPool,
+    SubPocketEncodingOutput,
+    SubPocketGlobalTransformer,
+    SubPocketVNJEPAEncoder,
+    build_subpocket_vn_jepa,
+)
+from geneuclidean.models.encoders.tensor_ops import (
+    TensorEquivariantRMSNorm,
+    VectorNeuronAttentionBlock,
+    VectorNeuronLayerNorm,
+    VectorNeuronLeakyReLU,
+    VectorNeuronLinear,
+    chiral_cross_product,
+    compose_rank2_ias,
+    decompose_rank2_ias,
+    outer_traceless,
+    skew_matrix_to_vector,
+    vector_to_skew_matrix,
+)
 from geneuclidean.registry import ENCODER_REGISTRY, list_encoders, register_encoder
 
 
@@ -92,7 +154,7 @@ def _build_schnet(cfg: EncoderConfig, max_neighbors: int = 24) -> nn.Module:
     )
 
 
-# Register built-in 3D equivariant encoders idempotently into ENCODER_REGISTRY.
+# Register all 8 built-in 3D equivariant encoders idempotently into ENCODER_REGISTRY.
 ENCODER_REGISTRY.register(
     "painn",
     _build_painn,
@@ -116,6 +178,34 @@ ENCODER_REGISTRY.register(
     _build_schnet,
     override=True,
     metadata={"symmetry": "E(3) scalar distance baseline"},
+)
+ENCODER_REGISTRY.register(
+    "dense_painn_se3",
+    build_dense_painn_se3,
+    aliases=("dense_painn",),
+    override=True,
+    metadata={"symmetry": "SE(3)/E(3) dense k-NN MPS-native PaiNN"},
+)
+ENCODER_REGISTRY.register(
+    "cartformer_se3",
+    build_cartformer_se3,
+    aliases=("cartformer",),
+    override=True,
+    metadata={"symmetry": "SE(3)/E(3) rank-2 Cartesian tensor transformer"},
+)
+ENCODER_REGISTRY.register(
+    "atomgs_se3",
+    build_atomgs_se3,
+    aliases=("atomgs",),
+    override=True,
+    metadata={"symmetry": "SE(3)/E(3) anisotropic 3D Gaussian field & ROCS overlap"},
+)
+ENCODER_REGISTRY.register(
+    "subpocket_vn_jepa",
+    build_subpocket_vn_jepa,
+    aliases=("subpocket_vn", "vn_jepa"),
+    override=True,
+    metadata={"symmetry": "SE(3)/E(3) chiral Vector-Neuron sub-pocket + 3D JEPA"},
 )
 
 
@@ -141,20 +231,65 @@ def build_encoder(cfg: EncoderConfig, max_neighbors: int = 24) -> nn.Module:
 
 __all__ = [
     "ENCODER_REGISTRY",
+    "AtomGSComplexOutput",
+    "AtomGSLocalOverlapLayer",
+    "AtomGSOverlapScorer",
+    "AtomGSSE3Encoder",
+    "AtomGSSuperEllipsoidLandmarkBlock",
+    "AtomicGaussianField",
     "BesselRBF",
+    "CartFormerAttentionLayer",
+    "CartFormerFFN",
+    "CartFormerLandmarkBlock",
+    "CartFormerSE3Encoder",
+    "CartesianTensorLinear",
+    "ChiralLocalVNAttention",
+    "ChiralVNSwiGLU",
+    "CompetitiveSubPocketSlotPool",
     "CosineCutoff",
+    "DenseKNNGraph",
+    "DensePaiNNMessageLayer",
+    "DensePaiNNSE3Encoder",
+    "DensePaiNNUpdateLayer",
     "E3NNEncoder",
     "EGNNEncoder",
+    "EquivariantGaussianFieldBuilder",
     "EquivariantRMSNorm",
     "GaussianRBF",
+    "GeoTransformerPairTripletBias",
     "MaskedAttentionPool",
     "PaiNNEncoder",
     "PocketEncoderOutput",
     "RadiusGraph",
+    "SE3ComplexCrossAttention",
     "SchNetEncoder",
+    "ScreenedCoulombBias",
+    "SubPocketEncodingOutput",
+    "SubPocketGlobalTransformer",
+    "SubPocketVNJEPAEncoder",
+    "TensorEquivariantRMSNorm",
+    "VectorNeuronAttentionBlock",
+    "VectorNeuronLayerNorm",
+    "VectorNeuronLeakyReLU",
+    "VectorNeuronLinear",
+    "build_atomgs_se3",
+    "build_cartformer_se3",
+    "build_dense_knn_graph",
+    "build_dense_painn_se3",
     "build_encoder",
     "build_radius_knn_graph",
+    "build_subpocket_vn_jepa",
     "center_masked_coords",
+    "center_masked_coords_with_offset",
+    "chiral_cross_product",
+    "compose_rank2_ias",
+    "decompose_rank2_ias",
+    "fuse_ensemble_4d",
+    "gather_neighbors",
     "list_encoders",
+    "outer_traceless",
     "register_encoder",
+    "safe_masked_softmax",
+    "skew_matrix_to_vector",
+    "vector_to_skew_matrix",
 ]

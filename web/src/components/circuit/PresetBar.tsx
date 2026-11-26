@@ -1,11 +1,13 @@
 import {
   AlertCircle,
+  Atom,
   CheckCircle2,
   Download,
   Loader2,
   Play,
   RefreshCw,
   Server,
+  Sparkles,
   Upload,
 } from 'lucide-react';
 import { useRef } from 'react';
@@ -58,34 +60,42 @@ export function PresetBar({
   const warningCount = validation.diagnostics.filter((d) => d.severity === 'warning').length;
 
   return (
-    <div className="h-12 shrink-0 circuit-glass border-b border-[var(--circuit-node-border)] px-3 flex items-center justify-between gap-2.5 z-30">
-      {/* Left: 5 Flagship One-Click Preset Pills */}
-      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar min-w-0">
-        <span className="hidden 2xl:inline text-[10px] font-mono-num uppercase tracking-wider text-[var(--text-muted)] font-semibold mr-1 shrink-0">
+    <div className="h-12 shrink-0 circuit-glass border-b border-[var(--circuit-node-border)] px-3 flex items-center justify-between gap-2 z-30">
+      {/* Left: 7 Flagship One-Click Preset Pills (Apple Segmented Strip) */}
+      <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+        <span className="hidden 2xl:inline text-[10px] font-mono-num uppercase tracking-wider text-[var(--text-muted)] font-semibold shrink-0">
           Presets
         </span>
-        {presets.map((preset) => {
-          const active = activePresetId === preset.id;
-          return (
-            <button
-              key={preset.id}
-              type="button"
-              data-preset-id={preset.id}
-              title={preset.tagline}
-              onClick={() => onSelectPreset(preset.id)}
-              className={`px-2.5 py-1 rounded-lg text-[11.5px] font-medium whitespace-nowrap transition-all flex items-center gap-1.5 border cursor-pointer shrink-0 ${
-                active
-                  ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-200 border-cyan-500/40 shadow-xs font-semibold'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-slate-500/10'
-              }`}
-            >
-              <span>{preset.shortLabel}</span>
-              {preset.id === 'al_dmta_closed_loop' && (
-                <RefreshCw className="h-2.5 w-2.5 text-pink-500 dark:text-pink-400" />
-              )}
-            </button>
-          );
-        })}
+        <div className="flex items-center gap-0.5 p-0.5 rounded-xl border border-[var(--circuit-node-border)] bg-[var(--bg-elevated)]/70 overflow-x-auto no-scrollbar min-w-0">
+          {presets.map((preset) => {
+            const active = activePresetId === preset.id;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                data-preset-id={preset.id}
+                title={`${preset.name} — ${preset.tagline}`}
+                onClick={() => onSelectPreset(preset.id)}
+                className={`px-2 py-1 rounded-[9px] text-[11px] font-medium whitespace-nowrap transition-all flex items-center gap-1 border cursor-pointer shrink-0 ${
+                  active
+                    ? 'bg-cyan-500/16 text-cyan-700 dark:text-cyan-200 border-cyan-500/40 shadow-xs font-semibold'
+                    : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-slate-500/10'
+                }`}
+              >
+                <span>{preset.shortLabel}</span>
+                {preset.id === 'al_dmta_closed_loop' && (
+                  <RefreshCw className="h-2.5 w-2.5 text-pink-500 dark:text-pink-400 shrink-0" />
+                )}
+                {preset.id === 'nanofold3_cofold_audit' && (
+                  <Atom className="h-2.5 w-2.5 text-teal-500 dark:text-teal-300 shrink-0" />
+                )}
+                {preset.id === 'tourette_scz_champion' && (
+                  <Sparkles className="h-2.5 w-2.5 text-emerald-500 dark:text-emerald-300 shrink-0" />
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Center: Compact Live Circuit Status Capsule */}

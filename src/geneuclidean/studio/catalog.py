@@ -4,9 +4,11 @@ Zero non-stdlib imports at module load time so ``import geneuclidean`` and
 ``import geneuclidean.studio`` preserve sub-15 ms cold-import latency with zero
 eager ``torch``, ``transformers``, ``sklearn``, or ``rdkit`` imports.
 
-All 10 typed signals, 8 categories, 36 real GenEuclidean blocks, illegal-wiring
-remediation hints, and 5 flagship presets conform byte-for-byte to the shared
-``CircuitGraphV1`` contract in ``docs/circuit_studio_architecture.md``.
+All 10 typed signals, 8 categories, 49 real GenEuclidean blocks (including v5.3
+3D SE(3) geometric encoders, first-principles Chemical NLP primitives, and
+NanoFold3 / Open-Weights Co-Folding Hub), illegal-wiring remediation hints, and
+7 flagship presets conform byte-for-byte to the shared ``CircuitGraphV1``
+contract.
 """
 
 from __future__ import annotations
@@ -202,12 +204,12 @@ CATEGORY_SPECS: tuple[CategorySpec, ...] = (
 
 REMEDIATION_HINTS: dict[tuple[str, str], str] = {
     ("POCKET_3D", "SE3_GRAPH"): (
-        "Insert PaiNN-SE(3), EGNN-3D, or E3NN Irreps to encode the 3D pocket "
-        "into an equivariant graph."
+        "Insert CartFormer-SE(3), DensePaiNN-SE(3), AtomGS-SE(3), SubPocketVN-JEPA, "
+        "PaiNN-SE(3), or Pairformer Trunk to encode the 3D pocket into an equivariant graph."
     ),
     ("MOL_BATCH", "POSE_3D"): (
-        "Insert AutoDock Vina 3D (or Boltz-2 / AF3 Co-Fold) to generate 3D ligand "
-        "poses before geometry auditing."
+        "Insert AutoDock Vina 3D, NanoFold3 Co-Fold, or Open-Weights Folder Hub to "
+        "generate 3D ligand poses before geometry auditing."
     ),
     ("MOL_BATCH", "LATENT_VEC"): (
         "Insert DrugCLIP Encoder or IBM MMELON (84M) to embed SMILES into L2-normalized vectors."
@@ -353,7 +355,7 @@ class BlockDefinition:
 
 
 # ---------------------------------------------------------------------------
-# 3. Complete 36-Block Authoritative GenEuclidean Library Catalog
+# 3. Complete 49-Block Authoritative GenEuclidean Library Catalog
 # ---------------------------------------------------------------------------
 
 _ALL_28_TARGETS: tuple[str, ...] = (
@@ -504,7 +506,17 @@ BLOCK_DEFINITIONS: tuple[BlockDefinition, ...] = (
                 label="On-Target ID",
                 type="select",
                 default="DRD1",
-                options=("DRD1", "ACHE", "MAOB", "BACE1", "CHRM4", "SERT", "GRM5", "GABRA5"),
+                options=(
+                    "DRD1",
+                    "DRD2",
+                    "CHRM4",
+                    "ACHE",
+                    "MAOB",
+                    "BACE1",
+                    "SERT",
+                    "GRM5",
+                    "GABRA5",
+                ),
             ),
             ParamSpec(
                 key="n_conformers",
@@ -1100,8 +1112,491 @@ BLOCK_DEFINITIONS: tuple[BlockDefinition, ...] = (
             ),
         ),
     ),
+    BlockDefinition(
+        block_type="dense_painn_se3",
+        name="DensePaiNN-SE(3)",
+        short_name="DensePaiNN",
+        category="encoders",
+        python_symbol="geneuclidean.models.encoders.DensePaiNNSE3Encoder",
+        execution_tier="optional_torch",
+        badge="MPS 1.5×",
+        summary=(
+            "Zero-scatter dense k-NN chiral SE(3) PaiNN encoder delivering 1.5× faster "
+            "Apple Silicon MPS throughput with adaptive cutoff and exact tie-safe SO(3) invariance."
+        ),
+        inputs=(
+            PortSpec(
+                id="pocket",
+                label="3D Pocket",
+                signal_type="POCKET_3D",
+                direction="input",
+                required=True,
+            ),
+        ),
+        outputs=(
+            PortSpec(
+                id="pocket_graph",
+                label="SE(3) Graph",
+                signal_type="SE3_GRAPH",
+                direction="output",
+                multi=True,
+                shape_hint="[B, N, 256] + [B, N, 64, 3]",
+            ),
+            PortSpec(
+                id="pocket_vec",
+                label="Pooled Vec",
+                signal_type="LATENT_VEC",
+                direction="output",
+                multi=True,
+                shape_hint="[B, 256]",
+            ),
+        ),
+        params=(
+            ParamSpec(
+                key="num_layers", label="Layers", type="number", default=4, min=2, max=8, step=1
+            ),
+            ParamSpec(
+                key="hidden_dim",
+                label="Hidden Dim",
+                type="select",
+                default=192,
+                options=(128, 192, 256, 384),
+            ),
+            ParamSpec(
+                key="vector_dim",
+                label="Vector Dim",
+                type="select",
+                default=64,
+                options=(32, 64, 128),
+            ),
+            ParamSpec(
+                key="out_dim",
+                label="Output Dim",
+                type="select",
+                default=256,
+                options=(128, 256, 512),
+            ),
+            ParamSpec(
+                key="cutoff",
+                label="Edge Cutoff",
+                type="number",
+                default=5.5,
+                min=3.5,
+                max=8.0,
+                step=0.5,
+                unit="Å",
+            ),
+            ParamSpec(
+                key="max_neighbors",
+                label="Max Neighbors",
+                type="number",
+                default=24,
+                min=8,
+                max=48,
+                step=4,
+            ),
+            ParamSpec(
+                key="adaptive_cutoff",
+                label="Adaptive Smooth Cutoff",
+                type="boolean",
+                default=True,
+            ),
+            ParamSpec(
+                key="use_se3_chirality",
+                label="SE(3) Chiral Cross-Product",
+                type="boolean",
+                default=True,
+            ),
+        ),
+    ),
+    BlockDefinition(
+        block_type="cartformer_se3",
+        name="CartFormer-SE(3)",
+        short_name="CartFormer-SE3",
+        category="encoders",
+        python_symbol="geneuclidean.models.encoders.CartFormerSE3Encoder",
+        execution_tier="optional_torch",
+        badge="Rank-2 I+A+S",
+        summary=(
+            "Zero-e3nn rank-2 Cartesian tensor (I+A+S: 0e+1o+1e+2e) quadrupole SE(3) transformer "
+            "with chiral axial vectors, equivariant global landmarks, and screened 1/r LES bias."
+        ),
+        inputs=(
+            PortSpec(
+                id="pocket",
+                label="3D Pocket",
+                signal_type="POCKET_3D",
+                direction="input",
+                required=True,
+            ),
+        ),
+        outputs=(
+            PortSpec(
+                id="pocket_graph",
+                label="SE(3) Tensor Graph",
+                signal_type="SE3_GRAPH",
+                direction="output",
+                multi=True,
+                shape_hint="0e+1o+1e+2e [B, N, 256]",
+            ),
+            PortSpec(
+                id="pocket_vec",
+                label="Pooled Vec",
+                signal_type="LATENT_VEC",
+                direction="output",
+                multi=True,
+                shape_hint="[B, 256]",
+            ),
+        ),
+        params=(
+            ParamSpec(
+                key="num_layers", label="Layers", type="number", default=4, min=2, max=8, step=1
+            ),
+            ParamSpec(
+                key="hidden_dim",
+                label="Hidden Dim",
+                type="select",
+                default=192,
+                options=(128, 192, 256, 384),
+            ),
+            ParamSpec(
+                key="vector_dim",
+                label="Vector Dim",
+                type="select",
+                default=64,
+                options=(32, 64, 128),
+            ),
+            ParamSpec(
+                key="tensor_dim",
+                label="Rank-2 Tensor Dim",
+                type="select",
+                default=24,
+                options=(12, 16, 24, 32),
+            ),
+            ParamSpec(
+                key="num_heads",
+                label="Attention Heads",
+                type="select",
+                default=8,
+                options=(4, 8),
+            ),
+            ParamSpec(
+                key="num_landmarks",
+                label="Global Landmarks",
+                type="number",
+                default=8,
+                min=0,
+                max=24,
+                step=4,
+            ),
+            ParamSpec(
+                key="use_se3_chirality",
+                label="Chiral 1e Axial Coupling",
+                type="boolean",
+                default=True,
+            ),
+            ParamSpec(
+                key="use_coulomb_bias",
+                label="Screened 1/r LES Bias",
+                type="boolean",
+                default=True,
+            ),
+        ),
+    ),
+    BlockDefinition(
+        block_type="atomgs_se3",
+        name="AtomGS-SE(3)",
+        short_name="AtomGS-SE3",
+        category="encoders",
+        python_symbol="geneuclidean.models.encoders.AtomGSSE3Encoder",
+        execution_tier="optional_torch",
+        badge="3D/4D Gauss",
+        summary=(
+            "Anisotropic SPD 3D/4D atomic Gaussian field encoder computing differentiable "
+            "ROCS shape Tanimoto overlap, GaussianFormer occupancy, and 4DGS ensemble fusion."
+        ),
+        inputs=(
+            PortSpec(
+                id="pocket",
+                label="3D Pocket",
+                signal_type="POCKET_3D",
+                direction="input",
+                required=True,
+            ),
+            PortSpec(
+                id="poses",
+                label="Ligand 3D Poses",
+                signal_type="POSE_3D",
+                direction="input",
+                required=False,
+            ),
+        ),
+        outputs=(
+            PortSpec(
+                id="pocket_graph",
+                label="Gaussian SE(3)",
+                signal_type="SE3_GRAPH",
+                direction="output",
+                multi=True,
+                shape_hint="AtomicGaussianField + [B,N,256]",
+            ),
+            PortSpec(
+                id="pocket_vec",
+                label="Pooled Vec",
+                signal_type="LATENT_VEC",
+                direction="output",
+                multi=True,
+                shape_hint="[B, 256]",
+            ),
+            PortSpec(
+                id="overlap_scores",
+                label="ROCS Overlap",
+                signal_type="ORACLE_SCORES",
+                direction="output",
+                multi=True,
+                shape_hint="ROCS Tanimoto + 4DGS",
+            ),
+        ),
+        params=(
+            ParamSpec(
+                key="num_layers", label="Layers", type="number", default=4, min=2, max=8, step=1
+            ),
+            ParamSpec(
+                key="hidden_dim",
+                label="Hidden Dim",
+                type="select",
+                default=192,
+                options=(128, 192, 256),
+            ),
+            ParamSpec(
+                key="num_landmarks",
+                label="Super-Ellipsoids",
+                type="number",
+                default=16,
+                min=4,
+                max=32,
+                step=4,
+            ),
+            ParamSpec(
+                key="global_attn_mode",
+                label="Global Attention",
+                type="select",
+                default="landmarks",
+                options=("landmarks", "full_scalar"),
+            ),
+            ParamSpec(
+                key="enable_3d_overlap",
+                label="Analytical ROCS 3D Overlap",
+                type="boolean",
+                default=True,
+            ),
+            ParamSpec(
+                key="use_coulomb_bias",
+                label="Screened 1/r LES Bias",
+                type="boolean",
+                default=True,
+            ),
+            ParamSpec(
+                key="fuse_4d_ensemble",
+                label="4DGS Multi-Conformer Fusion",
+                type="boolean",
+                default=False,
+            ),
+        ),
+    ),
+    BlockDefinition(
+        block_type="subpocket_vn_jepa",
+        name="SubPocketVN-JEPA",
+        short_name="SubPocketVN-JEPA",
+        category="encoders",
+        python_symbol="geneuclidean.models.encoders.SubPocketVNJEPAEncoder",
+        execution_tier="optional_torch",
+        badge="M=24 · JEPA",
+        summary=(
+            "Chiral Vector-Neuron sub-pocket encoder pooling atoms into M=24 Dora salient "
+            "sub-pocket tokens with Sonata/Concerto 3D JEPA self-supervised pretraining."
+        ),
+        inputs=(
+            PortSpec(
+                id="pocket",
+                label="3D Pocket",
+                signal_type="POCKET_3D",
+                direction="input",
+                required=True,
+            ),
+        ),
+        outputs=(
+            PortSpec(
+                id="pocket_graph",
+                label="Sub-Pocket SE(3)",
+                signal_type="SE3_GRAPH",
+                direction="output",
+                multi=True,
+                shape_hint="M=24 Salient Slots + [B,N,256]",
+            ),
+            PortSpec(
+                id="pocket_vec",
+                label="JEPA Latent",
+                signal_type="LATENT_VEC",
+                direction="output",
+                multi=True,
+                shape_hint="[B, 256]",
+            ),
+        ),
+        params=(
+            ParamSpec(
+                key="num_layers", label="VN Layers", type="number", default=4, min=2, max=8, step=1
+            ),
+            ParamSpec(
+                key="hidden_dim",
+                label="Hidden Dim",
+                type="select",
+                default=192,
+                options=(128, 192, 256),
+            ),
+            ParamSpec(
+                key="num_subpockets",
+                label="Sub-Pocket Slots (M)",
+                type="number",
+                default=24,
+                min=8,
+                max=48,
+                step=4,
+            ),
+            ParamSpec(
+                key="num_salient_slots",
+                label="Dora Salient Slots",
+                type="number",
+                default=8,
+                min=4,
+                max=16,
+                step=2,
+            ),
+            ParamSpec(
+                key="num_perceiver_tokens",
+                label="Perceiver Tokens",
+                type="number",
+                default=16,
+                min=8,
+                max=32,
+                step=4,
+            ),
+            ParamSpec(
+                key="use_se3_chirality",
+                label="Chiral VN Cross-Product",
+                type="boolean",
+                default=True,
+            ),
+            ParamSpec(
+                key="use_coulomb_bias",
+                label="Screened 1/r LES Bias",
+                type="boolean",
+                default=True,
+            ),
+        ),
+    ),
+    BlockDefinition(
+        block_type="se3_complex_cross_attn",
+        name="SE(3) Complex Cross-Attention",
+        short_name="SE(3) Cross-Attn",
+        category="encoders",
+        python_symbol="geneuclidean.geom.SE3ComplexCrossAttention",
+        execution_tier="optional_torch",
+        badge="RoITr PPF",
+        summary=(
+            "RoITr point-pair-feature (PPF) joint 3D protein-pocket <-> ligand SE(3) "
+            "cross-attention with chiral directional frames and screened Coulomb bias."
+        ),
+        inputs=(
+            PortSpec(
+                id="pocket_graph",
+                label="Pocket SE(3)",
+                signal_type="SE3_GRAPH",
+                direction="input",
+                required=True,
+            ),
+            PortSpec(
+                id="poses",
+                label="Ligand 3D Poses",
+                signal_type="POSE_3D",
+                direction="input",
+                required=False,
+            ),
+        ),
+        outputs=(
+            PortSpec(
+                id="complex_graph",
+                label="Joint Complex SE(3)",
+                signal_type="SE3_GRAPH",
+                direction="output",
+                multi=True,
+                shape_hint="Pocket↔Ligand SE(3)",
+            ),
+            PortSpec(
+                id="interaction_vec",
+                label="Complex Vec",
+                signal_type="LATENT_VEC",
+                direction="output",
+                multi=True,
+                shape_hint="[B, 256]",
+            ),
+            PortSpec(
+                id="contact_scores",
+                label="PPF Contacts",
+                signal_type="ORACLE_SCORES",
+                direction="output",
+                multi=True,
+                shape_hint="PPF Cross-Attn Scores",
+            ),
+        ),
+        params=(
+            ParamSpec(
+                key="emb_dim",
+                label="Embedding Dim",
+                type="select",
+                default=256,
+                options=(128, 192, 256, 384),
+            ),
+            ParamSpec(
+                key="vector_dim",
+                label="Vector Dim",
+                type="select",
+                default=64,
+                options=(32, 64, 128),
+            ),
+            ParamSpec(
+                key="num_heads",
+                label="Attention Heads",
+                type="select",
+                default=8,
+                options=(4, 8),
+            ),
+            ParamSpec(
+                key="cutoff",
+                label="Interface Cutoff",
+                type="number",
+                default=8.0,
+                min=4.0,
+                max=12.0,
+                step=0.5,
+                unit="Å",
+            ),
+            ParamSpec(
+                key="use_se3_chirality",
+                label="Chiral PPF Frame",
+                type="boolean",
+                default=True,
+            ),
+            ParamSpec(
+                key="use_coulomb_bias",
+                label="Screened 1/r LES Bias",
+                type="boolean",
+                default=True,
+            ),
+        ),
+    ),
     # =====================================================================
-    # Category 3 — De Novo Generators & Steering (4 blocks)
+    # Category 3 — De Novo Generators & Steering (8 blocks)
     # =====================================================================
     BlockDefinition(
         block_type="safe_gpt",
@@ -1359,6 +1854,13 @@ BLOCK_DEFINITIONS: tuple[BlockDefinition, ...] = (
                 direction="input",
                 required=False,
             ),
+            PortSpec(
+                id="lm_candidates",
+                label="LM Candidates",
+                signal_type="MOL_BATCH",
+                direction="input",
+                required=False,
+            ),
         ),
         outputs=(
             PortSpec(
@@ -1522,6 +2024,423 @@ BLOCK_DEFINITIONS: tuple[BlockDefinition, ...] = (
                 min=10,
                 max=200,
                 step=10,
+            ),
+        ),
+    ),
+    BlockDefinition(
+        block_type="nlp_perceiver_bridge",
+        name="Pocket Perceiver Bridge",
+        short_name="Perceiver Bridge",
+        category="generators",
+        python_symbol="geneuclidean.nlp.PocketPerceiverBridge",
+        execution_tier="optional_torch",
+        badge="3D → Q Tokens",
+        summary=(
+            "Permutation- and SE(3)-invariant cross-attention resampler compressing variable-size "
+            "3D pocket graphs [B, N, D] into Q soft prefix tokens [B, Q, D_lm] with "
+            "ScaleMatchRMSNorm."
+        ),
+        inputs=(
+            PortSpec(
+                id="pocket_graph",
+                label="SE(3) Pocket",
+                signal_type="SE3_GRAPH",
+                direction="input",
+                required=True,
+            ),
+        ),
+        outputs=(
+            PortSpec(
+                id="pocket_tokens",
+                label="Soft Prefix [Q]",
+                signal_type="LATENT_VEC",
+                direction="output",
+                multi=True,
+                shape_hint="[B, Q, D_lm] Prefix Tokens",
+            ),
+            PortSpec(
+                id="bridge_graph",
+                label="Resampled SE(3)",
+                signal_type="SE3_GRAPH",
+                direction="output",
+                multi=True,
+                shape_hint="Q-Token Pocket Context",
+            ),
+        ),
+        params=(
+            ParamSpec(
+                key="num_queries",
+                label="Perceiver Queries (Q)",
+                type="number",
+                default=16,
+                min=4,
+                max=32,
+                step=4,
+            ),
+            ParamSpec(
+                key="num_layers",
+                label="Bridge Layers",
+                type="number",
+                default=2,
+                min=1,
+                max=4,
+                step=1,
+            ),
+            ParamSpec(
+                key="n_heads",
+                label="Attention Heads",
+                type="select",
+                default=8,
+                options=(4, 8),
+            ),
+            ParamSpec(
+                key="d_out",
+                label="LM Token Dim",
+                type="select",
+                default=256,
+                options=(128, 256, 512, 768),
+            ),
+            ParamSpec(
+                key="output_rms_scale",
+                label="ScaleMatch RMS",
+                type="number",
+                default=1.0,
+                min=0.2,
+                max=2.0,
+                step=0.1,
+            ),
+        ),
+    ),
+    BlockDefinition(
+        block_type="nlp_rope_gqa_lm",
+        name="RoPE+GQA Chemical LM",
+        short_name="RoPE+GQA LM",
+        category="generators",
+        python_symbol="geneuclidean.nlp.PocketConditionedChemicalLM",
+        execution_tier="optional_torch",
+        badge="RoPE · GQA",
+        summary=(
+            "First-principles pure-PyTorch RoPE/YaRN + Grouped-Query Attention + SwiGLU chemical "
+            "transformer with KV-cached beam/nucleus decoding and SMILESValenceGrammarMask."
+        ),
+        inputs=(
+            PortSpec(
+                id="pocket_tokens",
+                label="Pocket Tokens",
+                signal_type="LATENT_VEC",
+                direction="input",
+                required=True,
+            ),
+            PortSpec(
+                id="seed_mols",
+                label="Prompt SMILES",
+                signal_type="MOL_BATCH",
+                direction="input",
+                required=False,
+            ),
+            PortSpec(
+                id="feedback_scores",
+                label="RL Feedback",
+                signal_type="ORACLE_SCORES",
+                direction="input",
+                required=False,
+                accepts_feedback=True,
+            ),
+        ),
+        outputs=(
+            PortSpec(
+                id="molecules",
+                label="Generated SMILES",
+                signal_type="MOL_BATCH",
+                direction="output",
+                multi=True,
+                shape_hint="Grammar-Valid SMILES",
+            ),
+            PortSpec(
+                id="lm_latent",
+                label="LM Logits/State",
+                signal_type="LATENT_VEC",
+                direction="output",
+                multi=True,
+                shape_hint="[B, T, D_lm] Logits",
+            ),
+        ),
+        params=(
+            ParamSpec(
+                key="d_model",
+                label="Model Dim",
+                type="select",
+                default=256,
+                options=(128, 256, 512),
+            ),
+            ParamSpec(
+                key="n_layers",
+                label="Transformer Layers",
+                type="number",
+                default=4,
+                min=2,
+                max=12,
+                step=1,
+            ),
+            ParamSpec(
+                key="n_heads",
+                label="Query Heads",
+                type="select",
+                default=8,
+                options=(4, 8),
+            ),
+            ParamSpec(
+                key="n_kv_heads",
+                label="GQA KV Heads",
+                type="select",
+                default=2,
+                options=(1, 2, 4, 8),
+            ),
+            ParamSpec(
+                key="conditioning_mode",
+                label="Conditioning Mode",
+                type="select",
+                default="cross_attn",
+                options=("cross_attn", "prefix", "none"),
+            ),
+            ParamSpec(
+                key="decode_mode",
+                label="Decode Mode",
+                type="select",
+                default="beam_grammar",
+                options=("beam_grammar", "nucleus_top_p", "min_p"),
+            ),
+            ParamSpec(
+                key="beam_width",
+                label="Beam Width",
+                type="number",
+                default=4,
+                min=1,
+                max=16,
+                step=1,
+            ),
+            ParamSpec(
+                key="temperature",
+                label="Temperature",
+                type="number",
+                default=0.90,
+                min=0.40,
+                max=1.40,
+                step=0.05,
+            ),
+            ParamSpec(
+                key="use_grammar_mask",
+                label="SMILES Valence Grammar Mask",
+                type="boolean",
+                default=True,
+            ),
+            ParamSpec(
+                key="rope_scaling_type",
+                label="RoPE Context Scaling",
+                type="select",
+                default="yarn",
+                options=("none", "ntk", "yarn"),
+            ),
+        ),
+    ),
+    BlockDefinition(
+        block_type="nlp_lora_rl_aligner",
+        name="LoRA + DPO/GRPO Aligner",
+        short_name="LoRA DPO/GRPO",
+        category="generators",
+        python_symbol="geneuclidean.nlp.grpo_policy_loss",
+        execution_tier="optional_torch",
+        badge="LoRA · RL",
+        summary=(
+            "Zero-PEFT pure-PyTorch LoRALinear adapter injection with critic-free DPO/cDPO/IPO "
+            "or GRPO policy alignment optimizing potency, CNS MPO v2, and 12-endpoint Avoid-ome."
+        ),
+        inputs=(
+            PortSpec(
+                id="molecules",
+                label="Policy SMILES",
+                signal_type="MOL_BATCH",
+                direction="input",
+                required=True,
+            ),
+            PortSpec(
+                id="rewards",
+                label="Oracle Rewards",
+                signal_type="ORACLE_SCORES",
+                direction="input",
+                required=False,
+                accepts_feedback=True,
+            ),
+            PortSpec(
+                id="lm_latent",
+                label="LM Logits",
+                signal_type="LATENT_VEC",
+                direction="input",
+                required=False,
+            ),
+        ),
+        outputs=(
+            PortSpec(
+                id="aligned_mols",
+                label="Aligned SMILES",
+                signal_type="MOL_BATCH",
+                direction="output",
+                multi=True,
+                shape_hint="RL-Aligned Candidates",
+            ),
+            PortSpec(
+                id="rl_scores",
+                label="Policy Advantage",
+                signal_type="ORACLE_SCORES",
+                direction="output",
+                multi=True,
+                shape_hint="DPO/GRPO Advantage",
+            ),
+            PortSpec(
+                id="rl_report",
+                label="LoRA Diagnostics",
+                signal_type="PROVENANCE_REPORT",
+                direction="output",
+                multi=True,
+                shape_hint="LoRA Rank + KL Report",
+            ),
+        ),
+        params=(
+            ParamSpec(
+                key="rl_objective",
+                label="RL Objective",
+                type="select",
+                default="grpo",
+                options=("grpo", "dpo", "cdpo", "ipo"),
+            ),
+            ParamSpec(
+                key="lora_rank",
+                label="LoRA Rank r",
+                type="select",
+                default=8,
+                options=(4, 8, 16, 32),
+            ),
+            ParamSpec(
+                key="lora_alpha",
+                label="LoRA Alpha",
+                type="number",
+                default=16.0,
+                min=4.0,
+                max=64.0,
+                step=4.0,
+            ),
+            ParamSpec(
+                key="kl_beta",
+                label="KL Penalty β",
+                type="number",
+                default=0.04,
+                min=0.01,
+                max=0.30,
+                step=0.01,
+            ),
+            ParamSpec(
+                key="clip_eps",
+                label="GRPO Clip ε",
+                type="number",
+                default=0.20,
+                min=0.05,
+                max=0.40,
+                step=0.05,
+            ),
+            ParamSpec(
+                key="merge_adapters",
+                label="Merge LoRA Weights",
+                type="boolean",
+                default=True,
+            ),
+        ),
+    ),
+    BlockDefinition(
+        block_type="nlp_masked_diffusion",
+        name="Discrete Masked Diffusion (MDLM)",
+        short_name="MDLM Inpainter",
+        category="generators",
+        python_symbol="geneuclidean.nlp.DiscreteMaskedDiffusionStep",
+        execution_tier="optional_torch",
+        badge="MDLM · SAFE",
+        summary=(
+            "Non-autoregressive Discrete Masked Diffusion (MDLM) supporting cosine/linear "
+            "corruption schedules and pinned-scaffold SAFE fragment inpainting."
+        ),
+        inputs=(
+            PortSpec(
+                id="seed_mols",
+                label="Seed Scaffolds",
+                signal_type="MOL_BATCH",
+                direction="input",
+                required=True,
+            ),
+            PortSpec(
+                id="pocket_tokens",
+                label="Pocket Prefix",
+                signal_type="LATENT_VEC",
+                direction="input",
+                required=False,
+            ),
+        ),
+        outputs=(
+            PortSpec(
+                id="inpainted_mols",
+                label="Inpainted SMILES",
+                signal_type="MOL_BATCH",
+                direction="output",
+                multi=True,
+                shape_hint="MDLM Inpainted Batch",
+            ),
+            PortSpec(
+                id="diffusion_report",
+                label="MDLM Trace",
+                signal_type="PROVENANCE_REPORT",
+                direction="output",
+                multi=True,
+                shape_hint="Unmasking Schedule Trace",
+            ),
+        ),
+        params=(
+            ParamSpec(
+                key="schedule",
+                label="Noise Schedule",
+                type="select",
+                default="cosine",
+                options=("cosine", "linear"),
+            ),
+            ParamSpec(
+                key="mask_ratio",
+                label="Mask Ratio t",
+                type="number",
+                default=0.35,
+                min=0.10,
+                max=0.85,
+                step=0.05,
+            ),
+            ParamSpec(
+                key="num_steps",
+                label="Denoising Steps",
+                type="number",
+                default=8,
+                min=2,
+                max=32,
+                step=2,
+            ),
+            ParamSpec(
+                key="pin_scaffold",
+                label="Pin Core Scaffold",
+                type="boolean",
+                default=True,
+            ),
+            ParamSpec(
+                key="temperature",
+                label="Unmask Temperature",
+                type="number",
+                default=0.85,
+                min=0.40,
+                max=1.30,
+                step=0.05,
             ),
         ),
     ),
@@ -2707,6 +3626,401 @@ BLOCK_DEFINITIONS: tuple[BlockDefinition, ...] = (
             ),
         ),
     ),
+    BlockDefinition(
+        block_type="pairformer_stack",
+        name="Pairformer / SimpleFold Trunk",
+        short_name="Pairformer Trunk",
+        category="physics_audit",
+        python_symbol="geneuclidean.folding.PairformerStack",
+        execution_tier="optional_torch",
+        badge="O(L³) / O(L²)",
+        summary=(
+            "Toggleable AlphaFold 3 PairformerStack (O(L³) Triangle Multiplicative Updates & "
+            "Triangle Attention) vs Apple SimpleFoldTrunk (O(L²) RoPE + LES) co-folding trunk."
+        ),
+        inputs=(
+            PortSpec(
+                id="pocket",
+                label="3D Pocket",
+                signal_type="POCKET_3D",
+                direction="input",
+                required=True,
+            ),
+            PortSpec(
+                id="molecules",
+                label="Ligand SMILES",
+                signal_type="MOL_BATCH",
+                direction="input",
+                required=False,
+            ),
+        ),
+        outputs=(
+            PortSpec(
+                id="trunk_graph",
+                label="Trunk (s, z)",
+                signal_type="SE3_GRAPH",
+                direction="output",
+                multi=True,
+                shape_hint="Single s[L,c_s] + Pair z[L,L,c_z]",
+            ),
+            PortSpec(
+                id="trunk_vec",
+                label="Pooled Trunk",
+                signal_type="LATENT_VEC",
+                direction="output",
+                multi=True,
+                shape_hint="[B, c_s] Trunk Embedding",
+            ),
+        ),
+        params=(
+            ParamSpec(
+                key="trunk_mode",
+                label="Trunk Architecture",
+                type="select",
+                default="pairformer",
+                options=("pairformer", "simplefold", "hybrid"),
+            ),
+            ParamSpec(
+                key="num_blocks",
+                label="Trunk Blocks",
+                type="number",
+                default=6,
+                min=1,
+                max=16,
+                step=1,
+            ),
+            ParamSpec(
+                key="c_s",
+                label="Single Dim (c_s)",
+                type="select",
+                default=192,
+                options=(64, 128, 192, 256),
+            ),
+            ParamSpec(
+                key="c_z",
+                label="Pair Dim (c_z)",
+                type="select",
+                default=64,
+                options=(32, 64, 128),
+            ),
+            ParamSpec(
+                key="head_dim",
+                label="MPS Flash Head Dim",
+                type="select",
+                default=32,
+                options=(32, 64),
+            ),
+            ParamSpec(
+                key="use_coulomb_bias",
+                label="Screened 1/r LES Bias",
+                type="boolean",
+                default=True,
+            ),
+            ParamSpec(
+                key="outer_product_mean",
+                label="Outer Product Mean",
+                type="boolean",
+                default=False,
+            ),
+        ),
+    ),
+    BlockDefinition(
+        block_type="nanofold3_cofold",
+        name="NanoFold3 All-Atom Co-Fold",
+        short_name="NanoFold3 Co-Fold",
+        category="physics_audit",
+        python_symbol="geneuclidean.folding.NanoFold3",
+        execution_tier="optional_torch",
+        badge="EDM · det=+1",
+        summary=(
+            "Trainable mini-AlphaFold 3 all-atom EDM / Flow-Matching co-folding diffusion "
+            "with chirality-preserving Kabsch det=+1 rigid alignment."
+        ),
+        inputs=(
+            PortSpec(
+                id="trunk_graph",
+                label="Trunk (s, z)",
+                signal_type="SE3_GRAPH",
+                direction="input",
+                required=True,
+            ),
+            PortSpec(
+                id="molecules",
+                label="Ligands (Opt)",
+                signal_type="MOL_BATCH",
+                direction="input",
+                required=False,
+            ),
+        ),
+        outputs=(
+            PortSpec(
+                id="cofold_graph",
+                label="Co-Fold State",
+                signal_type="SE3_GRAPH",
+                direction="output",
+                multi=True,
+                shape_hint="Trunk (s,z) + x_pred",
+            ),
+            PortSpec(
+                id="poses",
+                label="Co-Folded Poses",
+                signal_type="POSE_3D",
+                direction="output",
+                multi=True,
+                shape_hint="All-Atom 3D Poses [det=+1]",
+            ),
+            PortSpec(
+                id="diffusion_report",
+                label="Diffusion Trace",
+                signal_type="PROVENANCE_REPORT",
+                direction="output",
+                multi=True,
+                shape_hint="EDM/FM + Kabsch Report",
+            ),
+        ),
+        params=(
+            ParamSpec(
+                key="preset",
+                label="NanoFold3 Preset",
+                type="select",
+                default="nano",
+                options=("nano", "small", "medium"),
+            ),
+            ParamSpec(
+                key="diffusion_mode",
+                label="Diffusion Schedule",
+                type="select",
+                default="edm",
+                options=("edm", "flow_matching"),
+            ),
+            ParamSpec(
+                key="num_steps",
+                label="Diffusion Steps",
+                type="number",
+                default=20,
+                min=4,
+                max=50,
+                step=2,
+            ),
+            ParamSpec(
+                key="recycles",
+                label="Trunk Recycles",
+                type="number",
+                default=2,
+                min=1,
+                max=4,
+                step=1,
+            ),
+            ParamSpec(
+                key="flex_mode",
+                label="Flexibility Mode",
+                type="select",
+                default="flexible_pocket_and_ligand",
+                options=(
+                    "flexible_pocket_and_ligand",
+                    "rigid_pocket_flexible_ligand",
+                    "de_novo_all_atom",
+                ),
+            ),
+            ParamSpec(
+                key="num_samples",
+                label="Diffusion Samples",
+                type="number",
+                default=2,
+                min=1,
+                max=8,
+                step=1,
+            ),
+        ),
+    ),
+    BlockDefinition(
+        block_type="confidence_head",
+        name="AF3 Confidence & Affinity Head",
+        short_name="Confidence Head",
+        category="physics_audit",
+        python_symbol="geneuclidean.folding.ConfidenceHead",
+        execution_tier="optional_torch",
+        badge="pLDDT · ipTM",
+        summary=(
+            "50-bin per-atom pLDDT, 64-bin PAE/PDE, pTM/ipTM ranking score, and optional "
+            "Boltz-2-style AffinityHead (pKd + binder probability) for co-folded complexes."
+        ),
+        inputs=(
+            PortSpec(
+                id="cofold_graph",
+                label="Co-Fold State",
+                signal_type="SE3_GRAPH",
+                direction="input",
+                required=True,
+            ),
+            PortSpec(
+                id="poses",
+                label="3D Poses",
+                signal_type="POSE_3D",
+                direction="input",
+                required=False,
+            ),
+        ),
+        outputs=(
+            PortSpec(
+                id="scored_poses",
+                label="Ranked Poses",
+                signal_type="POSE_3D",
+                direction="output",
+                multi=True,
+                shape_hint="Confidence-Ranked Poses",
+            ),
+            PortSpec(
+                id="confidence_scores",
+                label="pLDDT / ipTM / pKd",
+                signal_type="ORACLE_SCORES",
+                direction="output",
+                multi=True,
+                shape_hint="pLDDT, PAE, pTM, ipTM, pKd",
+            ),
+            PortSpec(
+                id="confidence_report",
+                label="Confidence Audit",
+                signal_type="PROVENANCE_REPORT",
+                direction="output",
+                multi=True,
+                shape_hint="50-Bin pLDDT + PAE Matrix",
+            ),
+        ),
+        params=(
+            ParamSpec(
+                key="num_blocks",
+                label="Head Blocks",
+                type="number",
+                default=2,
+                min=1,
+                max=4,
+                step=1,
+            ),
+            ParamSpec(
+                key="trunk_mode",
+                label="Head Trunk Mode",
+                type="select",
+                default="pairformer",
+                options=("pairformer", "simplefold", "hybrid"),
+            ),
+            ParamSpec(
+                key="enable_affinity_head",
+                label="Enable Boltz-2 AffinityHead",
+                type="boolean",
+                default=True,
+            ),
+            ParamSpec(
+                key="min_iptm",
+                label="Min ipTM Gate",
+                type="number",
+                default=0.60,
+                min=0.20,
+                max=0.95,
+                step=0.05,
+            ),
+            ParamSpec(
+                key="min_plddt",
+                label="Min pLDDT Gate",
+                type="number",
+                default=70.0,
+                min=40.0,
+                max=95.0,
+                step=5.0,
+            ),
+        ),
+    ),
+    BlockDefinition(
+        block_type="external_folder_runner",
+        name="Open-Weights Folder Hub",
+        short_name="External Folder",
+        category="physics_audit",
+        python_symbol="geneuclidean.folding.FOLDING_BACKEND_REGISTRY",
+        execution_tier="zero_torch",
+        badge="AF3 · Boltz2",
+        summary=(
+            "Unified co-folding runner and spec exporter across Boltz-2 YAML, ByteDance Protenix "
+            "JSON, AlphaFold 3 JSON, ESMFold API, and local NanoFold3 via FOLDING_BACKEND_REGISTRY."
+        ),
+        inputs=(
+            PortSpec(
+                id="pocket",
+                label="3D Pocket",
+                signal_type="POCKET_3D",
+                direction="input",
+                required=True,
+            ),
+            PortSpec(
+                id="molecules",
+                label="Ligand SMILES",
+                signal_type="MOL_BATCH",
+                direction="input",
+                required=False,
+            ),
+        ),
+        outputs=(
+            PortSpec(
+                id="poses",
+                label="Folded Poses",
+                signal_type="POSE_3D",
+                direction="output",
+                multi=True,
+                shape_hint="Folded Complex 3D Poses",
+            ),
+            PortSpec(
+                id="confidence_scores",
+                label="Folder Metrics",
+                signal_type="ORACLE_SCORES",
+                direction="output",
+                multi=True,
+                shape_hint="pLDDT / ipTM / Affinity",
+            ),
+            PortSpec(
+                id="job_manifest",
+                label="Job Spec Export",
+                signal_type="PROVENANCE_REPORT",
+                direction="output",
+                multi=True,
+                shape_hint="Boltz2 YAML / AF3 / Protenix JSON",
+            ),
+        ),
+        params=(
+            ParamSpec(
+                key="backend",
+                label="Folding Backend",
+                type="select",
+                default="boltz2",
+                options=("boltz2", "protenix", "alphafold3", "esmfold_api", "nanofold3"),
+            ),
+            ParamSpec(
+                key="num_samples",
+                label="Samples / Seeds",
+                type="number",
+                default=1,
+                min=1,
+                max=5,
+                step=1,
+            ),
+            ParamSpec(
+                key="predict_affinity",
+                label="Predict Binding Affinity",
+                type="boolean",
+                default=True,
+            ),
+            ParamSpec(
+                key="run_audit",
+                label="Auto 7-Axis Pose Audit",
+                type="boolean",
+                default=True,
+            ),
+            ParamSpec(
+                key="allow_network",
+                label="Allow Remote API (ESMFold)",
+                type="boolean",
+                default=False,
+            ),
+        ),
+    ),
     # =====================================================================
     # Category 7 — Lead-Opt, ADMET & Synthesis (4 blocks)
     # =====================================================================
@@ -3355,7 +4669,7 @@ BLOCK_CATALOG: dict[str, BlockDefinition] = {b.block_type: b for b in BLOCK_DEFI
 
 
 # ---------------------------------------------------------------------------
-# 4. Five Flagship One-Click End-to-End Circuit Presets
+# 4. Seven Flagship One-Click End-to-End Circuit Presets
 # ---------------------------------------------------------------------------
 
 FLAGSHIP_PRESETS: tuple[dict[str, Any], ...] = (
@@ -4225,14 +5539,566 @@ FLAGSHIP_PRESETS: tuple[dict[str, Any], ...] = (
             },
         ],
     },
-    # Preset 5: Blank Breadboard
+    # Preset 5: NanoFold3 Co-Fold + 7-Axis Audit (4x2 Apple Layout)
+    {
+        "schemaVersion": SCHEMA_VERSION,
+        "id": "nanofold3_cofold_audit",
+        "name": "NanoFold3 Co-Fold + 7-Axis Audit",
+        "description": (
+            "End-to-end AlphaFold 3-class all-atom co-folding & verification circuit: "
+            "DRD1 pocket + ChEMBL ligands -> PairformerStack (O(L³)/O(L²)) -> "
+            "NanoFold3 EDM Co-Folding (Kabsch det=+1) -> 50-bin ConfidenceHead + AffinityHead -> "
+            "7-Axis PoseRealityAuditor -> AtomGS-SE(3) ROCS 3D Gaussian overlap -> 3D Studio."
+        ),
+        "metadata": {
+            "presetId": "nanofold3_cofold_audit",
+            "author": "GenEuclidean v5.3",
+            "tags": ["nanofold3", "pairformer", "cofold", "atomgs", "7-axis", "v5.3"],
+        },
+        "execution": {
+            "mode": "local_python",
+            "seed": 42,
+            "dmtaRounds": 1,
+            "targetContext": "DRD1",
+            "budget": 16,
+        },
+        "viewport": {"x": 24, "y": 40, "zoom": 0.75},
+        "nodes": [
+            {
+                "id": "n_pocket",
+                "blockType": "protein_pocket",
+                "position": {"x": 32, "y": 40},
+                "params": {
+                    "target_id": "DRD1",
+                    "pocket_cutoff": 10.0,
+                    "max_atoms": 384,
+                    "keep_cofactors": True,
+                },
+            },
+            {
+                "id": "n_trunk",
+                "blockType": "pairformer_stack",
+                "position": {"x": 324, "y": 40},
+                "params": {
+                    "trunk_mode": "pairformer",
+                    "num_blocks": 6,
+                    "c_s": 192,
+                    "c_z": 64,
+                    "head_dim": 32,
+                    "use_coulomb_bias": True,
+                    "outer_product_mean": False,
+                },
+            },
+            {
+                "id": "n_nf3",
+                "blockType": "nanofold3_cofold",
+                "position": {"x": 616, "y": 40},
+                "params": {
+                    "preset": "nano",
+                    "diffusion_mode": "edm",
+                    "num_steps": 20,
+                    "recycles": 2,
+                    "flex_mode": "flexible_pocket_and_ligand",
+                    "num_samples": 2,
+                },
+            },
+            {
+                "id": "n_conf_head",
+                "blockType": "confidence_head",
+                "position": {"x": 908, "y": 40},
+                "params": {
+                    "num_blocks": 2,
+                    "trunk_mode": "pairformer",
+                    "enable_affinity_head": True,
+                    "min_iptm": 0.60,
+                    "min_plddt": 70.0,
+                },
+            },
+            {
+                "id": "n_pool",
+                "blockType": "chembl_pool",
+                "position": {"x": 32, "y": 316},
+                "params": {
+                    "dataset": "DRD1_chembl37_400",
+                    "pool_size": 400,
+                    "dedup_murcko": True,
+                },
+            },
+            {
+                "id": "n_audit",
+                "blockType": "pose_reality_auditor",
+                "position": {"x": 324, "y": 316},
+                "params": {
+                    "property_profile": "cns_mpo_v2",
+                    "ring_strain_threshold_kcal": 3.0,
+                    "torsion_barrier_threshold_kcal": 2.5,
+                    "torsion_max_red": 0,
+                    "strict_input_charge": False,
+                },
+            },
+            {
+                "id": "n_atomgs",
+                "blockType": "atomgs_se3",
+                "position": {"x": 616, "y": 316},
+                "params": {
+                    "num_layers": 4,
+                    "hidden_dim": 192,
+                    "num_landmarks": 16,
+                    "global_attn_mode": "landmarks",
+                    "enable_3d_overlap": True,
+                    "use_coulomb_bias": True,
+                    "fuse_4d_ensemble": False,
+                },
+            },
+            {
+                "id": "n_studio3d",
+                "blockType": "studio_3d_inspector",
+                "position": {"x": 908, "y": 316},
+                "params": {
+                    "theme": "dark",
+                    "show_native_ghost": True,
+                    "highlight_anchors": True,
+                },
+            },
+        ],
+        "edges": [
+            {
+                "id": "e1",
+                "source": "n_pocket",
+                "sourcePort": "pocket",
+                "target": "n_trunk",
+                "targetPort": "pocket",
+                "signalType": "POCKET_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e2",
+                "source": "n_pool",
+                "sourcePort": "molecules",
+                "target": "n_trunk",
+                "targetPort": "molecules",
+                "signalType": "MOL_BATCH",
+                "kind": "forward",
+            },
+            {
+                "id": "e3",
+                "source": "n_trunk",
+                "sourcePort": "trunk_graph",
+                "target": "n_nf3",
+                "targetPort": "trunk_graph",
+                "signalType": "SE3_GRAPH",
+                "kind": "forward",
+            },
+            {
+                "id": "e4",
+                "source": "n_nf3",
+                "sourcePort": "cofold_graph",
+                "target": "n_conf_head",
+                "targetPort": "cofold_graph",
+                "signalType": "SE3_GRAPH",
+                "kind": "forward",
+            },
+            {
+                "id": "e5",
+                "source": "n_nf3",
+                "sourcePort": "poses",
+                "target": "n_conf_head",
+                "targetPort": "poses",
+                "signalType": "POSE_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e6",
+                "source": "n_conf_head",
+                "sourcePort": "scored_poses",
+                "target": "n_audit",
+                "targetPort": "poses",
+                "signalType": "POSE_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e7",
+                "source": "n_pocket",
+                "sourcePort": "pocket",
+                "target": "n_audit",
+                "targetPort": "pocket",
+                "signalType": "POCKET_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e8",
+                "source": "n_audit",
+                "sourcePort": "verified_poses",
+                "target": "n_atomgs",
+                "targetPort": "poses",
+                "signalType": "POSE_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e9",
+                "source": "n_pocket",
+                "sourcePort": "pocket",
+                "target": "n_atomgs",
+                "targetPort": "pocket",
+                "signalType": "POCKET_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e10",
+                "source": "n_pocket",
+                "sourcePort": "pocket",
+                "target": "n_studio3d",
+                "targetPort": "pocket",
+                "signalType": "POCKET_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e11",
+                "source": "n_audit",
+                "sourcePort": "verified_poses",
+                "target": "n_studio3d",
+                "targetPort": "poses",
+                "signalType": "POSE_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e12",
+                "source": "n_atomgs",
+                "sourcePort": "overlap_scores",
+                "target": "n_studio3d",
+                "targetPort": "scores",
+                "signalType": "ORACLE_SCORES",
+                "kind": "forward",
+            },
+            {
+                "id": "e13",
+                "source": "n_audit",
+                "sourcePort": "audit_report",
+                "target": "n_studio3d",
+                "targetPort": "audit_report",
+                "signalType": "PROVENANCE_REPORT",
+                "kind": "forward",
+            },
+        ],
+    },
+    # Preset 6: Tourette & Schizophrenia Champion Pipeline (4+4+2 Apple Layout)
+    {
+        "schemaVersion": SCHEMA_VERSION,
+        "id": "tourette_scz_champion",
+        "name": "Tourette & Schizophrenia Champion Pipeline",
+        "description": (
+            "Flagship neuropsychiatric discovery circuit (DRD1/DRD2/CHRM4): "
+            "Multi-Conformer Ensemble -> CartFormer-SE(3) -> PocketPerceiverBridge -> "
+            "RoPE+GQA Chemical LM -> Contrastive Ensemble CFG -> LoRA DPO/GRPO RL Aligner -> "
+            "AutoDock Vina -> 7-Axis PoseRealityAuditor -> Avoid-ome MMP -> OpenFE RBFE (Δq=0)."
+        ),
+        "metadata": {
+            "presetId": "tourette_scz_champion",
+            "author": "GenEuclidean v5.3",
+            "tags": ["tourette", "schizophrenia", "cartformer", "rope-gqa", "grpo", "openfe"],
+        },
+        "execution": {
+            "mode": "local_python",
+            "seed": 42,
+            "dmtaRounds": 1,
+            "targetContext": "DRD1",
+            "budget": 32,
+        },
+        "viewport": {"x": 24, "y": 28, "zoom": 0.74},
+        "nodes": [
+            {
+                "id": "n_ens",
+                "blockType": "multiconformer_ensemble",
+                "position": {"x": 32, "y": 32},
+                "params": {
+                    "on_target_id": "DRD1",
+                    "n_conformers": 3,
+                    "off_target_id": "DRD2",
+                    "weighting": "resolution_weighted",
+                },
+            },
+            {
+                "id": "n_cart",
+                "blockType": "cartformer_se3",
+                "position": {"x": 324, "y": 32},
+                "params": {
+                    "num_layers": 4,
+                    "hidden_dim": 192,
+                    "vector_dim": 64,
+                    "tensor_dim": 24,
+                    "num_heads": 8,
+                    "num_landmarks": 8,
+                    "use_se3_chirality": True,
+                    "use_coulomb_bias": True,
+                },
+            },
+            {
+                "id": "n_bridge",
+                "blockType": "nlp_perceiver_bridge",
+                "position": {"x": 616, "y": 32},
+                "params": {
+                    "num_queries": 16,
+                    "num_layers": 2,
+                    "n_heads": 8,
+                    "d_out": 256,
+                    "output_rms_scale": 1.0,
+                },
+            },
+            {
+                "id": "n_lm",
+                "blockType": "nlp_rope_gqa_lm",
+                "position": {"x": 908, "y": 32},
+                "params": {
+                    "d_model": 256,
+                    "n_layers": 4,
+                    "n_heads": 8,
+                    "n_kv_heads": 2,
+                    "conditioning_mode": "cross_attn",
+                    "decode_mode": "beam_grammar",
+                    "beam_width": 4,
+                    "temperature": 0.90,
+                    "use_grammar_mask": True,
+                    "rope_scaling_type": "yarn",
+                },
+            },
+            {
+                "id": "n_cfg",
+                "blockType": "pocket_ensemble_cfg",
+                "position": {"x": 32, "y": 304},
+                "params": {
+                    "backbone_id": "datamol-io/safe-gpt",
+                    "w_on": 1.6,
+                    "w_off": 0.65,
+                    "num_samples": 32,
+                    "compute_pmi_3d": True,
+                },
+            },
+            {
+                "id": "n_rl",
+                "blockType": "nlp_lora_rl_aligner",
+                "position": {"x": 324, "y": 304},
+                "params": {
+                    "rl_objective": "grpo",
+                    "lora_rank": 8,
+                    "lora_alpha": 16.0,
+                    "kl_beta": 0.04,
+                    "clip_eps": 0.20,
+                    "merge_adapters": True,
+                },
+            },
+            {
+                "id": "n_vina",
+                "blockType": "autodock_vina",
+                "position": {"x": 616, "y": 304},
+                "params": {
+                    "exhaustiveness": 8,
+                    "num_modes": 9,
+                    "box_mode": "tight_per_axis",
+                    "max_ring_confs": 4,
+                    "protonate_ph74": True,
+                },
+            },
+            {
+                "id": "n_audit",
+                "blockType": "pose_reality_auditor",
+                "position": {"x": 908, "y": 304},
+                "params": {
+                    "property_profile": "cns_mpo_v2",
+                    "ring_strain_threshold_kcal": 3.0,
+                    "torsion_barrier_threshold_kcal": 2.5,
+                    "torsion_max_red": 0,
+                    "strict_input_charge": False,
+                },
+            },
+            {
+                "id": "n_mmp",
+                "blockType": "leadopt_mmp_sar",
+                "position": {"x": 324, "y": 592},
+                "params": {
+                    "mode": "mmp_and_cliffs",
+                    "property_profile": "cns_mpo_v2",
+                    "max_proposals": 20,
+                    "cliff_threshold": 1.0,
+                    "triage_filter": True,
+                },
+            },
+            {
+                "id": "n_openfe",
+                "blockType": "openfe_rbfe_exporter",
+                "position": {"x": 616, "y": 592},
+                "params": {
+                    "require_same_charge": True,
+                    "filter_ring_strain": True,
+                    "max_ring_strain_kcal": 3.0,
+                    "add_cycle_closures": True,
+                    "out_dir": "results/openfe_tourette_scz_champion",
+                },
+            },
+        ],
+        "edges": [
+            {
+                "id": "e1",
+                "source": "n_ens",
+                "sourcePort": "on_pockets",
+                "target": "n_cart",
+                "targetPort": "pocket",
+                "signalType": "POCKET_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e2",
+                "source": "n_cart",
+                "sourcePort": "pocket_graph",
+                "target": "n_bridge",
+                "targetPort": "pocket_graph",
+                "signalType": "SE3_GRAPH",
+                "kind": "forward",
+            },
+            {
+                "id": "e3",
+                "source": "n_bridge",
+                "sourcePort": "pocket_tokens",
+                "target": "n_lm",
+                "targetPort": "pocket_tokens",
+                "signalType": "LATENT_VEC",
+                "kind": "forward",
+            },
+            {
+                "id": "e4",
+                "source": "n_bridge",
+                "sourcePort": "bridge_graph",
+                "target": "n_cfg",
+                "targetPort": "pocket_graph",
+                "signalType": "SE3_GRAPH",
+                "kind": "forward",
+            },
+            {
+                "id": "e5",
+                "source": "n_ens",
+                "sourcePort": "off_pocket",
+                "target": "n_cfg",
+                "targetPort": "off_pocket",
+                "signalType": "POCKET_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e6",
+                "source": "n_lm",
+                "sourcePort": "molecules",
+                "target": "n_cfg",
+                "targetPort": "lm_candidates",
+                "signalType": "MOL_BATCH",
+                "kind": "forward",
+            },
+            {
+                "id": "e7",
+                "source": "n_cfg",
+                "sourcePort": "molecules",
+                "target": "n_rl",
+                "targetPort": "molecules",
+                "signalType": "MOL_BATCH",
+                "kind": "forward",
+            },
+            {
+                "id": "e8",
+                "source": "n_cfg",
+                "sourcePort": "pmi_scores",
+                "target": "n_rl",
+                "targetPort": "rewards",
+                "signalType": "ORACLE_SCORES",
+                "kind": "forward",
+            },
+            {
+                "id": "e9",
+                "source": "n_rl",
+                "sourcePort": "aligned_mols",
+                "target": "n_vina",
+                "targetPort": "molecules",
+                "signalType": "MOL_BATCH",
+                "kind": "forward",
+            },
+            {
+                "id": "e10",
+                "source": "n_ens",
+                "sourcePort": "on_pockets",
+                "target": "n_vina",
+                "targetPort": "pocket",
+                "signalType": "POCKET_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e11",
+                "source": "n_vina",
+                "sourcePort": "poses",
+                "target": "n_audit",
+                "targetPort": "poses",
+                "signalType": "POSE_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e12",
+                "source": "n_ens",
+                "sourcePort": "on_pockets",
+                "target": "n_audit",
+                "targetPort": "pocket",
+                "signalType": "POCKET_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e13",
+                "source": "n_rl",
+                "sourcePort": "aligned_mols",
+                "target": "n_mmp",
+                "targetPort": "molecules",
+                "signalType": "MOL_BATCH",
+                "kind": "forward",
+            },
+            {
+                "id": "e14",
+                "source": "n_audit",
+                "sourcePort": "reality_scores",
+                "target": "n_mmp",
+                "targetPort": "scores",
+                "signalType": "ORACLE_SCORES",
+                "kind": "forward",
+            },
+            {
+                "id": "e15",
+                "source": "n_mmp",
+                "sourcePort": "rescued_mols",
+                "target": "n_openfe",
+                "targetPort": "molecules",
+                "signalType": "MOL_BATCH",
+                "kind": "forward",
+            },
+            {
+                "id": "e16",
+                "source": "n_audit",
+                "sourcePort": "verified_poses",
+                "target": "n_openfe",
+                "targetPort": "poses",
+                "signalType": "POSE_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e17",
+                "source": "n_ens",
+                "sourcePort": "on_pockets",
+                "target": "n_openfe",
+                "targetPort": "pocket",
+                "signalType": "POCKET_3D",
+                "kind": "forward",
+            },
+        ],
+    },
+    # Preset 7: Blank Breadboard
     {
         "schemaVersion": SCHEMA_VERSION,
         "id": "blank_breadboard",
         "name": "Blank Breadboard",
         "description": (
-            "Empty GenEuclidean breadboard ready for custom drug-design circuits — drag any "
-            "block from the dock or wire a custom Combinatorial Thompson Sampling loop."
+            "Empty GenEuclidean breadboard ready for custom drug-design circuits — drag any of "
+            "the 49 real 3D SE(3), Chemical NLP, Active Learning, and NanoFold3 blocks."
         ),
         "metadata": {
             "presetId": "blank_breadboard",
@@ -4267,14 +6133,14 @@ def get_block_definition(block_type: str) -> BlockDefinition:
 
 
 def list_block_definitions(category: str | None = None) -> tuple[BlockDefinition, ...]:
-    """Return all 36 block definitions, optionally filtered by ``category``."""
+    """Return all 49 block definitions, optionally filtered by ``category``."""
     if category is None:
         return BLOCK_DEFINITIONS
     return tuple(b for b in BLOCK_DEFINITIONS if b.category == category)
 
 
 def get_preset(preset_id: str) -> dict[str, Any]:
-    """Return a fresh deep copy of one of the 5 flagship ``CircuitGraphV1`` presets."""
+    """Return a fresh deep copy of one of the 7 flagship ``CircuitGraphV1`` presets."""
     if preset_id not in PRESET_BY_ID:
         raise KeyError(
             f"Unknown preset {preset_id!r}. Available presets: {list(PRESET_BY_ID.keys())}"
@@ -4283,7 +6149,7 @@ def get_preset(preset_id: str) -> dict[str, Any]:
 
 
 def list_presets() -> list[dict[str, Any]]:
-    """Return fresh deep copies of all 5 flagship ``CircuitGraphV1`` presets."""
+    """Return fresh deep copies of all 7 flagship ``CircuitGraphV1`` presets."""
     return [copy.deepcopy(p) for p in FLAGSHIP_PRESETS]
 
 

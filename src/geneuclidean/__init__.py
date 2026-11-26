@@ -1,9 +1,10 @@
-"""GenEuclidean: SE(3)/E(3)-equivariant 3D pocket-conditioned LLM & CNS drug design SDK.
+"""GenEuclidean: SE(3)-Equivariant 3D Molecular Encoding, Chemical NLP, NanoFold3 Co-Folding,
+Active Learning & Apple Circuit Studio SDK for Structure-Based Drug Design.
 
 Implements PEP 562 module-level lazy loading (``__getattr__`` and ``__dir__``) with full
 PEP 561 static type support (``if TYPE_CHECKING:`` + ``py.typed``) so ``import geneuclidean as ge``
-completes in milliseconds without eagerly importing ``torch``, ``transformers``, ``sklearn``,
-or ``matplotlib``.
+completes in ``< 10 ms`` without eagerly importing ``torch``, ``transformers``, ``peft``,
+``sklearn``, ``scipy``, ``rdkit``, ``matplotlib``, or ``Bio``.
 
 Quickstart::
 
@@ -12,6 +13,7 @@ Quickstart::
     targets = ge.list_targets("tourette")
     pocket = ge.Pocket.from_target("DRD1")
     reports = ge.score_molecules(["CN1CCc2cc(Cl)c(O)cc2[C@H]2c3ccccc3CC[C@@H]21"])
+    nf3 = ge.build_nanofold3("nano", trunk_mode="simplefold", diffusion_mode="flow_matching")
 
 Extensibility::
 
@@ -31,7 +33,7 @@ from __future__ import annotations
 import importlib
 from typing import TYPE_CHECKING, Any
 
-__version__ = "4.0.0"
+__version__ = "5.3.0"
 
 if TYPE_CHECKING:
     from geneuclidean import (
@@ -62,6 +64,12 @@ if TYPE_CHECKING:
         exceptions as exceptions,
     )
     from geneuclidean import (
+        folding as folding,
+    )
+    from geneuclidean import (
+        geom as geom,
+    )
+    from geneuclidean import (
         interop as interop,
     )
     from geneuclidean import (
@@ -72,6 +80,9 @@ if TYPE_CHECKING:
     )
     from geneuclidean import (
         models as models,
+    )
+    from geneuclidean import (
+        nlp as nlp,
     )
     from geneuclidean import (
         protocols as protocols,
@@ -355,6 +366,21 @@ if TYPE_CHECKING:
     from geneuclidean.exceptions import (
         TargetNotFoundError as TargetNotFoundError,
     )
+    from geneuclidean.folding.nanofold3 import (
+        NanoFold3 as NanoFold3,
+    )
+    from geneuclidean.folding.nanofold3 import (
+        NanoFold3Config as NanoFold3Config,
+    )
+    from geneuclidean.folding.nanofold3 import (
+        build_nanofold3 as build_nanofold3,
+    )
+    from geneuclidean.folding.runners import (
+        FOLDING_BACKEND_REGISTRY as FOLDING_BACKEND_REGISTRY,
+    )
+    from geneuclidean.folding.runners import (
+        fold_complex as fold_complex,
+    )
     from geneuclidean.interop import (
         OpenFENetworkBundle as OpenFENetworkBundle,
     )
@@ -393,6 +419,36 @@ if TYPE_CHECKING:
     )
     from geneuclidean.mcp_server import (
         run_mcp_stdio_server as run_mcp_stdio_server,
+    )
+    from geneuclidean.models.encoders.atomgs import (
+        AtomGSSE3Encoder as AtomGSSE3Encoder,
+    )
+    from geneuclidean.models.encoders.cartformer import (
+        CartFormerSE3Encoder as CartFormerSE3Encoder,
+    )
+    from geneuclidean.models.encoders.dense_painn import (
+        DensePaiNNSE3Encoder as DensePaiNNSE3Encoder,
+    )
+    from geneuclidean.models.encoders.subpocket_vn import (
+        SubPocketVNJEPAEncoder as SubPocketVNJEPAEncoder,
+    )
+    from geneuclidean.models.nlp_ops import (
+        AtomLevelSMILESTokenizer as AtomLevelSMILESTokenizer,
+    )
+    from geneuclidean.models.nlp_ops import (
+        DiscreteMaskedDiffusionStep as DiscreteMaskedDiffusionStep,
+    )
+    from geneuclidean.models.nlp_ops import (
+        PocketConditionedChemicalLM as PocketConditionedChemicalLM,
+    )
+    from geneuclidean.models.nlp_ops import (
+        SMILESValenceGrammarMask as SMILESValenceGrammarMask,
+    )
+    from geneuclidean.models.nlp_ops import (
+        dpo_preference_loss as dpo_preference_loss,
+    )
+    from geneuclidean.models.nlp_ops import (
+        grpo_policy_loss as grpo_policy_loss,
     )
     from geneuclidean.protocols import (
         DesignCallbackProtocol as DesignCallbackProtocol,
@@ -688,10 +744,13 @@ _LAZY_SUBMODULES: frozenset[str] = frozenset(
         "data",
         "evaluation",
         "exceptions",
+        "folding",
+        "geom",
         "interop",
         "leadopt",
         "mcp_server",
         "models",
+        "nlp",
         "protocols",
         "registry",
         "sampling",
@@ -1015,13 +1074,30 @@ _LAZY_ATTRS: dict[str, tuple[str, str]] = {
     "run_studio_server": ("geneuclidean.studio.server", "run_studio_server"),
     "serve_studio": ("geneuclidean.studio.server", "serve_studio"),
     "validate_circuit": ("geneuclidean.studio.graph_compiler", "validate_circuit"),
+    # Flagship 3D SE(3) Molecular Encoders (`geneuclidean.models.encoders.*`)
+    "AtomGSSE3Encoder": ("geneuclidean.models.encoders.atomgs", "AtomGSSE3Encoder"),
+    "CartFormerSE3Encoder": ("geneuclidean.models.encoders.cartformer", "CartFormerSE3Encoder"),
+    "DensePaiNNSE3Encoder": ("geneuclidean.models.encoders.dense_painn", "DensePaiNNSE3Encoder"),
+    "SubPocketVNJEPAEncoder": (
+        "geneuclidean.models.encoders.subpocket_vn",
+        "SubPocketVNJEPAEncoder",
+    ),
+    # NanoFold3 & Open-Weights Co-Folding Hub (`geneuclidean.folding`)
+    "FOLDING_BACKEND_REGISTRY": ("geneuclidean.folding.runners", "FOLDING_BACKEND_REGISTRY"),
+    "NanoFold3": ("geneuclidean.folding.nanofold3", "NanoFold3"),
+    "NanoFold3Config": ("geneuclidean.folding.nanofold3", "NanoFold3Config"),
+    "build_nanofold3": ("geneuclidean.folding.nanofold3", "build_nanofold3"),
+    "fold_complex": ("geneuclidean.folding.runners", "fold_complex"),
+    # Chemical NLP, RL Alignment & Discrete Diffusion (`geneuclidean.nlp`)
+    "AtomLevelSMILESTokenizer": ("geneuclidean.models.nlp_ops", "AtomLevelSMILESTokenizer"),
+    "DiscreteMaskedDiffusionStep": ("geneuclidean.models.nlp_ops", "DiscreteMaskedDiffusionStep"),
+    "PocketConditionedChemicalLM": ("geneuclidean.models.nlp_ops", "PocketConditionedChemicalLM"),
+    "SMILESValenceGrammarMask": ("geneuclidean.models.nlp_ops", "SMILESValenceGrammarMask"),
+    "dpo_preference_loss": ("geneuclidean.models.nlp_ops", "dpo_preference_loss"),
+    "grpo_policy_loss": ("geneuclidean.models.nlp_ops", "grpo_policy_loss"),
 }
 
-__all__ = [
-    "__version__",
-    *sorted(_LAZY_SUBMODULES),
-    *sorted(_LAZY_ATTRS.keys()),
-]
+__all__ = sorted({"__version__", *_LAZY_SUBMODULES, *_LAZY_ATTRS.keys()})
 
 
 def __getattr__(name: str) -> Any:

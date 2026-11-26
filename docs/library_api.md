@@ -1,6 +1,6 @@
-# GenEuclidean `v4.0.0` Python Library & Extensibility Guide (`import geneuclidean as ge`)
+# GenEuclidean `v5.3.0` Python Library & Extensibility Guide (`import geneuclidean as ge`)
 
-GenEuclidean is a modular, strictly typed (**PEP 561** `py.typed`), lazily loaded (**PEP 562** `__getattr__`), plugin-extensible scientific Python library for $SE(3)/E(3)$-equivariant 3D protein pocket-conditioned *de novo* molecular generation, SAFE-GPT 3D scaffold decoration, physiological pH 7.4 preparation, industrial MedChem triage, 12-endpoint calibrated CNS ADMET/Avoid-ome scoring, AutoDock Vina 3D physics validation, dual-mode 3D/2D studio visualization, and FDA/EMA AI credibility reporting.
+GenEuclidean is a modular, strictly typed (**PEP 561** `py.typed`, `mypy src`: 0 errors), lazily loaded (**PEP 562** `__getattr__`, `< 4 ms` cold import), plugin-extensible scientific Python library for $SE(3)/E(3)$-equivariant 3D molecular encoding (`geom` + 8 encoders), pure-PyTorch Chemical NLP (`nlp`), `NanoFold3` & 5-backend co-folding (`folding`), active-learning DMTA (`active_learning`), 7-axis Beyond-PoseBusters auditing (`audit`), makeable lead optimization (`synthesis`/`leadopt`), 12-endpoint calibrated CNS ADMET/Avoid-ome scoring, 49-block Circuit Studio (`studio`), and FDA/EMA AI credibility reporting.
 
 > **Research Boundary:** All generated molecules, scaffold decorations, docking poses, and ADMET scores produced by GenEuclidean are strictly *in silico* computational hypotheses. They are not clinically validated medicines and require chemical synthesis, biochemical/functional pharmacology, off-target profiling, and preclinical validation before translation.
 
@@ -15,13 +15,15 @@ The library separates zero-PyTorch core infrastructure from modular SDK facades 
 | **Top-level Lazy Facade** | `geneuclidean.__init__`, `geneuclidean.api` | PEP 562 lazy exports (`< 15 ms` cold import, zero eager `torch`/`transformers`/`matplotlib` loads). |
 | **Core Extensibility** | `geneuclidean.exceptions`, `geneuclidean.protocols`, `geneuclidean.registry` | Backward-compatible `GenEuclideanError` hierarchy, PEP 544 `Protocol` contracts, thread-safe `Registry[T]`, and `importlib.metadata.entry_points` plugin discovery. |
 | **Modular SDK (`sdk/`)** | `pocket`, `scoring`, `designer`, `pipeline`, `docking`, `viz`, `credibility`, `registries` | Single-responsibility high-level APIs (`Pocket`, `MoleculeDesigner`, `DesignPipeline`, `DesignResult`, composable filters/scorers, SDF/CSV/JSON/DataFrame export). |
-| **3D Geometry & LLMs** | `models.encoders`, `models.decoders`, `models.hf_backbones`, `models.llm_bridge`, `models.safe_codec` | Registry-backed `PaiNN-SE3`/`EGNN`/`E3NN`/`SchNet`, `GP-MoLFormer`, `SAFE-GPT`, `NovoMolGen-157M` (native MPS SDPA), and pure-RDKit SAFE codec. |
+| **3D Geometry & Encoders (`v5.2`)** | `geneuclidean.geom`, `models.encoders.*`, `training.jepa_ssl` | 45 lazy `float32` `SE(3)`/`O(3)` ops (dense k-NN, rank-2 `IAS` irreps, Vector Neurons, anisotropic 3D Gaussians & ROCS overlap, `ScreenedCoulombBias`) + 8 registered encoders (`dense_painn_se3`, `cartformer_se3`, `atomgs_se3`, `subpocket_vn_jepa`, `painn`, `egnn`, `e3nn`, `schnet`) + 3D JEPA SSL. |
+| **Chemical NLP & LLMs (`v5.3`)** | `geneuclidean.nlp`, `models.nlp_ops`, `models.hf_backbones`, `models.llm_bridge`, `models.safe_codec` | 43 pure-PyTorch Chemical NLP ops (atom-level SMILES/SELFIES/SAFE tokenizer, valence grammar mask, RoPE/YaRN + GQA + SwiGLU LM, LoRA, contrastive CFG, DPO/GRPO, `DiscreteMaskedDiffusionStep`) + `GP-MoLFormer`/`SAFE-GPT`/`NovoMolGen-157M` bridges. |
+| **Co-Folding & `NanoFold3` (`v5.3`)** | `geneuclidean.folding.*` (`runners`, `pairformer`, `diffusion`, `confidence`, `nanofold3`) | Trainable `NanoFold3` (`PairformerStack`/`SimpleFoldTrunk` + EDM/Flow-Matching all-atom diffusion + Kabsch align + `ConfidenceHead`/`AffinityHead`) and 5-backend `FOLDING_BACKEND_REGISTRY` (`nanofold3`, `boltz2`, `protenix`, `alphafold3`, `esmfold_api`). |
 | **CNS Pharmacology** | `cns.targets`, `cns.tourette_circuit`, `cns.mpo`, `cns.medchem_triage`, `cns.admet`, `cns.credibility` | 28-target human Tri-Disorder + Tourette CSTC/GABA atlas, Pfizer MPO v1/v2, reagent quarantine, 12-endpoint Avoid-ome + Split-Conformal UQ, FDA/EMA 7-step dossier. |
 | **3D Physics & Viz** | `evaluation.protonation`, `evaluation.docking_pipeline`, `evaluation.interactions3d`, `evaluation.ring_strain`, `evaluation.viz3d` | Deterministic pH 7.4 ionization, multi-conformer Vina v1.2.7 + PoseBusters + $\Delta\Delta G$ selectivity matrix, Cremer–Pople saturated-ring conformational strain auditing, 3Dmol.js HTML & 300-DPI PNG renderers. |
 | **3D Steering, Hops & MTL** | `sampling.pocket_steering`, `cns.scaffold_hop`, `training.mtl_intervention` | Multi-conformation pocket ensemble & contrastive off-target CFG (`design_ensemble`, `score_pmi` $\Delta\text{PMI}_{3\text{D}}$), 5-axis natural-product scaffold-hop de-risking (`audit_scaffold_hop_campaign`), and AIM-inspired adaptive multi-task gradient conflict mediation (`GradientConflictMediator`). |
 | **Beyond-PoseBusters Audit, Screening & Lead-Opt** | `audit`, `screening`, `synthesis`, `leadopt`, `interop`, `cns.dmpk_regression`, `mcp_server`, `sdk.profiles` | 7-axis 3D pose reality auditor (`audit_complex`, torsion strain + pH 7.4 tautomer/microstate + indication profiles), MIT contrastive 3D virtual screener (`PocketScreener`, `ActiveLearningDMTA`, IBM `MMELON` plugin), 16-reaction makeable synthesis, R-group/Avoid-ome MMP, `OpenFE` RBFE & `Boltz-2` adapters, Split-Conformal DMPK regression, and SHA-256 typed MCP agent tools. |
 | **Active Learning `v5.1` DMTA** | `active_learning.*` (`featurizers`, `surrogates`, `acquisitions`, `multifidelity`, `combinatorial_ts`, `diagnostics`, `engine`) | Zero-PyTorch exact `TanimotoGP` (binary/MinMax + MLL tuning), `EnsembleSurrogate`, split/normalized/weighted `ConformalSurrogate`, 14 acquisitions (`SURROGATE_REGISTRY`, `ACQUISITION_REGISTRY`, `LogEI`/`KB`/`DPP`/`qEHVI`/Avoid-ome), `ActiveLearningEngine`, correlation-gated `MultiFidelityDMTA`, $O(N_A+N_B)$ `CombinatorialThompsonSampler`, `ColdStartSelector`, `PendingBatchManager`, `StoppingAdvisor`, SHA-256 `DMTALedger`, and `evaluate_uq_calibration` ([`docs/active_learning_research_and_design.md`](active_learning_research_and_design.md)). |
-| **Circuit Studio & Local Bridge (`v5.1`)** | `studio.*` (`catalog`, `graph_compiler`, `server`), `cli.py`, `web/` | 10-signal, 36-block `CircuitGraphV1` validator (`validate_circuit`), AST-verified Python SDK compiler (`compile_circuit_to_python`), safe allowlisted executor (`execute_circuit`), catalog API (`get_studio_catalog`), and zero-dependency `geneuclidean studio` HTTP server (`serve_studio`) powering the Apple-style `web/` Circuit Studio ([`docs/circuit_studio_architecture.md`](circuit_studio_architecture.md)). |
+| **Circuit Studio & Local Bridge (`v5.3`)** | `studio.*` (`catalog`, `graph_compiler`, `server`), `cli.py`, `web/` | 10-signal, **49-block**, **7-preset**, **8-feedback-port** `CircuitGraphV1` validator (`validate_circuit`), AST-verified Python SDK compiler (`compile_circuit_to_python`), safe allowlisted executor (`execute_circuit`), catalog API (`get_studio_catalog`), and zero-dependency `geneuclidean studio` HTTP server (`serve_studio`) powering the Apple-style `web/` Circuit Studio ([`docs/circuit_studio_architecture.md`](circuit_studio_architecture.md)). |
 
 ---
 
@@ -276,11 +278,68 @@ bundle = ge.export_openfe_rbfe_network([a.product_smiles for a in analogs], "poc
 out = ge.invoke_dmta_tool("propose_mmp_rescues", {"parent_smiles": "Cc1ccc(C(=O)N2CCCCC2)cc1"})
 ```
 
-### 7.6 Active Learning `v5.1`, Apple-Style Circuit Studio & 3D Point-Cloud Encoding Roadmap
-- **Active Learning `v5.1` (`geneuclidean.active_learning`, [`docs/active_learning_research_and_design.md`](active_learning_research_and_design.md)):** Exact PSD Tanimoto/MinMax GP (`TanimotoGP`), `EnsembleSurrogate`, `ConformalSurrogate` (`absolute`/`normalized`/`weighted`), 14 acquisitions in `ACQUISITION_REGISTRY` (`greedy`, `ucb`, `ei`, `log_ei`, `pi`, `thompson`, `kriging_believer`, `dpp_ucb`, `maxmin_ucb`, `qehvi`, `pareto_scalarized_ucb`, `constrained_ei`, `avoidome_feasibility_ucb`, `uncertainty`), correlation-gated `MultiFidelityDMTA`, $O(N_A + N_B)$ reaction-space `CombinatorialThompsonSampler`, `ColdStartSelector`, `StoppingAdvisor`, and `evaluate_uq_calibration`.
-- **Circuit Studio (`geneuclidean.studio`, `geneuclidean studio` CLI, `web/`, [`docs/circuit_studio_architecture.md`](circuit_studio_architecture.md)):** Typed 10-signal, 36-block `CircuitGraphV1` breadboard with dual Browser Simulation + local Python HTTP engine (`geneuclidean studio --host 127.0.0.1 --port 8765`).
-- **3D Point-Cloud CV → Atom Encoding Roadmap ([`docs/pointcloud_cv_3d_atom_encoding_plan.md`](pointcloud_cv_3d_atom_encoding_plan.md)):** 42-method 2022–2026 literature synthesis, Apple Silicon MPS profiling, and peer-reviewed specifications & engineering prompts for `CartFormer-SE3`, `AtomGS-SE3`, and `SubPocketVN-JEPA`.
+### 7.6 Active Learning `v5.1`, 49-Block Circuit Studio, 3D Geometry (`geom`), Chemical NLP (`nlp`) & `NanoFold3` (`folding`)
 
+#### A. Foundational 3D Geometry (`geneuclidean.geom`) & 8 Registered SE(3) Encoders
+All 45 operations in `geneuclidean.geom` and all 8 built-in 3D encoders (`ge.list_encoders()`) run strictly in `torch.float32` on Apple Silicon MPS (`PYTORCH_ENABLE_MPS_FALLBACK=0`), CUDA, and CPU:
+
+```python
+import torch
+import geneuclidean as ge
+
+# 1. Zero-overhead lazy 3D geometric ops (tie-safe k-NN, rank-2 IAS irreps, 3D Gaussians)
+graph = ge.geom.build_dense_knn_graph(coords, atom_mask, cutoff=5.5, max_neighbors=24)
+I, A, S = ge.geom.decompose_rank2_ias(ge.geom.outer_traceless(graph.edge_dir))
+coulomb = ge.geom.ScreenedCoulombBias(scalar_dim=192, num_heads=8)
+
+# 2. Direct top-level flagship SE(3) encoders (or registry via build_encoder)
+enc = ge.CartFormerSE3Encoder(node_in_dim=52, hidden_dim=192, tensor_dim=24, out_dim=256, num_layers=4)
+out = enc(coords, node_feats, atom_mask)  # PocketEncoderOutput(node_emb, pooled_emb, vec_emb)
+# Also exported: ge.DensePaiNNSE3Encoder, ge.AtomGSSE3Encoder, ge.SubPocketVNJEPAEncoder
+```
+
+#### B. Pure-PyTorch Chemical NLP, Grammar Decoding, DPO/GRPO & Masked Diffusion (`geneuclidean.nlp`)
+```python
+import geneuclidean as ge
+
+tok = ge.AtomLevelSMILESTokenizer()
+ids, attn_mask = tok.batch_encode(["CN1CCN(C(=O)c2ccc3ccccc3n2)CC1", "c1ccc2cc1.CC2"])
+grammar = ge.SMILESValenceGrammarMask(tok)
+
+lm = ge.PocketConditionedChemicalLM(
+    vocab_size=tok.vocab_size, d_model=256, n_layers=4, n_heads=8, n_kv_heads=2,
+    d_pocket=192, conditioning_mode="cross_attn", use_perceiver_bridge=True,
+    rope_scaling_type="yarn", rope_scaling_factor=2.0,
+)
+ge.nlp.inject_lora_adapters(lm, target_modules=("q_proj", "v_proj"), rank=8, alpha=16.0)
+beams = ge.nlp.beam_search_decode(lm, pocket_tokens=pocket_emb[:1], beam_width=4, grammar_mask=grammar)
+
+# Critic-free molecular alignment (DPO / GRPO) & discrete masked diffusion (MDLM)
+dpo = ge.dpo_preference_loss(chosen_lp, rejected_lp, ref_chosen_lp, ref_rejected_lp, beta=0.1)
+grpo = ge.grpo_policy_loss(policy_lp, old_lp, rewards, ref_logps=ref_lp, clip_eps=0.2)
+mdlm = ge.DiscreteMaskedDiffusionStep(mask_token_id=tok.mask_id, schedule="cosine")
+```
+
+#### C. `NanoFold3` & 5-Backend Co-Folding Hub (`geneuclidean.folding`)
+```python
+import geneuclidean as ge
+
+# 1. Instantiate trainable NanoFold3 (PairformerStack or Apple SimpleFoldTrunk; EDM or Flow-Matching)
+nf3 = ge.build_nanofold3("nano", trunk_mode="simplefold", diffusion_mode="flow_matching")
+
+# 2. Unified co-folding & 7-axis PoseRealityAuditor bridge across 5 registered backends
+print(ge.FOLDING_BACKEND_REGISTRY.names())
+# ['alphafold3', 'boltz2', 'esmfold_api', 'nanofold3', 'protenix']
+result = ge.fold_complex(
+    pocket_pdb="path/to/6CM4_DRD2_pocket.pdb",
+    ligand_smiles="CN1CCN(C(=O)c2ccc3ccccc3n2)CC1",
+    backend="nanofold3",
+    run_audit=True,
+    property_profile="cns_mpo_v2",
+)
+```
+
+#### D. Active Learning `v5.1` DMTA & 49-Block Apple-Style Circuit Studio (`geneuclidean.studio`)
 ```python
 import geneuclidean as ge
 
@@ -289,15 +348,16 @@ engine = ge.ActiveLearningEngine(
     surrogate=ge.ConformalSurrogate(ge.TanimotoGP(), mode="normalized", alpha=0.10),
     acquisition="kriging_believer",
     cold_start="butina_medoids",
+    seed=42,
 )
-seed_q = engine.propose_batch(candidate_smiles, batch_size=8, seed=42)
+seed_q = engine.propose_batch(candidate_smiles, batch_size=8)
 
-# 2. Validate, compile to AST-verified Python SDK, execute, or serve Circuit Studio locally
-catalog = ge.get_studio_catalog()                 # 10 signals, 8 categories, 36 blocks, 5 flagship presets
-preset = catalog["presets"][1]                    # al_dmta_closed_loop
+# 2. Validate, compile to AST-verified Python SDK, execute, or serve 49-block Circuit Studio locally
+catalog = ge.get_studio_catalog()                 # 10 signals, 8 categories, 49 blocks, 7 presets
+preset = catalog["presets"][4]                    # nanofold3_cofold_audit (also: tourette_scz_champion)
 val = ge.validate_circuit(preset)
 codegen = ge.compile_circuit_to_python(preset)
-run = ge.execute_circuit(preset)                  # safe allowlisted execution + SHA-256 ledger
+run = ge.execute_circuit(preset, max_samples=4)   # safe allowlisted execution + SHA-256 ledger
 # CLI equivalent: `geneuclidean studio --host 127.0.0.1 --port 8765` (or `ge.serve_studio()`)
 ```
 
@@ -305,7 +365,10 @@ run = ge.execute_circuit(preset)                  # safe allowlisted execution +
 
 ## 8. High-Level Reference Summary
 
-- **Registries & Circuits:** `list_targets`, `get_target`, `register_target`, `unregister_target`, `audit_tourette_circuit`, `list_backbones`, `list_encoders`, `list_decoders`, `list_sampling_strategies`, `list_filters`, `list_scorers`, `discover_plugins`, `RING_STRAIN_BACKEND_REGISTRY`, `MTL_MEDIATOR_REGISTRY`, `SURROGATE_REGISTRY`, `ACQUISITION_REGISTRY`.
+- **Registries & Circuits:** `list_targets`, `get_target`, `register_target`, `unregister_target`, `audit_tourette_circuit`, `list_backbones`, `list_encoders` (`8` built-in), `list_decoders`, `list_sampling_strategies`, `list_filters`, `list_scorers`, `discover_plugins`, `FOLDING_BACKEND_REGISTRY` (`5` backends), `RING_STRAIN_BACKEND_REGISTRY`, `MTL_MEDIATOR_REGISTRY`, `SURROGATE_REGISTRY`, `ACQUISITION_REGISTRY`.
+- **3D Geometry & Flagship Encoders (`geneuclidean.geom`):** `DensePaiNNSE3Encoder`, `CartFormerSE3Encoder`, `AtomGSSE3Encoder`, `SubPocketVNJEPAEncoder`, `geom.build_dense_knn_graph`, `geom.decompose_rank2_ias`, `geom.rocs_shape_tanimoto`, `geom.ScreenedCoulombBias`, `geom.VectorNeuronAttentionBlock`.
+- **Chemical NLP (`geneuclidean.nlp`):** `AtomLevelSMILESTokenizer`, `SMILESValenceGrammarMask`, `PocketConditionedChemicalLM`, `dpo_preference_loss`, `grpo_policy_loss`, `DiscreteMaskedDiffusionStep`, `nlp.inject_lora_adapters`, `nlp.beam_search_decode`.
+- **Co-Folding (`geneuclidean.folding`):** `NanoFold3`, `NanoFold3Config`, `build_nanofold3`, `fold_complex`, `FOLDING_BACKEND_REGISTRY`, `folding.PairformerStack`, `folding.SimpleFoldTrunk`, `folding.AllAtomDiffusionModule`, `folding.ConfidenceHead`, `folding.AffinityHead`.
 - **Active Learning `v5.1` (`geneuclidean.active_learning`):** `TanimotoGP`, `EnsembleSurrogate`, `ConformalSurrogate`, `ActiveLearningEngine`, `MultiFidelityDMTA`, `CombinatorialThompsonSampler`, `ColdStartSelector`, `StoppingAdvisor`, `PendingBatchManager`, `DMTAQuery`, `DMTARoundSummary`, `DMTALedger`, `evaluate_uq_calibration`, `list_surrogates`, `list_acquisitions`, `register_surrogate`, `register_acquisition`.
 - **Circuit Studio (`geneuclidean.studio` / `geneuclidean studio`):** `get_studio_catalog`, `export_catalog_payload`, `validate_circuit`, `compile_circuit_to_python`, `execute_circuit`, `serve_studio`, `run_studio_server`.
 - **3D Pockets:** `Pocket.from_target`, `Pocket.from_pdb`, `pocket.featurize`, `pocket.audit_hotspots`, `pocket.orthosteric_box`, `pocket.dock`, `pocket.visualize`, `pocket.summary`.
@@ -321,7 +384,7 @@ import geneuclidean as ge
 
 dossier = ge.build_credibility_dossier(
     model_name="GenEuclidean CNS Discovery & ADMET Suite",
-    model_version="4.0.0",
+    model_version="5.3.0",
     provenance_files={"admet_cv": "results/tables/v4_admet_avoidome_cv_metrics.json"},
 )
 ge.export_credibility_json(dossier, "results/credibility_dossier.json")

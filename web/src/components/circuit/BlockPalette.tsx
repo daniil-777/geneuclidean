@@ -40,8 +40,8 @@ export function BlockPalette({
     encoders: true,
     generators: true,
     screening: false,
-    active_learning: true,
-    physics_audit: false,
+    active_learning: false,
+    physics_audit: true,
     leadopt_admet: false,
     outputs: false,
   });
@@ -145,7 +145,7 @@ export function BlockPalette({
             type="text"
             value={query}
             onChange={(ev) => setQuery(ev.target.value)}
-            placeholder="Search 36 blocks… (⌘K)"
+            placeholder={`Search ${BLOCK_CATALOG.length} blocks… (⌘K)`}
             className="w-full h-8 pl-8 pr-7 rounded-lg text-[11.5px] bg-[var(--bg-elevated)]/85 border border-[var(--circuit-node-border)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-cyan-500/60"
           />
           {query && (
@@ -276,7 +276,7 @@ export function BlockPalette({
       {/* Subtle Signal Legend Footer */}
       <div className="px-3 py-2 border-t border-[var(--circuit-node-border)] text-[10px] text-[var(--text-muted)] flex items-center justify-between">
         <span>Drag or click + to wire</span>
-        <span className="font-mono-num">36 real APIs</span>
+        <span className="font-mono-num">{BLOCK_CATALOG.length} real APIs</span>
       </div>
     </aside>
   );

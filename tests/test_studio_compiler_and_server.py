@@ -2,9 +2,9 @@
 
 Covers:
 1. Cold-import latency & lazy-import hygiene (`import geneuclidean` & `import geneuclidean.studio`).
-2. Authoritative catalog integrity (10 signals, 8 categories, 36 blocks, 5 presets,
-   and 6 feedback ports).
-3. All 5 flagship presets validate with 0 errors and compile to `ast.parse`-valid Python SDK code
+2. Authoritative catalog integrity (10 signals, 8 categories, 49 blocks, 7 presets,
+   and 8 feedback ports).
+3. All 7 flagship presets validate with 0 errors and compile to `ast.parse`-valid Python SDK code
    referencing real `geneuclidean` symbols.
 4. Illegal wiring diagnostics (`E_PORT_TYPE_MISMATCH`, `E_COMBINATIONAL_CYCLE`,
    `E_FEEDBACK_NOT_ALLOWED`, `E_SELF_LOOP`, `E_DUPLICATE_EDGE`, `E_MULTI_INPUT_DISALLOWED`,
@@ -12,7 +12,7 @@ Covers:
 5. Legal closed-loop DMTA feedback circuits vs illegal combinational forward cycles.
 6. Codegen injection-proofing (`repr()` literal safety & identifier sanitization) and AST audit
    verifying zero `eval()` / `exec()` / `shell=True` calls in `src/geneuclidean/studio/`.
-7. Real local execution across all 5 presets (RDKit protonation, Cremer-Pople/torsion strain,
+7. Real local execution across all 7 presets (RDKit protonation, Cremer-Pople/torsion strain,
    7-Axis PoseRealityAuditor, 16-reaction enumeration, AvoidomeMMPEngine, ConformalDMPKRegressor,
    OpenFE Δq=0 exporter, Tanimoto-GP multi-round DMTA, and SHA-256 provenance digests).
 8. Live stdlib `ThreadingHTTPServer` HTTP integration tests (CORS preflight, `/api/health`,
@@ -87,7 +87,7 @@ print(json.dumps({
     info = json.loads(proc.stdout.strip())
     assert info["heavy"] == [], f"Unexpected heavy eager imports: {info['heavy']}"
     assert info["dt_root_ms"] < 200.0
-    assert info["n_blocks"] == 36
+    assert info["n_blocks"] == 49
 
 
 def test_studio_source_has_zero_eval_exec_or_shell_true() -> None:
@@ -117,11 +117,11 @@ def test_studio_source_has_zero_eval_exec_or_shell_true() -> None:
 
 
 def test_catalog_counts_and_feedback_port_allowlist() -> None:
-    """Catalog matches exact 10 signals, 8 categories, 36 blocks, 5 presets & 6 feedback ports."""
+    """Catalog matches exact 10 signals, 8 categories, 49 blocks, 7 presets & 8 feedback ports."""
     assert len(SIGNAL_SPECS) == 10
     assert len(CATEGORY_SPECS) == 8
-    assert len(BLOCK_CATALOG) == 36
-    assert len(FLAGSHIP_PRESETS) == 5
+    assert len(BLOCK_CATALOG) == 49
+    assert len(FLAGSHIP_PRESETS) == 7
 
     feedback_ports = sorted(
         f"{b.block_type}.{p.id}"
@@ -133,6 +133,8 @@ def test_catalog_counts_and_feedback_port_allowlist() -> None:
         "chemical_llm.feedback_scores",
         "combinatorial_ts.feedback_scores",
         "ensemble_surrogate.observations",
+        "nlp_lora_rl_aligner.rewards",
+        "nlp_rope_gqa_lm.feedback_scores",
         "safe_gpt.feedback_scores",
         "selectivity_mtl_aligner.feedback_scores",
         "tanimoto_gp.observations",
@@ -146,10 +148,12 @@ def test_catalog_counts_and_feedback_port_allowlist() -> None:
         "al_dmta_closed_loop",
         "paralog_selectivity_mmp",
         "boltz2_audit_conformal_dmpk",
+        "nanofold3_cofold_audit",
+        "tourette_scz_champion",
         "blank_breadboard",
     ],
 )
-def test_all_five_flagship_presets_validate_and_compile_to_valid_ast(preset_id: str) -> None:
+def test_all_seven_flagship_presets_validate_and_compile_to_valid_ast(preset_id: str) -> None:
     """Every flagship preset validates with 0 errors and compiles to clean, real SDK Python."""
     preset = get_preset(preset_id)
     val = validate_circuit(preset)
@@ -422,11 +426,13 @@ def test_codegen_escapes_malicious_node_ids_and_string_params() -> None:
         "al_dmta_closed_loop",
         "paralog_selectivity_mmp",
         "boltz2_audit_conformal_dmpk",
+        "nanofold3_cofold_audit",
+        "tourette_scz_champion",
         "blank_breadboard",
     ],
 )
 def test_real_local_execution_across_all_flagship_presets(preset_id: str) -> None:
-    """All 5 flagship presets execute locally end-to-end with real RDKit/CADD outputs & SHA-256."""
+    """All 7 flagship presets execute locally end-to-end with real RDKit/CADD/v5.3 outputs."""
     preset = get_preset(preset_id)
     if preset_id == "al_dmta_closed_loop":
         preset["execution"]["dmtaRounds"] = 3
@@ -513,7 +519,7 @@ def test_live_http_studio_server_endpoints_and_error_handling() -> None:
         assert code == 200
         assert health is not None
         assert health["status"] == "ok"
-        assert health["catalogCount"] == 36
+        assert health["catalogCount"] == 49
         assert health["rdkit"] is not None
         assert health["activeLearningV51"] is True
         assert headers.get("access-control-allow-origin") == "*"
@@ -523,10 +529,10 @@ def test_live_http_studio_server_endpoints_and_error_handling() -> None:
         assert code == 200
         assert catalog is not None
         assert catalog["schemaVersion"] == SCHEMA_VERSION
-        assert len(catalog["blocks"]) == 36
+        assert len(catalog["blocks"]) == 49
         assert len(catalog["signalTypes"]) == 10
         assert len(catalog["categories"]) == 8
-        assert len(catalog["presets"]) == 5
+        assert len(catalog["presets"]) == 7
 
         # 4. POST /api/circuit/validate -> 200 (valid preset & invalid JSON -> 400)
         preset_boltz = get_preset("boltz2_audit_conformal_dmpk")
@@ -584,6 +590,42 @@ def test_live_http_studio_server_endpoints_and_error_handling() -> None:
         assert run_al["roundsCompleted"] == 2
         assert len(run_al["dmtaTrace"]) == 2
         assert len(run_al["provenanceSha256"]) == 64
+
+        # 6c. POST /api/circuit/run on v5.3 NanoFold3 Co-Fold + 7-Axis Audit preset -> 200
+        preset_nf3 = get_preset("nanofold3_cofold_audit")
+        code_nf3, _, run_nf3 = _http_request(
+            f"{base_url}/api/circuit/run",
+            method="POST",
+            payload={"circuit": preset_nf3, "options": {"maxSamples": 3, "timeoutSec": 30}},
+        )
+        assert code_nf3 == 200
+        assert run_nf3 is not None
+        assert run_nf3["status"] == "completed"
+        assert len(run_nf3["steps"]) == 8
+        assert any(
+            s["blockType"] == "nanofold3_cofold" and s["executionBackend"] == "real_python"
+            for s in run_nf3["steps"]
+        )
+
+        # 6d. POST /api/circuit/run on v5.3 Tourette & Schizophrenia Champion preset -> 200
+        preset_ts = get_preset("tourette_scz_champion")
+        code_ts, _, run_ts = _http_request(
+            f"{base_url}/api/circuit/run",
+            method="POST",
+            payload={"circuit": preset_ts, "options": {"maxSamples": 3, "timeoutSec": 30}},
+        )
+        assert code_ts == 200
+        assert run_ts is not None
+        assert run_ts["status"] == "completed"
+        assert len(run_ts["steps"]) == 10
+        assert any(
+            s["blockType"] == "cartformer_se3" and s["executionBackend"] == "real_python"
+            for s in run_ts["steps"]
+        )
+        assert any(
+            s["blockType"] == "nlp_rope_gqa_lm" and s["executionBackend"] == "real_python"
+            for s in run_ts["steps"]
+        )
 
         # 7. Invalid circuit on /api/circuit/run -> 422, unknown route -> 404, oversized -> 413
         code_r422, _, run_bad = _http_request(
@@ -777,3 +819,217 @@ def test_tanimoto_gp_zero_norm_kernel_and_leak_free_loo_conformal() -> None:
     assert len(conf_steps) == 3
     final_q_hat = float(conf_steps[-1]["metrics"]["q_hat"])
     assert final_q_hat > 0.25, f"q_hat collapsed to in-sample memorization: {final_q_hat}"
+
+
+# ---------------------------------------------------------------------------
+# 7. v5.3 49-Block Coverage (3D SE(3) + Chemical NLP + NanoFold3 Hub)
+# ---------------------------------------------------------------------------
+
+
+def test_all_13_new_v53_blocks_validate_compile_and_execute_real_python() -> None:
+    """Every remaining v5.3 block not in Presets 5-6 validates, compiles, and runs real Python."""
+    custom_circuit: dict[str, Any] = {
+        "schemaVersion": SCHEMA_VERSION,
+        "id": "v53_remaining_blocks_smoke",
+        "name": "v5.3 Complete 3D+NLP+Folding Coverage Circuit",
+        "description": (
+            "Smoke-tests DensePaiNN, SubPocketVN-JEPA, CrossAttn, MDLM, SimpleFold, Folder Hub."
+        ),
+        "execution": {
+            "mode": "local_python",
+            "seed": 42,
+            "dmtaRounds": 1,
+            "targetContext": "CHRM4",
+            "budget": 8,
+        },
+        "nodes": [
+            {
+                "id": "n_pkt",
+                "blockType": "protein_pocket",
+                "position": {"x": 0, "y": 0},
+                "params": {"target_id": "CHRM4"},
+            },
+            {
+                "id": "n_pool",
+                "blockType": "chembl_pool",
+                "position": {"x": 0, "y": 200},
+                "params": {"dataset": "DRD1_chembl37_400", "pool_size": 32},
+            },
+            {
+                "id": "n_dpainn",
+                "blockType": "dense_painn_se3",
+                "position": {"x": 300, "y": 0},
+                "params": {"adaptive_cutoff": True},
+            },
+            {
+                "id": "n_vn",
+                "blockType": "subpocket_vn_jepa",
+                "position": {"x": 300, "y": 200},
+                "params": {"num_subpockets": 24, "num_salient_slots": 8},
+            },
+            {
+                "id": "n_ext",
+                "blockType": "external_folder_runner",
+                "position": {"x": 300, "y": 400},
+                "params": {"backend": "boltz2", "predict_affinity": True},
+            },
+            {
+                "id": "n_xattn",
+                "blockType": "se3_complex_cross_attn",
+                "position": {"x": 600, "y": 0},
+                "params": {"cutoff": 8.0, "use_coulomb_bias": True},
+            },
+            {
+                "id": "n_sf",
+                "blockType": "pairformer_stack",
+                "position": {"x": 600, "y": 200},
+                "params": {"trunk_mode": "simplefold", "num_blocks": 4},
+            },
+            {
+                "id": "n_nf3_fm",
+                "blockType": "nanofold3_cofold",
+                "position": {"x": 900, "y": 200},
+                "params": {"diffusion_mode": "flow_matching", "num_steps": 8},
+            },
+            {
+                "id": "n_mdlm",
+                "blockType": "nlp_masked_diffusion",
+                "position": {"x": 600, "y": 400},
+                "params": {"schedule": "cosine", "mask_ratio": 0.35, "num_steps": 4},
+            },
+            {
+                "id": "n_dpo",
+                "blockType": "nlp_lora_rl_aligner",
+                "position": {"x": 900, "y": 400},
+                "params": {"rl_objective": "dpo", "lora_rank": 4, "merge_adapters": True},
+            },
+        ],
+        "edges": [
+            {
+                "id": "e1",
+                "source": "n_pkt",
+                "sourcePort": "pocket",
+                "target": "n_dpainn",
+                "targetPort": "pocket",
+                "signalType": "POCKET_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e2",
+                "source": "n_pkt",
+                "sourcePort": "pocket",
+                "target": "n_vn",
+                "targetPort": "pocket",
+                "signalType": "POCKET_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e3",
+                "source": "n_pkt",
+                "sourcePort": "pocket",
+                "target": "n_ext",
+                "targetPort": "pocket",
+                "signalType": "POCKET_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e4",
+                "source": "n_pool",
+                "sourcePort": "molecules",
+                "target": "n_ext",
+                "targetPort": "molecules",
+                "signalType": "MOL_BATCH",
+                "kind": "forward",
+            },
+            {
+                "id": "e5",
+                "source": "n_dpainn",
+                "sourcePort": "pocket_graph",
+                "target": "n_xattn",
+                "targetPort": "pocket_graph",
+                "signalType": "SE3_GRAPH",
+                "kind": "forward",
+            },
+            {
+                "id": "e6",
+                "source": "n_ext",
+                "sourcePort": "poses",
+                "target": "n_xattn",
+                "targetPort": "poses",
+                "signalType": "POSE_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e7",
+                "source": "n_pkt",
+                "sourcePort": "pocket",
+                "target": "n_sf",
+                "targetPort": "pocket",
+                "signalType": "POCKET_3D",
+                "kind": "forward",
+            },
+            {
+                "id": "e8",
+                "source": "n_pool",
+                "sourcePort": "molecules",
+                "target": "n_sf",
+                "targetPort": "molecules",
+                "signalType": "MOL_BATCH",
+                "kind": "forward",
+            },
+            {
+                "id": "e9",
+                "source": "n_sf",
+                "sourcePort": "trunk_graph",
+                "target": "n_nf3_fm",
+                "targetPort": "trunk_graph",
+                "signalType": "SE3_GRAPH",
+                "kind": "forward",
+            },
+            {
+                "id": "e10",
+                "source": "n_pool",
+                "sourcePort": "molecules",
+                "target": "n_mdlm",
+                "targetPort": "seed_mols",
+                "signalType": "MOL_BATCH",
+                "kind": "forward",
+            },
+            {
+                "id": "e11",
+                "source": "n_vn",
+                "sourcePort": "pocket_vec",
+                "target": "n_mdlm",
+                "targetPort": "pocket_tokens",
+                "signalType": "LATENT_VEC",
+                "kind": "forward",
+            },
+            {
+                "id": "e12",
+                "source": "n_mdlm",
+                "sourcePort": "inpainted_mols",
+                "target": "n_dpo",
+                "targetPort": "molecules",
+                "signalType": "MOL_BATCH",
+                "kind": "forward",
+            },
+        ],
+    }
+
+    val = validate_circuit(custom_circuit)
+    assert val.valid is True, f"Validation failed: {val.diagnostics}"
+
+    cg = compile_circuit_to_python(custom_circuit)
+    assert cg.valid is True and cg.ast_valid is True
+    assert ast.parse(cg.python_code) is not None
+    assert "import geneuclidean.models.encoders as ge_encoders" in cg.python_code
+    assert "import geneuclidean.geom as ge_geom" in cg.python_code
+    assert "import geneuclidean.nlp as ge_nlp" in cg.python_code
+    assert "import geneuclidean.folding as ge_folding" in cg.python_code
+
+    run_res = execute_circuit(custom_circuit, max_samples=3, timeout_sec=30.0)
+    assert run_res["status"] == "completed", f"Run failed: {run_res['diagnostics']}"
+    assert len(run_res["steps"]) == len(custom_circuit["nodes"])
+    for step in run_res["steps"]:
+        assert step["executionBackend"] == "real_python", f"Expected real_python on {step}"
+        assert step["status"] == "ok", f"Unexpected step status: {step}"

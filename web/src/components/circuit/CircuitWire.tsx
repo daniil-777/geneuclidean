@@ -1,4 +1,9 @@
-import type { CircuitEdge, CircuitNode, WiringDraft } from '../../types/circuit';
+import type {
+  CircuitEdge,
+  CircuitNode,
+  ExecutionStepTelemetry,
+  WiringDraft,
+} from '../../types/circuit';
 import type { ThemeMode } from '../../types/studio';
 import { getSignalColor } from '../../lib/circuitCatalog';
 import { getNodeHeight, getPortPosition, NODE_WIDTH } from '../../lib/circuitEngine';
@@ -9,6 +14,7 @@ interface CircuitWireProps {
   theme: ThemeMode;
   selectedEdgeId: string | null;
   activeEdgeIds: Set<string>;
+  nodeTelemetry?: Record<string, ExecutionStepTelemetry>;
   isRunning: boolean;
   wiringDraft: WiringDraft | null;
   onSelectEdge: (edgeId: string) => void;
@@ -29,13 +35,17 @@ interface Rect {
   y2: number;
 }
 
-function buildNodeRects(nodes: CircuitNode[], pad = 8): Rect[] {
+function buildNodeRects(
+  nodes: CircuitNode[],
+  nodeTelemetry?: Record<string, ExecutionStepTelemetry>,
+  pad = 8,
+): Rect[] {
   return nodes.map((n) => ({
     id: n.id,
     x1: n.position.x - pad,
     y1: n.position.y - pad,
     x2: n.position.x + NODE_WIDTH + pad,
-    y2: n.position.y + getNodeHeight(n, false) + pad,
+    y2: n.position.y + getNodeHeight(n, Boolean(nodeTelemetry?.[n.id])) + pad,
   }));
 }
 
@@ -133,9 +143,9 @@ function findCleanBusY(
   const minAllY = allRects.length ? Math.min(...allRects.map((r) => r.y1)) : 0;
   const maxAllY = allRects.length ? Math.max(...allRects.map((r) => r.y2)) : 400;
 
-  // Detect natural inter-row gap (between upper and lower node bands)
+  // Detect natural inter-row gaps (between upper and lower node bands) with exact clear span
   const sortedByTop = [...allRects].sort((a, b) => a.y1 - b.y1);
-  const gapMidpoints: number[] = [];
+  const gaps: { mid: number; span: number }[] = [];
   for (let i = 0; i < sortedByTop.length - 1; i += 1) {
     // Max bottom of nodes starting at or above sortedByTop[i].y1
     const upperMaxBottom = Math.max(
@@ -144,17 +154,23 @@ function findCleanBusY(
     const lowerMinTop = Math.min(
       ...allRects.filter((r) => r.y1 > sortedByTop[i].y1 + 40).map((r) => r.y1),
     );
-    if (Number.isFinite(lowerMinTop) && lowerMinTop - upperMaxBottom >= 24) {
+    const span = lowerMinTop - upperMaxBottom;
+    if (Number.isFinite(lowerMinTop) && span >= 14) {
       const mid = (upperMaxBottom + lowerMinTop) / 2;
-      if (!gapMidpoints.some((g) => Math.abs(g - mid) < 12)) {
-        gapMidpoints.push(mid);
+      if (!gaps.some((g) => Math.abs(g.mid - mid) < 12)) {
+        gaps.push({ mid, span });
       }
     }
   }
 
-  const stagger = ((laneIndex % 5) - 2) * 10;
+  const rawLaneOffset = (laneIndex % 5) - 2;
   const candidates: number[] = [
-    ...gapMidpoints.map((g) => g + stagger),
+    ...gaps.flatMap((g) => {
+      const maxStagger = Math.max(0, Math.min(20, (g.span - 8) / 2));
+      const step = maxStagger / 2;
+      const staggered = g.mid + rawLaneOffset * step;
+      return Math.abs(staggered - g.mid) > 0.5 ? [staggered, g.mid] : [g.mid];
+    }),
     minAllY - 22 - (laneIndex % 4) * 11,
     maxAllY + 22 + (laneIndex % 4) * 11,
   ];
@@ -290,12 +306,13 @@ export function CircuitWire({
   theme,
   selectedEdgeId,
   activeEdgeIds,
+  nodeTelemetry,
   isRunning,
   wiringDraft,
   onSelectEdge,
 }: CircuitWireProps) {
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-  const allRects = buildNodeRects(nodes, 7);
+  const allRects = buildNodeRects(nodes, nodeTelemetry, 7);
   let fbCounter = 0;
 
   return (

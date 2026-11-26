@@ -439,12 +439,29 @@ export const Mol3DViewer = forwardRef<Mol3DViewerHandle, Mol3DViewerProps>(funct
     }
   }, [spinning, compact]);
 
+  // Stop 3Dmol spin loop & release WebGL viewer cleanly on unmount (prevents 0x0 framebuffer warnings)
+  useEffect(() => {
+    return () => {
+      const viewer = viewerRef.current;
+      if (viewer) {
+        try {
+          viewer.spin(false);
+          viewer.clear();
+        } catch {
+          // ignore teardown errors on already-detached WebGL context
+        }
+        viewerRef.current = null;
+      }
+      modelsRef.current = { protein: null, ligand: null, native: null, surface: null };
+    };
+  }, []);
+
   // Resize observer so WebGL canvas stays crisp across layout/viewport changes
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const obs = new ResizeObserver(() => {
-      if (viewerRef.current) {
+      if (el.clientWidth > 0 && el.clientHeight > 0 && viewerRef.current) {
         viewerRef.current.resize();
         viewerRef.current.render();
       }

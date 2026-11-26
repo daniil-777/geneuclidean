@@ -1,167 +1,171 @@
-# GenEuclidean v4.0
+<div align="center">
 
-**SE(3)-Equivariant 3D Protein Pocket-Conditioned Chemical Foundation Transformers, 12-Endpoint Avoid-ome Safety & Client-Side Browser AI Studio across Tourette Syndrome, Schizophrenia & Alzheimer's Disease**
+# GenEuclidean
+
+**SE(3)-Equivariant 3D Molecular Encoding, Chemical NLP, NanoFold3 Co-Folding, Active Learning & Apple Circuit Studio for Structure-Based Drug Design**
 
 [![CI](https://github.com/daniil-777/geneuclidean/actions/workflows/ci.yml/badge.svg)](https://github.com/daniil-777/geneuclidean/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v4.0.0-0969DA.svg)](pyproject.toml)
+[![Release](https://img.shields.io/badge/release-v5.3.0-0969DA.svg)](pyproject.toml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB.svg?logo=python&logoColor=white)](pyproject.toml)
+[![PyTorch MPS/CUDA](https://img.shields.io/badge/PyTorch-MPS%20%7C%20CUDA%20%7C%20CPU-EE4C2C.svg?logo=pytorch&logoColor=white)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-F59E0B.svg)](pyproject.toml)
-[![Live 3D Studio & Browser AI](https://img.shields.io/badge/Live%203D%20Studio%20%26%20Browser%20AI-Open%20WebGL%20App-10B981.svg?logo=webgl&logoColor=white)](https://daniil-777.github.io/geneuclidean/)
+[![Live 3D & Circuit Studio](https://img.shields.io/badge/Live%203D%20%26%20Circuit%20Studio-Open%20Web%20App-10B981.svg?logo=webgl&logoColor=white)](https://daniil-777.github.io/geneuclidean/)
 
-> **Live Interactive 3D Studio & Browser AI Generator:** Launch **[daniil-777.github.io/geneuclidean](https://daniil-777.github.io/geneuclidean/)** to run our **1.79 MB INT8 3D-Conditioned ChemTransformer** (`1.69M` params, `94.3%` validity, `99.7%` strict novelty, `1.86×` causal 3D enrichment $p = 3.71\times 10^{-9}$, `174 ms/mol`) **100% client-side in your browser** with real-time 3Dmol.js docking views and ADMET/MPO scoring — zero server required.
-> **Research Notice:** All generated, scored, and docked molecules in GenEuclidean are strictly ***in silico* computational drug-discovery hypotheses** for academic research. They are **not** experimentally validated compounds, clinical candidates, or medical advice.
+<p>
+  <a href="https://daniil-777.github.io/geneuclidean/"><strong>Launch Live Web Studio ↗</strong></a>
+  &nbsp;·&nbsp;
+  <a href="docs/library_api.md"><strong>API Reference</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://colab.research.google.com/github/daniil-777/geneuclidean/blob/main/notebooks/GenEuclidean_v3_EndToEnd_Colab.ipynb"><strong>Colab GPU</strong></a>
+  &nbsp;·&nbsp;
+  <a href="CHANGELOG.md"><strong>Changelog</strong></a>
+  &nbsp;·&nbsp;
+  <a href="CONTRIBUTING.md"><strong>Contributing</strong></a>
+</p>
+
+</div>
 
 ![Flagship Tourette DRD1 3D Studio Hero Complex](results/figures/15a_drd1_tourette_3d_hero.png)
-*Flagship *in silico* Tourette Syndrome anti-EPS `DRD1` (`9LLG`) de novo lead `DRD1_1` (`-9.26 kcal/mol`, $\Delta\Delta G_{\text{mean}} = -1.31\text{ kcal/mol}$ vs. off-target `DRD2`, `Asp103` salt bridge `3.02 Å`, `CNS MPO v2 = 5.67`, `P(hERG) = 0.08`, `PoseBusters PASS`) with live `PocketPerceiverResampler` 3D attention halos. Launch the **[Live 3D Web Studio](https://daniil-777.github.io/geneuclidean/)** or open [`results/viz3d/cns_tourette_3d_studio.html`](results/viz3d/cns_tourette_3d_studio.html).*
+<sub><em>Flagship in silico Tourette DRD1 (9LLG) lead <code>DRD1_1</code> (−9.26 kcal/mol, ΔΔG −1.31 vs. DRD2, Asp103 salt bridge 3.02 Å, CNS MPO v2 5.67, P(hERG) 0.08) in the <a href="https://daniil-777.github.io/geneuclidean/">Live 3D &amp; Circuit Web Studio</a> (1.79 MB INT8 browser AI + 49-block visual pipeline breadboard).</em></sub>
 
 ---
 
-## Explore the Core Code Directly
+## Architecture
 
-GenEuclidean bridges a chiral **$SE(3)$-equivariant 3D pocket encoder (`PaiNN-SE3`)** and **multi-task biophysical heads (`pKd` + `DrugCLIP`)** into three chemical foundation transformers (**`SAFE-GPT-87M`**, **`GP-MoLFormer-Uniq`**, **`NovoMolGen-157M`**) via a permutation- & $SE(3)$-invariant **`PocketPerceiverResampler`**, **`21–36 MB` LoRA adapters**, **12-endpoint scaffold-CV Avoid-ome/DMPK oracles + 90% Split-Conformal UQ**, and **FDA/EMA 7-step AI Credibility Dossiers** — running natively on Apple Silicon (MPS), NVIDIA CUDA, CPU, or browser Web Workers.
-
-| Component | Source Path | What It Implements |
-| :--- | :--- | :--- |
-| **Python Library SDK** | [`src/geneuclidean/api.py`](src/geneuclidean/api.py) | Lazy PEP 562 (`<50 ms`) typed SDK (`import geneuclidean as ge`): pockets, pH 7.4, triage, design, docking, 3D viz, credibility |
-| **Chiral 3D Pocket Encoder** | [`src/geneuclidean/models/encoders/painn.py`](src/geneuclidean/models/encoders/painn.py) | `float32` chiral `PaiNN-SE3` (`SO(3) < 8e-6`, exact `0.0` pad attention, cross-product chirality, `0.0` frozen 3D drift) |
-| **3D-to-LLM & SAFE Bridge** | [`src/geneuclidean/models/llm_bridge.py`](src/geneuclidean/models/llm_bridge.py) · [`safe_codec.py`](src/geneuclidean/models/safe_codec.py) | `PocketPerceiverResampler` (24-token soft prefix), LoRA + CFG, and SAFE fragment scaffold-rescue codec |
-| **Industrial Triage & Avoid-ome** | [`src/geneuclidean/cns/medchem_triage.py`](src/geneuclidean/cns/medchem_triage.py) · [`admet.py`](src/geneuclidean/cns/admet.py) | PAINS/BRENK/NIH/Lilly/DCU veto, 12-endpoint scaffold-CV ADMET/Avoid-ome (`M3`, `H1`, `5-HT2B`, Biogen `MDR1`/`HLM`), Conformal UQ |
-| **Tourette CSTC & 28-Target Atlas** | [`src/geneuclidean/cns/tourette_circuit.py`](src/geneuclidean/cns/tourette_circuit.py) · [`targets.py`](src/geneuclidean/cns/targets.py) | 28 verified *Homo sapiens* TS/GABA × SCZ × AD pockets (`GABRA5`, `GAT1`, `ADORA2A`, `GRM5`, `ACHE`, `MAOB`, `NLRP3`…) + 7 counters |
-| **3D Interaction & Web AI Studio** | [`src/geneuclidean/evaluation/viz3d.py`](src/geneuclidean/evaluation/viz3d.py) · [`web/`](web/) | 6-channel 3D PLIF profiler, 300-DPI Phong renders & **1.79 MB INT8 Client-Side Browser AI Web Studio** |
-| **Active Learning `v5.1` DMTA** | [`src/geneuclidean/active_learning/`](src/geneuclidean/active_learning/) | Exact `TanimotoGP`, `EnsembleSurrogate`, `ConformalSurrogate`, 14 acquisitions (`KB`/`DPP`/`qEHVI`/Avoid-ome), correlation-gated `MultiFidelityDMTA`, $O(N_A+N_B)$ `CombinatorialThompsonSampler` & `StoppingAdvisor` |
-| **Apple-Style Circuit Studio** | [`src/geneuclidean/studio/`](src/geneuclidean/studio/) · [`web/`](web/) | Typed 36-block visual drug-design circuit breadboard, AST-verified Python SDK compiler, and dual Browser + local `geneuclidean studio` HTTP execution bridge |
-| **Unified CLI & GPU Notebook** | [`src/geneuclidean/cli.py`](src/geneuclidean/cli.py) · [`notebooks/`](notebooks/GenEuclidean_v3_EndToEnd_Colab.ipynb) | Typer + Rich CLI (`train-llm`, `sample-llm`, `cns-targets`, `cns-admet`, `viz3d`, `studio`) & turnkey Colab T4/L4/A100 bundle notebook |
+Zero-overhead PEP 562 lazy imports (`< 4 ms` cold import, zero eager `torch`/`rdkit`/`transformers`), strict PEP 561 typing (`mypy src`: 0 errors), and pure-`float32` native Apple Silicon MPS / CUDA / CPU kernels.
 
 ```mermaid
 flowchart LR
-    P["3D Pocket Graph (fp32)<br/>28 Human Targets · Cofactors"] --> ENC["Chiral PaiNN-SE3<br/>SO(3) < 8e-6 · 0.0 Drift"]
-    ENC --> PERC["PocketPerceiverResampler<br/>+ pKd / DrugCLIP Heads"]
-    PERC -->|"24-token soft prefix<br/>SAFE / SMILES + CFG"| LLM["3 Chemical LLMs<br/>SAFE-GPT · GP-MoLF · Novo-157M"]
-    LLM --> GATE["12-Ep Avoid-ome + Conformal UQ<br/>MDR1 · HLM · hERG · M3/H1/5-HT2B · DCU=0"]
-    GATE --> VINA["Held-Out Vina v1.2.7 · PoseBusters<br/>FDA/EMA Dossier · 1.79 MB Web AI"]
+    G["3D Geometry & Encoders<br/>geom · 8 SE(3) Encoders"] --> N["Chemical NLP & LLMs<br/>nlp · RoPE/GQA · LoRA · GRPO/MDLM"]
+    G --> F["NanoFold3 & Folding Hub<br/>folding · 5 Backends · Pairformer/SimpleFold"]
+    N --> A["Active Learning DMTA<br/>active_learning · TanimotoGP · Conformal UQ"]
+    F --> U["7-Axis Audit, Lead-Opt & Studio<br/>audit · leadopt · OpenFE · 49-Block Studio"]
+    A --> U
 ```
 
----
-
-## Headline Verified Results
-
-Every metric below is programmatically verified against versioned artifacts in [`results/tables/`](results/tables/).
-
-### Table 1 — `v4.0` 3-LLM Tri-Disorder Benchmark (`28` Targets: Tourette/GABA × Schizophrenia × Alzheimer's)
-
-Zero-leakage 24-target tri-disorder benchmark (`N = 1,536`/arm; `0` Murcko overlap, `0` clinical/native leakage; 26-endpoint scaffold-CV QSAR mean ROC-AUC **`0.9824`**; 12-endpoint Avoid-ome/DMPK OOF ROC-AUC **`0.812–0.975`**; external Rat $K_{p,uu,\text{brain}}$ **`ρ = +0.724`**, $p = 3.85\times 10^{-40}$) ([`v4_tri_disorder_summary.md`](results/tables/v4_tri_disorder_summary.md), [`docs/v4_tri_disorder_report.md`](docs/v4_tri_disorder_report.md)).
-
-| Experimental Arm | Valid ↑ | Strict Nov ↑ | Triage Pass ↑ | DCU / Reag ↓ | **v4.0 12-Ep Safe ↑** | MPO v2 ↑ | `P(hERG)` ↓ | `P(MDR1)` ↓ | `PDE10A` Bleed ↓ | In-AD ↑ |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| `Ctrl-ZINC` | `100.0%` | `1.6%` | `50.3%` | `0.78%` | **`1.2%`** | `4.82` | `0.226` | `0.483` | `0.0%` | `38.7%` |
-| `v3.1 GP-MoLFormer` | `98.3%` | `99.2%` | `85.6%` | `0.87%` | **`6.8%`** | `4.72` | `0.136` | `0.448` | `33.3%` | `67.0%` |
-| `v4.0 GP-MoLFormer` | `98.6%` | `100.0%` | `96.7%` | `0.26%` | **`10.2%`** | `4.93` | `0.226` | `0.304` | **`0.0%`** | `62.9%` |
-| `v4.0 NovoMolGen-157M` | `90.1%` | `99.8%` | `85.1%` | `0.94%` | **`9.5%`** | `5.16` | `0.193` | `0.245` | **`0.0%`** | `46.3%` |
-| **`v4.0 SAFE-GPT-87M` ★** | **`99.5%`** | `99.2%` | **`97.7%`** | **`0.00%`** | **`37.3%`** *(`5.45×` v3.1, 22/24 Holm)* | **`5.17`** | **`0.127`** | **`0.059`** *(`7.6×` ↓, 24/24 Holm)* | **`0.0%`** | **`81.7%`** |
-
-- **`SAFE-GPT` 3D Clinical Scaffold Rescue (Held-Out Vina Counter-Target $\Delta\Delta G$):** **Donepezil (`ACHE` vs `BCHE`):** hERG **`0.95 → 0.14`**, `MPO 5.02 → 5.95`, Vina **`-10.69`**, `ΔΔG = -2.29` · **Safinamide (`MAOB+FAD` vs `MAOA`):** MDR1 **`0.50 → 0.05`**, Vina **`-11.17`**, **`ΔΔG = -3.47`** (vs. `-1.76`) · **Xanomeline (`CHRM4` vs `DRD2`):** M3 **`0.97 → 0.22`**, hERG **`0.40 → 0.15`**, Vina **`-10.34`**, `ΔΔG = -1.11` · **Ecopipam (`DRD1` vs `DRD2`):** **`ΔΔG = -0.98`** (vs. `-0.72`).
-- **Tourette CSTC Basal-Ganglia & GABAergic 4-Pocket Expansion (`GABRA5`, `GAT1`, `ADORA2A` active, `GRM5`):** Gate 1 **`1.30 Å`** median RMSD (`100%` PB & anchor); zero-shot leads beat Dipraglurant on `GRM5` (**`-9.63`**, `MPO 5.85`, `hERG 0.047`), Tiagabine on `GAT1` (**`-8.13`** / `-7.71` w/ `10×` ↓hERG), Clonazepam on `GABRA5` (**`-9.24`**, `LE 0.514`), and Adenosine on `ADORA2A` (**`-7.97`**, non-ribose) ([`docs/tourette_circuit_audit.md`](docs/tourette_circuit_audit.md)).
-
-![GenEuclidean v4.0 Tri-Disorder 3-LLM Benchmark, Avoid-ome, Clinical Rescue & Tourette CSTC](results/figures/17_v4_llm_tri_disorder_benchmark.png)
-*Four-panel `v4.0` synthesis: (A) 3-LLM head-to-head across 24 targets (`37.3%` 12-Ep Pharma-Safe, `7.6×` MDR1 drop, `0.0%` PDE10A bleed & DCU), (B) 12-endpoint scaffold-CV Avoid-ome/DMPK ROC-AUC + 90% Conformal coverage + Rat $K_{p,uu}$ `ρ = +0.724`, (C) SAFE-GPT clinical scaffold rescue & counter-target $\Delta\Delta G$, and (D) Tourette CSTC 4-pocket validation.*
-
-### Table 2 — Zero-Leakage `CASF-2016` Core Progression (`2021 Thesis → v2.0 → v3.0 → v4.0`)
-
-Strict PDBbind/CASF-2016 split (`4,543 train / 505 val / 285 test`, `0/285` overlap) + 30-pocket held-out Vina audit ([`model_comparison_v3.md`](results/tables/model_comparison_v3.md)).
-
-| Model Milestone | Raw Valid ↑ | QED (Top-10) ↑ | SA ↓ | `<4.5 Å` Attn ↑ | `pKd` $r$ ↑ | Top-1 Vina Med ↓ | PoseBusters ↑ |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| `2021 Thesis (e3nn + LSTM)`* | `65.0%` | `0.450` | `4.00` | — | `0.503`* | — | — |
-| `v2.0 PaiNN-SE3 + RPO-DPO` | `91.6%` | `0.521` (`0.618`) | `3.36` | `1.66×` | **`0.746`** | `-8.06` | `94.6%` |
-| **`v3.0 GP-MoLFormer + RPO-DPO`** | **`94.9%`** | **`0.560` (`0.673`)** | **`2.79`** | **`6.31×`** | **`0.746`** | **`-8.02`** | **`96.6%`** |
-
-<sub>*All `v2–v4` models share bit-exact (`0.0` drift) CASF-2016 `pKd r = 0.746` (`RMSE 1.448`) and `DrugCLIP R@5 = 62.1%` (`ROC-AUC 0.937`).</sub>
-
-### Table 3 — `v3.1` Closed-Loop CNS Study (12 Tourette & Psychiatry Targets, Vina 100% Held Out)
-
-| Experimental Arm | Valid ↑ | Basic Amines | MPO v2 ↑ | `P(hERG)` ↓ | In-AD CNS-Safe ↑ | Held-Out Vina (`LLE`) | PoseBusters ↑ | Phys + Safe ↑ |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| `Ctrl-0B` (ZINC) / `Iter-0` (`v3.0`) | `100%` / `98.2%` | `21.7%` / `9.2%` | `4.94` / `4.80` | `0.162` / `0.177` | `9.6%` / `16.2%` | `-7.72` / `-7.81` | `97%` / `99%` | `76%` / `82%` |
-| `Iter-1` (`v3.1` CNS SFT) | `98.5%` | `58.3%` | `4.36` | `0.531` | `7.5%` | `-7.87` (`3.58`) | `97.0%` | `58.0%` |
-| **`Iter-2` (AD-Damped CNS-RPO-DPO)** | **`99.4%`** | **`50.0%`** | **`5.00`** | **`0.155`** | **`37.0%`** | **`-7.79` (`3.90`)** | **`100.0%`** | **`92.0%`** |
-| `A3_NoAD` (No AD-Damping Ablation) | `98.8%` | — | `5.04` | `0.147` | **`26.5%`** (`-10.6 pp`) | — | — | — |
-
-- Resolves the **Basic-Amine CNS Paradox** (`hERG -71%`, `P-gp -76%`, `5×` In-AD CNS-Safe), proves AD-damping prevents `-10.6 pp` reward hacking (`A3_NoAD`), and achieves significant $10\times 10$ diagonal selectivity (`Col-Z p = 0.0081`, `DC-Z p = 0.0235`, `1,423` Vina dockings; [`docs/neuro_tourette_psychiatry.md`](docs/neuro_tourette_psychiatry.md)).
-
-<details>
-<summary><b>Browse All 19 Publication Figures (01–18 + Hero) & Interactive Browser AI 3D Studio</b></summary>
-
-- **Interactive Browser AI 3D Studio:** [Live WebGL App (`daniil-777.github.io/geneuclidean`)](https://daniil-777.github.io/geneuclidean/) · Local HTML [`results/viz3d/cns_tourette_3d_studio.html`](results/viz3d/cns_tourette_3d_studio.html)
-- **v4.0 Tri-Disorder, Avoid-ome, SAFE-GPT Rescue & Tourette CSTC (Figures 17–18):**
-  - [`17_v4_llm_tri_disorder_benchmark.png`](results/figures/17_v4_llm_tri_disorder_benchmark.png) — 3-LLM tri-disorder benchmark, 12-endpoint Avoid-ome/DMPK + $K_{p,uu}$, SAFE-GPT rescue & CSTC 4-pocket validation
-  - [`18_v4_safegpt_rescue_and_alzheimer_3d.png`](results/figures/18_v4_safegpt_rescue_and_alzheimer_3d.png) — 2×2 300-DPI 3D binding-mode composite: `ACHE (4EY7)` Donepezil rescue, `MAOB (2V5Z+FAD)` Safinamide rescue, `CHRM4 (8FX5)` Xanomeline rescue, and `GRM5 (4OO9)` Tourette NAM lead
-- **v3.1 CNS Neuroscience (Figures 12–16):**
-  - [`12_cns_gates12_trustworthiness.png`](results/figures/12_cns_gates12_trustworthiness.png) · [`13_cns_closed_loop_progression.png`](results/figures/13_cns_closed_loop_progression.png) · [`14_cns_selectivity_and_docking.png`](results/figures/14_cns_selectivity_and_docking.png) · [`15_cns_3d_complex_showcase.png`](results/figures/15_cns_3d_complex_showcase.png) · [`15a_drd1_tourette_3d_hero.png`](results/figures/15a_drd1_tourette_3d_hero.png) · [`16_cns_showcase_molecules_2d.png`](results/figures/16_cns_showcase_molecules_2d.png)
-- **v2.0 / v3.0 CASF-2016 Core Benchmarks (Figures 01–11):**
-  - [`10_v3_llm_comparison.png`](results/figures/10_v3_llm_comparison.png) · [`11_v3_cfg_and_docking.png`](results/figures/11_v3_cfg_and_docking.png) · [`01_model_comparison.png`](results/figures/01_model_comparison.png) · [`02_training_curves.png`](results/figures/02_training_curves.png) · [`03_matched_vs_shuffled_specificity.png`](results/figures/03_matched_vs_shuffled_specificity.png) · [`04_property_distributions.png`](results/figures/04_property_distributions.png) · [`05_pkd_parity_casf2016.png`](results/figures/05_pkd_parity_casf2016.png) · [`06_pocket_attention_heatmap.png`](results/figures/06_pocket_attention_heatmap.png) · [`07_generated_molecules_grid.png`](results/figures/07_generated_molecules_grid.png) · [`08_decoding_pareto.png`](results/figures/08_decoding_pareto.png) · [`09_pocket_latent_tsne.png`](results/figures/09_pocket_latent_tsne.png)
-
-</details>
+| Pillar | Modules | Capabilities |
+| :--- | :--- | :--- |
+| **3D Geometry** | [`geneuclidean.geom`](src/geneuclidean/geom.py) | 45 `float32` `SE(3)`/`O(3)` ops: tie-safe dense k-NN (`30.1×` Metal `index_select`), rank-2 `IAS` irreps, Vector Neurons, SPD anisotropic 3D Gaussians & ROCS overlap, `ScreenedCoulombBias`. |
+| **3D Encoders** | [`models/encoders/`](src/geneuclidean/models/encoders/) | 8 registered pocket encoders (`dense_painn_se3`, `cartformer_se3`, `atomgs_se3`, `subpocket_vn_jepa`, `painn`, `egnn`, `e3nn`, `schnet`) + `3D JEPA` SSL (`training/jepa_ssl.py`). |
+| **Chemical NLP** | [`geneuclidean.nlp`](src/geneuclidean/nlp.py) | 43 pure-PyTorch ops: atom-level SMILES/SELFIES/SAFE tokenizer, stateful valence grammar mask, RoPE/YaRN + GQA + SwiGLU LM, pure-PyTorch LoRA, contrastive CFG, DPO/GRPO, and Masked Diffusion (`MDLM`). |
+| **Co-Folding** | [`geneuclidean.folding`](src/geneuclidean/folding/) | Trainable `NanoFold3` (`PairformerStack` / Apple `SimpleFoldTrunk` + EDM/Flow-Matching all-atom diffusion + `ConfidenceHead`/`AffinityHead`) and 5-backend Hub (`nanofold3`, `boltz2`, `protenix`, `alphafold3`, `esmfold_api`). |
+| **Active Learning** | [`geneuclidean.active_learning`](src/geneuclidean/active_learning/) | Exact PSD `TanimotoGP`, `EnsembleSurrogate`, `ConformalSurrogate`, 14 acquisitions (`KB`/`DPP`/`qEHVI`/Avoid-ome), correlation-gated `MultiFidelityDMTA`, $O(N_A+N_B)$ `CombinatorialThompsonSampler`. |
+| **Audit, Lead-Opt & Studio** | [`audit/`](src/geneuclidean/audit/) · [`leadopt/`](src/geneuclidean/leadopt/) · [`studio/`](src/geneuclidean/studio/) | 7-axis Beyond-PoseBusters auditor (Cremer–Pople ring & SMARTS torsion strain, pH 7.4 microstate, 6-ch PLIF), 16-reaction synthesis, Avoid-ome MMP, `OpenFE`/`Boltz-2`, 12-ep ADMET, 49-block Circuit Studio & MCP server. |
 
 ---
 
-## Quick Start
+## Install & Quickstarts
 
-### Python Library SDK (`import geneuclidean as ge`, `< 50 ms` lazy import)
+```bash
+uv venv --python 3.12 && uv pip install --python .venv/bin/python -e ".[all]"  # or ".[dev]"
+.venv/bin/pytest -q tests/test_google_library_standards.py                     # verify standards
+```
 
+### 1. 3D Encoders & `geom`
+```python
+import torch, geneuclidean as ge
+
+graph = ge.geom.build_dense_knn_graph(coords, atom_mask, cutoff=5.5, max_neighbors=24)
+enc = ge.CartFormerSE3Encoder(node_in_dim=52, hidden_dim=192, tensor_dim=24, out_dim=256, num_layers=4)
+out = enc(coords, node_feats, atom_mask)  # exact SE(3) invariance (SO(3)+100 Å err <= 4.8e-5)
+```
+
+### 2. Chemical `nlp` (RoPE+GQA LM, Grammar Mask, GRPO & Masked Diffusion)
 ```python
 import geneuclidean as ge
 
-drd1 = ge.get_target("DRD1")  # 28 curated human TS/GABA × SCZ × AD targets
-reports = ge.score_molecules(["CN1CCN(C(=O)c2ccc3ccccc3n2)CC1", "O=C(NC1CCCCC1)NC1CCCCC1"], target="DRD1")
-print([(r.canonical_smiles, round(r.cns_mpo_v2, 2), r.hygiene_gate) for r in reports])  # DCU auto-vetoed (0.0)
+tok = ge.AtomLevelSMILESTokenizer()
+ids, _ = tok.batch_encode(["CN1CCN(C(=O)c2ccc3ccccc3n2)CC1"])
+lm = ge.PocketConditionedChemicalLM(vocab_size=tok.vocab_size, d_model=256, n_layers=4, n_heads=8, n_kv_heads=2, d_pocket=256)
+mdlm = ge.DiscreteMaskedDiffusionStep(mask_token_id=tok.mask_id, schedule="cosine")
 ```
 
-### CLI, Installation & Verification
+### 3. `NanoFold3` & 5-Backend Co-Folding Hub
+```python
+import geneuclidean as ge
 
-Install with [`uv`](https://docs.astral.sh/uv/) (Python 3.11+, pins `rdkit>=2026.3,<2026.9` in [`pyproject.toml`](pyproject.toml)):
+model = ge.build_nanofold3("nano", trunk_mode="simplefold", diffusion_mode="flow_matching")
+res = ge.fold_complex(pocket_pdb="pocket.pdb", ligand_smiles="CN1CCN(C(=O)c2ccc3ccccc3n2)CC1", backend="nanofold3", run_audit=True)
+print(ge.FOLDING_BACKEND_REGISTRY.names())  # ['alphafold3', 'boltz2', 'esmfold_api', 'nanofold3', 'protenix']
+```
 
+### 4. Active Learning DMTA (`v5.1`)
+```python
+import geneuclidean as ge
+
+engine = ge.ActiveLearningEngine(
+    surrogate=ge.ConformalSurrogate(ge.TanimotoGP(), mode="normalized", alpha=0.10),
+    acquisition="kriging_believer", cold_start="butina_medoids", seed=42,
+)
+batch = engine.propose_batch(candidate_smiles, batch_size=8)
+```
+
+### 5. 7-Axis Beyond-PoseBusters Audit & Avoid-ome Lead-Opt
+```python
+import geneuclidean as ge
+
+audit = ge.audit_complex("pose.sdf", pocket_pdb="pocket.pdb", property_profile="cns_mpo_v2")
+boltz_audit = ge.audit_cofolded_complex("boltz2_pred.cif", reference_smiles="CNC(=O)c1ccccc1")
+rescues = ge.AvoidomeMMPEngine().propose_rescues(ge.IBOGAINE_SMILES)
+```
+
+### 6. Apple-Style 49-Block Circuit Studio (CLI + Web + Python)
 ```bash
-uv venv --python 3.12 && uv pip install --python .venv/bin/python -e ".[all]"   # or ".[llm,cns,viz,dev]"
-.venv/bin/geneuclidean cns-targets --target DRD1                                # inspect curated 3D targets
-.venv/bin/geneuclidean cns-admet "COc1cc2c(cc1OC)C(=O)C(CC1CCN(C(=O)C3CC3)CC1)C2"
-.venv/bin/geneuclidean studio --port 8765                                       # optional local Circuit Studio HTTP engine
-.venv/bin/pytest                                                                # unit, SE(3), ADMET, AL v5.1 & Studio tests
+.venv/bin/geneuclidean studio --host 127.0.0.1 --port 8765  # live local Python bridge for web/
 ```
+```python
+import geneuclidean as ge
 
-**One-Click GPU Pipeline:** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/daniil-777/geneuclidean/blob/main/notebooks/GenEuclidean_v3_EndToEnd_Colab.ipynb) Turnkey T4/L4/A100 training, Vina docking & SHA-256 bundle export via [`notebooks/GenEuclidean_v3_EndToEnd_Colab.ipynb`](notebooks/GenEuclidean_v3_EndToEnd_Colab.ipynb).
+preset = ge.get_studio_catalog()["presets"][4]              # nanofold3_cofold_audit (49 blocks, 7 presets)
+run = ge.execute_circuit(preset, max_samples=4)             # AST-verified codegen + SHA-256 ledger
+```
 
 ---
 
-## Documentation Index
+## Verified Benchmark Highlights
 
-| Document | Scope |
+All metrics are programmatically audited against versioned JSON artifacts in [`results/tables/`](results/tables/) (`PYTORCH_ENABLE_MPS_FALLBACK=0`, zero train/test leakage).
+
+| Subsystem | Verified Headline Results (Apple M3 Pro MPS + CPU) | Artifact |
+| :--- | :--- | :--- |
+| **3D Encoders (`v5.2`)** | `gather_neighbors` Metal `index_select` **`30.1×`** faster (`38.0→1.27 ms`, `0.0` diff); `8/8` pass `SO(3)+100 Å` (`≤8.1e-5`) & `0.0` dummy/mirror leak; `subpocket_vn_jepa` **`1.84×`** & `dense_painn_se3` **`1.51×`** faster than `painn` (`B4×N1024`); CASF-16 `r = 0.678` (`dense_painn_se3`), SSL `CLIP@5 = 30.2%`, `AtomGS` ROCS **`3.10 ms`**. | [`encoders_v52_mps_benchmark.json`](results/tables/encoders_v52_mps_benchmark.json) |
+| **`NanoFold3` & Hub (`v5.3`)** | Nano `SimpleFold + FlowMatching` (`1.43M`, 16 ep, `181` LP-PDBBind): test Kabsch RMSD **`15.42→3.33 Å`** (`3.89 Å` on 8 unseen human CNS pockets), interface Smooth-LDDT **`0.004→0.484`**, `152–212 ms`/sample on DRD2; `5/5` backends validated on DRD2 (`6CM4`).\* | [`nanofold3_cofold_v53_benchmark.json`](results/tables/nanofold3_cofold_v53_benchmark.json) |
+| **TS/SCZ Campaign (`v5.3`)** | `15` human Tourette & Schizophrenia targets: Beyond-PB physical lifted **`46.7%→68.1%`** raw top-1 / **`94.1%`** mode-audited (`n=119`); **`30/30`** flagship leads pass all 7 axes + 3D anchors (`ΔG −7.28`, `MPO v2 5.57`, `P(hERG) 0.147`, **`96.7%`** 1-step makeable). | [`ts_scz_realistic_ligands_v53.json`](results/tables/ts_scz_realistic_ligands_v53.json) |
+| **Active Learning (`v5.1`)** | Strict scaffold-deduplicated ChEMBL: **`4.09×`** (`DRD1`) & **`5.40×`** (`ACHE`) Top-5% recall (`TanimotoGP`), **`2.25×`** on cliff-heavy `MAOB` (`Ensemble`), **`2.71×`** $O(N_A+N_B)$ Combinatorial TS (`4,800` products), Avoid-ome failures halved (`37.5%→18.8%`), B3DB conformal **`88.9–92.0%`**. | [`active_learning_v51_benchmark.json`](results/tables/active_learning_v51_benchmark.json) |
+| **7-Axis Pose Auditor (`v5.0`)** | Crystal-calibrated on `49` native co-crystals; caught **`39.3%` (`11/28`)** of `100%` PoseBusters-passing Vina CNS leads carrying hidden `twist_boat` rings or strained torsions (`60.7%` baseline → `94.1%` in `v5.3`). | [`beyond_posebusters_audit.json`](results/tables/beyond_posebusters_audit.json) |
+| **Lead-Opt & Conformal DMPK** | 5-fold scaffold-CV (`n=1,000`/ep): OpenADMET `LogD` **`ρ=0.873`** (`96.3%` cov), `KSOL` **`ρ=0.743`** (`88.4%`), `HLM CLint` **`ρ=0.614`** (`93.7%`); Ibogaine aza-MMP **`−0.207` `P(hERG)`** & **`+0.89` MPO v2**; `Δq=0` OpenFE RBFE export (`6` ligs, `7` edges). | [`phase3_phase4_leadopt_dmpk_benchmark.json`](results/tables/phase3_phase4_leadopt_dmpk_benchmark.json) |
+| **Tri-Disorder 3-LLM (`v4.0`)** | `28` human CNS targets (`SAFE-GPT-87M`): **`99.5%`** valid, **`37.3%`** 12-ep Pharma-Safe (`5.45×` v3.1), **`0.0%`** DCU/sink, Rat $K_{p,uu}$ **`ρ=0.724`**; shared `PaiNN-SE3` CASF-16 **`pKd r=0.746`**, `DrugCLIP R@5=62.1%`. | [`v4_tri_disorder_summary.md`](results/tables/v4_tri_disorder_summary.md) |
+
+<sub>\*<strong>Honest caveat:</strong> NanoFold3 <code>nano</code> (1.43M params, 181 complexes) validates differentiable co-folding &amp; architecture trade-offs on laptop MPS; raw unrelaxed coordinates require post-sampling RDKit/MMFF94s relaxation to satisfy strict PoseBusters covalent tolerances.</sub>
+
+---
+
+## Documentation
+
+| Guide / Technical Report | Scope |
 | :--- | :--- |
-| [`docs/v4_tri_disorder_report.md`](docs/v4_tri_disorder_report.md) | **Flagship `v4.0` report:** 28 targets (TS/GABA × SCZ × AD), 3-LLM head-to-head, 12-ep Avoid-ome + $K_{p,uu}$, SAFE-GPT rescue, FDA/EMA dossier & Browser AI |
-| [`docs/v5_cadd_suite_report.md`](docs/v5_cadd_suite_report.md) | **Open-Pharma `v5.0` suite:** Beyond-PoseBusters 7-axis auditor (crystal-calibrated), MIT contrastive 3D screening + Active-Learning DMTA, reaction-grounded synthesis, Avoid-ome MMP, OpenFE/Boltz-2 interop, OpenADMET Conformal DMPK & MCP server |
-| [`docs/active_learning_research_and_design.md`](docs/active_learning_research_and_design.md) | **Active Learning `v5.1` DMTA research & spec:** `geneuclidean.active_learning` (`TanimotoGP`, `EnsembleSurrogate`, `ConformalSurrogate`, 14 acquisitions incl. `KB`/`DPP`/`qEHVI`/Avoid-ome, correlation-gated `MultiFidelityDMTA`, $O(N_A+N_B)$ `CombinatorialThompsonSampler`, `StoppingAdvisor`) & 5-suite real-data benchmarks ([`active_learning_v51_benchmark.json`](results/tables/active_learning_v51_benchmark.json)) |
-| [`docs/circuit_studio_architecture.md`](docs/circuit_studio_architecture.md) | **Apple-style Circuit Studio (`CircuitGraphV1`) architecture:** 10 typed signals, 36 real library blocks, `geneuclidean.studio` AST compiler & `geneuclidean studio` local HTTP bridge, and interactive [`web/`](web/) breadboard |
-| [`docs/pointcloud_cv_3d_atom_encoding_plan.md`](docs/pointcloud_cv_3d_atom_encoding_plan.md) | **3D Point-Cloud CV → Atom Encoding roadmap:** 42-method 2022–2026 literature synthesis, Apple M3 Pro MPS profiling, and peer-reviewed specifications & engineering prompts for `CartFormer-SE3`, `AtomGS-SE3`, and `SubPocketVN-JEPA` |
-| [`docs/eth_cadd_frontier_analysis.md`](docs/eth_cadd_frontier_analysis.md) | **ETH Zürich CADD (MODLAB 2024–2026) frontier extensions:** Cremer–Pople ring-strain audit (28 complexes), contrastive multi-conformation CFG + $\Delta\text{PMI}_{3\text{D}}$, Ibogaine → SERT hops, and AIM-style 3D MTL gradient mediation |
-| [`docs/tourette_circuit_audit.md`](docs/tourette_circuit_audit.md) | Independent Tourette CSTC neurobiology audit & 4-pocket structural expansion (`GABRA5`, `GAT1`, `ADORA2A` active, `GRM5`) |
-| [`docs/library_api.md`](docs/library_api.md) | Typed Python Library & SDK reference (`import geneuclidean as ge`), cookbook recipes, pH 7.4 ionization & PyPI packaging |
-| [`docs/neuro_tourette_psychiatry.md`](docs/neuro_tourette_psychiatry.md) | Full `v3.1` CNS computational chemistry manuscript (Gates 0–3, Basic-Amine Paradox, AD-damping proof, $10\times 10$ selectivity & Top-12) |
-| [`docs/industry_datasets.md`](docs/industry_datasets.md) | 2024–2026 pharma dataset architecture (PLINDER, HiQBind, B3DB, TDC, Biogen/OpenADMET) & empirically caught data-hygiene traps |
-| [`docs/architecture.md`](docs/architecture.md) | Mathematical specification of chiral `PaiNN-SE3`, `PocketPerceiverResampler`, `PocketCVAE`, RPO-DPO & $SO(3)/SE(3)$ verification |
-| [`docs/llm_research.md`](docs/llm_research.md) | Chemical Foundation Transformer (`SAFE-GPT`, `GP-MoLFormer`, `NovoMolGen`) vs. local LLM scouting, RoPE fix & MPS kernels |
-| [`docs/legacy_audit.md`](docs/legacy_audit.md) | Forensic audit of the 2021 ETH Zürich semester thesis (`v1.0.0-thesis-2021`) and clean-room `v2.0–v4.0` engineering resolutions |
+| [`docs/library_api.md`](docs/library_api.md) | Typed Python SDK (`ge`), `geom`, `nlp`, `folding`, `active_learning`, 49-block `studio`, registries & plugins |
+| [`docs/pointcloud_cv_3d_atom_encoding_plan.md`](docs/pointcloud_cv_3d_atom_encoding_plan.md) | 42-method 3D CV → atom encoding synthesis & specs for `CartFormer-SE3`, `AtomGS-SE3`, `SubPocketVN-JEPA` |
+| [`docs/alphafold3_nanofold_design.md`](docs/alphafold3_nanofold_design.md) | `NanoFold3` (`Pairformer` / `SimpleFold` + EDM/Flow-Matching + Kabsch) & 5-backend co-folding architecture |
+| [`docs/active_learning_research_and_design.md`](docs/active_learning_research_and_design.md) | `TanimotoGP`, Conformal UQ, 14 acquisitions, correlation-gated `MultiFidelityDMTA` & Combinatorial TS |
+| [`docs/circuit_studio_architecture.md`](docs/circuit_studio_architecture.md) | `CircuitGraphV1` (10 signals, 49 blocks, 7 presets), AST Python compiler & `geneuclidean studio` bridge |
+| [`docs/v5_cadd_suite_report.md`](docs/v5_cadd_suite_report.md) · [`docs/v4_tri_disorder_report.md`](docs/v4_tri_disorder_report.md) | Open-Pharma `v5.0` CADD suite & `v4.0` 28-target Tri-Disorder 3-LLM / 12-ep Avoid-ome benchmark reports |
+| [`CHANGELOG.md`](CHANGELOG.md) · [`CONTRIBUTING.md`](CONTRIBUTING.md) | Release history (`v1.0 → v5.3`), contributor setup, MPS `float32` & cold-import standards, PR checklist |
 
 ---
 
 ## Citation & License
 
-Released under the **MIT License** ([`pyproject.toml`](pyproject.toml)). If you use GenEuclidean in your research, please cite:
+Released under the **MIT License** ([`pyproject.toml`](pyproject.toml)). Machine-readable citation metadata is in [`CITATION.cff`](CITATION.cff):
 
 ```bibtex
 @software{emtsev2026geneuclidean,
   author  = {Emtsev, Daniil},
-  title   = {{GenEuclidean v4.0: SE(3)-Equivariant 3D Protein Pocket-Conditioned Chemical Foundation Transformers, 12-Endpoint Avoid-ome Safety, and Browser AI Studio for Tri-Disorder CNS Drug Design}},
+  title   = {{GenEuclidean: SE(3)-Equivariant 3D Molecular Encoding, Chemical NLP, NanoFold3 Co-Folding, Active Learning, and Apple Circuit Studio for Structure-Based Drug Design}},
   year    = {2026},
-  version = {4.0.0},
+  version = {5.3.0},
   url     = {https://github.com/daniil-777/geneuclidean}
 }
 ```
+
+> **Research Notice:** All generated molecules, co-folded complexes, docking poses, and ADMET/affinity scores produced by GenEuclidean are strictly *in silico* computational hypotheses for academic research — not experimentally validated drugs or medical advice.

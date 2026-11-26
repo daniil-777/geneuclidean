@@ -23,7 +23,7 @@ import type {
   WiringDraft,
 } from '../../types/circuit';
 import type { ThemeMode } from '../../types/studio';
-import { BLOCK_MAP } from '../../lib/circuitCatalog';
+import { BLOCK_CATALOG, BLOCK_MAP } from '../../lib/circuitCatalog';
 import {
   evaluatePortConnection,
   getPortPosition,
@@ -519,6 +519,7 @@ export function Canvas({
           theme={theme}
           selectedEdgeId={selectedEdgeId}
           activeEdgeIds={activeEdgeIds}
+          nodeTelemetry={nodeTelemetry}
           isRunning={isRunning}
           wiringDraft={wiringDraft}
           onSelectEdge={(edgeId) => {
@@ -623,9 +624,10 @@ export function Canvas({
                 Blank GenEuclidean Breadboard
               </h3>
               <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                Drag any of the <strong>36 real GenEuclidean blocks</strong> from the left dock
-                (or click <code className="font-mono-num">+</code>) to wire custom SE(3), Active
-                Learning DMTA, 7-Axis Pose Audit, and OpenFE circuits.
+                Drag any of the <strong>{BLOCK_CATALOG.length} real GenEuclidean blocks</strong>{' '}
+                from the left dock (or click <code className="font-mono-num">+</code>) to wire
+                custom 3D SE(3), Chemical NLP, NanoFold3 Co-Fold, Active Learning DMTA, 7-Axis Pose
+                Audit, and OpenFE circuits.
               </p>
             </div>
             <button
