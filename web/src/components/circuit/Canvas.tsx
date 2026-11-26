@@ -582,11 +582,11 @@ export function Canvas({
 
       {/* Active Wiring Status Banner */}
       {wiringDraft && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3 py-1 rounded-full circuit-floating-pill text-[11px] font-medium text-[var(--text-primary)] flex items-center gap-2 pointer-events-none">
-          <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1 rounded-full circuit-floating-pill text-[11px] font-medium text-[var(--text-primary)] whitespace-nowrap flex items-center gap-2 pointer-events-none">
+          <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
           <span>
-            Wiring <strong className="font-mono-num">{wiringDraft.signalType}</strong> — drop or click a
-            pulsing compatible input socket (Esc to cancel)
+            Wiring <strong className="font-mono-num">{wiringDraft.signalType}</strong> · drop on
+            pulsing input socket (Esc to cancel)
           </span>
         </div>
       )}

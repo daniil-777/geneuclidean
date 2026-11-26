@@ -679,12 +679,12 @@ export function CircuitBuilderView({
             className="w-[320px] shrink-0 h-full circuit-glass border-l border-[var(--circuit-node-border)] flex flex-col z-20"
           >
             {/* Segmented Tab Switcher */}
-            <div className="px-2.5 py-2 border-b border-[var(--circuit-node-border)] flex items-center justify-between gap-1.5 shrink-0">
-              <div className="flex-1 grid grid-cols-3 gap-1 p-0.5 rounded-lg bg-[var(--bg-elevated)]/85 border border-[var(--circuit-node-border)]">
+            <div className="px-2 py-2 border-b border-[var(--circuit-node-border)] flex items-center justify-between gap-1 shrink-0">
+              <div className="flex-1 grid grid-cols-[1fr_0.86fr_1.14fr] gap-0.5 p-0.5 rounded-lg bg-[var(--bg-elevated)]/85 border border-[var(--circuit-node-border)]">
                 {(
                   [
                     ['inspector', 'Inspector', Sliders],
-                    ['python', 'Python SDK', Code2],
+                    ['python', 'Python', Code2],
                     ['telemetry', 'Telemetry', Activity],
                   ] as const
                 ).map(([id, label, Icon]) => {
@@ -695,14 +695,14 @@ export function CircuitBuilderView({
                       type="button"
                       data-drawer-tab={id}
                       onClick={() => setRightTab(id)}
-                      className={`py-1 px-1.5 rounded-md text-[11px] font-medium flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                      className={`py-1 px-1 rounded-md text-[10.5px] font-medium whitespace-nowrap flex items-center justify-center gap-1 transition-all cursor-pointer ${
                         active
                           ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
                           : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                       }`}
                     >
                       <Icon className="h-3 w-3 shrink-0" />
-                      <span className="truncate">{label}</span>
+                      <span>{label}</span>
                       {id === 'telemetry' && runResult && (
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
                       )}
