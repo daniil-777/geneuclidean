@@ -31,24 +31,18 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import torch
 import torch.nn.functional as F
 from torch import Tensor
 
 from geneuclidean.models.encoders import PocketEncoderOutput
-from geneuclidean.models.hf_backbones import get_input_embeddings_tensor
-from geneuclidean.models.llm_bridge import PocketConditionedLLM
 from geneuclidean.models.safe_codec import smiles_to_safe
 from geneuclidean.sampling.decoder_strategies import apply_repetition_penalty, select_next_tokens
-from geneuclidean.sampling.llm_sampler import (
-    _build_initial_prompt_ids,
-    _collect_stop_token_ids,
-    _decode_generated_smiles,
-    _expand_pocket_for_batch,
-    _mask_safe_control_tokens,
-)
+
+if TYPE_CHECKING:
+    from geneuclidean.models.llm_bridge import PocketConditionedLLM
 
 
 @dataclass(frozen=True)
@@ -135,6 +129,8 @@ def _mean_conditional_logprob(
     token_ids_list: Sequence[list[int]],
 ) -> tuple[list[float], list[int]]:
     """Compute exact per-token mean log-likelihood ``(1/T) sum_t log P(x_t | P, x_<t)``."""
+    from geneuclidean.models.hf_backbones import get_input_embeddings_tensor
+
     device = soft_prefix.device
     pad_id = int(model.pad_token_id)
     max_len = max(len(seq) for seq in token_ids_list)
@@ -324,6 +320,15 @@ def sample_contrastive_ensemble_llm(
         raise ValueError("on_pockets must contain at least one (pocket_out, atom_mask) pair.")
     if num_samples < 1:
         raise ValueError(f"num_samples must be >= 1, got {num_samples}")
+
+    from geneuclidean.models.hf_backbones import get_input_embeddings_tensor
+    from geneuclidean.sampling.llm_sampler import (
+        _build_initial_prompt_ids,
+        _collect_stop_token_ids,
+        _decode_generated_smiles,
+        _expand_pocket_for_batch,
+        _mask_safe_control_tokens,
+    )
 
     was_training = model.training
     model.eval()
