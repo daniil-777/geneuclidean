@@ -453,6 +453,24 @@ def validate_circuit(graph: Mapping[str, Any]) -> ValidationResult:
                     message=f"execution.mode={mode_val!r} must be 'browser_sim' or 'local_python'.",
                 )
             )
+        target_ctx_val = raw_exec.get("targetContext", "DRD1")
+        if (
+            not isinstance(target_ctx_val, str)
+            or not target_ctx_val.strip()
+            or len(target_ctx_val) > 128
+            or any(ord(ch) < 32 or ord(ch) == 127 for ch in target_ctx_val)
+        ):
+            diagnostics.append(
+                ValidationDiagnostic(
+                    severity="error",
+                    code="E_PARAM_OUT_OF_RANGE",
+                    message=(
+                        f"execution.targetContext={target_ctx_val!r} must be a printable "
+                        "non-empty string (<= 128 chars)."
+                    ),
+                    remediation="Set execution.targetContext to a target symbol like 'DRD1'.",
+                )
+            )
 
     raw_nodes = graph.get("nodes")
     raw_edges = graph.get("edges")
@@ -508,9 +526,39 @@ def validate_circuit(graph: Mapping[str, Any]) -> ValidationResult:
             continue
 
         enabled_nodes[nid] = node
-        pos = node.get("position", {})
-        px = float(pos.get("x", 0.0)) if isinstance(pos, Mapping) else 0.0
-        py = float(pos.get("y", 0.0)) if isinstance(pos, Mapping) else 0.0
+        px, py = 0.0, 0.0
+        if "position" in node:
+            pos = node["position"]
+            if not isinstance(pos, Mapping):
+                diagnostics.append(
+                    ValidationDiagnostic(
+                        severity="error",
+                        code="E_PARAM_OUT_OF_RANGE",
+                        message=(
+                            f"Node '{nid}' field 'position' must be an object with numeric x/y."
+                        ),
+                        remediation="Set node.position to {'x': 0, 'y': 0}.",
+                        node_id=nid,
+                    )
+                )
+            else:
+                raw_x = pos.get("x", 0.0)
+                raw_y = pos.get("y", 0.0)
+                if not _is_number_strict(raw_x) or not _is_number_strict(raw_y):
+                    diagnostics.append(
+                        ValidationDiagnostic(
+                            severity="error",
+                            code="E_PARAM_OUT_OF_RANGE",
+                            message=(
+                                f"Node '{nid}' position coordinates must be finite numbers "
+                                f"(got x={raw_x!r}, y={raw_y!r})."
+                            ),
+                            remediation="Set position.x and position.y to finite numbers.",
+                            node_id=nid,
+                        )
+                    )
+                else:
+                    px, py = float(raw_x), float(raw_y)
         node_positions[nid] = (px, py)
 
         btype = node.get("blockType")
@@ -911,17 +959,27 @@ def _safe_ident(raw_id: str, used: set[str]) -> str:
 
 def _collect_node_inputs_map(
     graph: Mapping[str, Any],
+    *,
+    enabled_ids: set[str] | frozenset[str] | None = None,
 ) -> tuple[
     dict[tuple[str, str], list[tuple[str, str]]], dict[tuple[str, str], list[tuple[str, str]]]
 ]:
-    """Map ``(target_node, target_port)`` to incoming forward and feedback ``(src, srcPort)``."""
+    """Map ``(target_node, target_port)`` to incoming forward and feedback ``(src, srcPort)``.
+
+    When ``enabled_ids`` is provided, skips any edge whose source or target node is disabled
+    or missing so codegen and execution never reference disabled nodes.
+    """
     fwd: dict[tuple[str, str], list[tuple[str, str]]] = defaultdict(list)
     fb: dict[tuple[str, str], list[tuple[str, str]]] = defaultdict(list)
     for edge in graph.get("edges", ()):
         if not isinstance(edge, Mapping):
             continue
-        key = (str(edge.get("target", "")), str(edge.get("targetPort", "")))
-        val = (str(edge.get("source", "")), str(edge.get("sourcePort", "")))
+        src = str(edge.get("source", ""))
+        dst = str(edge.get("target", ""))
+        if enabled_ids is not None and (src not in enabled_ids or dst not in enabled_ids):
+            continue
+        key = (dst, str(edge.get("targetPort", "")))
+        val = (src, str(edge.get("sourcePort", "")))
         if edge.get("kind", "forward") == "feedback":
             fb[key].append(val)
         else:
@@ -930,7 +988,7 @@ def _collect_node_inputs_map(
 
 
 def _safe_comment(raw: str) -> str:
-    """Sanitize untrusted text before embedding in generated comments or docstrings."""
+    """Sanitize untrusted text before embedding in single-line generated comments."""
     single_line = re.sub(r"[\x00-\x1f\x7f]+", " ", raw)
     return single_line.replace('"""', "'").replace("'''", "'").strip()
 
@@ -1590,9 +1648,10 @@ def compile_circuit_to_python(graph: Mapping[str, Any]) -> CodegenResult:
     ]
 
     if not validation.topological_order:
+        empty_doc = _py_lit(f"Auto-generated GenEuclidean Circuit Studio script ({circuit_name}).")
         code = "\n".join(
             [
-                f'"""Auto-generated GenEuclidean Circuit Studio script ({circuit_name})."""',
+                empty_doc,
                 "",
                 *imports_list,
                 "",
@@ -1631,15 +1690,17 @@ def compile_circuit_to_python(graph: Mapping[str, Any]) -> CodegenResult:
         for n in graph.get("nodes", ())
         if isinstance(n, Mapping) and "id" in n and not bool(n.get("disabled", False))
     }
-    fwd_in, fb_in = _collect_node_inputs_map(graph)
+    enabled_ids = set(node_by_id)
+    fwd_in, fb_in = _collect_node_inputs_map(graph, enabled_ids=enabled_ids)
 
     used_idents: set[str] = set()
     var_by_node: dict[str, str] = {
         nid: _safe_ident(nid, used_idents) for nid in validation.topological_order
     }
 
+    module_doc = _py_lit(f"Auto-generated GenEuclidean Python SDK pipeline: {circuit_name}.")
     lines: list[str] = [
-        f'"""Auto-generated GenEuclidean Python SDK pipeline: {circuit_name}."""',
+        module_doc,
         "",
         *imports_list,
         "",
@@ -1699,12 +1760,13 @@ def compile_circuit_to_python(graph: Mapping[str, Any]) -> CodegenResult:
         lines.append("")
 
     if validation.has_feedback_loop:
-        # Update feedback_observations from feedback source ports at end of round
+        # Update feedback_observations from active feedback source ports at end of round
         for edge in graph.get("edges", ()):
             if isinstance(edge, Mapping) and edge.get("kind") == "feedback":
                 src_n = str(edge.get("source", ""))
+                dst_n = str(edge.get("target", ""))
                 src_p = str(edge.get("sourcePort", ""))
-                if src_n in var_by_node:
+                if src_n in var_by_node and dst_n in var_by_node:
                     expr = _port_expr(src_n, src_p)
                     lines.append(f"{body_indent}if isinstance({expr}, dict):")
                     lines.append(f"{body_indent}    feedback_observations.update({expr})")
@@ -1931,8 +1993,15 @@ def _fit_tanimoto_gp_numpy(
     *,
     noise_var: float,
     signal_var: float,
-) -> tuple[Any, Any]:
-    """Analytical Tanimoto-kernel Gaussian Process (exact PSD kernel + Cholesky posterior)."""
+) -> tuple[Any, Any, list[float], list[float]]:
+    """Analytical Tanimoto-kernel GP returning ``(mu, std, loo_abs_res, loo_norm_res)``.
+
+    Enforces ``k(0, 0) = signal_var`` so the kernel diagonal is strictly positive, and
+    computes leak-free closed-form Leave-One-Out CV residuals (Rasmussen & Williams Eq. 5.12)
+    directly from the Cholesky factor ``L``:
+        ``|y_i - mu_{i,LOO}| = |alpha_i| / [K_y^{-1}]_{ii}``
+        ``sigma_{i,LOO}      = 1 / sqrt([K_y^{-1}]_{ii})``
+    """
     import numpy as np
 
     def _tanimoto_kernel(a: Any, b: Any) -> Any:
@@ -1940,21 +2009,24 @@ def _fit_tanimoto_gp_numpy(
         na = np.sum(a * a, axis=1, keepdims=True)
         nb = np.sum(b * b, axis=1, keepdims=True).T
         denom = na + nb - dot
-        return float(signal_var) * np.divide(
-            dot, denom, out=np.zeros_like(dot), where=denom > 1e-12
-        )
+        zero_both = (na <= 1e-12) & (nb <= 1e-12)
+        sim = np.divide(dot, denom, out=np.zeros_like(dot), where=denom > 1e-12)
+        sim = np.where(zero_both, 1.0, sim)
+        return float(signal_var) * sim
 
     n_test = int(test_x.shape[0])
-    if int(train_x.shape[0]) == 0:
+    n_tr = int(train_x.shape[0])
+    if n_tr == 0:
         return (
             np.zeros(n_test, dtype=np.float64),
             np.full(n_test, math.sqrt(max(1e-6, float(signal_var))), dtype=np.float64),
+            [],
+            [],
         )
 
     y_mean = float(np.mean(train_y))
     y_centered = train_y - y_mean
     k_tt = _tanimoto_kernel(train_x, train_x)
-    n_tr = int(train_x.shape[0])
     jitter = max(1e-6, float(noise_var))
     chol = None
     for scale in (1.0, 10.0, 100.0, 1000.0):
@@ -1967,6 +2039,8 @@ def _fit_tanimoto_gp_numpy(
         return (
             np.full(n_test, y_mean, dtype=np.float64),
             np.full(n_test, math.sqrt(max(1e-6, float(signal_var))), dtype=np.float64),
+            [],
+            [],
         )
 
     alpha = np.linalg.solve(chol.T, np.linalg.solve(chol, y_centered))
@@ -1974,7 +2048,13 @@ def _fit_tanimoto_gp_numpy(
     mu = y_mean + k_star @ alpha
     v_mat = np.linalg.solve(chol, k_star.T)
     var = np.maximum(1e-8, float(signal_var) - np.sum(v_mat * v_mat, axis=0))
-    return mu, np.sqrt(var)
+
+    # Leak-free closed-form Leave-One-Out residuals from K_y^{-1} = (L L^T)^{-1}
+    chol_inv = np.linalg.solve(chol, np.eye(n_tr, dtype=np.float64))
+    k_inv_diag = np.maximum(1e-12, np.sum(chol_inv * chol_inv, axis=0))
+    loo_abs = (np.abs(alpha) / k_inv_diag).tolist()
+    loo_norm = (np.abs(alpha) / np.sqrt(k_inv_diag)).tolist()
+    return mu, np.sqrt(var), [float(x) for x in loo_abs], [float(x) for x in loo_norm]
 
 
 def _extract_pocket_pdb_text(
@@ -2531,10 +2611,12 @@ def _run_tanimoto_gp(
     n_bits = min(1024, int(params["fp_bits"]))
     x_pool, valid_pool = featurize_ecfp4_batch(pool, n_bits=n_bits)
     train_smis = [s for s in pool if s in ctx.al_observed]
+    loo_abs: list[float] = []
+    loo_norm: list[float] = []
     if train_smis:
         x_tr, v_tr = featurize_ecfp4_batch(train_smis, n_bits=n_bits)
         y_tr = np.array([ctx.al_observed[s] for s in train_smis], dtype=np.float64)[v_tr]
-        mu, std = _fit_tanimoto_gp_numpy(
+        mu, std, loo_abs, loo_norm = _fit_tanimoto_gp_numpy(
             x_tr[v_tr].astype(np.float64),
             y_tr,
             x_pool.astype(np.float64),
@@ -2552,6 +2634,8 @@ def _run_tanimoto_gp(
         "n_observed": len(ctx.al_observed),
         "kernel": str(params["kernel"]),
         "valid_count": int(valid_pool.sum()) if len(valid_pool) else 0,
+        "loo_abs_residuals": loo_abs,
+        "loo_norm_residuals": loo_norm,
     }
     return _BlockStepOutcome(
         outputs={"posterior": posterior},
@@ -2595,12 +2679,44 @@ def _run_ensemble_surrogate(
     al.ingest_observations(ctx.al_observed)
     al._fit_surrogate()
     mean_arr, std_arr = al.predict_mean_and_std(pool)
+
+    # Compute leak-free out-of-bag residuals when sufficient observations exist
+    oob_abs: list[float] = []
+    oob_norm: list[float] = []
+    if len(ctx.al_observed) >= 6:
+        from sklearn.ensemble import RandomForestRegressor
+
+        from geneuclidean.screening.encoders import featurize_ecfp4_batch
+
+        obs_smis = list(ctx.al_observed.keys())
+        obs_ys = np.array([ctx.al_observed[s] for s in obs_smis], dtype=np.float64)
+        x_obs, v_obs = featurize_ecfp4_batch(obs_smis, n_bits=int(params["fp_bits"]))
+        if int(v_obs.sum()) >= 6:
+            rf_oob = RandomForestRegressor(
+                n_estimators=min(32, int(params["n_estimators"])),
+                max_features="sqrt",
+                oob_score=True,
+                random_state=ctx.seed + ctx.round_idx,
+                n_jobs=1,
+            )
+            rf_oob.fit(x_obs[v_obs], obs_ys[v_obs])
+            oob_preds = np.asarray(rf_oob.oob_prediction_, dtype=np.float64)
+            tree_preds = np.stack([e.predict(x_obs[v_obs]) for e in rf_oob.estimators_], axis=0)
+            tree_std = np.maximum(1e-3, np.std(tree_preds, axis=0))
+            for y_true, y_oob, sd_i in zip(obs_ys[v_obs], oob_preds, tree_std, strict=True):
+                if math.isfinite(float(y_oob)):
+                    err = abs(float(y_true) - float(y_oob))
+                    oob_abs.append(err)
+                    oob_norm.append(err / float(sd_i))
+
     posterior = {
         "smiles": pool,
         "mean": [float(v) for v in mean_arr],
         "std": [float(v) for v in std_arr],
         "n_observed": len(ctx.al_observed),
         "surrogate": "rf_ensemble",
+        "loo_abs_residuals": oob_abs,
+        "loo_norm_residuals": oob_norm,
     }
     return _BlockStepOutcome(
         outputs={"posterior": posterior},
@@ -2630,17 +2746,39 @@ def _run_conformal_calibrator(
     alpha = float(params["alpha"])
     mode = str(params["mode"])
 
-    # Compute exact finite-sample split-conformal quantile q_hat on observed residuals
-    residuals: list[float] = []
-    for s, m, sd in zip(smis, means, stds, strict=False):
-        if s in ctx.al_observed:
-            err = abs(ctx.al_observed[s] - m)
-            residuals.append(err / sd if mode == "normalized" else err)
+    # Use leak-free out-of-sample LOO / OOB residuals from the surrogate (never in-sample fits),
+    # or explicit held-out calibration_scores if wired.
+    raw_loo = (
+        post_dict.get("loo_norm_residuals")
+        if mode == "normalized"
+        else post_dict.get("loo_abs_residuals")
+    )
+    residuals: list[float] = (
+        [float(r) for r in raw_loo if isinstance(r, (int, float)) and math.isfinite(float(r))]
+        if isinstance(raw_loo, list)
+        else []
+    )
+    if not residuals:
+        cal_in = inputs.get("calibration_scores")
+        if isinstance(cal_in, Mapping):
+            for s, m, sd in zip(smis, means, stds, strict=False):
+                if s in cal_in and s not in ctx.al_observed:
+                    err = abs(float(cal_in[s]) - m)
+                    residuals.append(err / sd if mode == "normalized" else err)
+
     n_cal = len(residuals)
-    if n_cal >= 2:
+    if n_cal >= 3:
+        res_arr = np.array(residuals, dtype=np.float64)
         q_level = min(1.0, math.ceil((n_cal + 1) * (1.0 - alpha)) / float(n_cal))
-        q_hat = float(np.quantile(np.array(residuals, dtype=np.float64), q_level, method="higher"))
-        covered = sum(1 for r in residuals if r <= q_hat + 1e-12)
+        q_hat = float(np.quantile(res_arr, q_level, method="higher"))
+        # Leak-free cross-conformal / jackknife coverage: compare each r_i against quantile(r_{-i})
+        covered = 0
+        q_loo_level = min(1.0, math.ceil(n_cal * (1.0 - alpha)) / float(n_cal - 1))
+        for idx_r in range(n_cal):
+            others = np.delete(res_arr, idx_r)
+            q_others = float(np.quantile(others, q_loo_level, method="higher"))
+            if float(res_arr[idx_r]) <= q_others + 1e-12:
+                covered += 1
         emp_cov = covered / float(n_cal)
     else:
         q_hat = 1.645
@@ -3665,7 +3803,8 @@ def execute_circuit(
         for n in graph.get("nodes", ())
         if isinstance(n, Mapping) and "id" in n and not bool(n.get("disabled", False))
     }
-    fwd_in, fb_in = _collect_node_inputs_map(graph)
+    enabled_ids = set(node_by_id)
+    fwd_in, fb_in = _collect_node_inputs_map(graph, enabled_ids=enabled_ids)
 
     steps: list[dict[str, Any]] = []
     dmta_trace: list[dict[str, Any]] = []
@@ -3755,7 +3894,7 @@ def execute_circuit(
                         }
                     )
 
-                # Propagate explicit feedback wires into round t+1 buffers
+                # Propagate explicit feedback wires between enabled nodes into round t+1 buffers
                 new_obs_vals: list[float] = []
                 for edge in graph.get("edges", ()):
                     if not isinstance(edge, Mapping) or edge.get("kind") != "feedback":
@@ -3764,6 +3903,8 @@ def execute_circuit(
                     src_p = str(edge.get("sourcePort", ""))
                     dst_n = str(edge.get("target", ""))
                     dst_p = str(edge.get("targetPort", ""))
+                    if src_n not in enabled_ids or dst_n not in enabled_ids:
+                        continue
                     fb_val = node_outputs.get(src_n, {}).get(src_p)
                     feedback_buffers[(dst_n, dst_p)] = fb_val
                     if isinstance(fb_val, Mapping):

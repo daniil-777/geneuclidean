@@ -607,3 +607,157 @@ def test_cli_studio_command_help() -> None:
     assert "--host" in res.output
     assert "--port" in res.output
     assert "8765" in res.output
+
+
+# ---------------------------------------------------------------------------
+# 6. Regression Tests for @al-verifier Audit Findings (1–4)
+# ---------------------------------------------------------------------------
+
+
+def test_disabled_node_edges_compile_and_execute_without_keyerror() -> None:
+    """Disabling an intermediate node (`n_mmp`) compiles and executes cleanly without KeyError."""
+    preset = get_preset("paralog_selectivity_mmp")
+    for node in preset["nodes"]:
+        if node["id"] == "n_mmp":
+            node["disabled"] = True
+
+    val = validate_circuit(preset)
+    assert val.valid is True
+    assert "n_mmp" not in val.topological_order
+
+    cg = compile_circuit_to_python(preset)
+    assert cg.valid is True
+    assert cg.ast_valid is True
+    assert ast.parse(cg.python_code) is not None
+    assert "node_n_mmp" not in cg.python_code
+
+    run_res = execute_circuit(preset, max_samples=3, timeout_sec=25.0)
+    assert run_res["status"] == "completed"
+    assert all(s["nodeId"] != "n_mmp" for s in run_res["steps"])
+
+
+def test_malformed_position_target_context_and_nan_json_handled_cleanly() -> None:
+    """Malformed node.position, invalid targetContext, and NaN/Infinity JSON return clean errors."""
+    bad_pos: dict[str, Any] = {
+        "schemaVersion": SCHEMA_VERSION,
+        "id": "bad_pos",
+        "name": "Bad Position",
+        "description": "Test",
+        "execution": {
+            "mode": "local_python",
+            "seed": 42,
+            "dmtaRounds": 1,
+            "targetContext": "DRD1\nBAD",
+            "budget": 8,
+        },
+        "nodes": [
+            {
+                "id": "n1",
+                "blockType": "protein_pocket",
+                "position": {"x": "oops", "y": None},
+                "params": {},
+            }
+        ],
+        "edges": [],
+    }
+    val = validate_circuit(bad_pos)
+    assert val.valid is False
+    codes = [d.code for d in val.diagnostics]
+    assert codes.count("E_PARAM_OUT_OF_RANGE") >= 2
+
+    # Also verify live HTTP rejects malformed position (200 w/ valid=False) & NaN/Infinity (400)
+    server = create_studio_server("127.0.0.1", 0, quiet=True)
+    port = int(server.server_address[1])
+    base_url = f"http://127.0.0.1:{port}"
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        code, _, val_json = _http_request(
+            f"{base_url}/api/circuit/validate", method="POST", payload=bad_pos
+        )
+        assert code == 200
+        assert val_json is not None and val_json["valid"] is False
+
+        # Non-RFC-8259 NaN/Infinity constants must be rejected with HTTP 400
+        nan_body = (
+            b'{"circuit": {"schemaVersion": "geneuclidean.circuit.v1"}, '
+            b'"options": {"timeoutSec": NaN}}'
+        )
+        code_nan, _, err_nan = _http_request(
+            f"{base_url}/api/circuit/run",
+            method="POST",
+            raw_bytes=nan_body,
+        )
+        assert code_nan == 400
+        assert err_nan is not None and "error" in err_nan
+
+        code_neg, _, err_neg = _http_request(
+            f"{base_url}/api/circuit/run",
+            method="POST",
+            payload={"circuit": get_preset("blank_breadboard"), "options": {"timeoutSec": -5}},
+        )
+        assert code_neg == 400
+        assert err_neg is not None and "error" in err_neg
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_codegen_handles_backslashes_and_unicode_escapes_without_warnings() -> None:
+    """Backslashes, \\x escapes, and trailing backslashes compile with zero SyntaxWarning."""
+    import warnings
+
+    for tricky_name in (r"C:\Users\drd1\circuit", r"test \x1 escape", "trailing\\"):
+        for preset_id in ("blank_breadboard", "se3_denovo_cns"):
+            graph = get_preset(preset_id)
+            graph["name"] = tricky_name
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always", SyntaxWarning)
+                res = compile_circuit_to_python(graph)
+                assert res.valid is True
+                assert res.ast_valid is True
+                ast.parse(res.python_code)
+            syntax_warnings = [w for w in caught if issubclass(w.category, SyntaxWarning)]
+            assert syntax_warnings == [], f"SyntaxWarning on {tricky_name!r}: {syntax_warnings}"
+
+
+def test_tanimoto_gp_zero_norm_kernel_and_leak_free_loo_conformal() -> None:
+    """Tanimoto GP sets k(0,0)=signal_var and produces leak-free LOO residuals for Conformal UQ."""
+    import numpy as np
+
+    from geneuclidean.studio.graph_compiler import _fit_tanimoto_gp_numpy
+
+    # Zero-norm vectors must have k(0, 0) = signal_var -> non-zero predictive mean & exact var
+    zero_x = np.zeros((2, 8), dtype=np.float64)
+    zero_y = np.array([1.0, 3.0], dtype=np.float64)
+    mu_z, std_z, loo_abs_z, loo_norm_z = _fit_tanimoto_gp_numpy(
+        zero_x, zero_y, zero_x, noise_var=0.05, signal_var=1.5
+    )
+    assert np.all(np.isfinite(mu_z)) and np.all(std_z >= 0.0)
+    assert float(std_z[0]) < 1.0  # Collapsed below prior sqrt(1.5) because k(0, 0) = 1.5!
+    assert len(loo_abs_z) == 2 and len(loo_norm_z) == 2
+
+    # Non-trivial noisy regression: LOO residuals must strictly exceed memorized in-sample residuals
+    rng = np.random.default_rng(7)
+    x_tr = (rng.random((12, 32)) > 0.65).astype(np.float64)
+    y_tr = x_tr[:, 0] * 2.5 - x_tr[:, 1] * 1.5 + rng.normal(0.0, 0.3, size=12)
+    mu_in, _std_in, loo_abs, loo_norm = _fit_tanimoto_gp_numpy(
+        x_tr, y_tr, x_tr, noise_var=0.02, signal_var=1.0
+    )
+    insample_mae = float(np.mean(np.abs(y_tr - mu_in)))
+    loo_mae = float(np.mean(loo_abs))
+    assert loo_mae > insample_mae * 2.0, (
+        f"Expected leak-free LOO MAE ({loo_mae:.4f}) >> in-sample MAE ({insample_mae:.4f})"
+    )
+    assert all(r >= 0.0 for r in loo_norm)
+
+    # End-to-end AL DMTA closed loop produces non-collapsed leak-free conformal q_hat
+    al_preset = get_preset("al_dmta_closed_loop")
+    al_preset["execution"]["dmtaRounds"] = 3
+    res = execute_circuit(al_preset, max_samples=4, timeout_sec=30.0)
+    assert res["status"] == "completed"
+    conf_steps = [s for s in res["steps"] if s["blockType"] == "conformal_calibrator"]
+    assert len(conf_steps) == 3
+    final_q_hat = float(conf_steps[-1]["metrics"]["q_hat"])
+    assert final_q_hat > 0.25, f"q_hat collapsed to in-sample memorization: {final_q_hat}"

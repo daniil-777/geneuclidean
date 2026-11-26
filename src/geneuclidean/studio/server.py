@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import importlib.metadata
 import json
+import math
 import platform
 import time
 from http import HTTPStatus
@@ -77,6 +78,11 @@ class StudioHTTPServer(ThreadingHTTPServer):
         super().__init__(server_address, StudioRequestHandler)
 
 
+def _reject_json_constant(token: str) -> Any:
+    """Reject non-RFC-8259 JSON constants (NaN, Infinity, -Infinity)."""
+    raise ValueError(f"Non-standard JSON constant {token!r} is forbidden.")
+
+
 class StudioRequestHandler(BaseHTTPRequestHandler):
     """Strict JSON + CORS request handler for the GenEuclidean Circuit Studio API."""
 
@@ -93,7 +99,9 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Max-Age", "600")
 
     def _send_json(self, status: int, payload: Any) -> None:
-        raw = (json.dumps(payload, separators=(",", ":"), default=str) + "\n").encode("utf-8")
+        raw = (
+            json.dumps(payload, separators=(",", ":"), allow_nan=False, default=str) + "\n"
+        ).encode("utf-8")
         self.send_response(status)
         self._write_cors_headers()
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -123,8 +131,8 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             )
         body = self.rfile.read(content_len)
         try:
-            decoded = json.loads(body.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            decoded = json.loads(body.decode("utf-8"), parse_constant=_reject_json_constant)
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
             return None, int(HTTPStatus.BAD_REQUEST), f"Invalid JSON payload: {exc}"
         if not isinstance(decoded, dict):
             return None, int(HTTPStatus.BAD_REQUEST), "JSON request body must be an object."
@@ -141,19 +149,34 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
         self._send_json(int(HTTPStatus.NOT_FOUND), {"error": "Not found", "path": path})
 
     def do_GET(self) -> None:
-        path = urlparse(self.path).path
-        if path == "/api/health":
+        try:
+            path = urlparse(self.path).path
+            if path == "/api/health":
+                self._send_json(
+                    int(HTTPStatus.OK),
+                    build_health_payload(start_monotonic=self.server.start_monotonic),
+                )
+                return
+            if path == "/api/catalog":
+                self._send_json(int(HTTPStatus.OK), export_catalog_payload())
+                return
+            self._send_json(int(HTTPStatus.NOT_FOUND), {"error": "Not found", "path": path})
+        except Exception as exc:
             self._send_json(
-                int(HTTPStatus.OK),
-                build_health_payload(start_monotonic=self.server.start_monotonic),
+                int(HTTPStatus.INTERNAL_SERVER_ERROR),
+                {"error": f"Internal server error: {type(exc).__name__}"},
             )
-            return
-        if path == "/api/catalog":
-            self._send_json(int(HTTPStatus.OK), export_catalog_payload())
-            return
-        self._send_json(int(HTTPStatus.NOT_FOUND), {"error": "Not found", "path": path})
 
     def do_POST(self) -> None:
+        try:
+            self._handle_post()
+        except Exception as exc:
+            self._send_json(
+                int(HTTPStatus.INTERNAL_SERVER_ERROR),
+                {"error": f"Internal server error: {type(exc).__name__}"},
+            )
+
+    def _handle_post(self) -> None:
         path = urlparse(self.path).path
         if path not in ("/api/circuit/validate", "/api/circuit/codegen", "/api/circuit/run"):
             self._send_json(int(HTTPStatus.NOT_FOUND), {"error": "Not found", "path": path})
@@ -207,16 +230,25 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
         dry_run = bool(raw_opts.get("dryRun", False))
         raw_max_samples = raw_opts.get("maxSamples", 8)
         raw_timeout = raw_opts.get("timeoutSec", 30.0)
-        if isinstance(raw_max_samples, bool) or not isinstance(raw_max_samples, int):
+        if (
+            isinstance(raw_max_samples, bool)
+            or not isinstance(raw_max_samples, int)
+            or raw_max_samples < 1
+        ):
             self._send_json(
                 int(HTTPStatus.BAD_REQUEST),
-                {"error": "options.maxSamples must be an integer."},
+                {"error": "options.maxSamples must be an integer >= 1."},
             )
             return
-        if isinstance(raw_timeout, bool) or not isinstance(raw_timeout, (int, float)):
+        if (
+            isinstance(raw_timeout, bool)
+            or not isinstance(raw_timeout, (int, float))
+            or not math.isfinite(float(raw_timeout))
+            or float(raw_timeout) <= 0.0
+        ):
             self._send_json(
                 int(HTTPStatus.BAD_REQUEST),
-                {"error": "options.timeoutSec must be a number."},
+                {"error": "options.timeoutSec must be a finite positive number."},
             )
             return
 
