@@ -234,6 +234,146 @@ a perturbation. The test suite therefore asserts bitwise zero for dense decoders
 
 ---
 
+## 7b. Conditioning mechanism, decoding, and the benchmark that is partly an artifact
+
+### The three-way ablation does not exist — and we are one flag from publishing it
+
+**[V] There is no published ablation of cross-attention vs Perceiver soft-prefix vs
+FiLM/adaLN within one model and one dataset.** Not for molecules, not anywhere. Two
+*two-way* ablations exist and they disagree:
+
+| Study | Backbone | Result |
+|---|---|---|
+| **Frag2Seq** (arXiv:2408.09730, Tab. 4) | one GPT-1, CrossDocked Luo split | **cross-attn −7.366 Vina beats prefix −6.646** (+0.72 kcal/mol); prefix diversity **0.493 ± 0.39** (mode-collapses on many pockets) |
+| **f-RAG** (arXiv:2411.12078, Tab. 8–9) | frozen SAFE-GPT | deleting cross-attn costs **0.038** AUC; deleting the in-sequence channel costs **1.697** (45×); deleting the search loop costs **2.880** (76×) |
+
+**Reconciliation:** they differ on whether the condition is expressible in the decoder's
+own token language. f-RAG's signal is *fragments*, natively writable in SAFE, so
+cross-attention adds nothing. Frag2Seq's signal is a *protein*, which is not — so a
+learned encoder plus cross-attention wins. **A pocket is in the Frag2Seq regime, so
+cross-attention is the right default**, which is what this library does.
+
+Supporting, from outside chemistry (read with care — different scale): Flamingo
+(arXiv:2204.14198, Tab. 3) settles *where* — cross-attn in **every** layer 70.7 vs once
+in the middle 59.8, and **0-init tanh gating is worth +4.2 and fixes instability**;
+Idefics2 (arXiv:2405.02246, Tab. 3) finds cross-attn wins with a **frozen** backbone
+(66.7 vs 60.3) and loses once LoRA'd (67.3 vs 69.5). DiT's adaLN-Zero result is
+**diffusion-specific** and conditions on *two tokens* (class + timestep); DiT itself notes
+adaLN "is the only conditioning mechanism restricted to apply the same function to all
+tokens", which cannot express *this* substituent facing *that* subpocket. LlamaGen read
+DiT and explicitly declined adaLN. **[V] Zero papers ablate adaLN/FiLM against
+cross-attention inside an autoregressive token decoder.**
+
+**The open experiment:** 3DSMILES-GPT (*Chem. Sci.* 2025) implements a pocket **prefix**
+*and* cross-attention on one backbone, calls the encoder "a detachable modular component"
+and **reports no detached-vs-attached ablation**. Since this library already ships both
+`cross_attn` and `prefix` modes, that ablation is one config flag away. Frag2Seq's
+confound to avoid: it did not match context length (850 vs 512).
+
+### 🔴 The 3D leaderboard is substantially an artifact — good news for a SMILES decoder
+
+- **[V] Generating 3D coordinates contributes ~3% of the Vina Dock rank signal.** Replacing
+  the entire generated conformer leaves Vina rank correlation at **ρ = 0.971**; scrambling
+  every atom type leaves ρ = 0.827 (arXiv:2408.06050, Tab. 3). Redocking washes the
+  generated pose out.
+- **[V] Retrieval beats every generative model.** Random retrieval of 16,384 ChEMBL
+  molecules per pocket, filtered by a **23,000-parameter** surrogate, reaches
+  **−8.03 kcal/mol in 2.6 s on CPU** vs TargetDiff −6.91 in 3,428 s. AutoGrow4 (2020,
+  zero trainable parameters) reaches −8.33.
+- **[V] Vina Dock is size-hackable.** MolCRAFT (arXiv:2404.12141, Tab. 2): size-matched at
+  29.4 heavy atoms it scores −9.25 vs DecompDiff-O's −8.39, so **Decomp-O's entire lead
+  was molecule size**; raising its own size prior buys 1.33 kcal/mol. The added contacts
+  are the non-specific ones — vdW and hydrophobic scale, **H-bonds do not**.
+- **[V] Validity collapses under 3D scrutiny.** GenBench3D: TargetDiff graph-validity
+  1.000 → 3D-validity **0.106**; DiffSBDD 1.000 → **0.004**. PoseCheck median strain:
+  reference 102.5, TargetDiff **1241.7**, DiffSBDD **1243.1**. No method under 2 Å median
+  redock RMSD.
+
+**Consequence:** giving up 3D coordinates costs ~3% of the ranking signal and *gains*
+near-100% intramolecular validity. **A defensible target for this decoder is Vina Dock
+≈ −7.9 at 22–23 heavy atoms, QED 0.52, SA 0.70, diversity 0.71, PoseBusters-valid ~92%**,
+with heavy-atom count reported in the main table. Three baselines decide whether the work
+is real: random ChEMBL retrieval + the 23K-param filter, AutoGrow4/graph-GA with a docking
+reward, and size-matched reporting. Note we cannot report a `Vina Score` column at all
+(no generated pose) — only `Vina Dock`.
+
+⚠️ **"Vina score" means three incompatible things** (TargetDiff's 3-column convention vs
+QuickVina-redock vs gnina ΔVina), differing by 1.5–2 kcal/mol. Many circulating baseline
+numbers trace to a single re-evaluation in TargetDiff (ICLR 2023) Tab. 1, copied into 8+
+later papers; four different numbers circulate for AR alone.
+
+### Decoding — two of our current defaults are likely wrong
+
+- ⚠️ **Top-p and top-k are probably harmful for SMILES.** With a ~33–66 token vocabulary,
+  nucleus truncation is destructive, and **REINVENT4 exposes neither** (`sample_strategy`
+  default `multinomial`). Our `SamplingConfig` defaults to `top_p=0.92, top_k=30` and the
+  v6 notebook samples at `top_p=0.95`. Recommended: temperature-only at T ≈ 0.8–1.0, and
+  measure before keeping truncation.
+- ⚠️ **CFG at high guidance destroys physical validity.** NEAT-POCKET's sweep:
+  ω=0 → PoseBusters-valid 71.0%, strain 155, Vina −4.4; **ω=2.5 → PB-valid 47.9%
+  (−23 pts), strain 783 (5×)**, Vina −5.6. Turning up conditioning buys 1.2 kcal/mol and
+  wrecks the molecule. Our `cfg_scale` default is **1.75**; the consensus optimum is
+  **γ ≈ 1.5–2.0** with `p_uncond = 0.1`. **Sweep against the pocket-reliance delta, not
+  raw docking score.** Sources disagree on whether CFG costs diversity, so measure it.
+- **Best-of-n with a reranker is the strongest, simplest first move.** n=16 captures most
+  of the win (>95% constraint satisfaction one-shot → ≈100% at best-of-16), and best-of-k
+  buys **diversity at flat reward** (STGG+ on QM9: k=1 → 0.78/0.76, k=100 → 0.77/0.98).
+- **Grammar-constrained decoding: do not reach for outlines/XGrammar/llguidance.** Every
+  published overhead number targets a ~128k vocabulary; our mask is ~33–66 booleans.
+  SMILES syntax is LL(1) but **ring-bond digit matching and valence are outside it**.
+  Write the masker explicitly (open-ring `set[int]`, branch stack, per-atom valence) and
+  validate it against `partialsmiles` on 100k training prefixes. STGG+ is the existence
+  proof that correct masking is free: validity **1.000** *and* the best FCD anyway.
+- ⚠️ **Beam-search folklore is wrong for conditional tasks**: beam gives 4–6× more
+  scaffolds than sampling on L+M-24, while *diverse* beam raises textual diversity and
+  *drops* structural (NCircles 4.562 → 2.395).
+
+### RL — do not start with GRPO or DPO
+
+**[V] As of Nov 2026 there is not one published paper applying GRPO to molecules that
+benchmarks it at a fixed oracle budget against a REINVENT-family baseline.** GRPO exists
+for critic-free group-relative advantage on multi-token reasoning rewards; a molecular
+reward is a single scalar on a complete sequence — a contextual bandit, which REINVENT
+already is. GRPO papers report it collapses diversity. DPO's origin paper has **no RL
+baseline at all**, and on pocket-conditioned generators AliDiff's own table shows plain
+DPO underperforming its E²PO on every affinity metric. This repo ships both `dpo.py` and
+`grpo_policy_loss` — fine to keep, but neither is the evidence-backed starting point.
+
+What has the largest measured effect:
+1. **A diversity filter beats any algorithm choice.** DRD2, 30,000 compounds: no memory
+   5,143 unique / 2,635 scaffolds → scaffold-similarity filter **22,784 / 20,712**
+   (**4.4× compounds, 7.9× scaffolds**). ⚠️ Set `minscore` *below* target, or the agent
+   learns to score just under the threshold to dodge being memorized.
+2. **Never optimize raw docking alone.** ACEGEN produced −23.9 to −15.8 against a −8.44
+   redocked reference; DOCKSTRING's logP objective produced logP 42, MW 3.1 kDa, QED
+   0.014. Use a **weighted geometric mean** so a bad component zeroes the reward.
+3. **ACEGEN's filter inversion** — re-scoring the same runs through chemistry filters
+   *inverts* the ranking: REINVENT-MolOpt 15.65 → **7.00**, plain REINVENT 13.60 →
+   **14.74**. "The best RL algorithms on MolOpt are not the best on docking."
+
+### Two free wins worth more than any mechanism choice
+
+Across every paper that ablated anything, **representation/data and the inference-time
+search loop dominate the conditioning mechanism by roughly an order of magnitude**
+(f-RAG: removing the search loop costs 76× more than removing cross-attention;
+Chem3DLLM: representation is worth 5.39 kcal/mol while removing RL costs 0.18).
+
+1. **Gaussian cross-entropy for any discretized numeric head** — replace the one-hot
+   target with a Gaussian centred on the true value, so near-miss coordinate/angle bins
+   are penalised less. ~10 lines, credited with ~30% regression improvement.
+2. **Learned "unknown" embeddings for dropped conditions**, so pocket-conditioned and
+   molecule-only rows share a batch — lets you train on millions of molecules plus ~100k
+   pockets without the pocket path collapsing. `PropertyConditioner` already does this for
+   properties; the same trick applies to the pocket.
+
+⚠️ **License traps:** Lingo3DMol and DrugGPT are **GPL-3.0** (copyleft);
+Chemlactica/Chemma **weights** are CC-BY-NC-4.0 despite MIT code; mCLM is CC-BY-NC-**ND**,
+whose NoDerivatives term legally forbids building on those weights. Frag2Seq, f-RAG and
+BindGPT released no usable code. TamGen (MIT), Token-Mol (MIT), SAFE-GPT (Apache-2.0) and
+NovoMolGen (MIT) are clean.
+
+---
+
 ## 8. Ranked next steps
 
 1. **Build the ChEMBL ⋈ UniProt ⋈ pocket join.** Largest single data win available, and
