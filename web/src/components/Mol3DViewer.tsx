@@ -219,30 +219,49 @@ export const Mol3DViewer = forwardRef<Mol3DViewerHandle, Mol3DViewerProps>(funct
 
     if (protein) {
       protein.setStyle({}, { cartoon: { colorfunc: colorfn, opacity: 0.78, thickness: 0.36 } });
+      // Render catalytic cofactors (FAD, ADP, Zn, Mg) as sticks/spheres alongside the ribbon.
+      // Note: 3Dmol GLModel uses setStyle(sel, style, true) to append styles; GLModel has no addStyle().
+      protein.setStyle(
+        { hetflag: true },
+        {
+          stick: { radius: 0.14, colorscheme: 'Jmol', opacity: 0.92 },
+          sphere: { scale: 0.24, colorscheme: 'Jmol', opacity: 0.92 },
+        },
+        true,
+      );
       if (showSidechains) {
         const keyRes = complex.profile?.key_residues ?? [];
         keyRes.slice(0, 14).forEach((resStr) => {
-          protein.addStyle(parseResidueSel(resStr), {
-            stick: { radius: 0.11, colorscheme: 'Jmol', opacity: 0.88 },
-          });
+          const sel = parseResidueSel(resStr);
+          if (sel.resi !== undefined) {
+            protein.setStyle(
+              sel,
+              {
+                stick: { radius: 0.11, colorscheme: 'Jmol', opacity: 0.88 },
+              },
+              true,
+            );
+          }
         });
       }
     }
 
-    if (modelsRef.current.surface !== null) {
-      try {
-        viewer.removeSurface(modelsRef.current.surface);
-      } catch {
-        // ignore surface removal errors on re-render
-      }
-      modelsRef.current.surface = null;
+    try {
+      viewer.removeAllSurfaces();
+    } catch {
+      // ignore surface removal errors on re-render
     }
+    modelsRef.current.surface = null;
     if (showSurface && protein) {
-      modelsRef.current.surface = viewer.addSurface(
-        $3Dmol.SurfaceType.SAS,
-        { opacity: canvasTheme === 'dark' ? 0.22 : 0.16, colorfunc: colorfn },
-        { model: protein },
-      );
+      try {
+        modelsRef.current.surface = viewer.addSurface(
+          $3Dmol.SurfaceType.SAS,
+          { opacity: canvasTheme === 'dark' ? 0.22 : 0.16, colorfunc: colorfn },
+          { model: protein, hetflag: false },
+        );
+      } catch {
+        // gracefully skip surface if WebGL context cannot allocate surface mesh
+      }
     }
 
     const cpkMap =
@@ -404,7 +423,12 @@ export const Mol3DViewer = forwardRef<Mol3DViewerHandle, Mol3DViewerProps>(funct
   // Re-apply visual styles without rebuilding models
   useEffect(() => {
     if (viewerRef.current && complex) {
-      applyStyling();
+      try {
+        applyStyling();
+        setWebglError(null);
+      } catch (err) {
+        setWebglError(err instanceof Error ? err.message : 'Failed to render 3D molecular style.');
+      }
     }
   }, [applyStyling, complex]);
 
@@ -435,11 +459,13 @@ export const Mol3DViewer = forwardRef<Mol3DViewerHandle, Mol3DViewerProps>(funct
     if (!viewer) return;
     setSpinning(false);
     viewer.spin(false);
-    const mx = 0.5 * (rec.protein_xyz[0] + rec.ligand_xyz[0]);
-    const my = 0.5 * (rec.protein_xyz[1] + rec.ligand_xyz[1]);
-    const mz = 0.5 * (rec.protein_xyz[2] + rec.ligand_xyz[2]);
-    viewer.zoomTo({ model: 0, ...parseResidueSel(rec.protein_residue) }, 420);
-    viewer.center({ x: mx, y: my, z: mz }, 380);
+    const sel = parseResidueSel(rec.protein_residue);
+    if (modelsRef.current.protein && sel.resi !== undefined) {
+      viewer.zoomTo({ model: modelsRef.current.protein, ...sel }, 420);
+      viewer.zoom(0.72, 420);
+    } else if (modelsRef.current.ligand) {
+      viewer.zoomTo({ model: modelsRef.current.ligand }, 420);
+    }
   }, []);
 
   const focusAnchor = useCallback(() => {

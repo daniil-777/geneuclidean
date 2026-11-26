@@ -2965,21 +2965,19 @@ _INTERACTIVE_HTML_TEMPLATE = r"""<!DOCTYPE html>
       const keyRes = (spec.profile && spec.profile.key_residues) ? spec.profile.key_residues : [];
       keyRes.slice(0, 14).forEach(resStr => {
         const sel = parseResidueSelector(resStr);
-        proteinModel.addStyle(sel, {
+        proteinModel.setStyle(sel, {
           stick: { radius: 0.12, colorscheme: "Jmol", opacity: 0.90 }
-        });
+        }, true);
       });
     }
 
-    if (surfaceObj !== null) {
-      try { viewer.removeSurface(surfaceObj); } catch (e) {}
-      surfaceObj = null;
-    }
+    try { viewer.removeAllSurfaces(); } catch (e) {}
+    surfaceObj = null;
     if (state.showSurface && window.$3Dmol) {
       surfaceObj = viewer.addSurface(
         $3Dmol.SurfaceType.SAS,
         { opacity: 0.24, colorfunc: colorfn },
-        { model: proteinModel }
+        { model: proteinModel, hetflag: false }
       );
     }
   }

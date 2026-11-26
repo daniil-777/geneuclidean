@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Navbar } from './components/Navbar';
 import {
   loadExperiments,
@@ -133,59 +134,61 @@ export function App() {
       />
 
       <main className="flex-1">
-        {activeTab === 'overview' && (
-          <OverviewView
-            overview={overview}
-            theme={theme}
-            onNavigate={(tab, target) => handleNavigate(tab, target, 'All')}
-          />
-        )}
-
-        {activeTab === 'studio3d' && (
-          <Studio3DView
-            molecules={moleculesIdx.molecules}
-            initialTarget={selectedTarget}
-            initialDisorderFilter={disorderFilter}
-            theme={theme}
-            onSelectTarget={setSelectedTarget}
-          />
-        )}
-
-        {activeTab === 'generator' && (
-          <GeneratorView
-            molecules={moleculesIdx.molecules}
-            theme={theme}
-            onInspectIn3D={(target) => handleNavigate('studio3d', target, 'All')}
-          />
-        )}
-
-        {activeTab === 'experiments' &&
-          (experiments ? (
-            <ExperimentsView
-              experiments={experiments}
-              v4Benchmarks={v4Benchmarks}
-              casfModels={overview.model_comparison_casf}
+        <ErrorBoundary key={activeTab} fallbackTitle="GenEuclidean Studio View Error">
+          {activeTab === 'overview' && (
+            <OverviewView
+              overview={overview}
               theme={theme}
-              onInspectTarget={(target) => handleNavigate('studio3d', target, 'All')}
+              onNavigate={(tab, target) => handleNavigate(tab, target, 'All')}
             />
-          ) : (
-            <div className="min-h-[60vh] flex flex-col items-center justify-center gap-2 text-xs text-[var(--text-muted)]">
-              <div className="h-6 w-6 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin" />
-              Loading interactive experimental datasets…
-            </div>
-          ))}
+          )}
 
-        {activeTab === 'disorders' && (
-          <DisordersView
-            molecules={moleculesIdx.molecules}
-            v4Discovery={overview.v4_discovery}
-            onLaunchStudio={(target, disorder) => handleNavigate('studio3d', target, disorder)}
-          />
-        )}
+          {activeTab === 'studio3d' && (
+            <Studio3DView
+              molecules={moleculesIdx.molecules}
+              initialTarget={selectedTarget}
+              initialDisorderFilter={disorderFilter}
+              theme={theme}
+              onSelectTarget={setSelectedTarget}
+            />
+          )}
 
-        {activeTab === 'figures' && (
-          <FiguresView figures={overview.figures} repoUrl={overview.repo_url} />
-        )}
+          {activeTab === 'generator' && (
+            <GeneratorView
+              molecules={moleculesIdx.molecules}
+              theme={theme}
+              onInspectIn3D={(target) => handleNavigate('studio3d', target, 'All')}
+            />
+          )}
+
+          {activeTab === 'experiments' &&
+            (experiments ? (
+              <ExperimentsView
+                experiments={experiments}
+                v4Benchmarks={v4Benchmarks}
+                casfModels={overview.model_comparison_casf}
+                theme={theme}
+                onInspectTarget={(target) => handleNavigate('studio3d', target, 'All')}
+              />
+            ) : (
+              <div className="min-h-[60vh] flex flex-col items-center justify-center gap-2 text-xs text-[var(--text-muted)]">
+                <div className="h-6 w-6 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin" />
+                Loading interactive experimental datasets…
+              </div>
+            ))}
+
+          {activeTab === 'disorders' && (
+            <DisordersView
+              molecules={moleculesIdx.molecules}
+              v4Discovery={overview.v4_discovery}
+              onLaunchStudio={(target, disorder) => handleNavigate('studio3d', target, disorder)}
+            />
+          )}
+
+          {activeTab === 'figures' && (
+            <FiguresView figures={overview.figures} repoUrl={overview.repo_url} />
+          )}
+        </ErrorBoundary>
       </main>
 
       <footer className="border-t border-[var(--border-subtle)] py-4 px-5 mt-8">
