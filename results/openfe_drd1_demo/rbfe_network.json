@@ -1,0 +1,99 @@
+{
+  "schema": "geneuclidean_openfe_rbfe_v1",
+  "pocket_pdb": "data/cns_neuro.nosync/structures/clean_pockets/9LLG_DRD1_A1EKL_pocket.pdb",
+  "ligands_sdf": "aligned_ligands_ph74.sdf",
+  "n_ligands": 6,
+  "n_edges": 7,
+  "require_same_charge": true,
+  "ligands": [
+    {
+      "name": "DRD1_Makeable_1",
+      "smiles_ph74": "C[NH+]1CCN(C(=O)c2ccc3ccccc3n2)CC1",
+      "net_charge_ph74": 1
+    },
+    {
+      "name": "DRD1_Makeable_2",
+      "smiles_ph74": "CC[NH+]1CCN(C(=O)c2ccc3ccccc3n2)CC1",
+      "net_charge_ph74": 1
+    },
+    {
+      "name": "DRD1_Makeable_3",
+      "smiles_ph74": "O=C(c1ccc2ccccc2n1)N1CCOCC1",
+      "net_charge_ph74": 0
+    },
+    {
+      "name": "DRD1_Makeable_4",
+      "smiles_ph74": "O=C(c1ccc2ccccc2n1)N1CCCCC1",
+      "net_charge_ph74": 0
+    },
+    {
+      "name": "DRD1_Makeable_5",
+      "smiles_ph74": "O=C(c1ccc2ccccc2n1)N1CC[NH+](Cc2ccc(F)cc2)CC1",
+      "net_charge_ph74": 1
+    },
+    {
+      "name": "DRD1_Makeable_6",
+      "smiles_ph74": "CC1C[NH+](C)CCN1C(=O)c1ccc2ccccc2n1",
+      "net_charge_ph74": 1
+    }
+  ],
+  "edges": [
+    {
+      "ligand_a": "DRD1_Makeable_1",
+      "ligand_b": "DRD1_Makeable_2",
+      "mcs_num_atoms": 19,
+      "lomap_like_score": 0.9048,
+      "delta_formal_charge": 0,
+      "delta_heavy_atoms": 1
+    },
+    {
+      "ligand_a": "DRD1_Makeable_1",
+      "ligand_b": "DRD1_Makeable_6",
+      "mcs_num_atoms": 19,
+      "lomap_like_score": 0.9048,
+      "delta_formal_charge": 0,
+      "delta_heavy_atoms": 1
+    },
+    {
+      "ligand_a": "DRD1_Makeable_1",
+      "ligand_b": "DRD1_Makeable_5",
+      "mcs_num_atoms": 19,
+      "lomap_like_score": 0.4966,
+      "delta_formal_charge": 0,
+      "delta_heavy_atoms": 7
+    },
+    {
+      "ligand_a": "DRD1_Makeable_3",
+      "ligand_b": "DRD1_Makeable_4",
+      "mcs_num_atoms": 13,
+      "lomap_like_score": 0.3679,
+      "delta_formal_charge": 0,
+      "delta_heavy_atoms": 0
+    },
+    {
+      "ligand_a": "DRD1_Makeable_2",
+      "ligand_b": "DRD1_Makeable_6",
+      "mcs_num_atoms": 19,
+      "lomap_like_score": 0.8187,
+      "delta_formal_charge": 0,
+      "delta_heavy_atoms": 0
+    },
+    {
+      "ligand_a": "DRD1_Makeable_2",
+      "ligand_b": "DRD1_Makeable_5",
+      "mcs_num_atoms": 19,
+      "lomap_like_score": 0.4493,
+      "delta_formal_charge": 0,
+      "delta_heavy_atoms": 6
+    },
+    {
+      "ligand_a": "DRD1_Makeable_5",
+      "ligand_b": "DRD1_Makeable_6",
+      "mcs_num_atoms": 19,
+      "lomap_like_score": 0.4493,
+      "delta_formal_charge": 0,
+      "delta_heavy_atoms": 6
+    }
+  ],
+  "skipped_ligands": []
+}

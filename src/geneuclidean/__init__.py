@@ -38,6 +38,9 @@ if TYPE_CHECKING:
         api as api,
     )
     from geneuclidean import (
+        audit as audit,
+    )
+    from geneuclidean import (
         cli as cli,
     )
     from geneuclidean import (
@@ -56,6 +59,15 @@ if TYPE_CHECKING:
         exceptions as exceptions,
     )
     from geneuclidean import (
+        interop as interop,
+    )
+    from geneuclidean import (
+        leadopt as leadopt,
+    )
+    from geneuclidean import (
+        mcp_server as mcp_server,
+    )
+    from geneuclidean import (
         models as models,
     )
     from geneuclidean import (
@@ -68,10 +80,40 @@ if TYPE_CHECKING:
         sampling as sampling,
     )
     from geneuclidean import (
+        screening as screening,
+    )
+    from geneuclidean import (
         sdk as sdk,
     )
     from geneuclidean import (
+        synthesis as synthesis,
+    )
+    from geneuclidean import (
         training as training,
+    )
+    from geneuclidean.audit import (
+        PoseAuditReport as PoseAuditReport,
+    )
+    from geneuclidean.audit import (
+        PoseRealityAuditor as PoseRealityAuditor,
+    )
+    from geneuclidean.audit import (
+        audit_complex as audit_complex,
+    )
+    from geneuclidean.audit import (
+        export_audit_json as export_audit_json,
+    )
+    from geneuclidean.audit import (
+        summarize_audit_batch as summarize_audit_batch,
+    )
+    from geneuclidean.cns.dmpk_regression import (
+        ConformalDMPKRegressor as ConformalDMPKRegressor,
+    )
+    from geneuclidean.cns.dmpk_regression import (
+        ConformalRegressionPrediction as ConformalRegressionPrediction,
+    )
+    from geneuclidean.cns.dmpk_regression import (
+        evaluate_scaffold_cv_conformal_dmpk as evaluate_scaffold_cv_conformal_dmpk,
     )
     from geneuclidean.cns.medchem_triage import (
         MedChemTriageResult as MedChemTriageResult,
@@ -187,6 +229,42 @@ if TYPE_CHECKING:
     from geneuclidean.evaluation.ring_strain import (
         register_ring_strain_backend as register_ring_strain_backend,
     )
+    from geneuclidean.evaluation.tautomer_microstate import (
+        MicrostateCandidate as MicrostateCandidate,
+    )
+    from geneuclidean.evaluation.tautomer_microstate import (
+        TautomerMicrostateAudit as TautomerMicrostateAudit,
+    )
+    from geneuclidean.evaluation.tautomer_microstate import (
+        audit_tautomer_microstate_ph74 as audit_tautomer_microstate_ph74,
+    )
+    from geneuclidean.evaluation.tautomer_microstate import (
+        enumerate_tautomer_microstates_ph74 as enumerate_tautomer_microstates_ph74,
+    )
+    from geneuclidean.evaluation.torsion_strain import (
+        TORSION_BACKEND_REGISTRY as TORSION_BACKEND_REGISTRY,
+    )
+    from geneuclidean.evaluation.torsion_strain import (
+        TorsionReport as TorsionReport,
+    )
+    from geneuclidean.evaluation.torsion_strain import (
+        TorsionStrainFilter as TorsionStrainFilter,
+    )
+    from geneuclidean.evaluation.torsion_strain import (
+        TorsionStrainProfile as TorsionStrainProfile,
+    )
+    from geneuclidean.evaluation.torsion_strain import (
+        TorsionStrainScorer as TorsionStrainScorer,
+    )
+    from geneuclidean.evaluation.torsion_strain import (
+        analyze_torsion_strain as analyze_torsion_strain,
+    )
+    from geneuclidean.evaluation.torsion_strain import (
+        load_torsion_library_xml as load_torsion_library_xml,
+    )
+    from geneuclidean.evaluation.torsion_strain import (
+        register_torsion_backend as register_torsion_backend,
+    )
     from geneuclidean.exceptions import (
         CheckpointError as CheckpointError,
     )
@@ -213,6 +291,45 @@ if TYPE_CHECKING:
     )
     from geneuclidean.exceptions import (
         TargetNotFoundError as TargetNotFoundError,
+    )
+    from geneuclidean.interop import (
+        OpenFENetworkBundle as OpenFENetworkBundle,
+    )
+    from geneuclidean.interop import (
+        OpenFEPerturbationEdge as OpenFEPerturbationEdge,
+    )
+    from geneuclidean.interop import (
+        audit_cofolded_complex as audit_cofolded_complex,
+    )
+    from geneuclidean.interop import (
+        export_openfe_rbfe_network as export_openfe_rbfe_network,
+    )
+    from geneuclidean.interop import (
+        load_cofolded_complex as load_cofolded_complex,
+    )
+    from geneuclidean.leadopt import (
+        ActivityCliffPair as ActivityCliffPair,
+    )
+    from geneuclidean.leadopt import (
+        AvoidomeMMPEngine as AvoidomeMMPEngine,
+    )
+    from geneuclidean.leadopt import (
+        AvoidomeMMPProposal as AvoidomeMMPProposal,
+    )
+    from geneuclidean.leadopt import (
+        RGroupSARResult as RGroupSARResult,
+    )
+    from geneuclidean.leadopt import (
+        analyze_rgroup_sar as analyze_rgroup_sar,
+    )
+    from geneuclidean.mcp_server import (
+        DMTA_TOOL_SCHEMAS as DMTA_TOOL_SCHEMAS,
+    )
+    from geneuclidean.mcp_server import (
+        invoke_dmta_tool as invoke_dmta_tool,
+    )
+    from geneuclidean.mcp_server import (
+        run_mcp_stdio_server as run_mcp_stdio_server,
     )
     from geneuclidean.protocols import (
         DesignCallbackProtocol as DesignCallbackProtocol,
@@ -297,6 +414,33 @@ if TYPE_CHECKING:
     )
     from geneuclidean.sampling.pocket_steering import (
         score_pocket_pmi as score_pocket_pmi,
+    )
+    from geneuclidean.screening import (
+        LIGAND_ENCODER_REGISTRY as LIGAND_ENCODER_REGISTRY,
+    )
+    from geneuclidean.screening import (
+        ActiveLearningDMTA as ActiveLearningDMTA,
+    )
+    from geneuclidean.screening import (
+        ActiveLearningRoundSummary as ActiveLearningRoundSummary,
+    )
+    from geneuclidean.screening import (
+        DrugCLIPLigandEncoder as DrugCLIPLigandEncoder,
+    )
+    from geneuclidean.screening import (
+        ECFP4BinaryEncoder as ECFP4BinaryEncoder,
+    )
+    from geneuclidean.screening import (
+        IBMMMelonLigandEncoder as IBMMMelonLigandEncoder,
+    )
+    from geneuclidean.screening import (
+        LigandVectorIndex as LigandVectorIndex,
+    )
+    from geneuclidean.screening import (
+        PocketScreener as PocketScreener,
+    )
+    from geneuclidean.screening import (
+        ScreeningHit as ScreeningHit,
     )
     from geneuclidean.sdk import (
         ADMETFilter as ADMETFilter,
@@ -400,6 +544,39 @@ if TYPE_CHECKING:
     from geneuclidean.sdk import (
         visualize_molecules_2d as visualize_molecules_2d,
     )
+    from geneuclidean.sdk.profiles import (
+        PROPERTY_PROFILE_REGISTRY as PROPERTY_PROFILE_REGISTRY,
+    )
+    from geneuclidean.sdk.profiles import (
+        PropertyProfileResult as PropertyProfileResult,
+    )
+    from geneuclidean.sdk.profiles import (
+        evaluate_property_profile as evaluate_property_profile,
+    )
+    from geneuclidean.sdk.profiles import (
+        list_property_profiles as list_property_profiles,
+    )
+    from geneuclidean.sdk.profiles import (
+        register_property_profile as register_property_profile,
+    )
+    from geneuclidean.synthesis import (
+        RETROSYNTHESIS_REGISTRY as RETROSYNTHESIS_REGISTRY,
+    )
+    from geneuclidean.synthesis import (
+        ROBUST_MEDCHEM_REACTIONS as ROBUST_MEDCHEM_REACTIONS,
+    )
+    from geneuclidean.synthesis import (
+        MakeableCandidate as MakeableCandidate,
+    )
+    from geneuclidean.synthesis import (
+        enumerate_makeable_analogs as enumerate_makeable_analogs,
+    )
+    from geneuclidean.synthesis import (
+        match_one_step_retrosynthesis as match_one_step_retrosynthesis,
+    )
+    from geneuclidean.synthesis import (
+        register_retrosynthesis_backend as register_retrosynthesis_backend,
+    )
     from geneuclidean.training.mtl_intervention import (
         MTL_MEDIATOR_REGISTRY as MTL_MEDIATOR_REGISTRY,
     )
@@ -419,17 +596,23 @@ if TYPE_CHECKING:
 _LAZY_SUBMODULES: frozenset[str] = frozenset(
     {
         "api",
+        "audit",
         "cli",
         "cns",
         "config",
         "data",
         "evaluation",
         "exceptions",
+        "interop",
+        "leadopt",
+        "mcp_server",
         "models",
         "protocols",
         "registry",
         "sampling",
+        "screening",
         "sdk",
+        "synthesis",
         "training",
     }
 )
@@ -543,6 +726,89 @@ _LAZY_ATTRS: dict[str, tuple[str, str]] = {
         "geneuclidean.evaluation.ring_strain",
         "register_ring_strain_backend",
     ),
+    # Beyond-PoseBusters 7-Axis Pose Auditor, Torsion Strain, Tautomer/Microstate & Profiles
+    "MicrostateCandidate": ("geneuclidean.evaluation.tautomer_microstate", "MicrostateCandidate"),
+    "PROPERTY_PROFILE_REGISTRY": ("geneuclidean.sdk.profiles", "PROPERTY_PROFILE_REGISTRY"),
+    "PoseAuditReport": ("geneuclidean.audit", "PoseAuditReport"),
+    "PoseRealityAuditor": ("geneuclidean.audit", "PoseRealityAuditor"),
+    "PropertyProfileResult": ("geneuclidean.sdk.profiles", "PropertyProfileResult"),
+    "TORSION_BACKEND_REGISTRY": (
+        "geneuclidean.evaluation.torsion_strain",
+        "TORSION_BACKEND_REGISTRY",
+    ),
+    "TautomerMicrostateAudit": (
+        "geneuclidean.evaluation.tautomer_microstate",
+        "TautomerMicrostateAudit",
+    ),
+    "TorsionReport": ("geneuclidean.evaluation.torsion_strain", "TorsionReport"),
+    "TorsionStrainFilter": ("geneuclidean.evaluation.torsion_strain", "TorsionStrainFilter"),
+    "TorsionStrainProfile": ("geneuclidean.evaluation.torsion_strain", "TorsionStrainProfile"),
+    "TorsionStrainScorer": ("geneuclidean.evaluation.torsion_strain", "TorsionStrainScorer"),
+    "analyze_torsion_strain": ("geneuclidean.evaluation.torsion_strain", "analyze_torsion_strain"),
+    "audit_complex": ("geneuclidean.audit", "audit_complex"),
+    "audit_tautomer_microstate_ph74": (
+        "geneuclidean.evaluation.tautomer_microstate",
+        "audit_tautomer_microstate_ph74",
+    ),
+    "enumerate_tautomer_microstates_ph74": (
+        "geneuclidean.evaluation.tautomer_microstate",
+        "enumerate_tautomer_microstates_ph74",
+    ),
+    "evaluate_property_profile": ("geneuclidean.sdk.profiles", "evaluate_property_profile"),
+    "export_audit_json": ("geneuclidean.audit", "export_audit_json"),
+    "list_property_profiles": ("geneuclidean.sdk.profiles", "list_property_profiles"),
+    "load_torsion_library_xml": (
+        "geneuclidean.evaluation.torsion_strain",
+        "load_torsion_library_xml",
+    ),
+    "register_property_profile": ("geneuclidean.sdk.profiles", "register_property_profile"),
+    "register_torsion_backend": (
+        "geneuclidean.evaluation.torsion_strain",
+        "register_torsion_backend",
+    ),
+    "summarize_audit_batch": ("geneuclidean.audit", "summarize_audit_batch"),
+    # MIT Contrastive 3D Virtual Screening & Active-Learning DMTA (`geneuclidean.screening`)
+    "ActiveLearningDMTA": ("geneuclidean.screening", "ActiveLearningDMTA"),
+    "ActiveLearningRoundSummary": ("geneuclidean.screening", "ActiveLearningRoundSummary"),
+    "DrugCLIPLigandEncoder": ("geneuclidean.screening", "DrugCLIPLigandEncoder"),
+    "ECFP4BinaryEncoder": ("geneuclidean.screening", "ECFP4BinaryEncoder"),
+    "IBMMMelonLigandEncoder": ("geneuclidean.screening", "IBMMMelonLigandEncoder"),
+    "LIGAND_ENCODER_REGISTRY": ("geneuclidean.screening", "LIGAND_ENCODER_REGISTRY"),
+    "LigandVectorIndex": ("geneuclidean.screening", "LigandVectorIndex"),
+    "PocketScreener": ("geneuclidean.screening", "PocketScreener"),
+    "ScreeningHit": ("geneuclidean.screening", "ScreeningHit"),
+    # Makeable Synthesis, Avoid-ome MMP Lead-Opt, OpenFE/Boltz-2 Interop, Conformal DMPK & MCP
+    "ActivityCliffPair": ("geneuclidean.leadopt", "ActivityCliffPair"),
+    "AvoidomeMMPEngine": ("geneuclidean.leadopt", "AvoidomeMMPEngine"),
+    "AvoidomeMMPProposal": ("geneuclidean.leadopt", "AvoidomeMMPProposal"),
+    "ConformalDMPKRegressor": ("geneuclidean.cns.dmpk_regression", "ConformalDMPKRegressor"),
+    "ConformalRegressionPrediction": (
+        "geneuclidean.cns.dmpk_regression",
+        "ConformalRegressionPrediction",
+    ),
+    "DMTA_TOOL_SCHEMAS": ("geneuclidean.mcp_server", "DMTA_TOOL_SCHEMAS"),
+    "MakeableCandidate": ("geneuclidean.synthesis", "MakeableCandidate"),
+    "OpenFENetworkBundle": ("geneuclidean.interop", "OpenFENetworkBundle"),
+    "OpenFEPerturbationEdge": ("geneuclidean.interop", "OpenFEPerturbationEdge"),
+    "RETROSYNTHESIS_REGISTRY": ("geneuclidean.synthesis", "RETROSYNTHESIS_REGISTRY"),
+    "RGroupSARResult": ("geneuclidean.leadopt", "RGroupSARResult"),
+    "ROBUST_MEDCHEM_REACTIONS": ("geneuclidean.synthesis", "ROBUST_MEDCHEM_REACTIONS"),
+    "analyze_rgroup_sar": ("geneuclidean.leadopt", "analyze_rgroup_sar"),
+    "audit_cofolded_complex": ("geneuclidean.interop", "audit_cofolded_complex"),
+    "enumerate_makeable_analogs": ("geneuclidean.synthesis", "enumerate_makeable_analogs"),
+    "evaluate_scaffold_cv_conformal_dmpk": (
+        "geneuclidean.cns.dmpk_regression",
+        "evaluate_scaffold_cv_conformal_dmpk",
+    ),
+    "export_openfe_rbfe_network": ("geneuclidean.interop", "export_openfe_rbfe_network"),
+    "invoke_dmta_tool": ("geneuclidean.mcp_server", "invoke_dmta_tool"),
+    "load_cofolded_complex": ("geneuclidean.interop", "load_cofolded_complex"),
+    "match_one_step_retrosynthesis": ("geneuclidean.synthesis", "match_one_step_retrosynthesis"),
+    "register_retrosynthesis_backend": (
+        "geneuclidean.synthesis",
+        "register_retrosynthesis_backend",
+    ),
+    "run_mcp_stdio_server": ("geneuclidean.mcp_server", "run_mcp_stdio_server"),
     # Multi-Conformation Ensemble & Contrastive Steering (`geneuclidean.sampling.pocket_steering`)
     "PocketPMIScore": ("geneuclidean.sampling.pocket_steering", "PocketPMIScore"),
     "combine_contrastive_ensemble_logits": (

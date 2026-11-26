@@ -134,6 +134,7 @@ uv venv --python 3.12 && uv pip install --python .venv/bin/python -e ".[all]"   
 | Document | Scope |
 | :--- | :--- |
 | [`docs/v4_tri_disorder_report.md`](docs/v4_tri_disorder_report.md) | **Flagship `v4.0` report:** 28 targets (TS/GABA × SCZ × AD), 3-LLM head-to-head, 12-ep Avoid-ome + $K_{p,uu}$, SAFE-GPT rescue, FDA/EMA dossier & Browser AI |
+| [`docs/v5_cadd_suite_report.md`](docs/v5_cadd_suite_report.md) | **Open-Pharma `v5.0` suite:** Beyond-PoseBusters 7-axis auditor (crystal-calibrated), MIT contrastive 3D screening + Active-Learning DMTA, reaction-grounded synthesis, Avoid-ome MMP, OpenFE/Boltz-2 interop, OpenADMET Conformal DMPK & MCP server |
 | [`docs/eth_cadd_frontier_analysis.md`](docs/eth_cadd_frontier_analysis.md) | **ETH Zürich CADD (MODLAB 2024–2026) frontier extensions:** Cremer–Pople ring-strain audit (28 complexes), contrastive multi-conformation CFG + $\Delta\text{PMI}_{3\text{D}}$, Ibogaine → SERT hops, and AIM-style 3D MTL gradient mediation |
 | [`docs/tourette_circuit_audit.md`](docs/tourette_circuit_audit.md) | Independent Tourette CSTC neurobiology audit & 4-pocket structural expansion (`GABRA5`, `GAT1`, `ADORA2A` active, `GRM5`) |
 | [`docs/library_api.md`](docs/library_api.md) | Typed Python Library & SDK reference (`import geneuclidean as ge`), cookbook recipes, pH 7.4 ionization & PyPI packaging |

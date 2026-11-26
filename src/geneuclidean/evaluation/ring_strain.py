@@ -225,9 +225,41 @@ def _mmff_or_uff_energy(mol_with_h: Chem.Mol, conf_id: int = -1) -> float | None
     return None
 
 
+def _endocyclic_ring_dihedrals(
+    mol: Chem.Mol, ring_indices: Sequence[int]
+) -> list[tuple[int, int, int, int]]:
+    """Collect contiguous 4-atom endocyclic torsion quads inside the audited ring system."""
+    rset = set(int(i) for i in ring_indices)
+    quads: list[tuple[int, int, int, int]] = []
+    seen: set[tuple[int, int, int, int]] = set()
+    for ring in mol.GetRingInfo().AtomRings():
+        if not set(ring).issubset(rset) or len(ring) < 4:
+            continue
+        m = len(ring)
+        for k in range(m):
+            q = (
+                int(ring[k]),
+                int(ring[(k + 1) % m]),
+                int(ring[(k + 2) % m]),
+                int(ring[(k + 3) % m]),
+            )
+            canon = min(q, q[::-1])
+            if canon not in seen:
+                seen.add(canon)
+                quads.append(q)
+    return quads
+
+
 def _relax_hydrogens_only(mol_with_h: Chem.Mol, heavy_indices: Sequence[int]) -> Chem.Mol:
-    """Relax added capping hydrogens while strictly freezing heavy-atom 3D ring geometry."""
+    """Relax capping H & crystallographic bond-length jitter while locking exact 3D ring pucker.
+
+    Following ``RingAnalyzer`` (Atz & Schneider 2026) torsion-constrained relaxation: locks all
+    endocyclic ring dihedrals within ``+/-2.0 deg`` and tethers ring heavy atoms within
+    ``0.12 A`` so experimental X-ray/cryo-EM ``0.03-0.06 A`` bond-length jitter relaxes cleanly
+    without permitting conformational ring inversion (chair <-> twist-boat / planar).
+    """
     copy_mol = Chem.Mol(mol_with_h)
+    ring_quads = _endocyclic_ring_dihedrals(copy_mol, heavy_indices)
     if AllChem.MMFFHasAllMoleculeParams(copy_mol):  # type: ignore[attr-defined]
         props = AllChem.MMFFGetMoleculeProperties(  # type: ignore[attr-defined]
             copy_mol, mmffVariant="MMFF94s"
@@ -236,14 +268,18 @@ def _relax_hydrogens_only(mol_with_h: Chem.Mol, heavy_indices: Sequence[int]) ->
             ff = AllChem.MMFFGetMoleculeForceField(copy_mol, props)  # type: ignore[attr-defined]
             if ff is not None:
                 for idx in heavy_indices:
-                    ff.AddFixedPoint(int(idx))
-                ff.Minimize(maxIts=200)
+                    ff.MMFFAddPositionConstraint(int(idx), 0.12, 200.0)
+                for a, b, c, d in ring_quads:
+                    ff.MMFFAddTorsionConstraint(a, b, c, d, True, -2.0, 2.0, 200.0)
+                ff.Minimize(maxIts=250)
                 return copy_mol
     uff = AllChem.UFFGetMoleculeForceField(copy_mol)  # type: ignore[attr-defined]
     if uff is not None:
         for idx in heavy_indices:
-            uff.AddFixedPoint(int(idx))
-        uff.Minimize(maxIts=200)
+            uff.UFFAddPositionConstraint(int(idx), 0.12, 200.0)
+        for a, b, c, d in ring_quads:
+            uff.UFFAddTorsionConstraint(a, b, c, d, True, -2.0, 2.0, 200.0)
+        uff.Minimize(maxIts=250)
     return copy_mol
 
 

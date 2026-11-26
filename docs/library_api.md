@@ -19,6 +19,7 @@ The library separates zero-PyTorch core infrastructure from modular SDK facades 
 | **CNS Pharmacology** | `cns.targets`, `cns.tourette_circuit`, `cns.mpo`, `cns.medchem_triage`, `cns.admet`, `cns.credibility` | 28-target human Tri-Disorder + Tourette CSTC/GABA atlas, Pfizer MPO v1/v2, reagent quarantine, 12-endpoint Avoid-ome + Split-Conformal UQ, FDA/EMA 7-step dossier. |
 | **3D Physics & Viz** | `evaluation.protonation`, `evaluation.docking_pipeline`, `evaluation.interactions3d`, `evaluation.ring_strain`, `evaluation.viz3d` | Deterministic pH 7.4 ionization, multi-conformer Vina v1.2.7 + PoseBusters + $\Delta\Delta G$ selectivity matrix, Cremer–Pople saturated-ring conformational strain auditing, 3Dmol.js HTML & 300-DPI PNG renderers. |
 | **3D Steering, Hops & MTL** | `sampling.pocket_steering`, `cns.scaffold_hop`, `training.mtl_intervention` | Multi-conformation pocket ensemble & contrastive off-target CFG (`design_ensemble`, `score_pmi` $\Delta\text{PMI}_{3\text{D}}$), 5-axis natural-product scaffold-hop de-risking (`audit_scaffold_hop_campaign`), and AIM-inspired adaptive multi-task gradient conflict mediation (`GradientConflictMediator`). |
+| **Beyond-PoseBusters Audit, Screening & Lead-Opt** | `audit`, `screening`, `synthesis`, `leadopt`, `interop`, `cns.dmpk_regression`, `mcp_server`, `sdk.profiles` | 7-axis 3D pose reality auditor (`audit_complex`, torsion strain + pH 7.4 tautomer/microstate + indication profiles), MIT contrastive 3D virtual screener (`PocketScreener`, `ActiveLearningDMTA`, IBM `MMELON` plugin), 16-reaction makeable synthesis, R-group/Avoid-ome MMP, `OpenFE` RBFE & `Boltz-2` adapters, Split-Conformal DMPK regression, and SHA-256 typed MCP agent tools. |
 
 ---
 
@@ -249,6 +250,28 @@ from geneuclidean.training.mtl_intervention import GradientConflictMediator
 mediator = GradientConflictMediator(("lm_nll", "pkd", "drugclip", "props"), strategy="aim_policy")
 diag = mediator.backward(task_losses, shared_params=list(model.encoder.parameters()))
 print(diag.conflict_fraction, diag.policy_matrix)
+```
+
+### 7.5 Beyond-PoseBusters 7-Axis Pose Auditor, MIT Contrastive 3D Screening, Makeable Lead-Opt & Open-Pharma Interop
+```python
+import geneuclidean as ge
+
+# 1. 7-axis Beyond-PoseBusters audit on any docked or Boltz-2/AF3 co-folded complex
+report = ge.audit_complex("pose.sdf", pocket_pdb="pocket.pdb", property_profile="kinase_selectivity")
+cofold_report = ge.audit_cofolded_complex("boltz2_pred.cif", reference_smiles="CNC(=O)c1ccccc1")
+
+# 2. MIT-licensed multi-conformation & contrastive 3D screening + Active-Learning DMTA
+screener = ge.PocketScreener.from_pretrained("runs_local.nosync/geneuclidean_v2_painn/best.pt")
+index = ge.LigandVectorIndex.build_from_file("catalog.parquet", screener.ligand_encoder)
+hits = screener.screen([drd1_9llg, drd1_9u5e], index, off_pockets=drd2_6cm4, off_weight=0.5, top_k=50)
+
+# 3. 1-step makeable reaction enumeration, Avoid-ome 1-cut MMP rescues & OpenFE RBFE export
+analogs = ge.enumerate_makeable_analogs("O=C(O)c1ccc2ccccc2n1", ["CN1CCNCC1", "C1COCCN1"])
+rescues = ge.AvoidomeMMPEngine(admet_suite=admet_suite).propose_rescues(ge.IBOGAINE_SMILES)
+bundle = ge.export_openfe_rbfe_network([a.product_smiles for a in analogs], "pocket.pdb", "openfe_out/")
+
+# 4. Deterministic SHA-256 agentic DMTA tool invocation (Python or MCP stdio server)
+out = ge.invoke_dmta_tool("propose_mmp_rescues", {"parent_smiles": "Cc1ccc(C(=O)N2CCCCC2)cc1"})
 ```
 
 ---

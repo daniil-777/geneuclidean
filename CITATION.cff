@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+title: "GenEuclidean: SE(3)-Equivariant 3D Pocket-Conditioned Molecular Design, Beyond-PoseBusters Auditing, Contrastive 3D Screening & Makeable Lead Optimization"
+message: "If you use GenEuclidean in your research or computational drug-discovery workflows, please cite it using this metadata."
+type: software
+authors:
+  - family-names: Emtsev
+    given-names: Daniil
+repository-code: "https://github.com/daniil-777/geneuclidean"
+url: "https://daniil-777.github.io/geneuclidean/"
+license: MIT
+version: "4.0.0"
+date-released: "2026-11-26"
+keywords:
+  - structure-based drug design
+  - SE(3)-equivariant neural networks
+  - virtual screening
+  - conformational strain
+  - PoseBusters
+  - ADMET
+  - active learning
+  - medicinal chemistry
+  - OpenFE
