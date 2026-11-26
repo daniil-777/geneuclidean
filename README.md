@@ -28,7 +28,9 @@ GenEuclidean bridges a chiral **$SE(3)$-equivariant 3D pocket encoder (`PaiNN-SE
 | **Industrial Triage & Avoid-ome** | [`src/geneuclidean/cns/medchem_triage.py`](src/geneuclidean/cns/medchem_triage.py) · [`admet.py`](src/geneuclidean/cns/admet.py) | PAINS/BRENK/NIH/Lilly/DCU veto, 12-endpoint scaffold-CV ADMET/Avoid-ome (`M3`, `H1`, `5-HT2B`, Biogen `MDR1`/`HLM`), Conformal UQ |
 | **Tourette CSTC & 28-Target Atlas** | [`src/geneuclidean/cns/tourette_circuit.py`](src/geneuclidean/cns/tourette_circuit.py) · [`targets.py`](src/geneuclidean/cns/targets.py) | 28 verified *Homo sapiens* TS/GABA × SCZ × AD pockets (`GABRA5`, `GAT1`, `ADORA2A`, `GRM5`, `ACHE`, `MAOB`, `NLRP3`…) + 7 counters |
 | **3D Interaction & Web AI Studio** | [`src/geneuclidean/evaluation/viz3d.py`](src/geneuclidean/evaluation/viz3d.py) · [`web/`](web/) | 6-channel 3D PLIF profiler, 300-DPI Phong renders & **1.79 MB INT8 Client-Side Browser AI Web Studio** |
-| **Unified CLI & GPU Notebook** | [`src/geneuclidean/cli.py`](src/geneuclidean/cli.py) · [`notebooks/`](notebooks/GenEuclidean_v3_EndToEnd_Colab.ipynb) | Typer + Rich CLI (`train-llm`, `sample-llm`, `cns-targets`, `cns-admet`, `viz3d`) & turnkey Colab T4/L4/A100 bundle notebook |
+| **Active Learning `v5.1` DMTA** | [`src/geneuclidean/active_learning/`](src/geneuclidean/active_learning/) | Exact `TanimotoGP`, `EnsembleSurrogate`, `ConformalSurrogate`, 14 acquisitions (`KB`/`DPP`/`qEHVI`/Avoid-ome), correlation-gated `MultiFidelityDMTA`, $O(N_A+N_B)$ `CombinatorialThompsonSampler` & `StoppingAdvisor` |
+| **Apple-Style Circuit Studio** | [`src/geneuclidean/studio/`](src/geneuclidean/studio/) · [`web/`](web/) | Typed 36-block visual drug-design circuit breadboard, AST-verified Python SDK compiler, and dual Browser + local `geneuclidean studio` HTTP execution bridge |
+| **Unified CLI & GPU Notebook** | [`src/geneuclidean/cli.py`](src/geneuclidean/cli.py) · [`notebooks/`](notebooks/GenEuclidean_v3_EndToEnd_Colab.ipynb) | Typer + Rich CLI (`train-llm`, `sample-llm`, `cns-targets`, `cns-admet`, `viz3d`, `studio`) & turnkey Colab T4/L4/A100 bundle notebook |
 
 ```mermaid
 flowchart LR
@@ -122,7 +124,8 @@ Install with [`uv`](https://docs.astral.sh/uv/) (Python 3.11+, pins `rdkit>=2026
 uv venv --python 3.12 && uv pip install --python .venv/bin/python -e ".[all]"   # or ".[llm,cns,viz,dev]"
 .venv/bin/geneuclidean cns-targets --target DRD1                                # inspect curated 3D targets
 .venv/bin/geneuclidean cns-admet "COc1cc2c(cc1OC)C(=O)C(CC1CCN(C(=O)C3CC3)CC1)C2"
-.venv/bin/pytest                                                                # 245 unit, SE(3), ADMET & viz3d tests
+.venv/bin/geneuclidean studio --port 8765                                       # optional local Circuit Studio HTTP engine
+.venv/bin/pytest                                                                # unit, SE(3), ADMET, AL v5.1 & Studio tests
 ```
 
 **One-Click GPU Pipeline:** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/daniil-777/geneuclidean/blob/main/notebooks/GenEuclidean_v3_EndToEnd_Colab.ipynb) Turnkey T4/L4/A100 training, Vina docking & SHA-256 bundle export via [`notebooks/GenEuclidean_v3_EndToEnd_Colab.ipynb`](notebooks/GenEuclidean_v3_EndToEnd_Colab.ipynb).
@@ -135,6 +138,9 @@ uv venv --python 3.12 && uv pip install --python .venv/bin/python -e ".[all]"   
 | :--- | :--- |
 | [`docs/v4_tri_disorder_report.md`](docs/v4_tri_disorder_report.md) | **Flagship `v4.0` report:** 28 targets (TS/GABA × SCZ × AD), 3-LLM head-to-head, 12-ep Avoid-ome + $K_{p,uu}$, SAFE-GPT rescue, FDA/EMA dossier & Browser AI |
 | [`docs/v5_cadd_suite_report.md`](docs/v5_cadd_suite_report.md) | **Open-Pharma `v5.0` suite:** Beyond-PoseBusters 7-axis auditor (crystal-calibrated), MIT contrastive 3D screening + Active-Learning DMTA, reaction-grounded synthesis, Avoid-ome MMP, OpenFE/Boltz-2 interop, OpenADMET Conformal DMPK & MCP server |
+| [`docs/active_learning_research_and_design.md`](docs/active_learning_research_and_design.md) | **Active Learning `v5.1` DMTA research & spec:** `geneuclidean.active_learning` (`TanimotoGP`, `EnsembleSurrogate`, `ConformalSurrogate`, 14 acquisitions incl. `KB`/`DPP`/`qEHVI`/Avoid-ome, correlation-gated `MultiFidelityDMTA`, $O(N_A+N_B)$ `CombinatorialThompsonSampler`, `StoppingAdvisor`) & 5-suite real-data benchmarks ([`active_learning_v51_benchmark.json`](results/tables/active_learning_v51_benchmark.json)) |
+| [`docs/circuit_studio_architecture.md`](docs/circuit_studio_architecture.md) | **Apple-style Circuit Studio (`CircuitGraphV1`) architecture:** 10 typed signals, 36 real library blocks, `geneuclidean.studio` AST compiler & `geneuclidean studio` local HTTP bridge, and interactive [`web/`](web/) breadboard |
+| [`docs/pointcloud_cv_3d_atom_encoding_plan.md`](docs/pointcloud_cv_3d_atom_encoding_plan.md) | **3D Point-Cloud CV → Atom Encoding roadmap:** 42-method 2022–2026 literature synthesis, Apple M3 Pro MPS profiling, and peer-reviewed specifications & engineering prompts for `CartFormer-SE3`, `AtomGS-SE3`, and `SubPocketVN-JEPA` |
 | [`docs/eth_cadd_frontier_analysis.md`](docs/eth_cadd_frontier_analysis.md) | **ETH Zürich CADD (MODLAB 2024–2026) frontier extensions:** Cremer–Pople ring-strain audit (28 complexes), contrastive multi-conformation CFG + $\Delta\text{PMI}_{3\text{D}}$, Ibogaine → SERT hops, and AIM-style 3D MTL gradient mediation |
 | [`docs/tourette_circuit_audit.md`](docs/tourette_circuit_audit.md) | Independent Tourette CSTC neurobiology audit & 4-pocket structural expansion (`GABRA5`, `GAT1`, `ADORA2A` active, `GRM5`) |
 | [`docs/library_api.md`](docs/library_api.md) | Typed Python Library & SDK reference (`import geneuclidean as ge`), cookbook recipes, pH 7.4 ionization & PyPI packaging |

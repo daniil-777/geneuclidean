@@ -31,6 +31,7 @@ from geneuclidean.studio.catalog import (
     get_block_definition,
     get_mismatch_remediation,
     get_preset,
+    get_studio_catalog,
     list_block_definitions,
     list_presets,
 )
@@ -53,6 +54,7 @@ from geneuclidean.studio.server import (
     build_health_payload,
     create_studio_server,
     run_studio_server,
+    serve_studio,
 )
 
 __all__ = [
@@ -93,9 +95,11 @@ __all__ = [
     "get_block_definition",
     "get_mismatch_remediation",
     "get_preset",
+    "get_studio_catalog",
     "has_active_learning_v51",
     "list_block_definitions",
     "list_presets",
     "run_studio_server",
+    "serve_studio",
     "validate_circuit",
 ]

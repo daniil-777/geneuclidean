@@ -515,6 +515,7 @@ def test_live_http_studio_server_endpoints_and_error_handling() -> None:
         assert health["status"] == "ok"
         assert health["catalogCount"] == 36
         assert health["rdkit"] is not None
+        assert health["activeLearningV51"] is True
         assert headers.get("access-control-allow-origin") == "*"
 
         # 3. GET /api/catalog -> 200
@@ -568,6 +569,21 @@ def test_live_http_studio_server_endpoints_and_error_handling() -> None:
         assert len(run_res["provenanceSha256"]) == 64
         assert len(run_res["steps"]) == len(preset_boltz["nodes"])
         assert len(run_res["molecules"]) >= 1
+
+        # 6b. POST /api/circuit/run on closed-loop AL DMTA preset -> 200 with multi-round trace
+        preset_al = get_preset("al_dmta_closed_loop")
+        preset_al["execution"]["dmtaRounds"] = 2
+        code_al, _, run_al = _http_request(
+            f"{base_url}/api/circuit/run",
+            method="POST",
+            payload={"circuit": preset_al, "options": {"maxSamples": 4, "timeoutSec": 25}},
+        )
+        assert code_al == 200
+        assert run_al is not None
+        assert run_al["status"] == "completed"
+        assert run_al["roundsCompleted"] == 2
+        assert len(run_al["dmtaTrace"]) == 2
+        assert len(run_al["provenanceSha256"]) == 64
 
         # 7. Invalid circuit on /api/circuit/run -> 422, unknown route -> 404, oversized -> 413
         code_r422, _, run_bad = _http_request(

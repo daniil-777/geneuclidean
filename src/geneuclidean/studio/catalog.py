@@ -4303,6 +4303,7 @@ SIGNAL_TYPE_IDS: frozenset[str] = VALID_SIGNAL_TYPES
 BLOCK_MAP: dict[str, dict[str, Any]] = {b.block_type: b.to_dict() for b in BLOCK_DEFINITIONS}
 get_wiring_remediation_hint = get_mismatch_remediation
 get_catalog_payload = export_catalog_payload
+get_studio_catalog = export_catalog_payload
 
 
 __all__ = [
@@ -4333,6 +4334,7 @@ __all__ = [
     "get_catalog_payload",
     "get_mismatch_remediation",
     "get_preset",
+    "get_studio_catalog",
     "get_wiring_remediation_hint",
     "list_block_definitions",
     "list_presets",

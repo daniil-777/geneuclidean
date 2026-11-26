@@ -35,6 +35,9 @@ __version__ = "4.0.0"
 
 if TYPE_CHECKING:
     from geneuclidean import (
+        active_learning as active_learning,
+    )
+    from geneuclidean import (
         api as api,
     )
     from geneuclidean import (
@@ -86,10 +89,70 @@ if TYPE_CHECKING:
         sdk as sdk,
     )
     from geneuclidean import (
+        studio as studio,
+    )
+    from geneuclidean import (
         synthesis as synthesis,
     )
     from geneuclidean import (
         training as training,
+    )
+    from geneuclidean.active_learning import (
+        ACQUISITION_REGISTRY as ACQUISITION_REGISTRY,
+    )
+    from geneuclidean.active_learning import (
+        SURROGATE_REGISTRY as SURROGATE_REGISTRY,
+    )
+    from geneuclidean.active_learning import (
+        ActiveLearningEngine as ActiveLearningEngine,
+    )
+    from geneuclidean.active_learning import (
+        ColdStartSelector as ColdStartSelector,
+    )
+    from geneuclidean.active_learning import (
+        CombinatorialThompsonSampler as CombinatorialThompsonSampler,
+    )
+    from geneuclidean.active_learning import (
+        ConformalSurrogate as ConformalSurrogate,
+    )
+    from geneuclidean.active_learning import (
+        DMTALedger as DMTALedger,
+    )
+    from geneuclidean.active_learning import (
+        DMTAQuery as DMTAQuery,
+    )
+    from geneuclidean.active_learning import (
+        DMTARoundSummary as DMTARoundSummary,
+    )
+    from geneuclidean.active_learning import (
+        EnsembleSurrogate as EnsembleSurrogate,
+    )
+    from geneuclidean.active_learning import (
+        MultiFidelityDMTA as MultiFidelityDMTA,
+    )
+    from geneuclidean.active_learning import (
+        PendingBatchManager as PendingBatchManager,
+    )
+    from geneuclidean.active_learning import (
+        StoppingAdvisor as StoppingAdvisor,
+    )
+    from geneuclidean.active_learning import (
+        TanimotoGP as TanimotoGP,
+    )
+    from geneuclidean.active_learning import (
+        evaluate_uq_calibration as evaluate_uq_calibration,
+    )
+    from geneuclidean.active_learning import (
+        list_acquisitions as list_acquisitions,
+    )
+    from geneuclidean.active_learning import (
+        list_surrogates as list_surrogates,
+    )
+    from geneuclidean.active_learning import (
+        register_acquisition as register_acquisition,
+    )
+    from geneuclidean.active_learning import (
+        register_surrogate as register_surrogate,
     )
     from geneuclidean.audit import (
         PoseAuditReport as PoseAuditReport,
@@ -559,6 +622,27 @@ if TYPE_CHECKING:
     from geneuclidean.sdk.profiles import (
         register_property_profile as register_property_profile,
     )
+    from geneuclidean.studio import (
+        compile_circuit_to_python as compile_circuit_to_python,
+    )
+    from geneuclidean.studio import (
+        execute_circuit as execute_circuit,
+    )
+    from geneuclidean.studio import (
+        export_catalog_payload as export_catalog_payload,
+    )
+    from geneuclidean.studio import (
+        get_studio_catalog as get_studio_catalog,
+    )
+    from geneuclidean.studio import (
+        run_studio_server as run_studio_server,
+    )
+    from geneuclidean.studio import (
+        serve_studio as serve_studio,
+    )
+    from geneuclidean.studio import (
+        validate_circuit as validate_circuit,
+    )
     from geneuclidean.synthesis import (
         RETROSYNTHESIS_REGISTRY as RETROSYNTHESIS_REGISTRY,
     )
@@ -595,6 +679,7 @@ if TYPE_CHECKING:
 
 _LAZY_SUBMODULES: frozenset[str] = frozenset(
     {
+        "active_learning",
         "api",
         "audit",
         "cli",
@@ -612,6 +697,7 @@ _LAZY_SUBMODULES: frozenset[str] = frozenset(
         "sampling",
         "screening",
         "sdk",
+        "studio",
         "synthesis",
         "training",
     }
@@ -892,6 +978,43 @@ _LAZY_ATTRS: dict[str, tuple[str, str]] = {
         "generate_ring_diverse_conformers",
     ),
     "redock_native_complex": ("geneuclidean.evaluation.docking_pipeline", "redock_native_complex"),
+    # Frontier Active Learning & DMTA Optimization (`geneuclidean.active_learning`)
+    "ACQUISITION_REGISTRY": ("geneuclidean.active_learning.acquisitions", "ACQUISITION_REGISTRY"),
+    "ActiveLearningEngine": ("geneuclidean.active_learning.engine", "ActiveLearningEngine"),
+    "ColdStartSelector": ("geneuclidean.active_learning.diagnostics", "ColdStartSelector"),
+    "CombinatorialThompsonSampler": (
+        "geneuclidean.active_learning.combinatorial_ts",
+        "CombinatorialThompsonSampler",
+    ),
+    "ConformalSurrogate": ("geneuclidean.active_learning.surrogates", "ConformalSurrogate"),
+    "DMTALedger": ("geneuclidean.active_learning.engine", "DMTALedger"),
+    "DMTAQuery": ("geneuclidean.active_learning.engine", "DMTAQuery"),
+    "DMTARoundSummary": ("geneuclidean.active_learning.engine", "DMTARoundSummary"),
+    "EnsembleSurrogate": ("geneuclidean.active_learning.surrogates", "EnsembleSurrogate"),
+    "MultiFidelityDMTA": ("geneuclidean.active_learning.multifidelity", "MultiFidelityDMTA"),
+    "PendingBatchManager": ("geneuclidean.active_learning.engine", "PendingBatchManager"),
+    "SURROGATE_REGISTRY": ("geneuclidean.active_learning.surrogates", "SURROGATE_REGISTRY"),
+    "StoppingAdvisor": ("geneuclidean.active_learning.diagnostics", "StoppingAdvisor"),
+    "TanimotoGP": ("geneuclidean.active_learning.surrogates", "TanimotoGP"),
+    "evaluate_uq_calibration": (
+        "geneuclidean.active_learning.diagnostics",
+        "evaluate_uq_calibration",
+    ),
+    "list_acquisitions": ("geneuclidean.active_learning.acquisitions", "list_acquisitions"),
+    "list_surrogates": ("geneuclidean.active_learning.surrogates", "list_surrogates"),
+    "register_acquisition": ("geneuclidean.active_learning.acquisitions", "register_acquisition"),
+    "register_surrogate": ("geneuclidean.active_learning.surrogates", "register_surrogate"),
+    # Circuit Studio Compiler, Catalog & Local HTTP Bridge (`geneuclidean.studio`)
+    "compile_circuit_to_python": (
+        "geneuclidean.studio.graph_compiler",
+        "compile_circuit_to_python",
+    ),
+    "execute_circuit": ("geneuclidean.studio.graph_compiler", "execute_circuit"),
+    "export_catalog_payload": ("geneuclidean.studio.catalog", "export_catalog_payload"),
+    "get_studio_catalog": ("geneuclidean.studio.catalog", "get_studio_catalog"),
+    "run_studio_server": ("geneuclidean.studio.server", "run_studio_server"),
+    "serve_studio": ("geneuclidean.studio.server", "serve_studio"),
+    "validate_circuit": ("geneuclidean.studio.graph_compiler", "validate_circuit"),
 }
 
 __all__ = [

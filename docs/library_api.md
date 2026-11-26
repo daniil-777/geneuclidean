@@ -20,6 +20,8 @@ The library separates zero-PyTorch core infrastructure from modular SDK facades 
 | **3D Physics & Viz** | `evaluation.protonation`, `evaluation.docking_pipeline`, `evaluation.interactions3d`, `evaluation.ring_strain`, `evaluation.viz3d` | Deterministic pH 7.4 ionization, multi-conformer Vina v1.2.7 + PoseBusters + $\Delta\Delta G$ selectivity matrix, Cremer–Pople saturated-ring conformational strain auditing, 3Dmol.js HTML & 300-DPI PNG renderers. |
 | **3D Steering, Hops & MTL** | `sampling.pocket_steering`, `cns.scaffold_hop`, `training.mtl_intervention` | Multi-conformation pocket ensemble & contrastive off-target CFG (`design_ensemble`, `score_pmi` $\Delta\text{PMI}_{3\text{D}}$), 5-axis natural-product scaffold-hop de-risking (`audit_scaffold_hop_campaign`), and AIM-inspired adaptive multi-task gradient conflict mediation (`GradientConflictMediator`). |
 | **Beyond-PoseBusters Audit, Screening & Lead-Opt** | `audit`, `screening`, `synthesis`, `leadopt`, `interop`, `cns.dmpk_regression`, `mcp_server`, `sdk.profiles` | 7-axis 3D pose reality auditor (`audit_complex`, torsion strain + pH 7.4 tautomer/microstate + indication profiles), MIT contrastive 3D virtual screener (`PocketScreener`, `ActiveLearningDMTA`, IBM `MMELON` plugin), 16-reaction makeable synthesis, R-group/Avoid-ome MMP, `OpenFE` RBFE & `Boltz-2` adapters, Split-Conformal DMPK regression, and SHA-256 typed MCP agent tools. |
+| **Active Learning `v5.1` DMTA** | `active_learning.*` (`featurizers`, `surrogates`, `acquisitions`, `multifidelity`, `combinatorial_ts`, `diagnostics`, `engine`) | Zero-PyTorch exact `TanimotoGP` (binary/MinMax + MLL tuning), `EnsembleSurrogate`, split/normalized/weighted `ConformalSurrogate`, 14 acquisitions (`SURROGATE_REGISTRY`, `ACQUISITION_REGISTRY`, `LogEI`/`KB`/`DPP`/`qEHVI`/Avoid-ome), `ActiveLearningEngine`, correlation-gated `MultiFidelityDMTA`, $O(N_A+N_B)$ `CombinatorialThompsonSampler`, `ColdStartSelector`, `PendingBatchManager`, `StoppingAdvisor`, SHA-256 `DMTALedger`, and `evaluate_uq_calibration` ([`docs/active_learning_research_and_design.md`](active_learning_research_and_design.md)). |
+| **Circuit Studio & Local Bridge (`v5.1`)** | `studio.*` (`catalog`, `graph_compiler`, `server`), `cli.py`, `web/` | 10-signal, 36-block `CircuitGraphV1` validator (`validate_circuit`), AST-verified Python SDK compiler (`compile_circuit_to_python`), safe allowlisted executor (`execute_circuit`), catalog API (`get_studio_catalog`), and zero-dependency `geneuclidean studio` HTTP server (`serve_studio`) powering the Apple-style `web/` Circuit Studio ([`docs/circuit_studio_architecture.md`](circuit_studio_architecture.md)). |
 
 ---
 
@@ -274,11 +276,38 @@ bundle = ge.export_openfe_rbfe_network([a.product_smiles for a in analogs], "poc
 out = ge.invoke_dmta_tool("propose_mmp_rescues", {"parent_smiles": "Cc1ccc(C(=O)N2CCCCC2)cc1"})
 ```
 
+### 7.6 Active Learning `v5.1`, Apple-Style Circuit Studio & 3D Point-Cloud Encoding Roadmap
+- **Active Learning `v5.1` (`geneuclidean.active_learning`, [`docs/active_learning_research_and_design.md`](active_learning_research_and_design.md)):** Exact PSD Tanimoto/MinMax GP (`TanimotoGP`), `EnsembleSurrogate`, `ConformalSurrogate` (`absolute`/`normalized`/`weighted`), 14 acquisitions in `ACQUISITION_REGISTRY` (`greedy`, `ucb`, `ei`, `log_ei`, `pi`, `thompson`, `kriging_believer`, `dpp_ucb`, `maxmin_ucb`, `qehvi`, `pareto_scalarized_ucb`, `constrained_ei`, `avoidome_feasibility_ucb`, `uncertainty`), correlation-gated `MultiFidelityDMTA`, $O(N_A + N_B)$ reaction-space `CombinatorialThompsonSampler`, `ColdStartSelector`, `StoppingAdvisor`, and `evaluate_uq_calibration`.
+- **Circuit Studio (`geneuclidean.studio`, `geneuclidean studio` CLI, `web/`, [`docs/circuit_studio_architecture.md`](circuit_studio_architecture.md)):** Typed 10-signal, 36-block `CircuitGraphV1` breadboard with dual Browser Simulation + local Python HTTP engine (`geneuclidean studio --host 127.0.0.1 --port 8765`).
+- **3D Point-Cloud CV → Atom Encoding Roadmap ([`docs/pointcloud_cv_3d_atom_encoding_plan.md`](pointcloud_cv_3d_atom_encoding_plan.md)):** 42-method 2022–2026 literature synthesis, Apple Silicon MPS profiling, and peer-reviewed specifications & engineering prompts for `CartFormer-SE3`, `AtomGS-SE3`, and `SubPocketVN-JEPA`.
+
+```python
+import geneuclidean as ge
+
+# 1. Closed-loop v5.1 Active Learning DMTA with exact TanimotoGP + Kriging Believer + Conformal UQ
+engine = ge.ActiveLearningEngine(
+    surrogate=ge.ConformalSurrogate(ge.TanimotoGP(), mode="normalized", alpha=0.10),
+    acquisition="kriging_believer",
+    cold_start="butina_medoids",
+)
+seed_q = engine.propose_batch(candidate_smiles, batch_size=8, seed=42)
+
+# 2. Validate, compile to AST-verified Python SDK, execute, or serve Circuit Studio locally
+catalog = ge.get_studio_catalog()                 # 10 signals, 8 categories, 36 blocks, 5 flagship presets
+preset = catalog["presets"][1]                    # al_dmta_closed_loop
+val = ge.validate_circuit(preset)
+codegen = ge.compile_circuit_to_python(preset)
+run = ge.execute_circuit(preset)                  # safe allowlisted execution + SHA-256 ledger
+# CLI equivalent: `geneuclidean studio --host 127.0.0.1 --port 8765` (or `ge.serve_studio()`)
+```
+
 ---
 
 ## 8. High-Level Reference Summary
 
-- **Registries & Circuits:** `list_targets`, `get_target`, `register_target`, `unregister_target`, `audit_tourette_circuit`, `list_backbones`, `list_encoders`, `list_decoders`, `list_sampling_strategies`, `list_filters`, `list_scorers`, `discover_plugins`, `RING_STRAIN_BACKEND_REGISTRY`, `MTL_MEDIATOR_REGISTRY`.
+- **Registries & Circuits:** `list_targets`, `get_target`, `register_target`, `unregister_target`, `audit_tourette_circuit`, `list_backbones`, `list_encoders`, `list_decoders`, `list_sampling_strategies`, `list_filters`, `list_scorers`, `discover_plugins`, `RING_STRAIN_BACKEND_REGISTRY`, `MTL_MEDIATOR_REGISTRY`, `SURROGATE_REGISTRY`, `ACQUISITION_REGISTRY`.
+- **Active Learning `v5.1` (`geneuclidean.active_learning`):** `TanimotoGP`, `EnsembleSurrogate`, `ConformalSurrogate`, `ActiveLearningEngine`, `MultiFidelityDMTA`, `CombinatorialThompsonSampler`, `ColdStartSelector`, `StoppingAdvisor`, `PendingBatchManager`, `DMTAQuery`, `DMTARoundSummary`, `DMTALedger`, `evaluate_uq_calibration`, `list_surrogates`, `list_acquisitions`, `register_surrogate`, `register_acquisition`.
+- **Circuit Studio (`geneuclidean.studio` / `geneuclidean studio`):** `get_studio_catalog`, `export_catalog_payload`, `validate_circuit`, `compile_circuit_to_python`, `execute_circuit`, `serve_studio`, `run_studio_server`.
 - **3D Pockets:** `Pocket.from_target`, `Pocket.from_pdb`, `pocket.featurize`, `pocket.audit_hotspots`, `pocket.orthosteric_box`, `pocket.dock`, `pocket.visualize`, `pocket.summary`.
 - **Scoring, Ionization, Strain & Triage:** `score_molecules`, `score_tourette_circuit`, `protonate_ph74`, `analyze_protonation_ph74`, `triage_molecule`, `triage_molecules`, `is_scaffold_hop`, `compute_scaffold_hop_metrics`, `audit_scaffold_hop_campaign`, `analyze_ring_strain`, `compute_cremer_pople`.
 - **Filters & Scorers:** `TriageFilter`, `MPOFilter`, `ADMETFilter`, `BasicAmineFilter`, `QEDFilter`, `ScaffoldHopFilter`, `RingStrainFilter`, `RingStrainScorer`, `PredicateFilter`, `FunctionScorer`.
