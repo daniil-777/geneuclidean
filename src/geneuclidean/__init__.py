@@ -12,6 +12,18 @@ Quickstart::
     targets = ge.list_targets("tourette")
     pocket = ge.Pocket.from_target("DRD1")
     reports = ge.score_molecules(["CN1CCc2cc(Cl)c(O)cc2[C@H]2c3ccccc3CC[C@@H]21"])
+
+Extensibility::
+
+    @ge.register_encoder("my_se3_net")
+    def build_my_se3(cfg, max_neighbors=24): ...
+
+    pipe = (
+        ge.DesignPipeline(designer)
+        .add_filter(ge.TriageFilter())
+        .add_filter(ge.MPOFilter(min_mpo_v2=4.5))
+        .add_scorer(ge.FunctionScorer("bonus", lambda r: 1.0), weight=0.2)
+    )
 """
 
 from __future__ import annotations
@@ -41,73 +53,25 @@ if TYPE_CHECKING:
         evaluation as evaluation,
     )
     from geneuclidean import (
+        exceptions as exceptions,
+    )
+    from geneuclidean import (
         models as models,
+    )
+    from geneuclidean import (
+        protocols as protocols,
+    )
+    from geneuclidean import (
+        registry as registry,
     )
     from geneuclidean import (
         sampling as sampling,
     )
     from geneuclidean import (
+        sdk as sdk,
+    )
+    from geneuclidean import (
         training as training,
-    )
-    from geneuclidean.api import (
-        CredibilityDossier as CredibilityDossier,
-    )
-    from geneuclidean.api import (
-        DesignResult as DesignResult,
-    )
-    from geneuclidean.api import (
-        MoleculeDesigner as MoleculeDesigner,
-    )
-    from geneuclidean.api import (
-        MoleculeReport as MoleculeReport,
-    )
-    from geneuclidean.api import (
-        Pocket as Pocket,
-    )
-    from geneuclidean.api import (
-        build_credibility_dossier as build_credibility_dossier,
-    )
-    from geneuclidean.api import (
-        dock_and_profile as dock_and_profile,
-    )
-    from geneuclidean.api import (
-        export_credibility_json as export_credibility_json,
-    )
-    from geneuclidean.api import (
-        export_credibility_markdown as export_credibility_markdown,
-    )
-    from geneuclidean.api import (
-        get_target as get_target,
-    )
-    from geneuclidean.api import (
-        list_backbones as list_backbones,
-    )
-    from geneuclidean.api import (
-        list_targets as list_targets,
-    )
-    from geneuclidean.api import (
-        protonate_ph74 as protonate_ph74,
-    )
-    from geneuclidean.api import (
-        redock_complex as redock_complex,
-    )
-    from geneuclidean.api import (
-        score_molecules as score_molecules,
-    )
-    from geneuclidean.api import (
-        triage_molecule as triage_molecule,
-    )
-    from geneuclidean.api import (
-        triage_molecules as triage_molecules,
-    )
-    from geneuclidean.api import (
-        visualize_complex as visualize_complex,
-    )
-    from geneuclidean.api import (
-        visualize_gallery as visualize_gallery,
-    )
-    from geneuclidean.api import (
-        visualize_molecules_2d as visualize_molecules_2d,
     )
     from geneuclidean.cns.medchem_triage import (
         MedChemTriageResult as MedChemTriageResult,
@@ -187,6 +151,207 @@ if TYPE_CHECKING:
     from geneuclidean.evaluation.protonation import (
         protonate_smiles_ph74 as protonate_smiles_ph74,
     )
+    from geneuclidean.exceptions import (
+        CheckpointError as CheckpointError,
+    )
+    from geneuclidean.exceptions import (
+        DockingError as DockingError,
+    )
+    from geneuclidean.exceptions import (
+        GenEuclideanError as GenEuclideanError,
+    )
+    from geneuclidean.exceptions import (
+        InvalidMoleculeError as InvalidMoleculeError,
+    )
+    from geneuclidean.exceptions import (
+        OptionalDependencyError as OptionalDependencyError,
+    )
+    from geneuclidean.exceptions import (
+        PocketFeaturizationError as PocketFeaturizationError,
+    )
+    from geneuclidean.exceptions import (
+        RegistryError as RegistryError,
+    )
+    from geneuclidean.exceptions import (
+        StructureNotFoundError as StructureNotFoundError,
+    )
+    from geneuclidean.exceptions import (
+        TargetNotFoundError as TargetNotFoundError,
+    )
+    from geneuclidean.protocols import (
+        DesignCallbackProtocol as DesignCallbackProtocol,
+    )
+    from geneuclidean.protocols import (
+        MolecularDecoderProtocol as MolecularDecoderProtocol,
+    )
+    from geneuclidean.protocols import (
+        MoleculeFilterProtocol as MoleculeFilterProtocol,
+    )
+    from geneuclidean.protocols import (
+        MoleculeScorerProtocol as MoleculeScorerProtocol,
+    )
+    from geneuclidean.protocols import (
+        PocketEncoderProtocol as PocketEncoderProtocol,
+    )
+    from geneuclidean.protocols import (
+        SamplingStrategyProtocol as SamplingStrategyProtocol,
+    )
+    from geneuclidean.registry import (
+        DECODER_REGISTRY as DECODER_REGISTRY,
+    )
+    from geneuclidean.registry import (
+        ENCODER_REGISTRY as ENCODER_REGISTRY,
+    )
+    from geneuclidean.registry import (
+        FILTER_REGISTRY as FILTER_REGISTRY,
+    )
+    from geneuclidean.registry import (
+        SAMPLING_STRATEGY_REGISTRY as SAMPLING_STRATEGY_REGISTRY,
+    )
+    from geneuclidean.registry import (
+        SCORER_REGISTRY as SCORER_REGISTRY,
+    )
+    from geneuclidean.registry import (
+        Registry as Registry,
+    )
+    from geneuclidean.registry import (
+        discover_plugins as discover_plugins,
+    )
+    from geneuclidean.registry import (
+        list_decoders as list_decoders,
+    )
+    from geneuclidean.registry import (
+        list_encoders as list_encoders,
+    )
+    from geneuclidean.registry import (
+        list_filters as list_filters,
+    )
+    from geneuclidean.registry import (
+        list_sampling_strategies as list_sampling_strategies,
+    )
+    from geneuclidean.registry import (
+        list_scorers as list_scorers,
+    )
+    from geneuclidean.registry import (
+        register_backbone_metadata as register_backbone_metadata,
+    )
+    from geneuclidean.registry import (
+        register_decoder as register_decoder,
+    )
+    from geneuclidean.registry import (
+        register_encoder as register_encoder,
+    )
+    from geneuclidean.registry import (
+        register_filter as register_filter,
+    )
+    from geneuclidean.registry import (
+        register_sampling_strategy as register_sampling_strategy,
+    )
+    from geneuclidean.registry import (
+        register_scorer as register_scorer,
+    )
+    from geneuclidean.sdk import (
+        ADMETFilter as ADMETFilter,
+    )
+    from geneuclidean.sdk import (
+        BaseDesignCallback as BaseDesignCallback,
+    )
+    from geneuclidean.sdk import (
+        BasicAmineFilter as BasicAmineFilter,
+    )
+    from geneuclidean.sdk import (
+        CredibilityDossier as CredibilityDossier,
+    )
+    from geneuclidean.sdk import (
+        DesignPipeline as DesignPipeline,
+    )
+    from geneuclidean.sdk import (
+        DesignResult as DesignResult,
+    )
+    from geneuclidean.sdk import (
+        FunctionScorer as FunctionScorer,
+    )
+    from geneuclidean.sdk import (
+        MoleculeDesigner as MoleculeDesigner,
+    )
+    from geneuclidean.sdk import (
+        MoleculeReport as MoleculeReport,
+    )
+    from geneuclidean.sdk import (
+        MPOFilter as MPOFilter,
+    )
+    from geneuclidean.sdk import (
+        Pocket as Pocket,
+    )
+    from geneuclidean.sdk import (
+        PredicateFilter as PredicateFilter,
+    )
+    from geneuclidean.sdk import (
+        QEDFilter as QEDFilter,
+    )
+    from geneuclidean.sdk import (
+        ScaffoldHopFilter as ScaffoldHopFilter,
+    )
+    from geneuclidean.sdk import (
+        TriageFilter as TriageFilter,
+    )
+    from geneuclidean.sdk import (
+        audit_tourette_circuit as audit_tourette_circuit,
+    )
+    from geneuclidean.sdk import (
+        build_credibility_dossier as build_credibility_dossier,
+    )
+    from geneuclidean.sdk import (
+        dock_and_profile as dock_and_profile,
+    )
+    from geneuclidean.sdk import (
+        export_credibility_json as export_credibility_json,
+    )
+    from geneuclidean.sdk import (
+        export_credibility_markdown as export_credibility_markdown,
+    )
+    from geneuclidean.sdk import (
+        get_target as get_target,
+    )
+    from geneuclidean.sdk import (
+        list_backbones as list_backbones,
+    )
+    from geneuclidean.sdk import (
+        list_targets as list_targets,
+    )
+    from geneuclidean.sdk import (
+        protonate_ph74 as protonate_ph74,
+    )
+    from geneuclidean.sdk import (
+        redock_complex as redock_complex,
+    )
+    from geneuclidean.sdk import (
+        register_target as register_target,
+    )
+    from geneuclidean.sdk import (
+        score_molecules as score_molecules,
+    )
+    from geneuclidean.sdk import (
+        score_tourette_circuit as score_tourette_circuit,
+    )
+    from geneuclidean.sdk import (
+        triage_molecule as triage_molecule,
+    )
+    from geneuclidean.sdk import (
+        triage_molecules as triage_molecules,
+    )
+    from geneuclidean.sdk import (
+        unregister_target as unregister_target,
+    )
+    from geneuclidean.sdk import (
+        visualize_complex as visualize_complex,
+    )
+    from geneuclidean.sdk import (
+        visualize_gallery as visualize_gallery,
+    )
+    from geneuclidean.sdk import (
+        visualize_molecules_2d as visualize_molecules_2d,
+    )
 
 _LAZY_SUBMODULES: frozenset[str] = frozenset(
     {
@@ -196,34 +361,88 @@ _LAZY_SUBMODULES: frozenset[str] = frozenset(
         "config",
         "data",
         "evaluation",
+        "exceptions",
         "models",
+        "protocols",
+        "registry",
         "sampling",
+        "sdk",
         "training",
     }
 )
 
 _LAZY_ATTRS: dict[str, tuple[str, str]] = {
-    # High-level SDK facade (`geneuclidean.api`)
-    "CredibilityDossier": ("geneuclidean.api", "CredibilityDossier"),
-    "DesignResult": ("geneuclidean.api", "DesignResult"),
-    "MoleculeDesigner": ("geneuclidean.api", "MoleculeDesigner"),
-    "MoleculeReport": ("geneuclidean.api", "MoleculeReport"),
-    "Pocket": ("geneuclidean.api", "Pocket"),
-    "build_credibility_dossier": ("geneuclidean.api", "build_credibility_dossier"),
-    "dock_and_profile": ("geneuclidean.api", "dock_and_profile"),
-    "export_credibility_json": ("geneuclidean.api", "export_credibility_json"),
-    "export_credibility_markdown": ("geneuclidean.api", "export_credibility_markdown"),
-    "get_target": ("geneuclidean.api", "get_target"),
-    "list_backbones": ("geneuclidean.api", "list_backbones"),
-    "list_targets": ("geneuclidean.api", "list_targets"),
-    "protonate_ph74": ("geneuclidean.api", "protonate_ph74"),
-    "redock_complex": ("geneuclidean.api", "redock_complex"),
-    "score_molecules": ("geneuclidean.api", "score_molecules"),
-    "triage_molecule": ("geneuclidean.api", "triage_molecule"),
-    "triage_molecules": ("geneuclidean.api", "triage_molecules"),
-    "visualize_complex": ("geneuclidean.api", "visualize_complex"),
-    "visualize_gallery": ("geneuclidean.api", "visualize_gallery"),
-    "visualize_molecules_2d": ("geneuclidean.api", "visualize_molecules_2d"),
+    # Structured Exceptions (`geneuclidean.exceptions`)
+    "CheckpointError": ("geneuclidean.exceptions", "CheckpointError"),
+    "DockingError": ("geneuclidean.exceptions", "DockingError"),
+    "GenEuclideanError": ("geneuclidean.exceptions", "GenEuclideanError"),
+    "InvalidMoleculeError": ("geneuclidean.exceptions", "InvalidMoleculeError"),
+    "OptionalDependencyError": ("geneuclidean.exceptions", "OptionalDependencyError"),
+    "PocketFeaturizationError": ("geneuclidean.exceptions", "PocketFeaturizationError"),
+    "RegistryError": ("geneuclidean.exceptions", "RegistryError"),
+    "StructureNotFoundError": ("geneuclidean.exceptions", "StructureNotFoundError"),
+    "TargetNotFoundError": ("geneuclidean.exceptions", "TargetNotFoundError"),
+    # Structural Typing Protocols (`geneuclidean.protocols`)
+    "DesignCallbackProtocol": ("geneuclidean.protocols", "DesignCallbackProtocol"),
+    "MolecularDecoderProtocol": ("geneuclidean.protocols", "MolecularDecoderProtocol"),
+    "MoleculeFilterProtocol": ("geneuclidean.protocols", "MoleculeFilterProtocol"),
+    "MoleculeScorerProtocol": ("geneuclidean.protocols", "MoleculeScorerProtocol"),
+    "PocketEncoderProtocol": ("geneuclidean.protocols", "PocketEncoderProtocol"),
+    "SamplingStrategyProtocol": ("geneuclidean.protocols", "SamplingStrategyProtocol"),
+    # Plugin Registries (`geneuclidean.registry`)
+    "DECODER_REGISTRY": ("geneuclidean.registry", "DECODER_REGISTRY"),
+    "ENCODER_REGISTRY": ("geneuclidean.registry", "ENCODER_REGISTRY"),
+    "FILTER_REGISTRY": ("geneuclidean.registry", "FILTER_REGISTRY"),
+    "Registry": ("geneuclidean.registry", "Registry"),
+    "SAMPLING_STRATEGY_REGISTRY": ("geneuclidean.registry", "SAMPLING_STRATEGY_REGISTRY"),
+    "SCORER_REGISTRY": ("geneuclidean.registry", "SCORER_REGISTRY"),
+    "discover_plugins": ("geneuclidean.registry", "discover_plugins"),
+    "list_decoders": ("geneuclidean.registry", "list_decoders"),
+    "list_encoders": ("geneuclidean.registry", "list_encoders"),
+    "list_filters": ("geneuclidean.registry", "list_filters"),
+    "list_sampling_strategies": ("geneuclidean.registry", "list_sampling_strategies"),
+    "list_scorers": ("geneuclidean.registry", "list_scorers"),
+    "register_backbone_metadata": ("geneuclidean.registry", "register_backbone_metadata"),
+    "register_decoder": ("geneuclidean.registry", "register_decoder"),
+    "register_encoder": ("geneuclidean.registry", "register_encoder"),
+    "register_filter": ("geneuclidean.registry", "register_filter"),
+    "register_sampling_strategy": ("geneuclidean.registry", "register_sampling_strategy"),
+    "register_scorer": ("geneuclidean.registry", "register_scorer"),
+    # Modular High-Level SDK (`geneuclidean.sdk.*`)
+    "ADMETFilter": ("geneuclidean.sdk.scoring", "ADMETFilter"),
+    "BaseDesignCallback": ("geneuclidean.sdk.pipeline", "BaseDesignCallback"),
+    "BasicAmineFilter": ("geneuclidean.sdk.scoring", "BasicAmineFilter"),
+    "CredibilityDossier": ("geneuclidean.sdk.credibility", "CredibilityDossier"),
+    "DesignPipeline": ("geneuclidean.sdk.pipeline", "DesignPipeline"),
+    "DesignResult": ("geneuclidean.sdk.designer", "DesignResult"),
+    "FunctionScorer": ("geneuclidean.sdk.scoring", "FunctionScorer"),
+    "MPOFilter": ("geneuclidean.sdk.scoring", "MPOFilter"),
+    "MoleculeDesigner": ("geneuclidean.sdk.designer", "MoleculeDesigner"),
+    "MoleculeReport": ("geneuclidean.sdk.scoring", "MoleculeReport"),
+    "Pocket": ("geneuclidean.sdk.pocket", "Pocket"),
+    "PredicateFilter": ("geneuclidean.sdk.scoring", "PredicateFilter"),
+    "QEDFilter": ("geneuclidean.sdk.scoring", "QEDFilter"),
+    "ScaffoldHopFilter": ("geneuclidean.sdk.scoring", "ScaffoldHopFilter"),
+    "TriageFilter": ("geneuclidean.sdk.scoring", "TriageFilter"),
+    "audit_tourette_circuit": ("geneuclidean.sdk.registries", "audit_tourette_circuit"),
+    "build_credibility_dossier": ("geneuclidean.sdk.credibility", "build_credibility_dossier"),
+    "dock_and_profile": ("geneuclidean.sdk.docking", "dock_and_profile"),
+    "export_credibility_json": ("geneuclidean.sdk.credibility", "export_credibility_json"),
+    "export_credibility_markdown": ("geneuclidean.sdk.credibility", "export_credibility_markdown"),
+    "get_target": ("geneuclidean.sdk.registries", "get_target"),
+    "list_backbones": ("geneuclidean.sdk.registries", "list_backbones"),
+    "list_targets": ("geneuclidean.sdk.registries", "list_targets"),
+    "protonate_ph74": ("geneuclidean.sdk.scoring", "protonate_ph74"),
+    "redock_complex": ("geneuclidean.sdk.docking", "redock_complex"),
+    "register_target": ("geneuclidean.sdk.registries", "register_target"),
+    "score_molecules": ("geneuclidean.sdk.scoring", "score_molecules"),
+    "score_tourette_circuit": ("geneuclidean.sdk.scoring", "score_tourette_circuit"),
+    "triage_molecule": ("geneuclidean.sdk.scoring", "triage_molecule"),
+    "triage_molecules": ("geneuclidean.sdk.scoring", "triage_molecules"),
+    "unregister_target": ("geneuclidean.sdk.registries", "unregister_target"),
+    "visualize_complex": ("geneuclidean.sdk.viz", "visualize_complex"),
+    "visualize_gallery": ("geneuclidean.sdk.viz", "visualize_gallery"),
+    "visualize_molecules_2d": ("geneuclidean.sdk.viz", "visualize_molecules_2d"),
     # Industrial MedChem Triage (`geneuclidean.cns.medchem_triage`)
     "MedChemTriageResult": ("geneuclidean.cns.medchem_triage", "MedChemTriageResult"),
     "ScaffoldHopReport": ("geneuclidean.cns.medchem_triage", "ScaffoldHopReport"),

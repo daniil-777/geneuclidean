@@ -27,8 +27,10 @@ tested medicines or medical advice.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from threading import RLock
 from typing import Any, Literal
 
 import numpy as np
@@ -41,6 +43,7 @@ from geneuclidean.data.featurizer import (
     extract_pocket_from_files,
     featurize_pdb_pocket_inference,
 )
+from geneuclidean.exceptions import RegistryError, TargetNotFoundError
 
 DEFAULT_CNS_STRUCTURES_DIR = Path("data/cns_neuro/structures")
 DEFAULT_V4_STRUCTURES_DIR = Path("data/cns_neuro.nosync/v4_expansion/structures")
@@ -1596,9 +1599,76 @@ _TARGET_ALIAS_MAP.update(
 )
 
 
+_CUSTOM_TARGET_LOCK = RLock()
+_CUSTOM_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {}
+_CUSTOM_TARGET_ALIASES: dict[str, str] = {}
+
+
+def register_cns_target(
+    spec: CNSTargetSpec,
+    *,
+    aliases: Sequence[str] = (),
+    override: bool = False,
+) -> CNSTargetSpec:
+    """Register a custom protein target specification at runtime.
+
+    Custom targets are stored separately from the immutable curated benchmark atlases
+    (``CNS_TARGET_REGISTRY``, ``TRI_DISORDER_TARGET_REGISTRY``, ``ALL_CNS_TARGET_REGISTRY``)
+    so scientific benchmark counts remain invariant while ``get_cns_target``,
+    ``list_cns_targets``, and ``Pocket.from_target`` seamlessly resolve custom targets.
+    """
+    tid = spec.target_id.strip().upper()
+    if not tid:
+        raise RegistryError("CNSTargetSpec.target_id cannot be empty.")
+
+    with _CUSTOM_TARGET_LOCK:
+        if not override and (tid in _CUSTOM_TARGET_REGISTRY or tid in ALL_CNS_TARGET_REGISTRY):
+            raise RegistryError(
+                f"Target {tid!r} is already registered.",
+                hint="Choose a unique target_id or pass override=True.",
+            )
+        if tid in _CUSTOM_TARGET_REGISTRY:
+            for ak in [k for k, v in _CUSTOM_TARGET_ALIASES.items() if v == tid]:
+                del _CUSTOM_TARGET_ALIASES[ak]
+
+        _CUSTOM_TARGET_REGISTRY[tid] = spec
+        index_keys = {
+            tid,
+            spec.gene_symbol.strip().upper(),
+            spec.chembl_id.strip().upper(),
+            spec.uniprot_id.strip().upper(),
+            *(a.strip().upper() for a in aliases if a.strip()),
+        }
+        for key in index_keys:
+            if key:
+                _CUSTOM_TARGET_ALIASES[key] = tid
+    return spec
+
+
+def unregister_cns_target(target_id: str) -> CNSTargetSpec:
+    """Remove a previously registered custom protein target from the runtime registry."""
+    key = target_id.strip().upper()
+    with _CUSTOM_TARGET_LOCK:
+        resolved = _CUSTOM_TARGET_ALIASES.get(key, key)
+        if resolved not in _CUSTOM_TARGET_REGISTRY:
+            raise TargetNotFoundError(
+                f"Custom target {target_id!r} is not registered.",
+                hint="Only runtime-registered custom targets can be unregistered.",
+            )
+        removed = _CUSTOM_TARGET_REGISTRY.pop(resolved)
+        for ak in [k for k, v in _CUSTOM_TARGET_ALIASES.items() if v == resolved]:
+            del _CUSTOM_TARGET_ALIASES[ak]
+        return removed
+
+
 def get_cns_target(identifier: str) -> CNSTargetSpec:
     """Look up a ``CNSTargetSpec`` by target ID, gene symbol, ChEMBL ID, or UniProt ID."""
     key = identifier.strip().upper()
+    with _CUSTOM_TARGET_LOCK:
+        custom_tid = _CUSTOM_TARGET_ALIASES.get(key)
+        if custom_tid is not None and custom_tid in _CUSTOM_TARGET_REGISTRY:
+            return _CUSTOM_TARGET_REGISTRY[custom_tid]
+
     resolved = _TARGET_ALIAS_MAP.get(key)
     if resolved is not None:
         return ALL_CNS_TARGET_REGISTRY[resolved]
@@ -1613,10 +1683,22 @@ def get_cns_target(identifier: str) -> CNSTargetSpec:
     try:
         return get_tourette_circuit_target(identifier)
     except KeyError:
+        with _CUSTOM_TARGET_LOCK:
+            custom_keys = set(_CUSTOM_TARGET_REGISTRY.keys())
         valid = ", ".join(
-            sorted(set(ALL_CNS_TARGET_REGISTRY.keys()) | set(TOURETTE_CIRCUIT_EXPANSION_REGISTRY))
+            sorted(
+                set(ALL_CNS_TARGET_REGISTRY.keys())
+                | set(TOURETTE_CIRCUIT_EXPANSION_REGISTRY)
+                | custom_keys
+            )
         )
-        raise KeyError(f"Unknown CNS target {identifier!r}. Registered targets: {valid}") from None
+        raise TargetNotFoundError(
+            f"Unknown CNS target {identifier!r}. Registered targets: {valid}",
+            hint=(
+                "Inspect available targets via geneuclidean.list_targets() or "
+                "register a custom target via geneuclidean.register_target(...)."
+            ),
+        ) from None
 
 
 def list_cns_targets(
@@ -1648,6 +1730,13 @@ def list_cns_targets(
         from geneuclidean.cns.tourette_circuit import TOURETTE_CIRCUIT_EXPANSION_REGISTRY
 
         pool.extend(TOURETTE_CIRCUIT_EXPANSION_REGISTRY.values())
+
+    with _CUSTOM_TARGET_LOCK:
+        if _CUSTOM_TARGET_REGISTRY:
+            seen_ids = {s.target_id.upper() for s in pool}
+            for custom_spec in _CUSTOM_TARGET_REGISTRY.values():
+                if custom_spec.target_id.upper() not in seen_ids:
+                    pool.append(custom_spec)
 
     if disease_area is not None and disease_area.strip():
         area = disease_area.strip().lower()
@@ -1922,4 +2011,6 @@ __all__ = [
     "list_cns_targets",
     "list_tri_disorder_targets",
     "load_cns_target_pocket",
+    "register_cns_target",
+    "unregister_cns_target",
 ]

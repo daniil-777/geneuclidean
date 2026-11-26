@@ -773,20 +773,25 @@ def check_canonical_anchors(
 
 
 def _require_meeko() -> Any:
-    """Lazily import ``meeko`` or raise an actionable RuntimeError."""
+    """Lazily import ``meeko`` or raise an actionable :class:`OptionalDependencyError`."""
+    from geneuclidean.exceptions import OptionalDependencyError
+
     try:
         import meeko
 
         return meeko
     except ImportError as exc:
-        raise RuntimeError(
+        raise OptionalDependencyError(
             "The optional 'meeko' package is required for AutoDock Vina ligand preparation "
-            "and pose reconstruction. Install it via: pip install 'geneuclidean[docking]'"
+            "and pose reconstruction.",
+            hint="Install it via: pip install 'geneuclidean[docking]'",
         ) from exc
 
 
 def _resolve_required_vina(vina_bin: str | Path) -> Path:
-    """Resolve AutoDock Vina binary or raise a clear RuntimeError with setup guidance."""
+    """Resolve AutoDock Vina binary or raise an actionable :class:`OptionalDependencyError`."""
+    from geneuclidean.exceptions import OptionalDependencyError
+
     candidates: list[str | Path] = [vina_bin]
     if str(vina_bin) != "vina":
         candidates.append("vina")
@@ -794,9 +799,9 @@ def _resolve_required_vina(vina_bin: str | Path) -> Path:
         found = _resolve_vina_binary(cand)
         if found is not None:
             return found
-    raise RuntimeError(
-        f"AutoDock Vina executable not found (checked {vina_bin!r} and system PATH). "
-        "Run `geneuclidean download --include-vina` or install AutoDock Vina v1.2+ on PATH."
+    raise OptionalDependencyError(
+        f"AutoDock Vina executable not found (checked {vina_bin!r} and system PATH).",
+        hint="Run `geneuclidean download --include-vina` or install AutoDock Vina v1.2+ on PATH.",
     )
 
 

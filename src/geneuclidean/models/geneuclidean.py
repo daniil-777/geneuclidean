@@ -11,7 +11,7 @@ from torch import Tensor
 
 from geneuclidean.config import ExperimentConfig
 from geneuclidean.models.cvae import PocketCVAE
-from geneuclidean.models.decoders import PocketLSTMDecoder, PocketTransformerDecoder, build_decoder
+from geneuclidean.models.decoders import build_decoder
 from geneuclidean.models.encoders import PocketEncoderOutput, build_encoder
 from geneuclidean.models.heads import MultiTaskHeads
 
@@ -86,7 +86,7 @@ class GenEuclideanModel(nn.Module):
         else:
             self.cvae = None
 
-        self.decoder: PocketTransformerDecoder | PocketLSTMDecoder = build_decoder(
+        self.decoder: nn.Module = build_decoder(
             cfg.decoder,
             cross_attn_gate_init=cross_attn_gate_init,
         )

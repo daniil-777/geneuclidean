@@ -107,6 +107,8 @@ from geneuclidean.cns.targets import (
     list_cns_targets,
     list_tri_disorder_targets,
     load_cns_target_pocket,
+    register_cns_target,
+    unregister_cns_target,
 )
 
 __all__ = [
@@ -180,10 +182,12 @@ __all__ = [
     "load_biogen_binary_endpoint",
     "load_cns_target_pocket",
     "make_scaffold_kfold",
+    "register_cns_target",
     "render_credibility_markdown",
     "stereocenter_burden",
     "train_default_cns_admet_suite",
     "train_v4_pharma_admet_suite",
     "triage_batch",
     "triage_molecule",
+    "unregister_cns_target",
 ]

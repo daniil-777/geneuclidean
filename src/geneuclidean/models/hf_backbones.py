@@ -1356,6 +1356,53 @@ def load_hf_backbone(
     )
 
 
+def register_backbone(
+    spec: BackboneSpec,
+    *,
+    aliases: Sequence[str] = (),
+    override: bool = False,
+    params: str | None = None,
+    license_name: str | None = None,
+    notes: str = "",
+) -> BackboneSpec:
+    """Register a custom Hugging Face or local causal LM backbone at runtime.
+
+    Updates both :data:`BACKBONE_REGISTRY` (used by :func:`load_hf_backbone`) and
+    the zero-PyTorch :data:`geneuclidean.registry.BACKBONE_CATALOG` (returned by
+    :func:`geneuclidean.list_backbones`).
+    """
+    from geneuclidean.exceptions import RegistryError
+    from geneuclidean.registry import register_backbone_metadata
+
+    keys = [spec.backbone_id, *[a.strip() for a in aliases if a.strip()]]
+    if not override:
+        for k in keys:
+            if k in BACKBONE_REGISTRY:
+                raise RegistryError(
+                    f"Backbone {k!r} is already registered in BACKBONE_REGISTRY.",
+                    hint="Pass override=True to replace an existing backbone specification.",
+                )
+    for k in keys:
+        BACKBONE_REGISTRY[k] = spec
+
+    meta: dict[str, Any] = {
+        "family": spec.family,
+        "representation": spec.representation,
+        "is_smiles_native": spec.is_smiles_native,
+        "tokenizer_id": spec.tokenizer_id,
+    }
+    if aliases:
+        meta["aliases"] = [a.strip() for a in aliases if a.strip()]
+    if params is not None:
+        meta["params"] = params
+    if license_name is not None:
+        meta["license"] = license_name
+    if notes:
+        meta["notes"] = notes
+    register_backbone_metadata(spec.backbone_id, meta, override=True)
+    return spec
+
+
 def list_registered_backbones() -> Mapping[str, BackboneSpec]:
     """Return a read-only view of all registered GenEuclidean backbones."""
     return dict(BACKBONE_REGISTRY)
@@ -1381,6 +1428,7 @@ __all__ = [
     "get_input_embeddings_tensor",
     "list_registered_backbones",
     "load_hf_backbone",
+    "register_backbone",
     "remap_novomolgen_state_dict",
     "sanitize_safe_gpt_tokenizer_json",
 ]

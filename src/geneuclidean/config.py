@@ -10,7 +10,16 @@ from typing import Literal
 import numpy as np
 import torch
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from geneuclidean.registry import (
+    BUILTIN_DECODER_NAMES,
+    BUILTIN_ENCODER_NAMES,
+    BUILTIN_SAMPLING_STRATEGY_NAMES,
+    DECODER_REGISTRY,
+    ENCODER_REGISTRY,
+    SAMPLING_STRATEGY_REGISTRY,
+)
 
 
 class _StrictBaseModel(BaseModel):
@@ -53,7 +62,7 @@ class EncoderConfig(_StrictBaseModel):
     pharmacophore & invariant geometric scalars (16).
     """
 
-    arch: Literal["painn", "egnn", "e3nn", "schnet"] = "painn"
+    arch: str = "painn"
     node_in_dim: int = Field(default=52, ge=1)
     hidden_dim: int = Field(default=192, ge=16)
     vector_dim: int = Field(default=64, ge=8)
@@ -64,6 +73,20 @@ class EncoderConfig(_StrictBaseModel):
     e3nn_lmax: int = Field(default=1, ge=0, le=3)
     use_se3_chirality: bool = True
     dropout: float = Field(default=0.1, ge=0.0, lt=1.0)
+
+    @field_validator("arch")
+    @classmethod
+    def _validate_encoder_arch(cls, value: str) -> str:
+        cleaned = value.strip()
+        if cleaned.lower() in BUILTIN_ENCODER_NAMES:
+            return cleaned.lower()
+        if cleaned in ENCODER_REGISTRY:
+            return cleaned
+        valid = sorted(BUILTIN_ENCODER_NAMES | set(ENCODER_REGISTRY.names()))
+        raise ValueError(
+            f"Unknown encoder architecture {value!r}. Expected one of {valid} "
+            "or register a custom encoder via geneuclidean.register_encoder(...)."
+        )
 
 
 class CVAEConfig(_StrictBaseModel):
@@ -80,7 +103,7 @@ class CVAEConfig(_StrictBaseModel):
 class DecoderConfig(_StrictBaseModel):
     """Autoregressive chemical language decoder configuration."""
 
-    arch: Literal["transformer", "lstm"] = "transformer"
+    arch: str = "transformer"
     vocab_size: int = Field(
         default=96,
         ge=4,
@@ -95,6 +118,20 @@ class DecoderConfig(_StrictBaseModel):
     use_cross_attn: bool = True
     gated_cross_attn: bool = True
     cfg_drop_prob: float = Field(default=0.15, ge=0.0, lt=1.0)
+
+    @field_validator("arch")
+    @classmethod
+    def _validate_decoder_arch(cls, value: str) -> str:
+        cleaned = value.strip()
+        if cleaned.lower() in BUILTIN_DECODER_NAMES:
+            return cleaned.lower()
+        if cleaned in DECODER_REGISTRY:
+            return cleaned
+        valid = sorted(BUILTIN_DECODER_NAMES | set(DECODER_REGISTRY.names()))
+        raise ValueError(
+            f"Unknown decoder architecture {value!r}. Expected one of {valid} "
+            "or register a custom decoder via geneuclidean.register_decoder(...)."
+        )
 
     @model_validator(mode="after")
     def _validate_heads(self) -> DecoderConfig:
@@ -140,15 +177,7 @@ class TrainConfig(_StrictBaseModel):
 class SamplingConfig(_StrictBaseModel):
     """Inference decoding strategy, classifier-free guidance, and diversity controls."""
 
-    strategy: Literal[
-        "min_p",
-        "top_p",
-        "top_k",
-        "temperature",
-        "greedy",
-        "typical",
-        "diverse_beam",
-    ] = "min_p"
+    strategy: str = "min_p"
     num_samples: int = Field(default=64, ge=1)
     max_len: int = Field(default=120, ge=4)
     temperature: float = Field(default=1.05, gt=0.0)
@@ -162,6 +191,20 @@ class SamplingConfig(_StrictBaseModel):
     diversity_penalty: float = Field(default=0.7, ge=0.0)
     repetition_penalty: float = Field(default=1.05, ge=1.0)
     syntax_guardrails: bool = False
+
+    @field_validator("strategy")
+    @classmethod
+    def _validate_strategy(cls, value: str) -> str:
+        cleaned = value.strip()
+        if cleaned.lower() in BUILTIN_SAMPLING_STRATEGY_NAMES:
+            return cleaned.lower()
+        if cleaned in SAMPLING_STRATEGY_REGISTRY:
+            return cleaned
+        valid = sorted(BUILTIN_SAMPLING_STRATEGY_NAMES | set(SAMPLING_STRATEGY_REGISTRY.names()))
+        raise ValueError(
+            f"Unknown sampling strategy {value!r}. Expected one of {valid} "
+            "or register a custom strategy via geneuclidean.register_sampling_strategy(...)."
+        )
 
     @model_validator(mode="after")
     def _validate_diverse_beam(self) -> SamplingConfig:

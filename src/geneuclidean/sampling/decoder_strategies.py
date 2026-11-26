@@ -25,6 +25,11 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 
 from geneuclidean.config import SamplingConfig
+from geneuclidean.registry import (
+    SAMPLING_STRATEGY_REGISTRY,
+    list_sampling_strategies,
+    register_sampling_strategy,
+)
 
 _BOND_TOKENS = frozenset({"=", "#", "/", "\\", ":"})
 
@@ -316,6 +321,92 @@ def combine_cfg_logits(
     return logits_uncond + float(cfg_scale) * (logits_cond - logits_uncond)
 
 
+def _strategy_greedy(
+    logits: Tensor,
+    *,
+    temperature: float = 1.0,
+    top_k: int = 30,
+    top_p: float = 0.92,
+    min_p: float = 0.08,
+) -> Tensor:
+    del temperature, top_k, top_p, min_p
+    argmax_idx = logits.argmax(dim=-1, keepdim=True)
+    probs = torch.zeros_like(logits)
+    probs.scatter_(-1, argmax_idx, 1.0)
+    return probs
+
+
+def _strategy_temperature(
+    logits: Tensor,
+    *,
+    temperature: float = 1.0,
+    top_k: int = 30,
+    top_p: float = 0.92,
+    min_p: float = 0.08,
+) -> Tensor:
+    del top_k, top_p, min_p
+    return compute_temperature_probs(logits, temperature=temperature)
+
+
+def _strategy_top_k(
+    logits: Tensor,
+    *,
+    temperature: float = 1.0,
+    top_k: int = 30,
+    top_p: float = 0.92,
+    min_p: float = 0.08,
+) -> Tensor:
+    del top_p, min_p
+    filtered_logits = filter_top_k(logits, top_k=top_k)
+    return compute_temperature_probs(filtered_logits, temperature=temperature)
+
+
+def _strategy_top_p(
+    logits: Tensor,
+    *,
+    temperature: float = 1.0,
+    top_k: int = 30,
+    top_p: float = 0.92,
+    min_p: float = 0.08,
+) -> Tensor:
+    del top_k, min_p
+    probs = compute_temperature_probs(logits, temperature=temperature)
+    return filter_top_p_probs(probs, top_p=top_p)
+
+
+def _strategy_min_p(
+    logits: Tensor,
+    *,
+    temperature: float = 1.0,
+    top_k: int = 30,
+    top_p: float = 0.92,
+    min_p: float = 0.08,
+) -> Tensor:
+    del top_k, top_p
+    probs = compute_temperature_probs(logits, temperature=temperature)
+    return filter_min_p_probs(probs, min_p=min_p)
+
+
+def _strategy_typical(
+    logits: Tensor,
+    *,
+    temperature: float = 1.0,
+    top_k: int = 30,
+    top_p: float = 0.92,
+    min_p: float = 0.08,
+) -> Tensor:
+    del top_k, min_p
+    return filter_typical_probs(logits, temperature=temperature, mass=top_p)
+
+
+SAMPLING_STRATEGY_REGISTRY.register("greedy", _strategy_greedy, override=True)
+SAMPLING_STRATEGY_REGISTRY.register("temperature", _strategy_temperature, override=True)
+SAMPLING_STRATEGY_REGISTRY.register("top_k", _strategy_top_k, override=True)
+SAMPLING_STRATEGY_REGISTRY.register("top_p", _strategy_top_p, override=True)
+SAMPLING_STRATEGY_REGISTRY.register("min_p", _strategy_min_p, override=True)
+SAMPLING_STRATEGY_REGISTRY.register("typical", _strategy_typical, override=True)
+
+
 def compute_strategy_probs(
     logits: Tensor,
     strategy: str,
@@ -325,26 +416,25 @@ def compute_strategy_probs(
     top_p: float = 0.92,
     min_p: float = 0.08,
 ) -> Tensor:
-    """Compute exact next-token sampling probabilities for any supported decoding strategy."""
-    if strategy == "greedy":
-        argmax_idx = logits.argmax(dim=-1, keepdim=True)
-        probs = torch.zeros_like(logits)
-        probs.scatter_(-1, argmax_idx, 1.0)
-        return probs
-    if strategy == "temperature":
-        return compute_temperature_probs(logits, temperature=temperature)
-    if strategy == "top_k":
-        filtered_logits = filter_top_k(logits, top_k=top_k)
-        return compute_temperature_probs(filtered_logits, temperature=temperature)
-    if strategy == "top_p":
-        probs = compute_temperature_probs(logits, temperature=temperature)
-        return filter_top_p_probs(probs, top_p=top_p)
-    if strategy == "min_p":
-        probs = compute_temperature_probs(logits, temperature=temperature)
-        return filter_min_p_probs(probs, min_p=min_p)
-    if strategy == "typical":
-        return filter_typical_probs(logits, temperature=temperature, mass=top_p)
-    raise ValueError(f"Unsupported stochastic decoding strategy: {strategy!r}")
+    """Compute exact next-token sampling probabilities for any built-in or custom strategy.
+
+    Dispatches through :data:`~geneuclidean.registry.SAMPLING_STRATEGY_REGISTRY` so users
+    can register custom probability shapers via :func:`geneuclidean.register_sampling_strategy`.
+    """
+    if strategy not in SAMPLING_STRATEGY_REGISTRY:
+        raise ValueError(
+            f"Unsupported stochastic decoding strategy: {strategy!r}. "
+            f"Registered: {list_sampling_strategies()}"
+        )
+    fn = SAMPLING_STRATEGY_REGISTRY.get(strategy)
+    probs: Tensor = fn(
+        logits,
+        temperature=temperature,
+        top_k=top_k,
+        top_p=top_p,
+        min_p=min_p,
+    )
+    return probs
 
 
 def select_next_tokens(
@@ -1062,6 +1152,7 @@ def sample_with_attention(
 
 
 __all__ = [
+    "SAMPLING_STRATEGY_REGISTRY",
     "SamplingResult",
     "apply_repetition_penalty",
     "apply_smiles_syntax_guardrails",
@@ -1073,6 +1164,8 @@ __all__ = [
     "filter_top_k",
     "filter_top_p_probs",
     "filter_typical_probs",
+    "list_sampling_strategies",
+    "register_sampling_strategy",
     "sample_molecules",
     "sample_molecules_detailed",
     "sample_with_attention",
