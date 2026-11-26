@@ -1,4 +1,5 @@
 import {
+  AlertCircle,
   Copy,
   Layers,
   Map as MapIcon,
@@ -22,6 +23,7 @@ import type {
   WiringDraft,
 } from '../../types/circuit';
 import type { ThemeMode } from '../../types/studio';
+import { BLOCK_MAP } from '../../lib/circuitCatalog';
 import {
   evaluatePortConnection,
   getPortPosition,
@@ -49,6 +51,7 @@ interface CanvasProps {
     targetNodeId: string,
     targetPortId: string,
   ) => void;
+  onWiringRejected: (reason: string) => void;
   onDropNewBlock: (blockType: string, worldPos: { x: number; y: number }) => void;
   onFitView: () => void;
   onAutoLayout: () => void;
@@ -63,7 +66,7 @@ interface CanvasProps {
   nodeTelemetry: Record<string, ExecutionStepTelemetry>;
   activeEdgeIds: Set<string>;
   isRunning: boolean;
-  toastMessage: string | null;
+  toastMessage: { text: string; tone: 'info' | 'error' } | null;
   canvasContainerRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -83,6 +86,7 @@ export function Canvas({
   onMoveNodePreview,
   onCommitNodeMove,
   onConnectPorts,
+  onWiringRejected,
   onDropNewBlock,
   onFitView,
   onAutoLayout,
@@ -246,6 +250,27 @@ export function Canvas({
     e.stopPropagation();
   };
 
+  const findNearestInputPort = useCallback(
+    (wx: number, wy: number, excludeNodeId: string) => {
+      let best: { nodeId: string; portId: string; x: number; y: number; dist: number } | null = null;
+      const SNAP_RADIUS = 30;
+      for (const n of circuit.nodes) {
+        if (n.id === excludeNodeId) continue;
+        const def = BLOCK_MAP[n.blockType];
+        if (!def) continue;
+        for (const inp of def.inputs) {
+          const pos = getPortPosition(n, inp.id, 'input');
+          const d = Math.hypot(wx - pos.x, wy - pos.y);
+          if (d <= SNAP_RADIUS && (!best || d < best.dist)) {
+            best = { nodeId: n.id, portId: inp.id, x: pos.x, y: pos.y, dist: d };
+          }
+        }
+      }
+      return best;
+    },
+    [circuit.nodes],
+  );
+
   const handleCompleteWiring = (e: React.PointerEvent, targetNodeId: string, targetPort: PortSpec) => {
     e.stopPropagation();
     if (!wiringDraft) return;
@@ -258,24 +283,10 @@ export function Canvas({
     );
     if (check.compatible) {
       onConnectPorts(wiringDraft.sourceNodeId, wiringDraft.sourcePortId, targetNodeId, targetPort.id);
-      setWiringDraft(null);
-    } else {
-      // Keep brief visual feedback of incompatibility on hovered target
-      setWiringDraft((prev) =>
-        prev
-          ? {
-              ...prev,
-              hoveredTarget: {
-                nodeId: targetNodeId,
-                portId: targetPort.id,
-                compatible: false,
-                willBeFeedback: false,
-                hint: check.hint,
-              },
-            }
-          : null,
-      );
+    } else if (check.hint) {
+      onWiringRejected(check.hint);
     }
+    setWiringDraft(null);
   };
 
   const handleHoverInputPort = (targetNodeId: string, port: PortSpec | null) => {
@@ -337,13 +348,42 @@ export function Canvas({
       return;
     }
 
-    if (wiringDraft && !wiringDraft.hoveredTarget) {
+    if (wiringDraft) {
       const pt = clientToWorld(e.clientX, e.clientY);
-      setWiringDraft((prev) => (prev ? { ...prev, cursorX: pt.x, cursorY: pt.y } : null));
+      const nearest = findNearestInputPort(pt.x, pt.y, wiringDraft.sourceNodeId);
+      if (nearest) {
+        const check = evaluatePortConnection(
+          circuit,
+          wiringDraft.sourceNodeId,
+          wiringDraft.sourcePortId,
+          nearest.nodeId,
+          nearest.portId,
+        );
+        setWiringDraft((prev) =>
+          prev
+            ? {
+                ...prev,
+                cursorX: nearest.x,
+                cursorY: nearest.y,
+                hoveredTarget: {
+                  nodeId: nearest.nodeId,
+                  portId: nearest.portId,
+                  compatible: check.compatible,
+                  willBeFeedback: check.kind === 'feedback',
+                  hint: check.hint,
+                },
+              }
+            : null,
+        );
+      } else {
+        setWiringDraft((prev) =>
+          prev ? { ...prev, cursorX: pt.x, cursorY: pt.y, hoveredTarget: null } : null,
+        );
+      }
     }
   };
 
-  const handleCanvasPointerUp = () => {
+  const handleCanvasPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (panStateRef.current?.active) {
       panStateRef.current = null;
     }
@@ -354,14 +394,45 @@ export function Canvas({
         onCommitNodeMove(d.nodeId, { x: d.origX, y: d.origY }, { x: d.lastX, y: d.lastY });
       }
     }
-    // If user dragged > 220ms and released on empty space, cancel wiring; if quick click (<220ms), stay in click-to-connect mode!
-    if (wiringDraft && !wiringDraft.hoveredTarget && Date.now() - wiringOriginTimeRef.current > 240) {
-      setWiringDraft(null);
+    if (wiringDraft) {
+      const pt = clientToWorld(e.clientX, e.clientY);
+      const nearest = findNearestInputPort(pt.x, pt.y, wiringDraft.sourceNodeId);
+      const targetRef = nearest
+        ? { nodeId: nearest.nodeId, portId: nearest.portId }
+        : wiringDraft.hoveredTarget
+          ? { nodeId: wiringDraft.hoveredTarget.nodeId, portId: wiringDraft.hoveredTarget.portId }
+          : null;
+
+      if (targetRef) {
+        const check = evaluatePortConnection(
+          circuit,
+          wiringDraft.sourceNodeId,
+          wiringDraft.sourcePortId,
+          targetRef.nodeId,
+          targetRef.portId,
+        );
+        if (check.compatible) {
+          onConnectPorts(
+            wiringDraft.sourceNodeId,
+            wiringDraft.sourcePortId,
+            targetRef.nodeId,
+            targetRef.portId,
+          );
+        } else if (check.hint) {
+          onWiringRejected(check.hint);
+        }
+        setWiringDraft(null);
+      } else if (Date.now() - wiringOriginTimeRef.current > 240) {
+        setWiringDraft(null);
+      }
     }
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    if (e.dataTransfer.types.includes('application/x-geneuclidean-block')) {
+    if (
+      e.dataTransfer.types.includes('application/x-geneuclidean-block') ||
+      e.dataTransfer.types.includes('text/plain')
+    ) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'copy';
     }
@@ -369,7 +440,13 @@ export function Canvas({
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const blockType = e.dataTransfer.getData('application/x-geneuclidean-block');
+    let blockType = e.dataTransfer.getData('application/x-geneuclidean-block');
+    if (!blockType) {
+      const txt = e.dataTransfer.getData('text/plain');
+      if (txt.startsWith('geneuclidean-block:')) {
+        blockType = txt.slice('geneuclidean-block:'.length);
+      }
+    }
     if (!blockType) return;
     const pt = clientToWorld(e.clientX, e.clientY);
     onDropNewBlock(blockType, { x: pt.x - NODE_WIDTH / 2, y: pt.y - 40 });
@@ -469,23 +546,37 @@ export function Canvas({
         ))}
       </div>
 
-      {/* Live Apple Remediation / Auto-Feedback Hint Pill Near Cursor */}
+      {/* Live Apple Remediation / Auto-Feedback Hint Pill Positioned Above Cursor */}
       {wiringDraft?.hoveredTarget?.hint && (
         <div
           data-wiring-hint="true"
           style={{
-            left: Math.min(canvasSize.width - 280, Math.max(16, hintScreenX + 14)),
-            top: Math.min(canvasSize.height - 80, Math.max(16, hintScreenY - 40)),
+            left: Math.min(canvasSize.width - 286, Math.max(16, hintScreenX - 40)),
+            top: Math.max(46, Math.min(canvasSize.height - 96, hintScreenY - 76)),
           }}
-          className={`absolute z-40 max-w-[270px] px-3 py-2 rounded-xl text-[11px] font-medium leading-snug pointer-events-none circuit-floating-pill border ${
+          className={`absolute z-40 max-w-[274px] px-3 py-2 rounded-xl text-[11px] leading-snug pointer-events-none circuit-floating-pill border ${
             !wiringDraft.hoveredTarget.compatible
-              ? 'border-rose-500/50 text-rose-700 dark:text-rose-200'
+              ? 'border-rose-500/55 text-rose-700 dark:text-rose-200'
               : wiringDraft.hoveredTarget.willBeFeedback
                 ? 'border-fuchsia-500/55 text-fuchsia-700 dark:text-fuchsia-200'
-                : 'border-emerald-500/45 text-emerald-700 dark:text-emerald-200'
+                : 'border-emerald-500/50 text-emerald-700 dark:text-emerald-200'
           }`}
         >
-          {wiringDraft.hoveredTarget.hint}
+          <div className="flex items-center gap-1.5 font-bold text-[10.5px] uppercase tracking-wide mb-0.5">
+            {!wiringDraft.hoveredTarget.compatible ? (
+              <AlertCircle className="h-3 w-3 text-rose-500 shrink-0" />
+            ) : (
+              <Sparkles className="h-3 w-3 shrink-0" />
+            )}
+            <span>
+              {!wiringDraft.hoveredTarget.compatible
+                ? 'Incompatible Signal'
+                : wiringDraft.hoveredTarget.willBeFeedback
+                  ? 'DMTA Feedback Loop'
+                  : 'Compatible Socket'}
+            </span>
+          </div>
+          <div className="font-medium opacity-95">{wiringDraft.hoveredTarget.hint}</div>
         </div>
       )}
 
@@ -500,14 +591,23 @@ export function Canvas({
         </div>
       )}
 
-      {/* Subtle Floating Toast Pill (e.g. DMTA Auto-Feedback or JSON Imported) */}
+      {/* Subtle Floating Toast Pill (DMTA Feedback, Remediation Alert, or Run Status) */}
       {toastMessage && !wiringDraft && (
         <div
           data-circuit-toast="true"
-          className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full circuit-floating-pill text-[11.5px] font-semibold text-cyan-700 dark:text-cyan-200 flex items-center gap-2 pointer-events-none"
+          data-toast-tone={toastMessage.tone}
+          className={`absolute top-3 left-1/2 -translate-x-1/2 z-30 max-w-[460px] px-3.5 py-1.5 rounded-full circuit-floating-pill text-[11.5px] font-semibold flex items-center gap-2 pointer-events-none border ${
+            toastMessage.tone === 'error'
+              ? 'border-rose-500/45 text-rose-700 dark:text-rose-200'
+              : 'border-[var(--circuit-node-border)] text-cyan-700 dark:text-cyan-200'
+          }`}
         >
-          <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
-          <span>{toastMessage}</span>
+          {toastMessage.tone === 'error' ? (
+            <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+          ) : (
+            <Sparkles className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+          )}
+          <span className="truncate">{toastMessage.text}</span>
         </div>
       )}
 

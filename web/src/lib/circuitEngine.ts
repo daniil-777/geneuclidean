@@ -23,7 +23,7 @@ import {
 // Deterministic Node Geometry (shared between CircuitNodeCard & CircuitWireLayer)
 // ===========================================================================
 
-export const NODE_WIDTH = 224;
+export const NODE_WIDTH = 238;
 export const NODE_TOP_CAP = 3;
 export const NODE_HEADER_H = 42;
 export const NODE_SUBTITLE_H = 24;
@@ -550,24 +550,55 @@ export function autoLayoutCircuit(circuit: CircuitGraphV1): CircuitGraphV1 {
     layers.set(l, col);
   }
 
-  const maxRows = Math.max(1, ...Array.from(layers.values()).map((c) => c.length));
-  const COL_STRIDE = 282;
-  const ROW_STRIDE = 218;
-  const START_X = 44;
-  const START_Y = circuit.edges.some((e) => e.kind === 'feedback') ? 108 : 64;
-  const totalHeight = (maxRows - 1) * ROW_STRIDE;
-
+  const COL_STRIDE = 292;
+  const ROW_STRIDE = 232;
+  const START_X = 32;
+  const START_Y = circuit.edges.some((e) => e.kind === 'feedback') ? 84 : 40;
   const newPos = new Map<string, { x: number; y: number }>();
-  for (let l = 0; l <= maxLayer; l += 1) {
-    const col = layers.get(l) ?? [];
-    const colHeight = (col.length - 1) * ROW_STRIDE;
-    const yOffset = START_Y + Math.round((totalHeight - colHeight) / 2);
-    col.forEach((id, idx) => {
-      newPos.set(id, {
-        x: START_X + l * COL_STRIDE,
-        y: yOffset + idx * ROW_STRIDE,
+
+  // Fold wide pipelines (> 4 topological columns) into clean 4-column PCB racks
+  // so Fit-to-View keeps crisp >= 68% legibility without microscopic ribbons!
+  const MAX_COLS = 4;
+  if (maxLayer >= MAX_COLS) {
+    const bandMaxRows = new Map<number, number>();
+    for (let l = 0; l <= maxLayer; l += 1) {
+      const band = Math.floor(l / MAX_COLS);
+      const count = (layers.get(l) ?? []).length;
+      bandMaxRows.set(band, Math.max(bandMaxRows.get(band) ?? 1, count));
+    }
+    const bandStartY = new Map<number, number>();
+    let curY = START_Y;
+    const maxBand = Math.floor(maxLayer / MAX_COLS);
+    for (let b = 0; b <= maxBand; b += 1) {
+      bandStartY.set(b, curY);
+      curY += (bandMaxRows.get(b) ?? 1) * 268;
+    }
+    for (let l = 0; l <= maxLayer; l += 1) {
+      const band = Math.floor(l / MAX_COLS);
+      const colInBand = l % MAX_COLS;
+      const col = layers.get(l) ?? [];
+      const bY = bandStartY.get(band) ?? START_Y;
+      col.forEach((id, idx) => {
+        newPos.set(id, {
+          x: START_X + colInBand * COL_STRIDE,
+          y: bY + idx * ROW_STRIDE,
+        });
       });
-    });
+    }
+  } else {
+    const maxRows = Math.max(1, ...Array.from(layers.values()).map((c) => c.length));
+    const totalHeight = (maxRows - 1) * ROW_STRIDE;
+    for (let l = 0; l <= maxLayer; l += 1) {
+      const col = layers.get(l) ?? [];
+      const colHeight = (col.length - 1) * ROW_STRIDE;
+      const yOffset = START_Y + Math.round((totalHeight - colHeight) / 2);
+      col.forEach((id, idx) => {
+        newPos.set(id, {
+          x: START_X + l * COL_STRIDE,
+          y: yOffset + idx * ROW_STRIDE,
+        });
+      });
+    }
   }
 
   return {
@@ -737,23 +768,42 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
       }
     }
 
+    const pyCall = (indent: string, lhs: string, fn: string, args: string[]): string[] => {
+      if (args.length <= 1 && `${indent}${lhs} = ${fn}(${args.join(', ')})`.length <= 54) {
+        return [`${indent}${lhs} = ${fn}(${args.join(', ')})`];
+      }
+      return [
+        `${indent}${lhs} = ${fn}(`,
+        ...args.map((a) => `${indent}    ${a},`),
+        `${indent})`,
+      ];
+    };
+
     const emitBlock = (node: CircuitNode, indent: string): string[] => {
       const v = sanitizeVar(node.id);
       const p = node.params;
       const def = BLOCK_CATALOG_MAP[node.blockType];
       const out: string[] = [
-        `${indent}# [${def?.shortName ?? node.blockType}] ${def?.pythonSymbol ?? ''}`,
+        `${indent}# [${def?.shortName ?? node.blockType}]`,
       ];
 
       switch (node.blockType) {
         case 'protein_pocket':
           out.push(
-            `${indent}${v}_pocket = ge.Pocket.from_target(${pyStr(p.target_id ?? 'DRD1')}, pocket_cutoff=${pyNum(p.pocket_cutoff, 10.0)}, max_atoms=${pyNum(p.max_atoms, 384)}, keep_cofactors=${pyBool(p.keep_cofactors ?? true)})`,
+            ...pyCall(indent, `${v}_pocket`, 'ge.Pocket.from_target', [
+              pyStr(p.target_id ?? 'DRD1'),
+              `pocket_cutoff=${pyNum(p.pocket_cutoff, 10.0)}`,
+              `max_atoms=${pyNum(p.max_atoms, 384)}`,
+              `keep_cofactors=${pyBool(p.keep_cofactors ?? true)}`,
+            ]),
           );
           break;
         case 'multiconformer_ensemble':
           out.push(
-            `${indent}${v}_on_pockets = [ge.Pocket.from_target(${pyStr(p.on_target_id ?? 'DRD1')}) for _ in range(${pyNum(p.n_conformers, 2)})]`,
+            `${indent}${v}_on_pockets = [`,
+            `${indent}    ge.Pocket.from_target(${pyStr(p.on_target_id ?? 'DRD1')})`,
+            `${indent}    for _ in range(${pyNum(p.n_conformers, 2)})`,
+            `${indent}]  # weighting=${pyStr(p.weighting ?? 'uniform')}`,
           );
           out.push(
             `${indent}${v}_off_pocket = ${p.off_target_id === 'NONE' ? 'None' : `ge.Pocket.from_target(${pyStr(p.off_target_id ?? 'DRD2')})`}`,
@@ -761,13 +811,22 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
           break;
         case 'reagent_library':
           out.push(
-            `${indent}${v}_reagents = {"core_smiles": ${pyStr(p.core_smiles ?? 'O=C(O)c1ccc2ccccc2n1')}, "pack": ${pyStr(p.reagent_pack ?? 'cns_amines')}, "max_reagents": ${pyNum(p.max_reagents, 32)}}`,
+            `${indent}${v}_reagents = {`,
+            `${indent}    "core_smiles": ${pyStr(p.core_smiles ?? 'O=C(O)c1ccc2ccccc2n1')},`,
+            `${indent}    "pack": ${pyStr(p.reagent_pack ?? 'cns_amines')},`,
+            `${indent}    "max_reagents": ${pyNum(p.max_reagents, 32)},`,
+            `${indent}}`,
           );
           out.push(`${indent}${v}_core_mols = [${v}_reagents["core_smiles"]]`);
           break;
         case 'boltz2_cofold':
           out.push(
-            `${indent}${v}_cofold = ge.load_cofolded_complex(${pyStr(p.structure_source ?? 'ACHE_donepezil_cofold.cif')}, ligand_resname=${pyStr(p.ligand_resname ?? 'LIG')}, reference_smiles=${pyStr(p.reference_smiles ?? '')})`,
+            ...pyCall(indent, `${v}_cofold`, 'ge.load_cofolded_complex', [
+              pyStr(p.structure_source ?? 'ACHE_donepezil_cofold.cif'),
+              `ligand_resname=${pyStr(p.ligand_resname ?? 'LIG')}`,
+              `reference_smiles=${pyStr(p.reference_smiles ?? '')}`,
+              `pocket_cutoff=${pyNum(p.pocket_cutoff, 10.0)}`,
+            ]),
           );
           out.push(`${indent}${v}_pocket = ${v}_cofold.pocket`);
           out.push(`${indent}${v}_pose = [${v}_cofold.ligand_mol]`);
@@ -775,17 +834,63 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
           break;
         case 'chembl_pool':
           out.push(
-            `${indent}${v}_molecules = ge.load_bioactivity_pool(${pyStr(p.dataset ?? 'DRD1_chembl37_400')}, limit=${pyNum(p.pool_size, 400)}, dedup_murcko=${pyBool(p.dedup_murcko ?? true)})`,
+            ...pyCall(indent, `${v}_molecules`, 'ge.load_bioactivity_pool', [
+              pyStr(p.dataset ?? 'DRD1_chembl37_400'),
+              `limit=${pyNum(p.pool_size, 400)}`,
+              `dedup_murcko=${pyBool(p.dedup_murcko ?? true)}`,
+            ]),
           );
           break;
-        case 'painn_se3':
-        case 'egnn_3d':
-        case 'e3nn_irreps': {
-          const arch = node.blockType === 'painn_se3' ? 'painn' : node.blockType === 'egnn_3d' ? 'egnn' : 'e3nn';
+        case 'painn_se3': {
           const pkt = portVar(incomingFor(node.id, 'pocket'), 'pocket');
           out.push(
-            `${indent}${v}_enc = build_encoder(EncoderConfig(arch=${pyStr(arch)}, num_layers=${pyNum(p.num_layers, 4)}, hidden_dim=${pyNum(p.hidden_dim, 192)}, out_dim=${pyNum(p.out_dim, 256)}, cutoff=${pyNum(p.cutoff, 5.5)}))`,
+            ...pyCall(indent, `${v}_cfg`, 'EncoderConfig', [
+              'arch="painn"',
+              `num_layers=${pyNum(p.num_layers, 4)}`,
+              `hidden_dim=${pyNum(p.hidden_dim, 192)}`,
+              `vector_dim=${pyNum(p.vector_dim, 64)}`,
+              `out_dim=${pyNum(p.out_dim, 256)}`,
+              `num_rbf=${pyNum(p.num_rbf, 24)}`,
+              `cutoff=${pyNum(p.cutoff, 5.5)}`,
+              `max_neighbors=${pyNum(p.max_neighbors, 24)}`,
+              `use_se3_chirality=${pyBool(p.use_se3_chirality ?? true)}`,
+            ]),
           );
+          out.push(`${indent}${v}_enc = build_encoder(${v}_cfg)`);
+          out.push(`${indent}${v}_pocket_graph = ${v}_enc.encode_pocket(${pkt})`);
+          out.push(`${indent}${v}_pocket_vec = ${v}_pocket_graph.pooled_emb`);
+          break;
+        }
+        case 'egnn_3d': {
+          const pkt = portVar(incomingFor(node.id, 'pocket'), 'pocket');
+          out.push(
+            ...pyCall(indent, `${v}_cfg`, 'EncoderConfig', [
+              'arch="egnn"',
+              `num_layers=${pyNum(p.num_layers, 4)}`,
+              `hidden_dim=${pyNum(p.hidden_dim, 192)}`,
+              `out_dim=${pyNum(p.out_dim, 256)}`,
+              `cutoff=${pyNum(p.cutoff, 5.5)}`,
+              `max_neighbors=${pyNum(p.max_neighbors, 24)}`,
+            ]),
+          );
+          out.push(`${indent}${v}_enc = build_encoder(${v}_cfg)`);
+          out.push(`${indent}${v}_pocket_graph = ${v}_enc.encode_pocket(${pkt})`);
+          out.push(`${indent}${v}_pocket_vec = ${v}_pocket_graph.pooled_emb`);
+          break;
+        }
+        case 'e3nn_irreps': {
+          const pkt = portVar(incomingFor(node.id, 'pocket'), 'pocket');
+          out.push(
+            ...pyCall(indent, `${v}_cfg`, 'EncoderConfig', [
+              'arch="e3nn"',
+              `num_layers=${pyNum(p.num_layers, 4)}`,
+              `hidden_dim=${pyNum(p.hidden_dim, 192)}`,
+              `e3nn_lmax=${pyNum(p.e3nn_lmax, 1)}`,
+              `use_se3_chirality=${pyBool(p.use_se3_chirality ?? true)}`,
+              `cutoff=${pyNum(p.cutoff, 5.5)}`,
+            ]),
+          );
+          out.push(`${indent}${v}_enc = build_encoder(${v}_cfg)`);
           out.push(`${indent}${v}_pocket_graph = ${v}_enc.encode_pocket(${pkt})`);
           out.push(`${indent}${v}_pocket_vec = ${v}_pocket_graph.pooled_emb`);
           break;
@@ -793,27 +898,58 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
         case 'drugclip_encoder': {
           const mols = portVar(incomingFor(node.id, 'molecules'), 'molecules');
           out.push(
-            `${indent}${v}_encoder = ge.DrugCLIPLigandEncoder(clip_dim=${pyNum(p.clip_dim, 128)}) if ${pyStr(p.backend ?? 'drugclip_v2')} == "drugclip_v2" else ge.ECFP4BinaryEncoder()`,
+            ...pyCall(indent, `${v}_encoder`, 'ge.DrugCLIPLigandEncoder', [
+              `backend=${pyStr(p.backend ?? 'drugclip_v2')}`,
+              `clip_dim=${pyNum(p.clip_dim, 128)}`,
+            ]),
           );
-          out.push(`${indent}${v}_embeddings = ${v}_encoder.encode(${mols}, batch_size=${pyNum(p.batch_size, 2048)})`);
+          out.push(
+            ...pyCall(indent, `${v}_embeddings`, `${v}_encoder.encode`, [
+              mols,
+              `batch_size=${pyNum(p.batch_size, 2048)}`,
+            ]),
+          );
           break;
         }
         case 'ibm_mmelon': {
           const mols = portVar(incomingFor(node.id, 'molecules'), 'molecules');
           out.push(
-            `${indent}${v}_encoder = ge.IBMMMelonLigandEncoder(model_id=${pyStr(p.model_id ?? 'ibm-research/biomed.sm.mv-te-84m')}, device=${pyStr(p.device ?? 'auto')})`,
+            ...pyCall(indent, `${v}_encoder`, 'ge.IBMMMelonLigandEncoder', [
+              `model_id=${pyStr(p.model_id ?? 'ibm-research/biomed.sm.mv-te-84m')}`,
+              `device=${pyStr(p.device ?? 'auto')}`,
+            ]),
           );
-          out.push(`${indent}${v}_embeddings = ${v}_encoder.encode(${mols}, batch_size=${pyNum(p.batch_size, 64)})`);
+          out.push(
+            ...pyCall(indent, `${v}_embeddings`, `${v}_encoder.encode`, [
+              mols,
+              `batch_size=${pyNum(p.batch_size, 64)}`,
+            ]),
+          );
           break;
         }
         case 'safe_gpt': {
           const graph = portVar(incomingFor(node.id, 'pocket_graph'), 'pocket_graph');
           out.push(
-            `${indent}${v}_designer = ge.MoleculeDesigner.from_pretrained("runs/v4_safegpt_gdpo/best_adapter.pt", device="auto")`,
+            ...pyCall(indent, `${v}_designer`, 'ge.MoleculeDesigner.from_pretrained', [
+              '"runs/v4_safegpt_gdpo/best_adapter.pt"',
+              'device="auto"',
+              `num_queries=${pyNum(p.num_queries, 16)}`,
+            ]),
           );
-          out.push(
-            `${indent}${v}_res = ${v}_designer.design(${graph}, n=${pyNum(p.num_samples, 32)}, cfg_scale=${pyNum(p.cfg_scale, 1.6)}, temperature=${pyNum(p.temperature, 0.95)}, strategy=${pyStr(p.strategy ?? 'min_p')}, min_p=${pyNum(p.min_p, 0.08)}, seed=${circuit.execution.seed})`,
-          );
+          const designArgs = [
+            graph,
+            `mode=${pyStr(p.mode ?? 'de_novo')}`,
+            `n=${pyNum(p.num_samples, 32)}`,
+            `cfg_scale=${pyNum(p.cfg_scale, 1.6)}`,
+            `temperature=${pyNum(p.temperature, 0.95)}`,
+            `strategy=${pyStr(p.strategy ?? 'min_p')}`,
+            `min_p=${pyNum(p.min_p, 0.08)}`,
+            `seed=${circuit.execution.seed}`,
+          ];
+          if (String(p.core_smiles_with_dummy ?? '').trim()) {
+            designArgs.push(`core_smiles_with_dummy=${pyStr(p.core_smiles_with_dummy)}`);
+          }
+          out.push(...pyCall(indent, `${v}_res`, `${v}_designer.design`, designArgs));
           out.push(`${indent}${v}_molecules = ${v}_res.smiles`);
           out.push(`${indent}${v}_latent = ${v}_res.prefix_tokens`);
           break;
@@ -821,10 +957,20 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
         case 'chemical_llm': {
           const graph = portVar(incomingFor(node.id, 'pocket_graph'), 'pocket_graph');
           out.push(
-            `${indent}${v}_designer = ge.MoleculeDesigner.from_backbone(${pyStr(p.backbone_id ?? 'ibm-research/GP-MoLFormer-Uniq')})`,
+            ...pyCall(indent, `${v}_designer`, 'ge.MoleculeDesigner.from_backbone', [
+              pyStr(p.backbone_id ?? 'ibm-research/GP-MoLFormer-Uniq'),
+              `perceiver_layers=${pyNum(p.perceiver_layers, 2)}`,
+            ]),
           );
           out.push(
-            `${indent}${v}_res = ${v}_designer.design(${graph}, n=${pyNum(p.num_samples, 32)}, cfg_scale=${pyNum(p.cfg_scale, 1.35)}, temperature=${pyNum(p.temperature, 0.9)}, strategy=${pyStr(p.strategy ?? 'min_p')}, seed=${circuit.execution.seed})`,
+            ...pyCall(indent, `${v}_res`, `${v}_designer.design`, [
+              graph,
+              `n=${pyNum(p.num_samples, 32)}`,
+              `cfg_scale=${pyNum(p.cfg_scale, 1.35)}`,
+              `temperature=${pyNum(p.temperature, 0.9)}`,
+              `strategy=${pyStr(p.strategy ?? 'min_p')}`,
+              `seed=${circuit.execution.seed}`,
+            ]),
           );
           out.push(`${indent}${v}_molecules = ${v}_res.smiles`);
           out.push(`${indent}${v}_latent = ${v}_res.prefix_tokens`);
@@ -834,21 +980,41 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
           const graph = portVar(incomingFor(node.id, 'pocket_graph'), 'pocket_graph');
           const off = portVar(incomingFor(node.id, 'off_pocket'), 'None');
           out.push(
-            `${indent}${v}_res = ge.sample_contrastive_ensemble_llm(${graph}, off_pocket=${off}, backbone_id=${pyStr(p.backbone_id ?? 'datamol-io/safe-gpt')}, w_on=${pyNum(p.w_on, 1.6)}, w_off=${pyNum(p.w_off, 0.65)}, n=${pyNum(p.num_samples, 32)}, seed=${circuit.execution.seed})`,
+            ...pyCall(indent, `${v}_res`, 'ge.sample_contrastive_ensemble_llm', [
+              graph,
+              `off_pocket=${off}`,
+              `backbone_id=${pyStr(p.backbone_id ?? 'datamol-io/safe-gpt')}`,
+              `w_on=${pyNum(p.w_on, 1.6)}`,
+              `w_off=${pyNum(p.w_off, 0.65)}`,
+              `n=${pyNum(p.num_samples, 32)}`,
+              `seed=${circuit.execution.seed}`,
+            ]),
           );
           out.push(`${indent}${v}_molecules = ${v}_res.smiles`);
           out.push(
-            `${indent}${v}_pmi_scores = ge.score_pocket_pmi(${v}_molecules, ${graph}, off_pocket=${off}) if ${pyBool(p.compute_pmi_3d ?? true)} else {}`,
+            `${indent}${v}_pmi_scores = (`,
+            `${indent}    ge.score_pocket_pmi(${v}_molecules, ${graph}, off_pocket=${off})`,
+            `${indent}    if ${pyBool(p.compute_pmi_3d ?? true)} else {}`,
+            `${indent})`,
           );
           break;
         }
         case 'selectivity_mtl_aligner': {
           const graph = portVar(incomingFor(node.id, 'pocket_graph'), 'pocket_graph');
           out.push(
-            `${indent}${v}_mediator = GradientConflictMediator(("lm_nll", "pkd", "drugclip", "props"), strategy=${pyStr(p.mtl_strategy ?? 'aim_policy')})`,
+            ...pyCall(indent, `${v}_mediator`, 'GradientConflictMediator', [
+              '("lm_nll", "pkd", "drugclip", "props")',
+              `strategy=${pyStr(p.mtl_strategy ?? 'aim_policy')}`,
+            ]),
           );
           out.push(
-            `${indent}${v}_aligned_vec, ${v}_diagnostics = ${v}_mediator.align_selectivity(${graph}, margin=${pyNum(p.margin, 0.15)}, weight=${pyNum(p.selectivity_weight, 0.5)}, steps=${pyNum(p.steps, 30)})`,
+            ...pyCall(indent, `${v}_aligned_vec, ${v}_diagnostics`, `${v}_mediator.align_selectivity`, [
+              graph,
+              `margin=${pyNum(p.margin, 0.15)}`,
+              `weight=${pyNum(p.selectivity_weight, 0.5)}`,
+              `gdpo_beta=${pyNum(p.gdpo_beta, 0.04)}`,
+              `steps=${pyNum(p.steps, 30)}`,
+            ]),
           );
           break;
         }
@@ -856,7 +1022,13 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
           const emb = portVar(incomingFor(node.id, 'embeddings'), 'embeddings');
           const mols = portVar(incomingFor(node.id, 'molecules'), 'molecules');
           out.push(
-            `${indent}${v}_index_vecs = ge.LigandVectorIndex.from_embeddings(${emb}, ${mols}, dtype=${pyStr(p.dtype ?? 'float16')}, chunk_size=${pyNum(p.chunk_size, 65536)})`,
+            ...pyCall(indent, `${v}_index_vecs`, 'ge.LigandVectorIndex.from_embeddings', [
+              emb,
+              mols,
+              `dtype=${pyStr(p.dtype ?? 'float16')}`,
+              `chunk_size=${pyNum(p.chunk_size, 65536)}`,
+              `mmap=${pyBool(p.mmap ?? true)}`,
+            ]),
           );
           out.push(`${indent}${v}_pool_mols = ${mols}`);
           break;
@@ -866,19 +1038,34 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
           const offP = portVar(incomingFor(node.id, 'off_pocket'), 'None');
           const idx = portVar(incomingFor(node.id, 'index_vecs'), 'index_vecs');
           out.push(
-            `${indent}${v}_screener = ge.PocketScreener.from_pretrained("runs_local.nosync/geneuclidean_v2_painn/best.pt")`,
+            ...pyCall(indent, `${v}_screener`, 'ge.PocketScreener.from_pretrained', [
+              '"runs_local.nosync/geneuclidean_v2_painn/best.pt"',
+            ]),
           );
           out.push(
-            `${indent}${v}_hits_obj = ${v}_screener.screen(${onP}, ${idx}, off_pockets=${offP}, off_weight=${pyNum(p.off_weight, 0.5)}, top_k=${pyNum(p.top_k, 50)}, rerank_pkd=${pyBool(p.rerank_pkd ?? true)})`,
+            ...pyCall(indent, `${v}_hits_obj`, `${v}_screener.screen`, [
+              onP,
+              idx,
+              `off_pockets=${offP}`,
+              `off_weight=${pyNum(p.off_weight, 0.5)}`,
+              `top_k=${pyNum(p.top_k, 50)}`,
+              `rerank_pkd=${pyBool(p.rerank_pkd ?? true)}`,
+              `triage_filter=${pyBool(p.triage_filter ?? true)}`,
+            ]),
           );
           out.push(`${indent}${v}_hits = [h.smiles for h in ${v}_hits_obj]`);
-          out.push(`${indent}${v}_scores = {h.smiles: {"clip": h.score, "pkd": h.pred_pkd} for h in ${v}_hits_obj}`);
+          out.push(`${indent}${v}_scores = {h.smiles: {"clip": h.score} for h in ${v}_hits_obj}`);
           break;
         }
         case 'neural_pkd_reranker': {
           const mols = portVar(incomingFor(node.id, 'molecules'), 'molecules');
           out.push(
-            `${indent}${v}_ranked_mols, ${v}_scores = ge.rerank_and_select(${mols}, top_k=${pyNum(p.top_k, 16)}, min_tanimoto_dist=${pyNum(p.min_tanimoto_dist, 0.35)}, quality_weight=${pyNum(p.quality_weight, 0.7)})`,
+            ...pyCall(indent, `${v}_ranked_mols, ${v}_scores`, 'ge.rerank_and_select', [
+              mols,
+              `top_k=${pyNum(p.top_k, 16)}`,
+              `min_tanimoto_dist=${pyNum(p.min_tanimoto_dist, 0.35)}`,
+              `quality_weight=${pyNum(p.quality_weight, 0.7)}`,
+            ]),
           );
           break;
         }
@@ -887,7 +1074,14 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
           const idx = portVar(incomingFor(node.id, 'index_vecs'), 'index_vecs');
           const onP = portVar(incomingFor(node.id, 'on_pockets'), 'pocket');
           out.push(
-            `${indent}${v}_grounded_mols, ${v}_scores = ge.ground_to_catalog(${q}, ${idx}, ${onP}, top_k_per_query=${pyNum(p.top_k_per_query, 5)}, alpha_3d=${pyNum(p.alpha_3d, 0.5)})`,
+            ...pyCall(indent, `${v}_grounded_mols, ${v}_scores`, 'ge.ground_to_catalog', [
+              q,
+              idx,
+              onP,
+              `top_k_per_query=${pyNum(p.top_k_per_query, 5)}`,
+              `alpha_3d=${pyNum(p.alpha_3d, 0.5)}`,
+              `off_weight=${pyNum(p.off_weight, 0.5)}`,
+            ]),
           );
           break;
         }
@@ -895,24 +1089,48 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
           const pool = portVar(incomingFor(node.id, 'pool_mols'), 'pool_mols');
           const obs = portVar(incomingFor(node.id, 'observations'), 'dmta_observations');
           out.push(
-            `${indent}${v}_gp = ge.TanimotoGP(kernel=${pyStr(p.kernel ?? 'tanimoto')}, fp_bits=${pyNum(p.fp_bits, 2048)}, noise_var=${pyNum(p.noise_var, 0.05)}, signal_var=${pyNum(p.signal_var, 1.0)})`,
+            ...pyCall(indent, `${v}_gp`, 'ge.TanimotoGP', [
+              `kernel=${pyStr(p.kernel ?? 'tanimoto')}`,
+              `fp_bits=${pyNum(p.fp_bits, 2048)}`,
+              `noise_var=${pyNum(p.noise_var, 0.05)}`,
+              `signal_var=${pyNum(p.signal_var, 1.0)}`,
+              `cold_start=${pyStr(p.cold_start ?? 'butina_medoids')}`,
+            ]),
           );
-          out.push(`${indent}${v}_posterior = ${v}_gp.fit_predict(${pool}, observations=${obs})`);
+          out.push(
+            ...pyCall(indent, `${v}_posterior`, `${v}_gp.fit_predict`, [
+              pool,
+              `observations=${obs}`,
+            ]),
+          );
           break;
         }
         case 'ensemble_surrogate': {
           const pool = portVar(incomingFor(node.id, 'pool_mols'), 'pool_mols');
           const obs = portVar(incomingFor(node.id, 'observations'), 'dmta_observations');
           out.push(
-            `${indent}${v}_ens = ge.EnsembleSurrogate(n_estimators=${pyNum(p.n_estimators, 64)}, fp_bits=${pyNum(p.fp_bits, 1024)}, include_2d_desc=${pyBool(p.include_2d_desc ?? true)})`,
+            ...pyCall(indent, `${v}_ens`, 'ge.EnsembleSurrogate', [
+              `n_estimators=${pyNum(p.n_estimators, 64)}`,
+              `fp_bits=${pyNum(p.fp_bits, 1024)}`,
+              `include_2d_desc=${pyBool(p.include_2d_desc ?? true)}`,
+            ]),
           );
-          out.push(`${indent}${v}_posterior = ${v}_ens.fit_predict(${pool}, observations=${obs})`);
+          out.push(
+            ...pyCall(indent, `${v}_posterior`, `${v}_ens.fit_predict`, [
+              pool,
+              `observations=${obs}`,
+            ]),
+          );
           break;
         }
         case 'conformal_calibrator': {
           const post = portVar(incomingFor(node.id, 'posterior'), 'posterior');
           out.push(
-            `${indent}${v}_cal = ge.ConformalSurrogate(mode=${pyStr(p.mode ?? 'normalized')}, alpha=${pyNum(p.alpha, 0.1)}, scaffold_grouped=${pyBool(p.scaffold_grouped ?? true)})`,
+            ...pyCall(indent, `${v}_cal`, 'ge.ConformalSurrogate', [
+              `mode=${pyStr(p.mode ?? 'normalized')}`,
+              `alpha=${pyNum(p.alpha, 0.1)}`,
+              `scaffold_grouped=${pyBool(p.scaffold_grouped ?? true)}`,
+            ]),
           );
           out.push(`${indent}${v}_calibrated_uq = ${v}_cal.calibrate(${post})`);
           break;
@@ -921,7 +1139,15 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
           const post = portVar(incomingFor(node.id, 'posterior'), 'posterior');
           const pool = portVar(incomingFor(node.id, 'pool_mols'), 'pool_mols');
           out.push(
-            `${indent}${v}_selected_batch, ${v}_acq_scores = ge.propose_al_batch(${post}, ${pool}, strategy=${pyStr(p.strategy ?? 'kriging_believer')}, batch_size=${pyNum(p.batch_size, 12)}, ucb_beta=${pyNum(p.ucb_beta, 1.5)}, diversity_weight=${pyNum(p.diversity_weight, 0.3)}, mask_pending_async=${pyBool(p.mask_pending_async ?? true)})`,
+            ...pyCall(indent, `${v}_selected_batch, ${v}_acq_scores`, 'ge.propose_al_batch', [
+              post,
+              pool,
+              `strategy=${pyStr(p.strategy ?? 'kriging_believer')}`,
+              `batch_size=${pyNum(p.batch_size, 12)}`,
+              `ucb_beta=${pyNum(p.ucb_beta, 1.5)}`,
+              `diversity_weight=${pyNum(p.diversity_weight, 0.3)}`,
+              `mask_pending_async=${pyBool(p.mask_pending_async ?? true)}`,
+            ]),
           );
           break;
         }
@@ -929,24 +1155,56 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
           const mols = portVar(incomingFor(node.id, 'molecules'), 'molecules');
           const post = portVar(incomingFor(node.id, 'posterior'), 'posterior');
           out.push(
-            `${indent}${v}_router = ge.MultiFidelityDMTA(tier1_budget=${pyNum(p.tier1_budget, 12)}, tier2_budget=${pyNum(p.tier2_budget, 4)}, cost_ratio=${pyNum(p.cost_ratio_t2_t1, 20.0)}, min_spearman_rho=${pyNum(p.min_spearman_rho, 0.3)})`,
+            ...pyCall(indent, `${v}_router`, 'ge.MultiFidelityDMTA', [
+              `tier1_budget=${pyNum(p.tier1_budget, 12)}`,
+              `tier2_budget=${pyNum(p.tier2_budget, 4)}`,
+              `cost_ratio=${pyNum(p.cost_ratio_t2_t1, 20.0)}`,
+              `min_spearman_rho=${pyNum(p.min_spearman_rho, 0.3)}`,
+            ]),
           );
-          out.push(`${indent}${v}_tier1_batch, ${v}_tier2_batch, ${v}_routing_report = ${v}_router.route(${mols}, ${post})`);
+          out.push(
+            ...pyCall(indent, `${v}_tier1_batch, ${v}_tier2_batch, ${v}_routing_report`, `${v}_router.route`, [
+              mols,
+              post,
+            ]),
+          );
           break;
         }
         case 'combinatorial_ts': {
           const reag = portVar(incomingFor(node.id, 'reagents'), 'reagents');
           out.push(
-            `${indent}${v}_cts = ge.CombinatorialThompsonSampler(reaction_name=${pyStr(p.reaction_name ?? 'amide_coupling_acid_amine')}, warmup_per_reagent=${pyNum(p.warmup_per_reagent, 2)}, thermal_scale=${pyNum(p.thermal_scale, 1.0)}, triage_filter=${pyBool(p.triage_filter ?? true)})`,
+            ...pyCall(indent, `${v}_cts`, 'ge.CombinatorialThompsonSampler', [
+              `reaction_name=${pyStr(p.reaction_name ?? 'amide_coupling_acid_amine')}`,
+              `warmup_per_reagent=${pyNum(p.warmup_per_reagent, 2)}`,
+              `thermal_scale=${pyNum(p.thermal_scale, 1.0)}`,
+              `triage_filter=${pyBool(p.triage_filter ?? true)}`,
+            ]),
           );
-          out.push(`${indent}${v}_sampled_mols, ${v}_posterior = ${v}_cts.sample(${reag}, batch_size=${pyNum(p.batch_size, 16)})`);
+          out.push(
+            ...pyCall(indent, `${v}_sampled_mols, ${v}_posterior`, `${v}_cts.sample`, [
+              reag,
+              `batch_size=${pyNum(p.batch_size, 16)}`,
+            ]),
+          );
           break;
         }
         case 'protonation_ph74': {
           const mols = portVar(incomingFor(node.id, 'molecules'), 'molecules');
-          out.push(`${indent}${v}_protonated_mols = [ge.protonate_ph74(s) for s in ${mols}]`);
           out.push(
-            `${indent}${v}_microstate_report = [ge.audit_tautomer_microstate_ph74(s, max_tautomers=${pyNum(p.max_tautomers, 16)}) for s in ${v}_protonated_mols]`,
+            `${indent}${v}_protonated_mols = [`,
+            `${indent}    ge.protonate_ph74(s, strict_input_charge=${pyBool(p.strict_input_charge ?? false)})`,
+            `${indent}    for s in ${mols}`,
+            `${indent}]`,
+          );
+          out.push(
+            `${indent}${v}_microstate_report = [`,
+            `${indent}    ge.audit_tautomer_microstate_ph74(`,
+            `${indent}        s,`,
+            `${indent}        max_tautomers=${pyNum(p.max_tautomers, 16)},`,
+            `${indent}        tautomer_gap_threshold=${pyNum(p.tautomer_gap_threshold, 2.0)},`,
+            `${indent}    )`,
+            `${indent}    for s in ${v}_protonated_mols`,
+            `${indent}] if ${pyBool(p.audit_tautomers ?? true)} else []`,
           );
           break;
         }
@@ -954,7 +1212,15 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
           const pkt = portVar(incomingFor(node.id, 'pocket'), 'pocket');
           const mols = portVar(incomingFor(node.id, 'molecules'), 'molecules');
           out.push(
-            `${indent}${v}_dock = ge.dock_and_profile(${mols}, pocket=${pkt}, exhaustiveness=${pyNum(p.exhaustiveness, 8)}, num_modes=${pyNum(p.num_modes, 9)}, box_mode=${pyStr(p.box_mode ?? 'tight_per_axis')}, protonate_ph74=${pyBool(p.protonate_ph74 ?? true)})`,
+            ...pyCall(indent, `${v}_dock`, 'ge.dock_and_profile', [
+              mols,
+              `pocket=${pkt}`,
+              `exhaustiveness=${pyNum(p.exhaustiveness, 8)}`,
+              `num_modes=${pyNum(p.num_modes, 9)}`,
+              `box_mode=${pyStr(p.box_mode ?? 'tight_per_axis')}`,
+              `max_ring_confs=${pyNum(p.max_ring_confs, 4)}`,
+              `protonate_ph74=${pyBool(p.protonate_ph74 ?? true)}`,
+            ]),
           );
           out.push(`${indent}${v}_poses = ${v}_dock.poses`);
           out.push(`${indent}${v}_scores = ${v}_dock.scores`);
@@ -963,44 +1229,72 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
         case 'ring_torsion_strain': {
           const poses = portVar(incomingFor(node.id, 'poses'), 'poses');
           out.push(
-            `${indent}${v}_strain_scores = [ge.analyze_ring_strain(pose, strain_threshold_kcal=${pyNum(p.ring_strain_threshold_kcal, 3.0)}) for pose in ${poses}]`,
+            `${indent}${v}_strain_scores = [`,
+            `${indent}    ge.analyze_ring_strain(`,
+            `${indent}        pose,`,
+            `${indent}        strain_threshold_kcal=${pyNum(p.ring_strain_threshold_kcal, 3.0)},`,
+            `${indent}        n_ref_confs=${pyNum(p.ring_n_ref_confs, 24)},`,
+            `${indent}        torsion_max_kcal=${pyNum(p.torsion_barrier_threshold_kcal, 2.5)},`,
+            `${indent}        torsion_max_red=${pyNum(p.torsion_max_red, 0)},`,
+            `${indent}        backend=${pyStr(p.torsion_backend ?? 'smarts_mmff94s')},`,
+            `${indent}    )`,
+            `${indent}    for pose in ${poses}`,
+            `${indent}]`,
           );
-          out.push(
-            `${indent}${v}_clean_poses = [pose for pose, rep in zip(${poses}, ${v}_strain_scores) if rep.passed]`,
-          );
+          out.push(`${indent}${v}_clean_poses = [p for p, r in zip(${poses}, ${v}_strain_scores) if r.passed]`);
           break;
         }
         case 'pose_reality_auditor': {
           const poses = portVar(incomingFor(node.id, 'poses'), 'poses');
           const pkt = portVar(incomingFor(node.id, 'pocket'), 'None');
           out.push(
-            `${indent}${v}_auditor = ge.PoseRealityAuditor(property_profile=${pyStr(p.property_profile ?? 'cns_mpo_v2')}, ring_strain_threshold_kcal=${pyNum(p.ring_strain_threshold_kcal, 3.0)}, torsion_barrier_threshold_kcal=${pyNum(p.torsion_barrier_threshold_kcal, 2.5)}, torsion_max_red=${pyNum(p.torsion_max_red, 0)})`,
+            ...pyCall(indent, `${v}_auditor`, 'ge.PoseRealityAuditor', [
+              `property_profile=${pyStr(p.property_profile ?? 'cns_mpo_v2')}`,
+              `ring_strain_threshold_kcal=${pyNum(p.ring_strain_threshold_kcal, 3.0)}`,
+              `torsion_barrier_threshold_kcal=${pyNum(p.torsion_barrier_threshold_kcal, 2.5)}`,
+              `torsion_max_red=${pyNum(p.torsion_max_red, 0)}`,
+              `strict_input_charge=${pyBool(p.strict_input_charge ?? false)}`,
+            ]),
           );
-          out.push(`${indent}${v}_audit_report = [${v}_auditor.audit(pose, pocket=${pkt}) for pose in ${poses}]`);
-          out.push(`${indent}${v}_verified_poses = [p for p, r in zip(${poses}, ${v}_audit_report) if r.passed]`);
-          out.push(`${indent}${v}_reality_scores = {r.smiles: {"reality_score": r.reality_score} for r in ${v}_audit_report}`);
+          out.push(`${indent}${v}_audit_report = [${v}_auditor.audit(x, pocket=${pkt}) for x in ${poses}]`);
+          out.push(`${indent}${v}_verified_poses = [x for x, r in zip(${poses}, ${v}_audit_report) if r.passed]`);
+          out.push(`${indent}${v}_reality_scores = {r.smiles: {"reality": r.reality_score} for r in ${v}_audit_report}`);
           break;
         }
         case 'reaction_enumerator': {
           const reag = portVar(incomingFor(node.id, 'reagents'), 'reagents');
           out.push(
-            `${indent}${v}_analogs = ge.enumerate_makeable_analogs(${reag}["core_smiles"], reaction_family=${pyStr(p.reaction_family ?? 'all_16')}, max_products=${pyNum(p.max_products, 64)}, triage_filter=${pyBool(p.triage_filter ?? true)})`,
+            ...pyCall(indent, `${v}_analogs`, 'ge.enumerate_makeable_analogs', [
+              `${reag}["core_smiles"]`,
+              `mode=${pyStr(p.mode ?? 'enumerate_and_retro')}`,
+              `reaction_family=${pyStr(p.reaction_family ?? 'all_16')}`,
+              `max_products=${pyNum(p.max_products, 64)}`,
+              `triage_filter=${pyBool(p.triage_filter ?? true)}`,
+            ]),
           );
           out.push(`${indent}${v}_makeable_mols = [a.product_smiles for a in ${v}_analogs]`);
-          out.push(`${indent}${v}_synth_report = {"n_makeable": len(${v}_makeable_mols), "mode": ${pyStr(p.mode ?? 'enumerate_and_retro')}}`);
+          out.push(`${indent}${v}_synth_report = {"n_makeable": len(${v}_makeable_mols)}`);
           break;
         }
         case 'leadopt_mmp_sar': {
           const mols = portVar(incomingFor(node.id, 'molecules'), 'molecules');
           out.push(
-            `${indent}${v}_mmp = ge.AvoidomeMMPEngine(property_profile=${pyStr(p.property_profile ?? 'cns_mpo_v2')})`,
+            ...pyCall(indent, `${v}_mmp`, 'ge.AvoidomeMMPEngine', [
+              `property_profile=${pyStr(p.property_profile ?? 'cns_mpo_v2')}`,
+              `mode=${pyStr(p.mode ?? 'mmp_and_cliffs')}`,
+              `cliff_threshold=${pyNum(p.cliff_threshold, 1.0)}`,
+              `triage_filter=${pyBool(p.triage_filter ?? true)}`,
+            ]),
           );
           out.push(
-            `${indent}${v}_proposals = ${v}_mmp.propose_rescues(${mols}[0], max_proposals=${pyNum(p.max_proposals, 20)})`,
+            ...pyCall(indent, `${v}_proposals`, `${v}_mmp.propose_rescues`, [
+              `${mols}[0]`,
+              `max_proposals=${pyNum(p.max_proposals, 20)}`,
+            ]),
           );
           out.push(`${indent}${v}_rescued_mols = [r.analog_smiles for r in ${v}_proposals]`);
-          out.push(`${indent}${v}_mmp_scores = {r.analog_smiles: {"delta_herg": r.delta_herg, "delta_mpo": r.delta_mpo} for r in ${v}_proposals}`);
-          out.push(`${indent}${v}_sar_report = {"mode": ${pyStr(p.mode ?? 'mmp_and_cliffs')}, "cliff_threshold": ${pyNum(p.cliff_threshold, 1.0)}}`);
+          out.push(`${indent}${v}_mmp_scores = {r.analog_smiles: {"d_herg": r.delta_herg} for r in ${v}_proposals}`);
+          out.push(`${indent}${v}_sar_report = {"n_proposals": len(${v}_proposals)}`);
           break;
         }
         case 'cns_admet_suite': {
@@ -1010,30 +1304,61 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
               ? `list(dict.fromkeys(${molEdges.map((e) => portVar(e, '[]')).join(' + ')}))`
               : portVar(molEdges[0], 'molecules');
           out.push(
-            `${indent}${v}_reports = ge.score_molecules(${molExpr}, target=${pyStr(circuit.execution.targetContext)}, admet_profile=${pyStr(p.admet_profile ?? 'v4_12ep')})`,
+            ...pyCall(indent, `${v}_reports`, 'ge.score_molecules', [
+              molExpr,
+              `target=${pyStr(circuit.execution.targetContext)}`,
+              `property_profile=${pyStr(p.property_profile ?? 'cns_mpo_v2')}`,
+              `admet_profile=${pyStr(p.admet_profile ?? 'v4_12ep')}`,
+              `require_triage_pass=${pyBool(p.require_triage_pass ?? true)}`,
+            ]),
           );
           out.push(
-            `${indent}${v}_safe_mols = [r.canonical_smiles for r in ${v}_reports if r.cns_mpo_v2 >= ${pyNum(p.min_mpo_v2, 4.0)} and r.herg_prob <= ${pyNum(p.max_herg_prob, 0.3)}]`,
+            `${indent}${v}_safe_mols = [`,
+            `${indent}    r.canonical_smiles`,
+            `${indent}    for r in ${v}_reports`,
+            `${indent}    if r.cns_mpo_v2 >= ${pyNum(p.min_mpo_v2, 4.0)}`,
+            `${indent}    and r.herg_prob <= ${pyNum(p.max_herg_prob, 0.3)}`,
+            `${indent}]`,
           );
           out.push(
-            `${indent}${v}_admet_scores = {r.canonical_smiles: {"mpo_v2": r.cns_mpo_v2, "herg": r.herg_prob, "bbb": r.bbb_prob} for r in ${v}_reports}`,
+            `${indent}${v}_admet_scores = {`,
+            `${indent}    r.canonical_smiles: {"mpo": r.cns_mpo_v2, "herg": r.herg_prob}`,
+            `${indent}    for r in ${v}_reports`,
+            `${indent}}`,
           );
           break;
         }
         case 'conformal_dmpk': {
           const mols = portVar(incomingFor(node.id, 'molecules'), 'molecules');
           out.push(
-            `${indent}${v}_dmpk = ge.ConformalDMPKRegressor(endpoint=${pyStr(p.endpoint ?? 'OpenADMET_LogD')}, alpha=${pyNum(p.alpha, 0.1)}, n_estimators=${pyNum(p.n_estimators, 80)})`,
+            ...pyCall(indent, `${v}_dmpk`, 'ge.ConformalDMPKRegressor', [
+              `endpoint=${pyStr(p.endpoint ?? 'OpenADMET_LogD')}`,
+              `alpha=${pyNum(p.alpha, 0.1)}`,
+              `n_estimators=${pyNum(p.n_estimators, 80)}`,
+            ]),
           );
           out.push(`${indent}${v}_dmpk_intervals = ${v}_dmpk.predict_intervals(${mols})`);
-          out.push(`${indent}${v}_dmpk_scores = {s: {"pred": iv.mean, "lo": iv.lo, "hi": iv.hi} for s, iv in zip(${mols}, ${v}_dmpk_intervals)}`);
+          out.push(
+            `${indent}${v}_dmpk_scores = {`,
+            `${indent}    s: {"pred": iv.mean, "lo": iv.lo, "hi": iv.hi}`,
+            `${indent}    for s, iv in zip(${mols}, ${v}_dmpk_intervals)`,
+            `${indent}}`,
+          );
           break;
         }
         case 'openfe_rbfe_exporter': {
           const pkt = portVar(incomingFor(node.id, 'pocket'), 'pocket');
           const mols = portVar(incomingFor(node.id, 'molecules'), portVar(incomingFor(node.id, 'poses'), 'molecules'));
           out.push(
-            `${indent}${v}_rbfe_network = ge.export_openfe_rbfe_network(${mols}, ${pkt}, out_dir=${pyStr(p.out_dir ?? 'results/openfe_circuit_export')}, require_same_charge=${pyBool(p.require_same_charge ?? true)}, filter_ring_strain=${pyBool(p.filter_ring_strain ?? true)}, add_cycle_closures=${pyBool(p.add_cycle_closures ?? true)})`,
+            ...pyCall(indent, `${v}_rbfe_network`, 'ge.export_openfe_rbfe_network', [
+              mols,
+              pkt,
+              `out_dir=${pyStr(p.out_dir ?? 'results/openfe_circuit_export')}`,
+              `require_same_charge=${pyBool(p.require_same_charge ?? true)}`,
+              `filter_ring_strain=${pyBool(p.filter_ring_strain ?? true)}`,
+              `max_ring_strain_kcal=${pyNum(p.max_ring_strain_kcal, 3.0)}`,
+              `add_cycle_closures=${pyBool(p.add_cycle_closures ?? true)}`,
+            ]),
           );
           break;
         }
@@ -1041,19 +1366,34 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
           const pkt = portVar(incomingFor(node.id, 'pocket'), 'pocket');
           const poses = portVar(incomingFor(node.id, 'poses'), 'None');
           out.push(
-            `${indent}${v}_viz_manifest = ge.visualize_complex(${pkt}, poses=${poses}, theme=${pyStr(p.theme ?? 'dark')}, show_native_ghost=${pyBool(p.show_native_ghost ?? true)}, highlight_anchors=${pyBool(p.highlight_anchors ?? true)})`,
+            ...pyCall(indent, `${v}_viz_manifest`, 'ge.visualize_complex', [
+              pkt,
+              `poses=${poses}`,
+              `theme=${pyStr(p.theme ?? 'dark')}`,
+              `show_native_ghost=${pyBool(p.show_native_ghost ?? true)}`,
+              `highlight_anchors=${pyBool(p.highlight_anchors ?? true)}`,
+            ]),
           );
           break;
         }
         case 'mcp_tool_export': {
           out.push(
-            `${indent}${v}_mcp_manifest = ge.invoke_dmta_tool(${pyStr(p.tool_name ?? 'audit_complex')}, {"target": ${pyStr(circuit.execution.targetContext)}, "transport": ${pyStr(p.transport ?? 'python_direct')}})`,
+            ...pyCall(indent, `${v}_mcp_manifest`, 'ge.invoke_dmta_tool', [
+              pyStr(p.tool_name ?? 'audit_complex'),
+              `{"target": ${pyStr(circuit.execution.targetContext)}, "transport": ${pyStr(p.transport ?? 'python_direct')}}`,
+            ]),
           );
           break;
         }
         case 'dmta_ledger': {
           out.push(
-            `${indent}${v}_dossier = ge.build_credibility_dossier(model_name=${pyStr(circuit.name)}, model_version="5.1.0")`,
+            ...pyCall(indent, `${v}_dossier`, 'ge.build_credibility_dossier', [
+              `model_name=${pyStr(circuit.name)}`,
+              'model_version="5.1.0"',
+              `ei_saturation_tol=${pyNum(p.ei_saturation_tol, 0.02)}`,
+              `jaccard_stability_tol=${pyNum(p.jaccard_stability_tol, 0.85)}`,
+              `export_fda_ema=${pyBool(p.export_fda_ema_dossier ?? true)}`,
+            ]),
           );
           break;
         }

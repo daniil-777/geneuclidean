@@ -114,7 +114,7 @@ export function BlockPalette({
   return (
     <aside
       data-block-palette="true"
-      className="w-[254px] shrink-0 h-full circuit-glass border-r border-[var(--circuit-node-border)] flex flex-col z-20"
+      className="w-[228px] shrink-0 h-full circuit-glass border-r border-[var(--circuit-node-border)] flex flex-col z-20"
     >
       {/* Dock Header */}
       <div className="px-3 pt-2.5 pb-2 border-b border-[var(--circuit-node-border)] space-y-2">
@@ -203,7 +203,8 @@ export function BlockPalette({
                       draggable
                       data-palette-block={block.blockType}
                       onDragStart={(ev) => {
-                        ev.dataTransfer.setData('application/geneuclidean-block', block.blockType);
+                        ev.dataTransfer.setData('application/x-geneuclidean-block', block.blockType);
+                        ev.dataTransfer.setData('text/plain', `geneuclidean-block:${block.blockType}`);
                         ev.dataTransfer.effectAllowed = 'copy';
                       }}
                       title={`${block.name} — ${block.summary}\nDrag onto canvas or click + to insert`}

@@ -1617,78 +1617,101 @@ export function formatNodeParamSummary(node: CircuitNode): string {
     case 'protein_pocket': {
       const tid = String(p.target_id ?? 'DRD1');
       const pdb = TARGET_PDB_MAP[tid] ?? 'PDB';
-      return `${tid} · ${pdb} · ${Number(p.pocket_cutoff ?? 10).toFixed(0)} Å`;
+      return `${tid} · ${pdb} · ${Number(p.pocket_cutoff ?? 10).toFixed(0)}Å`;
     }
     case 'multiconformer_ensemble':
-      return `${p.on_target_id ?? 'DRD1'} (${p.n_conformers ?? 2}×) vs ${p.off_target_id ?? 'DRD2'}`;
+      return `${p.on_target_id ?? 'DRD1'}(${p.n_conformers ?? 2}×) vs ${p.off_target_id ?? 'DRD2'}`;
     case 'reagent_library':
-      return `${String(p.reagent_pack ?? 'cns_amines')} · N=${p.max_reagents ?? 32}`;
+      return `${String(p.reagent_pack ?? 'cns_amines').replace('_', ' ')} · N=${p.max_reagents ?? 32}`;
     case 'boltz2_cofold':
-      return String(p.structure_source ?? 'ACHE_donepezil_cofold.cif').replace('_cofold.cif', '');
+      return String(p.structure_source ?? 'ACHE_donepezil').replace('_cofold.cif', '');
     case 'chembl_pool':
-      return `${String(p.dataset ?? 'DRD1_chembl37_400').split('_')[0]} · N=${p.pool_size ?? 400}${p.dedup_murcko ? ' · Murcko' : ''}`;
+      return `${String(p.dataset ?? 'DRD1').split('_')[0]} · N=${p.pool_size ?? 400}`;
     case 'painn_se3':
-      return `${p.num_layers ?? 4}L · s=${p.hidden_dim ?? 192} · v=${p.vector_dim ?? 64} · ${p.cutoff ?? 5.5} Å`;
+      return `${p.num_layers ?? 4}L · d=${p.hidden_dim ?? 192} · ${p.cutoff ?? 5.5}Å`;
     case 'egnn_3d':
-      return `${p.num_layers ?? 4}L · d=${p.hidden_dim ?? 192} · ${p.cutoff ?? 5.5} Å`;
+      return `${p.num_layers ?? 4}L · d=${p.hidden_dim ?? 192} · ${p.cutoff ?? 5.5}Å`;
     case 'e3nn_irreps':
-      return `${p.num_layers ?? 4}L · l_max=${p.e3nn_lmax ?? 1} · d=${p.hidden_dim ?? 192}`;
+      return `${p.num_layers ?? 4}L · l≤${p.e3nn_lmax ?? 1} · d=${p.hidden_dim ?? 192}`;
     case 'drugclip_encoder':
-      return `${p.backend ?? 'drugclip_v2'} · ${p.clip_dim ?? 128}D`;
+      return `${p.backend === 'ecfp4_binary' ? 'ECFP4' : 'CLIP'} · ${p.clip_dim ?? 128}D`;
     case 'ibm_mmelon':
       return `84M · 768D · ${String(p.device ?? 'auto')}`;
     case 'safe_gpt':
-      return `${p.mode === 'decorate_scaffold' ? 'Decorate' : 'De Novo'} · n=${p.num_samples ?? 32} · w=${Number(p.cfg_scale ?? 1.6).toFixed(2)}`;
+      return `${p.mode === 'decorate_scaffold' ? 'Decor' : 'DeNovo'} · n=${p.num_samples ?? 32} · w=${Number(p.cfg_scale ?? 1.6).toFixed(1)}`;
     case 'chemical_llm': {
       const shortModel = String(p.backbone_id ?? 'GP-MoLFormer').split('/').pop() ?? 'LLM';
-      return `${shortModel.slice(0, 14)} · w=${Number(p.cfg_scale ?? 1.35).toFixed(2)}`;
+      return `${shortModel.slice(0, 11)} · w=${Number(p.cfg_scale ?? 1.35).toFixed(1)}`;
     }
     case 'pocket_ensemble_cfg':
-      return `w_on=${Number(p.w_on ?? 1.6).toFixed(2)} · w_off=${Number(p.w_off ?? 0.65).toFixed(2)}`;
+      return `w+=${Number(p.w_on ?? 1.6).toFixed(1)} · w−=${Number(p.w_off ?? 0.65).toFixed(2)}`;
     case 'selectivity_mtl_aligner':
-      return `${p.mtl_strategy ?? 'aim_policy'} · m=${p.margin ?? 0.15} · ${p.steps ?? 30}st`;
+      return `${String(p.mtl_strategy ?? 'aim').split('_')[0]} · m=${p.margin ?? 0.15}`;
     case 'ligand_vector_index':
-      return `${p.dtype ?? 'float16'} · chunk ${Number(p.chunk_size ?? 65536) / 1024}k`;
+      return `${p.dtype ?? 'fp16'} · ${Math.round(Number(p.chunk_size ?? 65536) / 1024)}k ch`;
     case 'pocket_screener':
       return `Top-${p.top_k ?? 50} · λ=${Number(p.off_weight ?? 0.5).toFixed(2)}`;
     case 'neural_pkd_reranker':
-      return `Top-${p.top_k ?? 16} · dist≥${p.min_tanimoto_dist ?? 0.35}`;
+      return `Top-${p.top_k ?? 16} · d≥${p.min_tanimoto_dist ?? 0.35}`;
     case 'catalog_grounding':
-      return `k=${p.top_k_per_query ?? 5} · α_3D=${Number(p.alpha_3d ?? 0.5).toFixed(2)}`;
+      return `k=${p.top_k_per_query ?? 5} · α=${Number(p.alpha_3d ?? 0.5).toFixed(2)}`;
     case 'tanimoto_gp':
-      return `${p.kernel ?? 'tanimoto'} · ${p.fp_bits ?? 2048}b · σ²n=${p.noise_var ?? 0.05}`;
+      return `${p.kernel === 'minmax_count' ? 'MinMax' : 'Tanimoto'} · ${p.fp_bits ?? 2048}b`;
     case 'ensemble_surrogate':
-      return `RF+HGB · ${p.n_estimators ?? 64} trees · ${p.fp_bits ?? 1024}b`;
-    case 'conformal_calibrator':
-      return `${String(p.mode ?? 'normalized').replace('weighted_covariate_shift', 'cov-shift')} · ${Math.round((1 - Number(p.alpha ?? 0.1)) * 100)}%`;
-    case 'batch_acquisition':
-      return `${String(p.strategy ?? 'kriging_believer')} · B=${p.batch_size ?? 12} · β=${p.ucb_beta ?? 1.5}`;
+      return `RF+HGB · ${p.n_estimators ?? 64}t`;
+    case 'conformal_calibrator': {
+      const m =
+        p.mode === 'weighted_covariate_shift'
+          ? 'CovShift'
+          : p.mode === 'homoscedastic'
+            ? 'Homo'
+            : 'Norm';
+      return `${m} · ${Math.round((1 - Number(p.alpha ?? 0.1)) * 100)}%`;
+    }
+    case 'batch_acquisition': {
+      const map: Record<string, string> = {
+        kriging_believer: 'KB',
+        dpp_ucb: 'DPP-UCB',
+        maxmin_ucb: 'MaxMin',
+        qehvi: 'qEHVI',
+        pareto_scalarized_ucb: 'ParEGO',
+        log_ei: 'LogEI',
+        constrained_ei: 'cEI',
+        avoidome_feasibility_ucb: 'AvUCB',
+        ucb: 'UCB',
+        ei: 'EI',
+        pi: 'PI',
+        thompson: 'TS',
+      };
+      const label = map[String(p.strategy ?? 'kriging_believer')] ?? String(p.strategy);
+      return `${label} · B=${p.batch_size ?? 12} · β=${p.ucb_beta ?? 1.5}`;
+    }
     case 'multifidelity_router':
       return `T1=${p.tier1_budget ?? 12} · T2=${p.tier2_budget ?? 4} · ρ≥${p.min_spearman_rho ?? 0.3}`;
     case 'combinatorial_ts':
-      return `${String(p.reaction_name ?? 'amide').split('_')[0]} · B=${p.batch_size ?? 16} · τ=${p.thermal_scale ?? 1.0}`;
+      return `${String(p.reaction_name ?? 'amide').split('_')[0]} · B=${p.batch_size ?? 16}`;
     case 'protonation_ph74':
-      return `pH 7.4${p.audit_tautomers ? ` · ≤${p.max_tautomers ?? 16} tauts` : ''}`;
+      return `pH 7.4${p.audit_tautomers ? ` · ≤${p.max_tautomers ?? 16}t` : ''}`;
     case 'autodock_vina':
-      return `exh=${p.exhaustiveness ?? 8} · ${p.num_modes ?? 9} modes · ${p.max_ring_confs ?? 4}r`;
+      return `exh=${p.exhaustiveness ?? 8} · ${p.num_modes ?? 9}m · pH7.4`;
     case 'ring_torsion_strain':
-      return `Ring≤${p.ring_strain_threshold_kcal ?? 3.0} · Tor≤${p.torsion_barrier_threshold_kcal ?? 2.5} kcal`;
+      return `Ring≤${p.ring_strain_threshold_kcal ?? 3.0} · Tor≤${p.torsion_barrier_threshold_kcal ?? 2.5}`;
     case 'pose_reality_auditor':
-      return `${p.property_profile ?? 'cns_mpo_v2'} · Ring≤${p.ring_strain_threshold_kcal ?? 3.0}`;
+      return `${String(p.property_profile ?? 'cns_mpo_v2').replace('_v2', '')} · ≤${p.ring_strain_threshold_kcal ?? 3.0}k`;
     case 'reaction_enumerator':
-      return `${String(p.reaction_family ?? 'all_16').split('_')[0]} · max ${p.max_products ?? 64}`;
+      return `${String(p.reaction_family ?? 'all_16').split('_')[0]} · ≤${p.max_products ?? 64}`;
     case 'leadopt_mmp_sar':
-      return `1-cut MMP · max ${p.max_proposals ?? 20} · Δ≥${p.cliff_threshold ?? 1.0}`;
+      return `1-Cut · ≤${p.max_proposals ?? 20} · Δ≥${p.cliff_threshold ?? 1.0}`;
     case 'cns_admet_suite':
-      return `${p.admet_profile ?? 'v4_12ep'} · MPO≥${p.min_mpo_v2 ?? 4.0} · hERG≤${p.max_herg_prob ?? 0.3}`;
+      return `12-Ep · MPO≥${p.min_mpo_v2 ?? 4.0}`;
     case 'conformal_dmpk':
-      return `${String(p.endpoint ?? 'OpenADMET_LogD').replace('OpenADMET_', '')} · ${Math.round((1 - Number(p.alpha ?? 0.1)) * 100)}%`;
+      return `${String(p.endpoint ?? 'LogD').replace('OpenADMET_', '').replace('Biogen_', '')} · ${Math.round((1 - Number(p.alpha ?? 0.1)) * 100)}%`;
     case 'openfe_rbfe_exporter':
-      return `${p.require_same_charge ? 'Δq=0 · ' : ''}${p.add_cycle_closures ? 'Cycle-Closed' : 'Star'} Lomap`;
+      return `${p.require_same_charge ? 'Δq=0 · ' : ''}${p.add_cycle_closures ? 'Cycle' : 'Star'} Lomap`;
     case 'studio_3d_inspector':
-      return `3Dmol.js · ${p.highlight_anchors ? 'Anchors ON' : 'Pocket'}`;
+      return `3Dmol · ${p.highlight_anchors ? 'Anchors' : 'Pocket'}`;
     case 'mcp_tool_export':
-      return `${p.tool_name ?? 'audit_complex'} · ${p.transport === 'mcp_stdio' ? 'stdio' : 'direct'}`;
+      return `${String(p.tool_name ?? 'audit_complex').replace('_', ' ')}`;
     case 'dmta_ledger':
       return `EI≤${p.ei_saturation_tol ?? 0.02} · J≥${p.jaccard_stability_tol ?? 0.85}`;
     default:
@@ -1727,16 +1750,17 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
         budget: 32,
       },
       nodes: [
+        // Row 1: 3D Pocket -> SE(3) Encoding -> SAFE-GPT De Novo -> 12-Ep Avoid-ome
         {
           id: 'n_pocket',
           blockType: 'protein_pocket',
-          position: { x: 36, y: 170 },
+          position: { x: 32, y: 40 },
           params: { target_id: 'DRD1', pocket_cutoff: 10.0, max_atoms: 384, keep_cofactors: true },
         },
         {
           id: 'n_painn',
           blockType: 'painn_se3',
-          position: { x: 308, y: 64 },
+          position: { x: 324, y: 40 },
           params: {
             num_layers: 4,
             hidden_dim: 192,
@@ -1751,7 +1775,7 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
         {
           id: 'n_safegpt',
           blockType: 'safe_gpt',
-          position: { x: 580, y: 64 },
+          position: { x: 616, y: 40 },
           params: {
             mode: 'de_novo',
             num_samples: 32,
@@ -1766,7 +1790,7 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
         {
           id: 'n_admet',
           blockType: 'cns_admet_suite',
-          position: { x: 852, y: 64 },
+          position: { x: 908, y: 40 },
           params: {
             property_profile: 'cns_mpo_v2',
             admet_profile: 'v4_12ep',
@@ -1775,10 +1799,11 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
             require_triage_pass: true,
           },
         },
+        // Row 2: AutoDock Vina 3D -> 7-Axis PoseRealityAuditor -> OpenFE RBFE & 3D Studio
         {
           id: 'n_vina',
           blockType: 'autodock_vina',
-          position: { x: 852, y: 276 },
+          position: { x: 32, y: 316 },
           params: {
             exhaustiveness: 8,
             num_modes: 9,
@@ -1788,21 +1813,9 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
           },
         },
         {
-          id: 'n_openfe',
-          blockType: 'openfe_rbfe_exporter',
-          position: { x: 1124, y: 64 },
-          params: {
-            require_same_charge: true,
-            filter_ring_strain: true,
-            max_ring_strain_kcal: 3.0,
-            add_cycle_closures: true,
-            out_dir: 'results/openfe_drd1_denovo',
-          },
-        },
-        {
           id: 'n_audit',
           blockType: 'pose_reality_auditor',
-          position: { x: 1124, y: 276 },
+          position: { x: 324, y: 316 },
           params: {
             property_profile: 'cns_mpo_v2',
             ring_strain_threshold_kcal: 3.0,
@@ -1812,9 +1825,21 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
           },
         },
         {
+          id: 'n_openfe',
+          blockType: 'openfe_rbfe_exporter',
+          position: { x: 616, y: 316 },
+          params: {
+            require_same_charge: true,
+            filter_ring_strain: true,
+            max_ring_strain_kcal: 3.0,
+            add_cycle_closures: true,
+            out_dir: 'results/openfe_drd1_denovo',
+          },
+        },
+        {
           id: 'n_studio3d',
           blockType: 'studio_3d_inspector',
-          position: { x: 1396, y: 170 },
+          position: { x: 908, y: 316 },
           params: { theme: 'dark', show_native_ghost: true, highlight_anchors: true },
         },
       ],
@@ -1861,22 +1886,17 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
         budget: 48,
       },
       nodes: [
+        // Row 1: ChEMBL Pool -> Tanimoto GP -> Conformal UQ -> Batch Acquisition
         {
           id: 'n_pool',
           blockType: 'chembl_pool',
-          position: { x: 36, y: 92 },
+          position: { x: 32, y: 84 },
           params: { dataset: 'DRD1_chembl37_400', pool_size: 400, dedup_murcko: true },
-        },
-        {
-          id: 'n_pocket',
-          blockType: 'protein_pocket',
-          position: { x: 36, y: 312 },
-          params: { target_id: 'DRD1', pocket_cutoff: 10.0, max_atoms: 384, keep_cofactors: true },
         },
         {
           id: 'n_gp',
           blockType: 'tanimoto_gp',
-          position: { x: 308, y: 92 },
+          position: { x: 324, y: 84 },
           params: {
             kernel: 'tanimoto',
             fp_bits: 2048,
@@ -1888,13 +1908,13 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
         {
           id: 'n_conf',
           blockType: 'conformal_calibrator',
-          position: { x: 580, y: 92 },
+          position: { x: 616, y: 84 },
           params: { mode: 'normalized', alpha: 0.1, scaffold_grouped: true },
         },
         {
           id: 'n_acq',
           blockType: 'batch_acquisition',
-          position: { x: 852, y: 92 },
+          position: { x: 908, y: 84 },
           params: {
             strategy: 'kriging_believer',
             batch_size: 12,
@@ -1903,10 +1923,17 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
             mask_pending_async: true,
           },
         },
+        // Row 2: Protein Pocket -> Multi-Fidelity Router -> AutoDock Vina -> DMTA Ledger
+        {
+          id: 'n_pocket',
+          blockType: 'protein_pocket',
+          position: { x: 32, y: 346 },
+          params: { target_id: 'DRD1', pocket_cutoff: 10.0, max_atoms: 384, keep_cofactors: true },
+        },
         {
           id: 'n_router',
           blockType: 'multifidelity_router',
-          position: { x: 1124, y: 196 },
+          position: { x: 324, y: 346 },
           params: {
             tier1_budget: 12,
             tier2_budget: 4,
@@ -1917,7 +1944,7 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
         {
           id: 'n_vina',
           blockType: 'autodock_vina',
-          position: { x: 1396, y: 92 },
+          position: { x: 616, y: 346 },
           params: {
             exhaustiveness: 8,
             num_modes: 9,
@@ -1929,7 +1956,7 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
         {
           id: 'n_ledger',
           blockType: 'dmta_ledger',
-          position: { x: 1668, y: 196 },
+          position: { x: 908, y: 346 },
           params: {
             ei_saturation_tol: 0.02,
             jaccard_stability_tol: 0.85,
@@ -1987,22 +2014,17 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
         budget: 32,
       },
       nodes: [
+        // Row 1: Multi-Conformer -> PaiNN-SE(3) -> Ensemble CFG -> 12-Ep Avoid-ome
         {
           id: 'n_ens',
           blockType: 'multiconformer_ensemble',
-          position: { x: 36, y: 64 },
+          position: { x: 32, y: 40 },
           params: { on_target_id: 'DRD1', n_conformers: 2, off_target_id: 'DRD2', weighting: 'uniform' },
-        },
-        {
-          id: 'n_reag',
-          blockType: 'reagent_library',
-          position: { x: 36, y: 280 },
-          params: { core_smiles: 'O=C(O)c1ccc2ccccc2n1', reagent_pack: 'cns_amines', max_reagents: 32 },
         },
         {
           id: 'n_painn',
           blockType: 'painn_se3',
-          position: { x: 308, y: 64 },
+          position: { x: 324, y: 40 },
           params: {
             num_layers: 4,
             hidden_dim: 192,
@@ -2015,20 +2037,9 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
           },
         },
         {
-          id: 'n_rxn',
-          blockType: 'reaction_enumerator',
-          position: { x: 308, y: 280 },
-          params: {
-            mode: 'enumerate_and_retro',
-            reaction_family: 'amide_coupling_acid_amine',
-            max_products: 64,
-            triage_filter: true,
-          },
-        },
-        {
           id: 'n_cfg',
           blockType: 'pocket_ensemble_cfg',
-          position: { x: 580, y: 64 },
+          position: { x: 616, y: 40 },
           params: {
             backbone_id: 'datamol-io/safe-gpt',
             w_on: 1.6,
@@ -2038,9 +2049,39 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
           },
         },
         {
+          id: 'n_admet',
+          blockType: 'cns_admet_suite',
+          position: { x: 908, y: 40 },
+          params: {
+            property_profile: 'cns_mpo_v2',
+            admet_profile: 'v4_12ep',
+            min_mpo_v2: 4.5,
+            max_herg_prob: 0.25,
+            require_triage_pass: true,
+          },
+        },
+        // Row 2: Reagent Library -> 16-Rxn Synthesis -> Avoid-ome MMP -> OpenFE RBFE
+        {
+          id: 'n_reag',
+          blockType: 'reagent_library',
+          position: { x: 32, y: 312 },
+          params: { core_smiles: 'O=C(O)c1ccc2ccccc2n1', reagent_pack: 'cns_amines', max_reagents: 32 },
+        },
+        {
+          id: 'n_rxn',
+          blockType: 'reaction_enumerator',
+          position: { x: 324, y: 312 },
+          params: {
+            mode: 'enumerate_and_retro',
+            reaction_family: 'amide_coupling_acid_amine',
+            max_products: 64,
+            triage_filter: true,
+          },
+        },
+        {
           id: 'n_mmp',
           blockType: 'leadopt_mmp_sar',
-          position: { x: 580, y: 280 },
+          position: { x: 616, y: 312 },
           params: {
             mode: 'mmp_and_cliffs',
             property_profile: 'cns_mpo_v2',
@@ -2050,21 +2091,9 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
           },
         },
         {
-          id: 'n_admet',
-          blockType: 'cns_admet_suite',
-          position: { x: 852, y: 64 },
-          params: {
-            property_profile: 'cns_mpo_v2',
-            admet_profile: 'v4_12ep',
-            min_mpo_v2: 4.5,
-            max_herg_prob: 0.25,
-            require_triage_pass: true,
-          },
-        },
-        {
           id: 'n_openfe',
           blockType: 'openfe_rbfe_exporter',
-          position: { x: 1124, y: 170 },
+          position: { x: 908, y: 312 },
           params: {
             require_same_charge: true,
             filter_ring_strain: true,
@@ -2115,7 +2144,7 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
         {
           id: 'n_boltz',
           blockType: 'boltz2_cofold',
-          position: { x: 36, y: 170 },
+          position: { x: 24, y: 168 },
           params: {
             structure_source: 'ACHE_donepezil_cofold.cif',
             ligand_resname: 'LIG',
@@ -2126,7 +2155,7 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
         {
           id: 'n_strain',
           blockType: 'ring_torsion_strain',
-          position: { x: 320, y: 64 },
+          position: { x: 304, y: 36 },
           params: {
             ring_strain_threshold_kcal: 3.0,
             ring_n_ref_confs: 24,
@@ -2138,7 +2167,7 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
         {
           id: 'n_prot',
           blockType: 'protonation_ph74',
-          position: { x: 320, y: 280 },
+          position: { x: 304, y: 304 },
           params: {
             audit_tautomers: true,
             max_tautomers: 16,
@@ -2149,7 +2178,7 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
         {
           id: 'n_audit',
           blockType: 'pose_reality_auditor',
-          position: { x: 604, y: 64 },
+          position: { x: 584, y: 36 },
           params: {
             property_profile: 'cns_mpo_v2',
             ring_strain_threshold_kcal: 3.0,
@@ -2161,19 +2190,19 @@ export const CIRCUIT_PRESETS: CircuitPreset[] = [
         {
           id: 'n_dmpk',
           blockType: 'conformal_dmpk',
-          position: { x: 604, y: 280 },
+          position: { x: 584, y: 304 },
           params: { endpoint: 'OpenADMET_LogD', alpha: 0.1, n_estimators: 80 },
         },
         {
           id: 'n_studio3d',
           blockType: 'studio_3d_inspector',
-          position: { x: 888, y: 64 },
+          position: { x: 864, y: 36 },
           params: { theme: 'dark', show_native_ghost: true, highlight_anchors: true },
         },
         {
           id: 'n_mcp',
           blockType: 'mcp_tool_export',
-          position: { x: 888, y: 280 },
+          position: { x: 864, y: 304 },
           params: { tool_name: 'audit_complex', transport: 'python_direct' },
         },
       ],

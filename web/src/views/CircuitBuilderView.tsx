@@ -80,16 +80,18 @@ export function CircuitBuilderView({
   const [nodeStatuses, setNodeStatuses] = useState<Record<string, NodeRuntimeStatus>>({});
   const [nodeTelemetry, setNodeTelemetry] = useState<Record<string, ExecutionStepTelemetry>>({});
   const [activeEdgeIds, setActiveEdgeIds] = useState<Set<string>>(new Set());
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ text: string; tone: 'info' | 'error' } | null>(
+    null,
+  );
 
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const toastTimerRef = useRef<number | null>(null);
 
-  const showToast = useCallback((msg: string) => {
-    setToastMessage(msg);
+  const showToast = useCallback((text: string, tone: 'info' | 'error' = 'info') => {
+    setToastMessage({ text, tone });
     if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = window.setTimeout(() => setToastMessage(null), 2600);
+    toastTimerRef.current = window.setTimeout(() => setToastMessage(null), tone === 'error' ? 3800 : 2600);
   }, []);
 
   // Push undoable state transition
@@ -153,14 +155,14 @@ export function CircuitBuilderView({
       maxX = Math.max(maxX, n.position.x + NODE_WIDTH);
       maxY = Math.max(maxY, n.position.y + getNodeHeight(n, false));
     }
-    const padX = 56;
-    const padTop = 52;
-    const padBottom = 86;
+    const padX = 30;
+    const padTop = 28;
+    const padBottom = 74;
     const bw = Math.max(240, maxX - minX);
     const bh = Math.max(180, maxY - minY);
     const zoom = Math.min(
       1.05,
-      Math.max(0.45, Math.min((cw - padX * 2) / bw, (ch - padTop - padBottom) / bh)),
+      Math.max(0.35, Math.min((cw - padX * 2) / bw, (ch - padTop - padBottom) / bh)),
     );
     const x = Math.round((cw - bw * zoom) / 2 - minX * zoom);
     const y = Math.round(padTop + (ch - padTop - padBottom - bh * zoom) / 2 - minY * zoom);
@@ -556,7 +558,7 @@ export function CircuitBuilderView({
   ]);
 
   return (
-    <div className="h-[calc(100vh-56px)] w-full flex flex-col overflow-hidden">
+    <div className="h-[calc(100vh-57px)] w-full flex flex-col overflow-hidden">
       {/* Top Contextual Preset & Execution Bar */}
       <PresetBar
         presets={CIRCUIT_PRESETS}
@@ -612,6 +614,7 @@ export function CircuitBuilderView({
           onMoveNodePreview={handleMoveNodePreview}
           onCommitNodeMove={handleCommitNodeMove}
           onConnectPorts={handleConnectPorts}
+          onWiringRejected={(reason) => showToast(reason, 'error')}
           onDropNewBlock={(bt, pos) => handleAddBlock(bt, pos)}
           onFitView={() => fitGraphToCanvas(circuit)}
           onAutoLayout={handleAutoLayout}
@@ -673,7 +676,7 @@ export function CircuitBuilderView({
         ) : (
           <aside
             data-right-drawer="true"
-            className="w-[348px] shrink-0 h-full circuit-glass border-l border-[var(--circuit-node-border)] flex flex-col z-20"
+            className="w-[320px] shrink-0 h-full circuit-glass border-l border-[var(--circuit-node-border)] flex flex-col z-20"
           >
             {/* Segmented Tab Switcher */}
             <div className="px-2.5 py-2 border-b border-[var(--circuit-node-border)] flex items-center justify-between gap-1.5 shrink-0">
@@ -745,6 +748,7 @@ export function CircuitBuilderView({
                 <CodeExportDrawer
                   circuitName={circuit.name}
                   codegen={codegen}
+                  selectedNodeId={selectedNodeId}
                   onExportJson={handleExportJson}
                 />
               )}

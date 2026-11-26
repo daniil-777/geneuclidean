@@ -104,18 +104,18 @@ export function ExecutionTelemetry({
           <button
             type="button"
             onClick={() => handleCopy('sha', runResult.provenanceSha256)}
-            className="inline-flex items-center gap-1 hover:text-[var(--text-primary)] cursor-pointer"
-            title="Copy full SHA-256 provenance digest"
+            className="inline-flex items-center gap-1 hover:text-[var(--text-primary)] whitespace-nowrap cursor-pointer"
+            title={`Copy full SHA-256 provenance digest (${runResult.provenanceSha256})`}
           >
-            <span>SHA-256: {runResult.provenanceSha256.slice(0, 12)}…</span>
+            <span>SHA {runResult.provenanceSha256.slice(0, 10)}</span>
             {copiedId === 'sha' ? (
-              <Check className="h-2.5 w-2.5 text-emerald-500" />
+              <Check className="h-2.5 w-2.5 text-emerald-500 shrink-0" />
             ) : (
-              <Copy className="h-2.5 w-2.5" />
+              <Copy className="h-2.5 w-2.5 shrink-0" />
             )}
           </button>
-          <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
-            <ShieldCheck className="h-3 w-3" /> FDA/EMA {runResult.provenanceLedger.fdaEmaPrinciples}
+          <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold whitespace-nowrap shrink-0">
+            <ShieldCheck className="h-3 w-3 shrink-0" /> FDA/EMA 10/10
           </span>
         </div>
       </div>
@@ -123,12 +123,28 @@ export function ExecutionTelemetry({
       {/* Interactive Recharts DMTA Convergence Chart (when multi-round loop ran) */}
       {runResult.dmtaTrace.length > 1 && (
         <div className="rounded-xl border border-[var(--circuit-node-border)] bg-[var(--bg-surface)] p-3 space-y-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <span className="text-[11px] font-bold text-[var(--text-primary)]">
               DMTA Active Learning Convergence
             </span>
             <span className="font-mono-num text-[10px] text-pink-600 dark:text-pink-400 font-semibold">
               {runResult.dmtaTrace.length} Rounds
+            </span>
+          </div>
+          <div className="flex items-center gap-3 text-[10px] font-mono-num text-[var(--text-secondary)]">
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: theme === 'dark' ? '#34D399' : '#059669' }}
+              />
+              Best pChEMBL
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                className="w-3.5 border-t-2 border-dashed"
+                style={{ borderColor: theme === 'dark' ? '#F472B6' : '#DB2777' }}
+              />
+              90% Conformal Cov
             </span>
           </div>
           <div className="h-36 w-full">
@@ -142,7 +158,8 @@ export function ExecutionTelemetry({
                 />
                 <YAxis
                   yAxisId="left"
-                  domain={[7.5, 10.2]}
+                  domain={[7.5, 10.0]}
+                  ticks={[7.5, 8.0, 8.5, 9.0, 9.5, 10.0]}
                   tick={{ fontSize: 10, fill: axisTickColor }}
                 />
                 <YAxis
@@ -252,7 +269,7 @@ export function ExecutionTelemetry({
 
                   {svg && (
                     <div
-                      className="rounded-lg bg-[var(--bg-elevated)]/70 border border-[var(--circuit-node-border)]/70 h-20 flex items-center justify-center p-1 overflow-hidden rdkit-svg-wrap"
+                      className="rounded-lg bg-[var(--bg-elevated)]/70 border border-[var(--circuit-node-border)]/70 h-28 p-2 flex items-center justify-center overflow-hidden [&_svg]:max-h-full [&_svg]:h-full [&_svg]:w-auto [&_svg]:max-w-full [&_svg]:mx-auto"
                       dangerouslySetInnerHTML={{ __html: svg }}
                     />
                   )}

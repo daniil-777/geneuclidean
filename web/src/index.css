@@ -23,20 +23,20 @@
   --accent-violet: #7c3aed;
 
   /* Apple Alabaster Circuit Studio Tokens */
-  --circuit-canvas-bg: #f5f6f8;
-  --circuit-grid-dot: rgba(15, 23, 42, 0.13);
-  --circuit-panel-glass: rgba(255, 255, 255, 0.86);
+  --circuit-canvas-bg: #f6f7f9;
+  --circuit-grid-dot: rgba(15, 23, 42, 0.08);
+  --circuit-panel-glass: rgba(255, 255, 255, 0.88);
   --circuit-panel-solid: #ffffff;
   --circuit-node-bg: #ffffff;
-  --circuit-node-header: rgba(248, 250, 252, 0.94);
+  --circuit-node-header: rgba(248, 250, 252, 0.95);
   --circuit-node-border: rgba(15, 23, 42, 0.11);
-  --circuit-node-border-hover: rgba(15, 23, 42, 0.22);
-  --circuit-node-shadow: 0 10px 26px -10px rgba(15, 23, 42, 0.14), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --circuit-node-border-hover: rgba(15, 23, 42, 0.24);
+  --circuit-node-shadow: 0 10px 26px -10px rgba(15, 23, 42, 0.13), 0 1px 3px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   --circuit-node-shadow-selected: 0 16px 38px -10px rgba(2, 132, 199, 0.25), 0 0 0 2px rgba(2, 132, 199, 0.55);
   --circuit-focus-ring: rgba(2, 132, 199, 0.55);
   --circuit-socket-bezel: #ffffff;
-  --circuit-pill-bg: rgba(255, 255, 255, 0.9);
-  --circuit-pill-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.16), 0 2px 6px rgba(15, 23, 42, 0.06);
+  --circuit-pill-bg: rgba(255, 255, 255, 0.92);
+  --circuit-pill-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.14), 0 2px 6px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   --circuit-code-bg: #f8fafc;
 }
 
@@ -59,19 +59,19 @@
 
   /* Obsidian Dark Circuit Studio Tokens */
   --circuit-canvas-bg: #070b14;
-  --circuit-grid-dot: rgba(148, 163, 184, 0.16);
-  --circuit-panel-glass: rgba(13, 19, 34, 0.82);
+  --circuit-grid-dot: rgba(148, 163, 184, 0.13);
+  --circuit-panel-glass: rgba(13, 19, 34, 0.84);
   --circuit-panel-solid: #0d1322;
   --circuit-node-bg: #0f172a;
   --circuit-node-header: rgba(30, 41, 59, 0.68);
   --circuit-node-border: rgba(148, 163, 184, 0.18);
-  --circuit-node-border-hover: rgba(148, 163, 184, 0.34);
-  --circuit-node-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.4);
-  --circuit-node-shadow-selected: 0 18px 42px -10px rgba(56, 189, 248, 0.34), 0 0 0 2px rgba(56, 189, 248, 0.7);
+  --circuit-node-border-hover: rgba(148, 163, 184, 0.36);
+  --circuit-node-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --circuit-node-shadow-selected: 0 18px 42px -10px rgba(56, 189, 248, 0.34), 0 0 0 2px rgba(56, 189, 248, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   --circuit-focus-ring: rgba(56, 189, 248, 0.65);
   --circuit-socket-bezel: #0f172a;
-  --circuit-pill-bg: rgba(15, 23, 42, 0.88);
-  --circuit-pill-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.72), 0 2px 8px rgba(0, 0, 0, 0.45);
+  --circuit-pill-bg: rgba(15, 23, 42, 0.9);
+  --circuit-pill-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.72), 0 2px 8px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   --circuit-code-bg: #090e1a;
 }
 

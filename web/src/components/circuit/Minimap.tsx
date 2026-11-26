@@ -14,9 +14,9 @@ interface MinimapProps {
   onJumpToWorldPoint: (worldX: number, worldY: number) => void;
 }
 
-const MAP_W = 178;
-const MAP_H = 110;
-const PAD = 10;
+const MAP_W = 148;
+const MAP_H = 84;
+const PAD = 9;
 
 export function Minimap({
   nodes,
@@ -34,27 +34,22 @@ export function Minimap({
   let maxX = -Infinity;
   let maxY = -Infinity;
 
+  const hasFb = edges.some((e) => e.kind === 'feedback');
   for (const n of nodes) {
     const h = getNodeHeight(n, false);
     minX = Math.min(minX, n.position.x);
-    minY = Math.min(minY, n.position.y - 60);
+    minY = Math.min(minY, n.position.y - (hasFb ? 64 : 0));
     maxX = Math.max(maxX, n.position.x + NODE_WIDTH);
     maxY = Math.max(maxY, n.position.y + h);
   }
 
-  // Include current viewport bounds in minimap projection
-  const viewMinX = -viewport.x / viewport.zoom;
-  const viewMinY = -viewport.y / viewport.zoom;
-  const viewW = canvasSize.width / viewport.zoom;
-  const viewH = canvasSize.height / viewport.zoom;
+  minX -= 48;
+  minY -= 36;
+  maxX += 48;
+  maxY += 36;
 
-  minX = Math.min(minX, viewMinX) - 60;
-  minY = Math.min(minY, viewMinY) - 60;
-  maxX = Math.max(maxX, viewMinX + viewW) + 60;
-  maxY = Math.max(maxY, viewMinY + viewH) + 60;
-
-  const worldW = Math.max(400, maxX - minX);
-  const worldH = Math.max(260, maxY - minY);
+  const worldW = Math.max(380, maxX - minX);
+  const worldH = Math.max(240, maxY - minY);
   const scale = Math.min((MAP_W - PAD * 2) / worldW, (MAP_H - PAD * 2) / worldH);
 
   const offsetX = PAD + (MAP_W - PAD * 2 - worldW * scale) / 2;
@@ -66,7 +61,17 @@ export function Minimap({
   });
 
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-  const vpTopLeft = toMap(viewMinX, viewMinY);
+
+  // Project and softly clamp current viewport rect inside minimap frame
+  const viewMinX = -viewport.x / viewport.zoom;
+  const viewMinY = -viewport.y / viewport.zoom;
+  const viewW = canvasSize.width / viewport.zoom;
+  const viewH = canvasSize.height / viewport.zoom;
+  const rawVp = toMap(viewMinX, viewMinY);
+  const vpX = Math.max(2, Math.min(MAP_W - 18, rawVp.x));
+  const vpY = Math.max(2, Math.min(MAP_H - 14, rawVp.y));
+  const vpW = Math.max(16, Math.min(MAP_W - vpX - 2, viewW * scale - Math.max(0, 2 - rawVp.x)));
+  const vpH = Math.max(12, Math.min(MAP_H - vpY - 2, viewH * scale - Math.max(0, 2 - rawVp.y)));
 
   const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -80,7 +85,7 @@ export function Minimap({
   return (
     <div
       data-circuit-minimap="true"
-      className="absolute bottom-4 left-4 z-30 rounded-2xl circuit-floating-pill overflow-hidden select-none"
+      className="absolute bottom-4 left-4 z-30 rounded-xl circuit-floating-pill overflow-hidden select-none"
     >
       <svg
         width={MAP_W}
@@ -89,13 +94,12 @@ export function Minimap({
         className="block cursor-crosshair"
         aria-label="Circuit Minimap"
       >
-        {/* Scaled Wires */}
         {edges.map((edge) => {
           const s = nodeMap.get(edge.source);
           const t = nodeMap.get(edge.target);
           if (!s || !t) return null;
-          const p1 = toMap(s.position.x + NODE_WIDTH, s.position.y + 70);
-          const p2 = toMap(t.position.x, t.position.y + 70);
+          const p1 = toMap(s.position.x + NODE_WIDTH, s.position.y + 68);
+          const p2 = toMap(t.position.x, t.position.y + 68);
           return (
             <line
               key={edge.id}
@@ -110,14 +114,13 @@ export function Minimap({
                     : '#C026D3'
                   : getSignalColor(edge.signalType, theme)
               }
-              strokeWidth={1.1}
-              strokeOpacity={0.6}
+              strokeWidth={1}
+              strokeOpacity={0.62}
               strokeDasharray={edge.kind === 'feedback' ? '2 2' : undefined}
             />
           );
         })}
 
-        {/* Scaled Nodes */}
         {nodes.map((node) => {
           const def = BLOCK_MAP[node.blockType];
           const color = def ? getCategoryColor(def.category, theme) : '#38BDF8';
@@ -132,25 +135,24 @@ export function Minimap({
               y={pos.y}
               width={w}
               height={h}
-              rx={2.5}
+              rx={2}
               fill={color}
-              fillOpacity={isSelected ? 0.95 : 0.65}
+              fillOpacity={isSelected ? 0.96 : 0.72}
               stroke={isSelected ? '#FFFFFF' : 'none'}
               strokeWidth={1}
             />
           );
         })}
 
-        {/* Viewport Indicator Box */}
         <rect
-          x={vpTopLeft.x}
-          y={vpTopLeft.y}
-          width={Math.max(16, viewW * scale)}
-          height={Math.max(12, viewH * scale)}
-          rx={4}
-          fill={theme === 'dark' ? 'rgba(56, 189, 248, 0.12)' : 'rgba(2, 132, 199, 0.1)'}
+          x={vpX}
+          y={vpY}
+          width={vpW}
+          height={vpH}
+          rx={3.5}
+          fill={theme === 'dark' ? 'rgba(56, 189, 248, 0.1)' : 'rgba(2, 132, 199, 0.08)'}
           stroke={theme === 'dark' ? '#38BDF8' : '#0284C7'}
-          strokeWidth={1.25}
+          strokeWidth={1.15}
         />
       </svg>
     </div>
