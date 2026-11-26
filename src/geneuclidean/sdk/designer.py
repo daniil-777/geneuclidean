@@ -861,5 +861,167 @@ class MoleculeDesigner:
             pocket=pocket,
         )
 
+    def design_ensemble(
+        self,
+        on_pockets: Sequence[Pocket | PocketFeatures],
+        *,
+        on_weights: Sequence[float] | None = None,
+        off_pocket: Pocket | PocketFeatures | None = None,
+        w_on: float = 1.6,
+        w_off: float = 0.0,
+        n: int = 32,
+        strategy: str = "min_p",
+        temperature: float = 1.0,
+        min_p: float = 0.08,
+        top_p: float = 0.92,
+        top_k: int = 30,
+        latent_temp: float = 1.0,
+        max_new_tokens: int = 96,
+        cns_safe_only: bool = False,
+        include_triage: bool = True,
+        include_admet: bool = True,
+        admet_profile: Literal["v3", "v4", "auto"] = "v3",
+        oracle_path: str | Path | None = None,
+        extra_scorers: Sequence[MoleculeScorerProtocol | tuple[MoleculeScorerProtocol, float]]
+        | None = None,
+        filters: Sequence[MoleculeFilterProtocol] | None = None,
+        callbacks: Sequence[DesignCallbackProtocol] | None = None,
+        rerank: bool = True,
+        top_k_hits: int | None = None,
+        seed: int = 42,
+    ) -> DesignResult:
+        """Design ligands conditioned on an ensemble of 3D conformations & off-target repulsion.
+
+        Directly addresses single-static-pocket rigidity (e.g., ``DRAGONFLY``) by ensembling
+        multiple experimental crystal conformations ``on_pockets`` and optionally repelling an
+        off-target counter-pocket ``off_pocket`` via Contrastive 3D Pocket CFG.
+        """
+        if self.backend != "llm":
+            raise CheckpointError(
+                "Multi-conformation ensemble & contrastive CFG steering requires an 'llm' designer."
+            )
+        if not on_pockets:
+            raise ValueError("on_pockets must contain at least one Pocket or PocketFeatures.")
+
+        import torch
+
+        from geneuclidean.sampling.pocket_steering import sample_contrastive_ensemble_llm
+
+        encoded_on: list[tuple[Any, Any]] = []
+        primary_target_id: str | None = None
+        pocket_ids: list[str] = []
+        with torch.no_grad():
+            for idx, p in enumerate(on_pockets):
+                coords, node_feats, atom_mask, tid, pid = self._prepare_pocket(p)
+                if idx == 0:
+                    primary_target_id = tid
+                pocket_ids.append(pid)
+                encoded_on.append(
+                    (self.model.encode_pocket(coords, node_feats, atom_mask), atom_mask)
+                )
+
+            encoded_off: tuple[Any, Any] | None = None
+            off_id: str | None = None
+            if off_pocket is not None:
+                c_off, nf_off, m_off, _, off_id = self._prepare_pocket(off_pocket)
+                encoded_off = (self.model.encode_pocket(c_off, nf_off, m_off), m_off)
+
+            run_meta: dict[str, Any] = {
+                "mode": "contrastive_ensemble",
+                "on_pockets": pocket_ids,
+                "off_pocket": off_id,
+                "w_on": float(w_on),
+                "w_off": float(w_off),
+                "n_requested": int(n),
+                "strategy": strategy,
+                "temperature": float(temperature),
+                "seed": int(seed),
+            }
+            for cb in callbacks or ():
+                cb.on_design_start(on_pockets[0], run_meta)
+
+            raw_smiles = sample_contrastive_ensemble_llm(
+                model=self.model,
+                on_pockets=encoded_on,
+                on_weights=on_weights,
+                off_pocket=encoded_off,
+                w_on=float(w_on),
+                w_off=float(w_off),
+                num_samples=int(n),
+                max_new_tokens=int(max_new_tokens),
+                strategy=strategy,
+                temperature=float(temperature),
+                min_p=float(min_p),
+                top_p=float(top_p),
+                top_k=int(top_k),
+                latent_temp=float(latent_temp),
+                seed=int(seed),
+            )
+            pred_pkd, clip_sim = self._score_with_heads(encoded_on[0][0], raw_smiles)
+
+        return self._finalize_result(
+            pocket_id=pocket_ids[0],
+            target_id=primary_target_id,
+            raw_smiles=raw_smiles,
+            pred_pkd=pred_pkd,
+            clip_sim=clip_sim,
+            cns_safe_only=cns_safe_only,
+            include_triage=include_triage,
+            include_admet=include_admet,
+            admet_profile=admet_profile,
+            oracle_path=oracle_path,
+            extra_scorers=extra_scorers,
+            filters=filters,
+            rerank=rerank,
+            top_k_hits=top_k_hits,
+            metadata=run_meta,
+            callbacks=callbacks,
+            pocket=on_pockets[0],
+        )
+
+    def score_pmi(
+        self,
+        smiles_list: Sequence[str],
+        on_pockets: Pocket | PocketFeatures | Sequence[Pocket | PocketFeatures],
+        *,
+        on_weights: Sequence[float] | None = None,
+        off_pocket: Pocket | PocketFeatures | None = None,
+        batch_size: int = 32,
+    ) -> list[Any]:
+        """Compute exact 3D Pocket-Conditional Pointwise Mutual Information (``PMI_3D``)."""
+        if self.backend != "llm":
+            raise CheckpointError("score_pmi requires a PocketConditionedLLM ('llm') designer.")
+
+        import torch
+
+        from geneuclidean.sampling.pocket_steering import score_pocket_pmi
+
+        pocket_seq: Sequence[Pocket | PocketFeatures] = (
+            [on_pockets]
+            if isinstance(on_pockets, Pocket) or not isinstance(on_pockets, Sequence)
+            else on_pockets
+        )
+        encoded_on: list[tuple[Any, Any]] = []
+        with torch.no_grad():
+            for p in pocket_seq:
+                coords, node_feats, atom_mask, _, _ = self._prepare_pocket(p)
+                encoded_on.append(
+                    (self.model.encode_pocket(coords, node_feats, atom_mask), atom_mask)
+                )
+
+            encoded_off: tuple[Any, Any] | None = None
+            if off_pocket is not None:
+                c_off, nf_off, m_off, _, _ = self._prepare_pocket(off_pocket)
+                encoded_off = (self.model.encode_pocket(c_off, nf_off, m_off), m_off)
+
+        return score_pocket_pmi(
+            self.model,
+            smiles_list,
+            encoded_on,
+            on_weights=on_weights,
+            off_pocket=encoded_off,
+            batch_size=batch_size,
+        )
+
 
 __all__ = ["DesignResult", "MoleculeDesigner"]

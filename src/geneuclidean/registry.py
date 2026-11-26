@@ -300,7 +300,7 @@ BUILTIN_SAMPLING_STRATEGY_NAMES: frozenset[str] = frozenset(
     {"min_p", "top_p", "top_k", "temperature", "greedy", "typical", "diverse_beam"}
 )
 BUILTIN_FILTER_NAMES: frozenset[str] = frozenset(
-    {"admet", "basic_amine", "mpo", "qed", "scaffold_hop", "triage"}
+    {"admet", "basic_amine", "mpo", "qed", "ring_strain", "scaffold_hop", "triage"}
 )
 
 ENCODER_REGISTRY: Registry[Callable[..., Any]] = Registry("encoder")

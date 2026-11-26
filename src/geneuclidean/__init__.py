@@ -85,6 +85,18 @@ if TYPE_CHECKING:
     from geneuclidean.cns.medchem_triage import (
         is_scaffold_hop as is_scaffold_hop,
     )
+    from geneuclidean.cns.scaffold_hop import (
+        IBOGAINE_SMILES as IBOGAINE_SMILES,
+    )
+    from geneuclidean.cns.scaffold_hop import (
+        PAROXETINE_SMILES as PAROXETINE_SMILES,
+    )
+    from geneuclidean.cns.scaffold_hop import (
+        ScaffoldHopCandidateAudit as ScaffoldHopCandidateAudit,
+    )
+    from geneuclidean.cns.scaffold_hop import (
+        audit_scaffold_hop_campaign as audit_scaffold_hop_campaign,
+    )
     from geneuclidean.evaluation.docking_pipeline import (
         AnchorCheckResult as AnchorCheckResult,
     )
@@ -150,6 +162,30 @@ if TYPE_CHECKING:
     )
     from geneuclidean.evaluation.protonation import (
         protonate_smiles_ph74 as protonate_smiles_ph74,
+    )
+    from geneuclidean.evaluation.ring_strain import (
+        RING_STRAIN_BACKEND_REGISTRY as RING_STRAIN_BACKEND_REGISTRY,
+    )
+    from geneuclidean.evaluation.ring_strain import (
+        RingStrainFilter as RingStrainFilter,
+    )
+    from geneuclidean.evaluation.ring_strain import (
+        RingStrainProfile as RingStrainProfile,
+    )
+    from geneuclidean.evaluation.ring_strain import (
+        RingStrainScorer as RingStrainScorer,
+    )
+    from geneuclidean.evaluation.ring_strain import (
+        SaturatedRingReport as SaturatedRingReport,
+    )
+    from geneuclidean.evaluation.ring_strain import (
+        analyze_ring_strain as analyze_ring_strain,
+    )
+    from geneuclidean.evaluation.ring_strain import (
+        compute_cremer_pople as compute_cremer_pople,
+    )
+    from geneuclidean.evaluation.ring_strain import (
+        register_ring_strain_backend as register_ring_strain_backend,
     )
     from geneuclidean.exceptions import (
         CheckpointError as CheckpointError,
@@ -249,6 +285,18 @@ if TYPE_CHECKING:
     )
     from geneuclidean.registry import (
         register_scorer as register_scorer,
+    )
+    from geneuclidean.sampling.pocket_steering import (
+        PocketPMIScore as PocketPMIScore,
+    )
+    from geneuclidean.sampling.pocket_steering import (
+        combine_contrastive_ensemble_logits as combine_contrastive_ensemble_logits,
+    )
+    from geneuclidean.sampling.pocket_steering import (
+        sample_contrastive_ensemble_llm as sample_contrastive_ensemble_llm,
+    )
+    from geneuclidean.sampling.pocket_steering import (
+        score_pocket_pmi as score_pocket_pmi,
     )
     from geneuclidean.sdk import (
         ADMETFilter as ADMETFilter,
@@ -351,6 +399,21 @@ if TYPE_CHECKING:
     )
     from geneuclidean.sdk import (
         visualize_molecules_2d as visualize_molecules_2d,
+    )
+    from geneuclidean.training.mtl_intervention import (
+        MTL_MEDIATOR_REGISTRY as MTL_MEDIATOR_REGISTRY,
+    )
+    from geneuclidean.training.mtl_intervention import (
+        AdaptiveInterventionPolicy as AdaptiveInterventionPolicy,
+    )
+    from geneuclidean.training.mtl_intervention import (
+        GradientConflictMediator as GradientConflictMediator,
+    )
+    from geneuclidean.training.mtl_intervention import (
+        TaskGradientDiagnostics as TaskGradientDiagnostics,
+    )
+    from geneuclidean.training.mtl_intervention import (
+        compute_gradient_conflict_matrix as compute_gradient_conflict_matrix,
     )
 
 _LAZY_SUBMODULES: frozenset[str] = frozenset(
@@ -465,6 +528,64 @@ _LAZY_ATTRS: dict[str, tuple[str, str]] = {
     "has_basic_amine": ("geneuclidean.evaluation.protonation", "has_basic_amine"),
     "protonate_mol_ph74": ("geneuclidean.evaluation.protonation", "protonate_mol_ph74"),
     "protonate_smiles_ph74": ("geneuclidean.evaluation.protonation", "protonate_smiles_ph74"),
+    # Saturated-Ring Conformational Strain & Cremer-Pople (`geneuclidean.evaluation.ring_strain`)
+    "RING_STRAIN_BACKEND_REGISTRY": (
+        "geneuclidean.evaluation.ring_strain",
+        "RING_STRAIN_BACKEND_REGISTRY",
+    ),
+    "RingStrainFilter": ("geneuclidean.evaluation.ring_strain", "RingStrainFilter"),
+    "RingStrainProfile": ("geneuclidean.evaluation.ring_strain", "RingStrainProfile"),
+    "RingStrainScorer": ("geneuclidean.evaluation.ring_strain", "RingStrainScorer"),
+    "SaturatedRingReport": ("geneuclidean.evaluation.ring_strain", "SaturatedRingReport"),
+    "analyze_ring_strain": ("geneuclidean.evaluation.ring_strain", "analyze_ring_strain"),
+    "compute_cremer_pople": ("geneuclidean.evaluation.ring_strain", "compute_cremer_pople"),
+    "register_ring_strain_backend": (
+        "geneuclidean.evaluation.ring_strain",
+        "register_ring_strain_backend",
+    ),
+    # Multi-Conformation Ensemble & Contrastive Steering (`geneuclidean.sampling.pocket_steering`)
+    "PocketPMIScore": ("geneuclidean.sampling.pocket_steering", "PocketPMIScore"),
+    "combine_contrastive_ensemble_logits": (
+        "geneuclidean.sampling.pocket_steering",
+        "combine_contrastive_ensemble_logits",
+    ),
+    "sample_contrastive_ensemble_llm": (
+        "geneuclidean.sampling.pocket_steering",
+        "sample_contrastive_ensemble_llm",
+    ),
+    "score_pocket_pmi": ("geneuclidean.sampling.pocket_steering", "score_pocket_pmi"),
+    # Natural-Product / Clinical Scaffold-Hopping Audit (`geneuclidean.cns.scaffold_hop`)
+    "IBOGAINE_SMILES": ("geneuclidean.cns.scaffold_hop", "IBOGAINE_SMILES"),
+    "PAROXETINE_SMILES": ("geneuclidean.cns.scaffold_hop", "PAROXETINE_SMILES"),
+    "ScaffoldHopCandidateAudit": (
+        "geneuclidean.cns.scaffold_hop",
+        "ScaffoldHopCandidateAudit",
+    ),
+    "audit_scaffold_hop_campaign": (
+        "geneuclidean.cns.scaffold_hop",
+        "audit_scaffold_hop_campaign",
+    ),
+    # Multi-Task Gradient Conflict Mediation (`geneuclidean.training.mtl_intervention`)
+    "AdaptiveInterventionPolicy": (
+        "geneuclidean.training.mtl_intervention",
+        "AdaptiveInterventionPolicy",
+    ),
+    "GradientConflictMediator": (
+        "geneuclidean.training.mtl_intervention",
+        "GradientConflictMediator",
+    ),
+    "MTL_MEDIATOR_REGISTRY": (
+        "geneuclidean.training.mtl_intervention",
+        "MTL_MEDIATOR_REGISTRY",
+    ),
+    "TaskGradientDiagnostics": (
+        "geneuclidean.training.mtl_intervention",
+        "TaskGradientDiagnostics",
+    ),
+    "compute_gradient_conflict_matrix": (
+        "geneuclidean.training.mtl_intervention",
+        "compute_gradient_conflict_matrix",
+    ),
     # Reusable 3D Docking & Selectivity (`geneuclidean.evaluation.docking_pipeline`)
     "AnchorCheckResult": ("geneuclidean.evaluation.docking_pipeline", "AnchorCheckResult"),
     "CrossTargetSelectivityResult": (

@@ -44,6 +44,16 @@ from geneuclidean.evaluation.metrics import (
     sa_to_normalized,
     tanimoto_similarity,
 )
+from geneuclidean.evaluation.ring_strain import (
+    RING_STRAIN_BACKEND_REGISTRY,
+    RingStrainFilter,
+    RingStrainProfile,
+    RingStrainScorer,
+    SaturatedRingReport,
+    analyze_ring_strain,
+    compute_cremer_pople,
+    register_ring_strain_backend,
+)
 from geneuclidean.evaluation.visualization import (
     OKABE_ITO,
     plot_decoding_pareto,
@@ -60,13 +70,20 @@ from geneuclidean.evaluation.visualization import (
 __all__ = [
     "OKABE_ITO",
     "PROPERTY_NAMES",
+    "RING_STRAIN_BACKEND_REGISTRY",
     "ConformerResult",
     "DockingResult",
     "PoseBustersChecks",
+    "RingStrainFilter",
+    "RingStrainProfile",
+    "RingStrainScorer",
+    "SaturatedRingReport",
+    "analyze_ring_strain",
     "bootstrap_ci",
     "canonicalize_smiles",
     "check_pose_geometry",
     "cliffs_delta",
+    "compute_cremer_pople",
     "compute_frechet_fingerprint_distance",
     "compute_internal_diversity",
     "compute_jensen_shannon_divergence",
@@ -106,6 +123,7 @@ __all__ = [
     "plot_training_curves",
     "prepare_ligand_pdbqt",
     "prepare_receptor_pdbqt",
+    "register_ring_strain_backend",
     "sa_to_normalized",
     "tanimoto_similarity",
 ]

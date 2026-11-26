@@ -88,6 +88,12 @@ from geneuclidean.cns.mpo import (
     estimate_most_acidic_pka,
     estimate_most_basic_pka,
 )
+from geneuclidean.cns.scaffold_hop import (
+    IBOGAINE_SMILES,
+    PAROXETINE_SMILES,
+    ScaffoldHopCandidateAudit,
+    audit_scaffold_hop_campaign,
+)
 from geneuclidean.cns.targets import (
     ALL_CNS_TARGET_REGISTRY,
     CNS_TARGET_REGISTRY,
@@ -127,6 +133,8 @@ __all__ = [
     "ENDPOINT_HIGHER_IS_BETTER",
     "FTO_MARKUSH_DISCLAIMER",
     "HUMAN_IN_THE_LOOP_DISCLAIMER",
+    "IBOGAINE_SMILES",
+    "PAROXETINE_SMILES",
     "REFERENCE_CNS_DRUGS",
     "REFERENCE_NON_CNS_DRUGS",
     "TRI_DISORDER_TARGET_REGISTRY",
@@ -147,9 +155,11 @@ __all__ = [
     "MoAClass",
     "MultiplicativeCNSReward",
     "PharmaAdmetPrediction",
+    "ScaffoldHopCandidateAudit",
     "ScaffoldHopReport",
     "SplitConformalBinaryCalibrator",
     "audit_pocket_hotspots",
+    "audit_scaffold_hop_campaign",
     "bemis_murcko_scaffold",
     "build_credibility_dossier",
     "compute_cns_composite_reward",
