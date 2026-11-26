@@ -83,6 +83,7 @@ class BenchmarkReport:
     tier1_throughput: list[dict[str, Any]] = field(default_factory=list)
     tier2_correctness: dict[str, Any] = field(default_factory=dict)
     tier3_chemistry: dict[str, Any] = field(default_factory=dict)
+    tier4_property_conditioning: dict[str, Any] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -501,6 +502,203 @@ def run_tier3(
 
 
 # ---------------------------------------------------------------------------
+# Tier 4 — property-conditioned generation
+# ---------------------------------------------------------------------------
+
+# Conditioning targets, z-scored against the training corpus so each enters the Fourier
+# feature map on a comparable scale.
+PROPERTY_NAMES: tuple[str, ...] = ("qed", "mol_wt", "log_p")
+
+
+def _molecule_properties(smiles: str) -> tuple[float, float, float] | None:
+    """Return ``(QED, MolWt, LogP)`` for a SMILES string, or ``None`` if invalid."""
+    from rdkit import Chem
+    from rdkit.Chem import QED, Crippen, Descriptors
+
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    try:
+        return (
+            float(QED.qed(mol)),
+            float(Descriptors.MolWt(mol)),
+            float(Crippen.MolLogP(mol)),
+        )
+    except Exception:
+        return None
+
+
+def run_tier4(
+    device: torch.device,
+    *,
+    smiles_path: Path,
+    scale: str,
+    train_steps: int,
+    batch_size: int,
+    seq_len: int,
+    num_samples: int,
+    corpus_limit: int,
+) -> dict[str, Any]:
+    """Train a property-conditioned decoder, then test whether conditioning steers output.
+
+    Trains on (SMILES, QED, MolWt, LogP) triples with per-property ``unknown`` dropout,
+    then samples twice with deliberately opposed targets. A working conditioner must shift
+    the realised property distribution in the requested direction; the reported
+    ``*_separation`` values are the signed mean differences (high-target minus
+    low-target), which must be positive for the conditioning to be doing anything.
+    """
+    import statistics as stats
+
+    corpus = _load_smiles(smiles_path, corpus_limit)
+    if not corpus:
+        print(f"  SKIPPED: no SMILES corpus at {smiles_path}")
+        return {"skipped": True, "reason": f"missing corpus: {smiles_path}"}
+
+    rows: list[tuple[str, tuple[float, float, float]]] = []
+    for smi in corpus:
+        props = _molecule_properties(smi)
+        if props is not None:
+            rows.append((smi, props))
+    if len(rows) < 64:
+        return {"skipped": True, "reason": f"only {len(rows)} valid molecules"}
+
+    # z-score each property against the corpus
+    columns = list(zip(*(p for _, p in rows), strict=True))
+    means = [float(stats.mean(c)) for c in columns]
+    stdevs = [max(float(stats.pstdev(c)), 1e-6) for c in columns]
+    print(
+        "  corpus stats: "
+        + ", ".join(
+            f"{n}={m:.2f}+/-{s:.2f}" for n, m, s in zip(PROPERTY_NAMES, means, stdevs, strict=True)
+        )
+    )
+
+    def _z(props: tuple[float, float, float]) -> list[float]:
+        return [(v - m) / s for v, m, s in zip(props, means, stdevs, strict=True)]
+
+    tokenizer = MolecularTokenizer(representation="smiles")
+    tokenizer.fit([s for s, _ in rows], min_freq=1)
+    vocab_size = tokenizer.vocab_size
+
+    encoded: list[tuple[list[int], list[float]]] = []
+    for smi, props in rows:
+        ids = tokenizer.encode(smi, max_len=seq_len)
+        if len(ids) >= 4:
+            encoded.append((ids, _z(props)))
+
+    decoder = _make_decoder(
+        scale,
+        vocab_size,
+        seq_len=seq_len,
+        num_properties=len(PROPERTY_NAMES),
+    ).to(device)
+    decoder.train()
+    opt = torch.optim.AdamW(decoder.parameters(), lr=3e-4, weight_decay=0.01)
+    rng = random.Random(0)
+
+    losses: list[float] = []
+    t0 = time.perf_counter()
+    for step in range(train_steps):
+        picked = [rng.choice(encoded) for _ in range(batch_size)]
+        width = max(len(ids) for ids, _ in picked)
+        ids_batch = torch.tensor(
+            [ids + [tokenizer.PAD_ID] * (width - len(ids)) for ids, _ in picked],
+            dtype=torch.long,
+            device=device,
+        )
+        prop_batch = torch.tensor(
+            [props for _, props in picked], dtype=torch.float32, device=device
+        )
+
+        logits, _ = decoder(ids_batch, properties=prop_batch)
+        loss = F.cross_entropy(
+            logits[:, :-1].reshape(-1, vocab_size).float(),
+            ids_batch[:, 1:].reshape(-1),
+            ignore_index=tokenizer.PAD_ID,
+        )
+        opt.zero_grad(set_to_none=True)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(decoder.parameters(), 1.0)
+        opt.step()
+        losses.append(float(loss.detach()))
+        if (step + 1) % max(1, train_steps // 4) == 0:
+            print(f"    step {step + 1:>5}/{train_steps}  loss {stats.mean(losses[-20:]):.4f}")
+    _synchronize(device)
+    train_s = time.perf_counter() - t0
+
+    decoder.eval()
+
+    def _sample_at(target_z: float) -> dict[str, Any]:
+        """Sample with every property driven to ``target_z`` standard deviations."""
+        props = torch.full(
+            (num_samples, len(PROPERTY_NAMES)), float(target_z), dtype=torch.float32, device=device
+        )
+        tokens = decoder.generate(
+            batch_size=num_samples,
+            memory=None,
+            properties=props,
+            max_new_tokens=seq_len - 1,
+            bos_id=tokenizer.BOS_ID,
+            eos_id=tokenizer.EOS_ID,
+            temperature=1.0,
+            top_p=0.95,
+            seed=0,
+            device=device,
+        )
+        realised: list[tuple[float, float, float]] = []
+        for row in tokens.cpu():
+            smi = tokenizer.decode(row.tolist())
+            if not smi:
+                continue
+            measured = _molecule_properties(smi)
+            if measured is not None:
+                realised.append(measured)
+        if not realised:
+            return {"n_valid": 0}
+        cols = list(zip(*realised, strict=True))
+        return {
+            "n_valid": len(realised),
+            "validity": round(len(realised) / num_samples, 4),
+            **{
+                f"mean_{name}": round(float(stats.mean(c)), 4)
+                for name, c in zip(PROPERTY_NAMES, cols, strict=True)
+            },
+        }
+
+    low = _sample_at(-1.5)
+    high = _sample_at(+1.5)
+
+    results: dict[str, Any] = {
+        "scale": scale,
+        "params_m": round(decoder.num_parameters() / 1e6, 2),
+        "properties": list(PROPERTY_NAMES),
+        "corpus_size": len(encoded),
+        "train_steps": train_steps,
+        "train_seconds": round(train_s, 1),
+        "first_loss": round(stats.mean(losses[:10]), 4),
+        "final_loss": round(stats.mean(losses[-10:]), 4),
+        "corpus_mean": [round(m, 4) for m in means],
+        "corpus_stdev": [round(s, 4) for s in stdevs],
+        "low_target_z": -1.5,
+        "high_target_z": 1.5,
+        "low": low,
+        "high": high,
+    }
+    for name in PROPERTY_NAMES:
+        key = f"mean_{name}"
+        if key in low and key in high:
+            results[f"{name}_separation"] = round(float(high[key] - low[key]), 4)
+
+    for key, value in results.items():
+        if key in ("low", "high") or not isinstance(value, (int, float, str)):
+            continue
+        print(f"  {key:<24} {value}")
+    print(f"  low  target -> {low}")
+    print(f"  high target -> {high}")
+    return results
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
@@ -521,17 +719,30 @@ def main() -> int:
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--quick", action="store_true", help="Tiny budgets for a fast smoke run")
     parser.add_argument("--skip-tier3", action="store_true")
+    parser.add_argument("--skip-tier4", action="store_true")
     args = parser.parse_args()
 
     if args.quick:
-        args.batch_size = 4
-        args.seq_len = 48
-        args.pocket_atoms = 64
-        args.iters = 3
-        args.train_steps = 40
-        args.num_samples = 32
-        args.corpus_limit = 2000
-        args.train_scale = "tiny"
+        # Quick mode lowers the *defaults* only; anything named explicitly on the command
+        # line wins, so `--quick --train-steps 2000` really does run 2000 steps.
+        explicit = {
+            arg.split("=", 1)[0].lstrip("-").replace("-", "_")
+            for arg in sys.argv[1:]
+            if arg.startswith("--")
+        }
+        quick_defaults = {
+            "batch_size": 4,
+            "seq_len": 48,
+            "pocket_atoms": 64,
+            "iters": 3,
+            "train_steps": 40,
+            "num_samples": 32,
+            "corpus_limit": 2000,
+            "train_scale": "tiny",
+        }
+        for key, value in quick_defaults.items():
+            if key not in explicit:
+                setattr(args, key, value)
 
     seed_everything(42)
     device = select_device(args.device)
@@ -573,6 +784,22 @@ def main() -> int:
     else:
         print("\n[Tier 3] Real ZINC-250k chemistry")
         report.tier3_chemistry = run_tier3(
+            device,
+            smiles_path=args.smiles,
+            scale=args.train_scale,
+            train_steps=args.train_steps,
+            batch_size=args.batch_size,
+            seq_len=args.seq_len,
+            num_samples=args.num_samples,
+            corpus_limit=args.corpus_limit,
+        )
+
+    if args.skip_tier4:
+        print("\n[Tier 4] skipped (--skip-tier4)")
+        report.tier4_property_conditioning = {"skipped": True, "reason": "--skip-tier4"}
+    else:
+        print("\n[Tier 4] Property-conditioned generation")
+        report.tier4_property_conditioning = run_tier4(
             device,
             smiles_path=args.smiles,
             scale=args.train_scale,
