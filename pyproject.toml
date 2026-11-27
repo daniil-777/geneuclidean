@@ -122,6 +122,7 @@ include = ["geneuclidean*"]
 [tool.setuptools.package-data]
 geneuclidean = ["py.typed"]
 "geneuclidean.biophysics" = ["_native/*.cpp"]
+"geneuclidean.studio" = ["assets/*.html"]
 
 [tool.ruff]
 line-length = 100
