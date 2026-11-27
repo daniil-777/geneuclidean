@@ -604,6 +604,24 @@ def run_tier4(
     the realised property distribution in the requested direction; the reported
     ``*_separation`` values are the signed mean differences (high-target minus
     low-target), which must be positive for the conditioning to be doing anything.
+
+    .. warning::
+       **This design cannot isolate QED steerability, so do not read its QED separation
+       as a failure of the conditioner.** ``_sample_at`` drives *every* property to the
+       same ``target_z``, so the "high" request asks for high QED together with high
+       MolWt and high LogP. Those are antagonistic by QED's own definition: Bickerton's
+       desirability functions penalise MW above ~400 and ALOGP above ~5, and the high
+       sample realises MolWt 418.6 and LogP 4.54. The model is therefore being asked for
+       something close to self-contradictory, which is why QED separation comes out at
+       0.0275 (0.20 sigma) while MolWt reaches 2.88 sigma and LogP 3.10 sigma.
+
+       A second, independent reason to expect a small number: ZINC-250k is pre-filtered
+       for drug-likeness, so its QED distribution is narrow (mean 0.7318, sd 0.1386) and
+       there is little headroom above the mean in the first place.
+
+       To measure QED steerability properly, vary **one** property at a time with the
+       others masked out via ``property_mask``, which is exactly what the per-property
+       ``unknown`` embedding exists for.
     """
     import statistics as stats
 

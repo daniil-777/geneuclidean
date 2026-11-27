@@ -156,6 +156,12 @@
   "provenance": {
     "note": "tier3 is from the corrected run that measures novelty against the full 249,455-molecule corpus; tier1 and tier4 are from the preceding run of the same configuration. tier3 novelty in the earlier run was inflated because it compared against only the first 5,000 corpus molecules.",
     "novelty_sample_count": 512,
-    "novelty_caveat": "Novelty decays with sample count, so this figure at n=512 is NOT comparable to published novelty measured at n=30,000 or higher."
+    "novelty_caveat": "Novelty decays with sample count, so this figure at n=512 is NOT comparable to published novelty measured at n=30,000 or higher.",
+    "superseded_fields": {
+      "tier1_throughput[].peak_mem_mb": "Measured with torch.mps.current_allocated_memory(), which is sampled after the backward pass has already freed its activations and therefore cannot see activation memory at all -- it reports the checkpointed and non-checkpointed base configs as identical to within 0.3 MB. The script now reports torch.mps.driver_allocated_memory() instead, which does separate them (1360.9 vs 2672.9 MB at the small preset). Re-run the script to regenerate these values; do not compare them against new ones.",
+      "tier1_throughput[].fwd_bwd_ms (base-dense-ckpt)": "Shows the checkpointed config as FASTER than the dense one (2056 vs 1640 tok/s), which recomputation does not predict and which is most likely an allocator-pressure artifact on unified memory. Do not quote a checkpointing throughput cost from this file."
+    },
+    "timing_caveat": "Wall-clock figures here are not reproducible to better than about 2x on this machine. The identical tier3 configuration measured 319.9 ms/step in this file and 162.8 ms/step in results/tables/chemlm_baseline_comparison.json, a 1.96x spread driven by background load, and tier1/tier4 come from a run that overlapped a second training job. Trust only ratios measured inside a single run.",
+    "missing_baseline": "This file contains no baseline arm, so none of its chemistry numbers support a claim that chemlm generates better molecules than the decoder it replaces. results/tables/chemlm_baseline_comparison.json runs that control at matched budget."
   }
 }
