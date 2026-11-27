@@ -9,6 +9,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+*.dylib
 
 # OS & editor files
 .DS_Store

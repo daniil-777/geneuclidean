@@ -22,6 +22,12 @@ Public Pillars:
    :func:`compute_electrostatic_potential_grid`, :func:`extract_typed_interaction_network`,
    :func:`render_biophysical_twin_figure`, :func:`export_web_twin_scene_json`,
    and :func:`export_interactive_twin_html`.
+4. **Rigid-Body Langevin Association Dynamics & Native C++/WebAssembly Engine**
+   (:mod:`geneuclidean.biophysics.binding_dynamics`,
+   :mod:`geneuclidean.biophysics._native_dynamics`):
+   :func:`simulate_binding`, :class:`BindingDynamicsConfig`, :class:`BindingTrajectory`,
+   :func:`make_dynamics_hamiltonian`, :func:`find_escape_direction`, :class:`NativeEngine`,
+   :func:`build_native_library`, and :func:`build_wasm_module`.
 """
 
 from __future__ import annotations
@@ -30,6 +36,67 @@ import importlib
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    # --- Item E: _native_dynamics ---
+    from geneuclidean.biophysics._native_dynamics import (
+        NativeEngine as NativeEngine,
+    )
+    from geneuclidean.biophysics._native_dynamics import (
+        build_native_library as build_native_library,
+    )
+    from geneuclidean.biophysics._native_dynamics import (
+        build_wasm_module as build_wasm_module,
+    )
+    from geneuclidean.biophysics._native_dynamics import (
+        native_available as native_available,
+    )
+    from geneuclidean.biophysics._native_dynamics import (
+        pack_engine_blob as pack_engine_blob,
+    )
+    from geneuclidean.biophysics._native_dynamics import (
+        simulate_binding_native as simulate_binding_native,
+    )
+
+    # --- Item D: binding_dynamics ---
+    from geneuclidean.biophysics.binding_dynamics import (
+        EIGHT_PI_ETA_WATER_300K as EIGHT_PI_ETA_WATER_300K,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        MD_ACCEL_FACTOR as MD_ACCEL_FACTOR,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        SIX_PI_ETA_WATER_300K as SIX_PI_ETA_WATER_300K,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        BindingDynamicsConfig as BindingDynamicsConfig,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        BindingTrajectory as BindingTrajectory,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        RigidBodyState as RigidBodyState,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        TrajectoryFrame as TrajectoryFrame,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        find_escape_direction as find_escape_direction,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        hydrodynamic_radius as hydrodynamic_radius,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        ligand_masses as ligand_masses,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        make_dynamics_hamiltonian as make_dynamics_hamiltonian,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        rigid_body_inertia as rigid_body_inertia,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        simulate_binding as simulate_binding,
+    )
+
     # --- Item B: forcefield, protein_ligand_twin, interaction_viz ---
     from geneuclidean.biophysics.forcefield import (
         COULOMB_KCAL_ANGSTROM as COULOMB_KCAL_ANGSTROM,
@@ -98,6 +165,10 @@ _LAZY_SUBMODULES: frozenset[str] = frozenset(
         "forcefield",
         "interaction_viz",
         "protein_ligand_twin",
+        # Item D submodule
+        "binding_dynamics",
+        # Item E submodule
+        "_native_dynamics",
     }
 )
 
@@ -160,6 +231,48 @@ _LAZY_ATTRS: dict[str, tuple[str, str]] = {
     "render_biophysical_twin_figure": (
         "geneuclidean.biophysics.interaction_viz",
         "render_biophysical_twin_figure",
+    ),
+    # Item D: Rigid-body Langevin association dynamics (`binding_dynamics`)
+    "BindingDynamicsConfig": (
+        "geneuclidean.biophysics.binding_dynamics",
+        "BindingDynamicsConfig",
+    ),
+    "BindingTrajectory": ("geneuclidean.biophysics.binding_dynamics", "BindingTrajectory"),
+    "EIGHT_PI_ETA_WATER_300K": (
+        "geneuclidean.biophysics.binding_dynamics",
+        "EIGHT_PI_ETA_WATER_300K",
+    ),
+    "MD_ACCEL_FACTOR": ("geneuclidean.biophysics.binding_dynamics", "MD_ACCEL_FACTOR"),
+    "RigidBodyState": ("geneuclidean.biophysics.binding_dynamics", "RigidBodyState"),
+    "SIX_PI_ETA_WATER_300K": (
+        "geneuclidean.biophysics.binding_dynamics",
+        "SIX_PI_ETA_WATER_300K",
+    ),
+    "TrajectoryFrame": ("geneuclidean.biophysics.binding_dynamics", "TrajectoryFrame"),
+    "find_escape_direction": (
+        "geneuclidean.biophysics.binding_dynamics",
+        "find_escape_direction",
+    ),
+    "hydrodynamic_radius": ("geneuclidean.biophysics.binding_dynamics", "hydrodynamic_radius"),
+    "ligand_masses": ("geneuclidean.biophysics.binding_dynamics", "ligand_masses"),
+    "make_dynamics_hamiltonian": (
+        "geneuclidean.biophysics.binding_dynamics",
+        "make_dynamics_hamiltonian",
+    ),
+    "rigid_body_inertia": ("geneuclidean.biophysics.binding_dynamics", "rigid_body_inertia"),
+    "simulate_binding": ("geneuclidean.biophysics.binding_dynamics", "simulate_binding"),
+    # Item E: Native C++ / WebAssembly dynamics bridge (`_native_dynamics`)
+    "NativeEngine": ("geneuclidean.biophysics._native_dynamics", "NativeEngine"),
+    "build_native_library": (
+        "geneuclidean.biophysics._native_dynamics",
+        "build_native_library",
+    ),
+    "build_wasm_module": ("geneuclidean.biophysics._native_dynamics", "build_wasm_module"),
+    "native_available": ("geneuclidean.biophysics._native_dynamics", "native_available"),
+    "pack_engine_blob": ("geneuclidean.biophysics._native_dynamics", "pack_engine_blob"),
+    "simulate_binding_native": (
+        "geneuclidean.biophysics._native_dynamics",
+        "simulate_binding_native",
     ),
 }
 
