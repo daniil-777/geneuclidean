@@ -8,38 +8,7 @@ from typing import Any
 import torch.nn as nn
 
 from geneuclidean.config import DecoderConfig
-from geneuclidean.models.decoders.autoregressive3d import (
-    AR3DForwardOutput,
-    AR3DLossOutput,
-    GeometryBiasedCrossAttention,
-    GeometryBiasedTransformerBlock,
-    GeometryBiasedTransformerDecoder,
-    GQACausalSelfAttention,
-    PocketFrameAR3DDecoder,
-    PocketSpatialRBFBias,
-    build_ar3d_decoder,
-    build_equivariant_local_frames,
-    build_geom_transformer_decoder,
-)
-from geneuclidean.models.decoders.flow3d import (
-    Flow3DLossOutput,
-    Flow3DSampleOutput,
-    PocketFlow3DDecoder,
-    SE3PocketLigandFlowLayer,
-    build_flow3d_decoder,
-)
 from geneuclidean.models.decoders.lstm import MaskedBahdanauAttention, PocketLSTMDecoder
-from geneuclidean.models.decoders.mol3d_recon import (
-    ATOM_TYPE_ATOMIC_NUMS,
-    ATOM_TYPE_SYMBOLS,
-    ATOMIC_NUM_TO_TYPE_IDX,
-    NUM_ATOM_TYPES,
-    NUM_BOND_TYPES,
-    SYMBOL_TO_ATOMIC_NUM,
-    Generated3DMolecule,
-    atom_types_to_class_indices,
-    reconstruct_mol_from_3d_graph,
-)
 from geneuclidean.models.decoders.transformer import (
     CausalSelfAttention,
     PocketCrossAttention,
@@ -97,23 +66,47 @@ DECODER_REGISTRY.register(
     override=True,
     metadata={"architecture": "Multi-layer LSTM + Masked Bahdanau Attention"},
 )
+
+
+def _lazy_3d_factory(module_name: str, func_name: str) -> Any:
+    """Wrap a 3D-decoder factory so its module is imported only when one is built.
+
+    The 3D decoder modules (``autoregressive3d``, ``flow3d``, ``mol3d_recon``) are heavy
+    and are imported on demand rather than at package-import time. Deferring them keeps
+    ``import geneuclidean.models`` cheap and, more importantly, keeps the package
+    importable when an optional 3D module is absent -- an eager import here makes the
+    whole decoder registry, including the 1D SMILES decoders, unimportable.
+    """
+
+    def _build(cfg: DecoderConfig, cross_attn_gate_init: float = 0.1, **kwargs: Any) -> nn.Module:
+        module = importlib.import_module(f"geneuclidean.models.decoders.{module_name}")
+        factory = getattr(module, func_name)
+        built: nn.Module = factory(cfg, cross_attn_gate_init=cross_attn_gate_init, **kwargs)
+        return built
+
+    _build.__name__ = f"_build_{func_name}"
+    _build.__qualname__ = _build.__name__
+    _build.__doc__ = f"Build via :func:`{module_name}.{func_name}`, imported lazily."
+    return _build
+
+
 DECODER_REGISTRY.register(
     "geom_transformer",
-    build_geom_transformer_decoder,
+    _lazy_3d_factory("autoregressive3d", "build_geom_transformer_decoder"),
     aliases=("geometry_transformer",),
     override=True,
     metadata={"architecture": "QKNorm + GQA + RoPE + SwiGLU + 3D Pocket RBF Spatial Bias"},
 )
 DECODER_REGISTRY.register(
     "flow3d",
-    build_flow3d_decoder,
+    _lazy_3d_factory("flow3d", "build_flow3d_decoder"),
     aliases=("pocket_flow3d", "flow_3d"),
     override=True,
     metadata={"architecture": "SE(3)-Equivariant Joint Continuous-Discrete 3D Flow Matching"},
 )
 DECODER_REGISTRY.register(
     "ar3d",
-    build_ar3d_decoder,
+    _lazy_3d_factory("autoregressive3d", "build_ar3d_decoder"),
     aliases=("pocket_ar3d", "ar_3d"),
     override=True,
     metadata={"architecture": "Focal-Atom SE(3) Local-Frame Autoregressive 3D Decoder"},
@@ -173,9 +166,13 @@ DECODER_REGISTRY.register(
     },
 )
 
-# Lazily re-exported from `geneuclidean.models.decoders.chemlm` (see `_build_chemlm`).
-_LAZY_CHEMLM_EXPORTS: frozenset[str] = frozenset(
-    {
+# Symbols re-exported from submodules that are imported on demand, mapped to the module
+# that defines each one. `chemlm` is deferred to break an import cycle (see
+# `_build_chemlm`); the 3D decoders are deferred so that a missing optional 3D module
+# cannot make this package -- and therefore every 1D SMILES decoder -- unimportable.
+_LAZY_EXPORTS: dict[str, str] = {
+    name: "chemlm"
+    for name in (
         "SCALE_PRESETS",
         "ChemLMBlock",
         "ChemLMDecoder",
@@ -187,14 +184,66 @@ _LAZY_CHEMLM_EXPORTS: frozenset[str] = frozenset(
         "build_chemlm_moe_decoder",
         "resolve_scale",
         "scaled_decoder_config",
-    }
+    )
+}
+_LAZY_EXPORTS.update(
+    dict.fromkeys(
+        (
+            "AR3DForwardOutput",
+            "AR3DLossOutput",
+            "GQACausalSelfAttention",
+            "GeometryBiasedCrossAttention",
+            "GeometryBiasedTransformerBlock",
+            "GeometryBiasedTransformerDecoder",
+            "PocketFrameAR3DDecoder",
+            "PocketSpatialRBFBias",
+            "build_ar3d_decoder",
+            "build_equivariant_local_frames",
+            "build_geom_transformer_decoder",
+        ),
+        "autoregressive3d",
+    )
+)
+_LAZY_EXPORTS.update(
+    dict.fromkeys(
+        (
+            "Flow3DLossOutput",
+            "Flow3DSampleOutput",
+            "PocketFlow3DDecoder",
+            "SE3PocketLigandFlowLayer",
+            "build_flow3d_decoder",
+        ),
+        "flow3d",
+    )
+)
+_LAZY_EXPORTS.update(
+    dict.fromkeys(
+        (
+            "ATOMIC_NUM_TO_TYPE_IDX",
+            "ATOM_TYPE_ATOMIC_NUMS",
+            "ATOM_TYPE_SYMBOLS",
+            "Generated3DMolecule",
+            "NUM_ATOM_TYPES",
+            "NUM_BOND_TYPES",
+            "SYMBOL_TO_ATOMIC_NUM",
+            "atom_types_to_class_indices",
+            "reconstruct_mol_from_3d_graph",
+        ),
+        "mol3d_recon",
+    )
+)
+
+# Retained for backwards compatibility with callers that introspected this set.
+_LAZY_CHEMLM_EXPORTS: frozenset[str] = frozenset(
+    name for name, module in _LAZY_EXPORTS.items() if module == "chemlm"
 )
 
 
 def __getattr__(name: str) -> Any:
-    """Resolve lazily re-exported ``chemlm`` symbols on first attribute access."""
-    if name in _LAZY_CHEMLM_EXPORTS:
-        module = importlib.import_module("geneuclidean.models.decoders.chemlm")
+    """Resolve a lazily re-exported submodule symbol on first attribute access."""
+    module_name = _LAZY_EXPORTS.get(name)
+    if module_name is not None:
+        module = importlib.import_module(f"geneuclidean.models.decoders.{module_name}")
         value = getattr(module, name)
         globals()[name] = value  # Cache so subsequent lookups skip __getattr__.
         return value
@@ -202,8 +251,8 @@ def __getattr__(name: str) -> Any:
 
 
 def __dir__() -> list[str]:
-    """Include lazily re-exported ``chemlm`` symbols in ``dir()`` output."""
-    return sorted(set(globals()) | _LAZY_CHEMLM_EXPORTS)
+    """Include lazily re-exported submodule symbols in ``dir()`` output."""
+    return sorted(set(globals()) | set(_LAZY_EXPORTS))
 
 
 def build_decoder(
