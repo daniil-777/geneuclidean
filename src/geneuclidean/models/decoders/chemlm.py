@@ -1627,6 +1627,15 @@ def build_chemlm_decoder(
         "gated_cross_attn": cfg.gated_cross_attn,
         "cross_attn_gate_init": cross_attn_gate_init,
     }
+    # Forward grouped-query attention from the config. Before `DecoderConfig` carried
+    # this field there was no way to request GQA from YAML or the CLI, so a config
+    # mirroring the `small` preset built 33.76M parameters with full multi-head attention
+    # instead of the 27.47M the preset intends -- 22.9% more, and without the K/V saving
+    # that is the whole point of the preset. Every benchmark figure was produced by
+    # constructing `ChemLMDecoder` directly with `n_kv_heads`, so the config path and the
+    # measured path disagreed.
+    if getattr(cfg, "n_kv_heads", None) is not None:
+        params["n_kv_heads"] = cfg.n_kv_heads
     params.update(kwargs)
     return ChemLMDecoder(**params)
 

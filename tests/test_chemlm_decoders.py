@@ -820,6 +820,60 @@ def test_shipped_chemlm_config_stays_in_sync_with_its_scale_preset() -> None:
     ) == (preset.d_model, preset.n_layers, preset.n_heads, preset.d_ff)
 
 
+def test_decoder_config_can_request_grouped_query_attention() -> None:
+    """A config must be able to express GQA, or the presets are unreachable from YAML.
+
+    `DecoderConfig` originally had no `n_kv_heads` field, so a config mirroring the
+    `small` preset built one K/V head per query head -- 22.9% more parameters than the
+    preset intends, without the K/V saving that motivates it. Every benchmark figure was
+    produced by instantiating `ChemLMDecoder` directly, so the measured path and the
+    config path disagreed silently.
+    """
+    shared = {
+        "arch": "chemlm",
+        "vocab_size": VOCAB,
+        "d_model": 64,
+        "n_heads": 8,
+        "n_layers": 1,
+        "d_ff": 128,
+    }
+    mha = build_chemlm_decoder(DecoderConfig(**shared))  # type: ignore[arg-type]
+    gqa = build_chemlm_decoder(DecoderConfig(**shared, n_kv_heads=2))  # type: ignore[arg-type]
+
+    assert mha.n_kv_heads == 8, "default must stay plain multi-head attention"
+    assert gqa.n_kv_heads == 2, "n_kv_heads from the config must reach the decoder"
+    assert gqa.num_parameters() < mha.num_parameters(), (
+        "grouped-query attention must shrink the K/V projections"
+    )
+
+
+def test_decoder_config_rejects_indivisible_kv_head_counts() -> None:
+    """n_heads must be divisible by n_kv_heads, or head grouping is undefined."""
+    with pytest.raises(ValueError, match="n_kv_heads"):
+        DecoderConfig(
+            arch="chemlm",
+            vocab_size=VOCAB,
+            d_model=64,
+            n_heads=8,
+            n_layers=1,
+            d_ff=128,
+            n_kv_heads=3,
+        )
+
+
+def test_shipped_v6_config_requests_the_presets_kv_heads() -> None:
+    """The shipped config must actually build the preset it documents."""
+    from pathlib import Path
+
+    from geneuclidean.config import ExperimentConfig
+
+    config_path = Path(__file__).resolve().parents[1] / "configs" / "geneuclidean_v6_chemlm.yaml"
+    cfg = ExperimentConfig.from_yaml(config_path)
+    preset = SCALE_PRESETS["small"]
+    assert cfg.decoder.n_kv_heads == preset.n_kv_heads
+    assert build_chemlm_decoder(cfg.decoder).n_kv_heads == preset.n_kv_heads
+
+
 def test_build_chemlm_decoder_respects_cross_attn_gate_init() -> None:
     cfg = DecoderConfig(arch="chemlm", vocab_size=VOCAB, d_model=32, n_heads=4, d_ff=64, n_layers=1)
     dec = build_chemlm_decoder(cfg, cross_attn_gate_init=0.75)

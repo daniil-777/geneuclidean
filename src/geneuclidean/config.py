@@ -152,6 +152,16 @@ class DecoderConfig(_StrictBaseModel):
     )
     d_model: int = Field(default=256, ge=16)
     n_heads: int = Field(default=8, ge=1)
+    n_kv_heads: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "Key/value heads for grouped-query attention. ``None`` means one K/V head per "
+            "query head, i.e. ordinary multi-head attention. Without this field a YAML or "
+            "CLI config cannot request GQA at all, so a ``chemlm`` scale preset loaded "
+            "from a config silently builds ~23% more parameters than the preset intends."
+        ),
+    )
     n_layers: int = Field(default=6, ge=1)
     d_ff: int = Field(default=688, ge=16)
     max_seq_len: int = Field(default=128, ge=8)
@@ -179,12 +189,22 @@ class DecoderConfig(_StrictBaseModel):
 
     @model_validator(mode="after")
     def _validate_heads(self) -> DecoderConfig:
-        if (
-            self.arch
-            in ("transformer", "geom_transformer", "flow3d", "ar3d", "chemlm", "chemlm_moe")
-            and self.d_model % self.n_heads != 0
-        ):
+        attention_archs = (
+            "transformer",
+            "geom_transformer",
+            "flow3d",
+            "ar3d",
+            "chemlm",
+            "chemlm_moe",
+        )
+        if self.arch in attention_archs and self.d_model % self.n_heads != 0:
             msg = f"d_model ({self.d_model}) must be divisible by n_heads ({self.n_heads})"
+            raise ValueError(msg)
+        if self.n_kv_heads is not None and self.n_heads % self.n_kv_heads != 0:
+            msg = (
+                f"n_heads ({self.n_heads}) must be divisible by "
+                f"n_kv_heads ({self.n_kv_heads}) for grouped-query attention"
+            )
             raise ValueError(msg)
         return self
 
