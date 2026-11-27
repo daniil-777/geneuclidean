@@ -6,8 +6,11 @@ dependencies and keeps cold imports instantaneous.
 
 Endpoints:
 - ``OPTIONS /api/*``          — CORS preflight (HTTP 204)
+- ``OPTIONS /viewer*``        — CORS preflight (HTTP 204)
 - ``GET  /api/health``        — Live backend status, versions, v5.1 AL flag, catalog count
 - ``GET  /api/catalog``       — Full 10-signal, 8-category, 49-block, 7-preset catalog JSON
+- ``GET  /viewer``            — Standalone WebGL2 3D pocket-ligand interaction viewer HTML
+- ``GET  /viewer/<rel_path>`` — Containment-checked viewer scene / trajectory JSON assets
 - ``POST /api/circuit/validate`` — Strict ``CircuitGraphV1`` validation diagnostics
 - ``POST /api/circuit/codegen``  — AST-verified Python SDK code generation + SHA-256
 - ``POST /api/circuit/run``      — Safe allowlisted local Python execution + SHA-256 ledger
@@ -22,8 +25,9 @@ import platform
 import time
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 import geneuclidean
 from geneuclidean.studio.catalog import BLOCK_CATALOG, export_catalog_payload
@@ -33,8 +37,12 @@ from geneuclidean.studio.graph_compiler import (
     has_active_learning_v51,
     validate_circuit,
 )
+from geneuclidean.studio.interaction_viewer import resolve_viewer_asset
 
 MAX_REQUEST_BYTES: int = 2 * 1024 * 1024  # 2 MiB hard cap on JSON POST payloads
+_UNCONFIGURED_VIEWER_BUNDLE_DIR: Path = (
+    Path(__file__).resolve().parent / "_unconfigured_viewer_bundle"
+)
 
 
 def _package_version_or_none(dist_name: str) -> str | None:
@@ -71,9 +79,13 @@ class StudioHTTPServer(ThreadingHTTPServer):
         *,
         cors_origin: str = "*",
         quiet: bool = False,
+        viewer_bundle_dir: Path | str | None = None,
     ) -> None:
         self.cors_origin = cors_origin
         self.quiet = bool(quiet)
+        self.viewer_bundle_dir: Path | None = (
+            Path(viewer_bundle_dir) if viewer_bundle_dir is not None else None
+        )
         self.start_monotonic = time.monotonic()
         super().__init__(server_address, StudioRequestHandler)
 
@@ -138,9 +150,18 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
             return None, int(HTTPStatus.BAD_REQUEST), "JSON request body must be an object."
         return decoded, None, None
 
+    def _send_bytes(self, status: int, body: bytes, content_type: str) -> None:
+        self.send_response(status)
+        self._write_cors_headers()
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_OPTIONS(self) -> None:
         path = urlparse(self.path).path
-        if path.startswith("/api/"):
+        if path.startswith("/api/") or path == "/viewer" or path.startswith("/viewer/"):
             self.send_response(int(HTTPStatus.NO_CONTENT))
             self._write_cors_headers()
             self.send_header("Content-Length", "0")
@@ -159,6 +180,24 @@ class StudioRequestHandler(BaseHTTPRequestHandler):
                 return
             if path == "/api/catalog":
                 self._send_json(int(HTTPStatus.OK), export_catalog_payload())
+                return
+            if path == "/viewer" or path.startswith("/viewer/"):
+                raw_rel = path[len("/viewer") :]
+                rel_path = unquote(raw_rel).lstrip("/")
+                bundle_dir = (
+                    self.server.viewer_bundle_dir
+                    if self.server.viewer_bundle_dir is not None
+                    else _UNCONFIGURED_VIEWER_BUNDLE_DIR
+                )
+                resolved = resolve_viewer_asset(rel_path, bundle_dir)
+                if resolved is None:
+                    self._send_json(
+                        int(HTTPStatus.NOT_FOUND),
+                        {"error": "Not found", "path": path},
+                    )
+                    return
+                body, content_type = resolved
+                self._send_bytes(int(HTTPStatus.OK), body, content_type)
                 return
             self._send_json(int(HTTPStatus.NOT_FOUND), {"error": "Not found", "path": path})
         except Exception as exc:
@@ -272,9 +311,15 @@ def create_studio_server(
     *,
     cors_origin: str = "*",
     quiet: bool = False,
+    viewer_bundle_dir: Path | str | None = None,
 ) -> StudioHTTPServer:
     """Create a configured :class:`StudioHTTPServer` bound to ``(host, port)``."""
-    return StudioHTTPServer((host, int(port)), cors_origin=cors_origin, quiet=quiet)
+    return StudioHTTPServer(
+        (host, int(port)),
+        cors_origin=cors_origin,
+        quiet=quiet,
+        viewer_bundle_dir=viewer_bundle_dir,
+    )
 
 
 def run_studio_server(
@@ -283,9 +328,16 @@ def run_studio_server(
     *,
     cors_origin: str = "*",
     quiet: bool = False,
+    viewer_bundle_dir: Path | str | None = None,
 ) -> None:
     """Run the local GenEuclidean Circuit Studio HTTP server until interrupted."""
-    server = create_studio_server(host=host, port=port, cors_origin=cors_origin, quiet=quiet)
+    server = create_studio_server(
+        host=host,
+        port=port,
+        cors_origin=cors_origin,
+        quiet=quiet,
+        viewer_bundle_dir=viewer_bundle_dir,
+    )
     try:
         server.serve_forever()
     except KeyboardInterrupt:

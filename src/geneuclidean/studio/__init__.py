@@ -47,6 +47,14 @@ from geneuclidean.studio.graph_compiler import (
     has_active_learning_v51,
     validate_circuit,
 )
+from geneuclidean.studio.interaction_viewer import (
+    VIEWER_ASSET,
+    VIEWER_SCENE_SCHEMA,
+    build_interaction_scene,
+    render_viewer_document,
+    resolve_viewer_asset,
+    write_viewer_bundle,
+)
 from geneuclidean.studio.server import (
     MAX_REQUEST_BYTES,
     StudioHTTPServer,
@@ -68,6 +76,8 @@ __all__ = [
     "SCHEMA_VERSION",
     "SIGNAL_SPECS",
     "VALID_SIGNAL_TYPES",
+    "VIEWER_ASSET",
+    "VIEWER_SCENE_SCHEMA",
     "BlockCategoryId",
     "BlockDefinition",
     "CategorySpec",
@@ -87,6 +97,7 @@ __all__ = [
     "ValidationDiagnostic",
     "ValidationResult",
     "build_health_payload",
+    "build_interaction_scene",
     "canonical_graph_sha256",
     "compile_circuit_to_python",
     "create_studio_server",
@@ -99,7 +110,10 @@ __all__ = [
     "has_active_learning_v51",
     "list_block_definitions",
     "list_presets",
+    "render_viewer_document",
+    "resolve_viewer_asset",
     "run_studio_server",
     "serve_studio",
     "validate_circuit",
+    "write_viewer_bundle",
 ]

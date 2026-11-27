@@ -1,0 +1,1432 @@
+<title>Pocket Interaction Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+
+<!-- Layout: full-bleed WebGL2 stage with floating instrument panels inset by the gutter.
+     Committed single-theme dark instrument look (molecular viewers are read against a dark
+     ground so emissive interaction glyphs stay legible), so every colour is explicit and
+     :root pins color-scheme: dark. -->
+<style>
+  :root {
+    --bg:        #060a12;
+    --bg-deep:   #03060c;
+    --panel:     rgba(13, 20, 33, 0.82);
+    --panel-brd: rgba(120, 150, 190, 0.18);
+    --fg:        #dfe7f2;
+    --fg-dim:    #8b9ab0;
+    --fg-faint:  #5b6879;
+    --accent:    #38e8ff;
+    --warn:      #ffb84d;
+
+    --i-hbond:    #4cc9f0;
+    --i-salt:     #f72585;
+    --i-pistack:  #b388ff;
+    --i-cationpi: #4ade80;
+    --i-halogen:  #ff8c42;
+    --i-phobic:   #d9c27a;
+
+    --font-ui:   "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: var(--font-ui); overflow: hidden; -webkit-font-smoothing: antialiased;
+  }
+  .app { height: 100%; display: flex; flex-direction: column; position: relative; }
+
+  .bar {
+    position: relative; z-index: 5; flex: 0 0 auto;
+    display: flex; align-items: baseline; gap: 0.9rem; flex-wrap: wrap;
+    padding-block: 0.7rem 0.6rem;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    background: linear-gradient(180deg, rgba(4,8,15,0.94), rgba(4,8,15,0.55) 70%, transparent);
+    border-bottom: 1px solid rgba(120,150,190,0.10);
+  }
+  .bar h1 { margin: 0; font-size: 0.98rem; font-weight: 600; text-wrap: balance; }
+  .bar .eyebrow {
+    font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent); opacity: 0.85;
+  }
+  .bar .spacer { flex: 1 1 auto; }
+  .readout { display: flex; gap: 1.1rem; flex-wrap: wrap; }
+  .readout div { display: flex; flex-direction: column; gap: 1px; }
+  .readout .k {
+    font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--fg-faint);
+  }
+  .readout .v {
+    font-family: var(--font-mono); font-size: 0.86rem;
+    font-variant-numeric: tabular-nums; color: var(--fg);
+  }
+
+  .stage { position: relative; flex: 1 1 auto; min-height: 0; background: var(--bg-deep); }
+  canvas#gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+  canvas#gl:active { cursor: grabbing; }
+  .vignette {
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 45%, transparent 48%, rgba(2,4,9,0.72) 100%);
+  }
+
+  .panel {
+    position: absolute; z-index: 4; background: var(--panel);
+    border: 1px solid var(--panel-brd); border-radius: 10px;
+    backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    padding: 0.7rem 0.78rem; box-shadow: 0 12px 34px rgba(0,0,0,0.5);
+  }
+  .rail  { top: 0.75rem; left: max(16px, env(safe-area-inset-left, 0px));  width: 15.2rem; max-height: calc(100% - 1.5rem); overflow-y: auto; }
+  .probe { top: 0.75rem; right: max(16px, env(safe-area-inset-right, 0px)); width: 14.6rem; max-height: calc(100% - 1.5rem); overflow-y: auto; }
+
+  .panel h2 {
+    margin: 0 0 0.5rem; font-family: var(--font-mono); font-size: 0.6rem;
+    letter-spacing: 0.15em; text-transform: uppercase; color: var(--fg-faint); font-weight: 600;
+  }
+  .panel h2:not(:first-child) { margin-top: 0.95rem; }
+  .group { display: flex; flex-direction: column; gap: 0.3rem; }
+
+  .seg { display: flex; gap: 2px; background: rgba(8,13,22,0.7); padding: 2px; border-radius: 7px; }
+  .seg button {
+    flex: 1 1 0; min-width: 0; appearance: none; border: 0; cursor: pointer;
+    background: transparent; color: var(--fg-dim); font-family: var(--font-ui);
+    font-size: 0.68rem; font-weight: 500; padding: 0.33rem 0.2rem; border-radius: 5px;
+    transition: background 120ms, color 120ms;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .seg button:hover { color: var(--fg); }
+  .seg button[aria-pressed="true"] { background: rgba(56,232,255,0.15); color: var(--accent); }
+  .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .row {
+    display: flex; align-items: center; gap: 0.5rem; font-size: 0.74rem;
+    color: var(--fg-dim); cursor: pointer; padding: 0.2rem 0.1rem;
+    border-radius: 5px; user-select: none;
+  }
+  .row:hover { color: var(--fg); background: rgba(255,255,255,0.03); }
+  .row input { accent-color: var(--accent); margin: 0; flex: 0 0 auto; }
+  .row .swatch { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 auto; box-shadow: 0 0 7px currentColor; }
+  .row .lbl { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .ct {
+    font-family: var(--font-mono); font-size: 0.66rem;
+    font-variant-numeric: tabular-nums; color: var(--fg-faint); flex: 0 0 auto;
+  }
+
+  .slider { display: flex; flex-direction: column; gap: 0.2rem; }
+  .slider label { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--fg-dim); }
+  .slider label span { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--fg); }
+  .slider input[type=range] { width: 100%; accent-color: var(--accent); }
+
+  .bars { display: flex; flex-direction: column; gap: 0.22rem; }
+  .bars .b { display: grid; grid-template-columns: 5.5rem 1fr 3.3rem; align-items: center; gap: 0.4rem; }
+  .bars .b .n { font-size: 0.68rem; color: var(--fg-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bars .b .t { position: relative; height: 7px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
+  .bars .b .t i { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+  .bars .b .q {
+    font-family: var(--font-mono); font-size: 0.66rem; text-align: right;
+    font-variant-numeric: tabular-nums; color: var(--fg);
+  }
+
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 0.18rem 0.6rem; font-size: 0.72rem; }
+  .kv dt { color: var(--fg-faint); }
+  .kv dd {
+    margin: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+    color: var(--fg); text-align: right;
+  }
+  .hint { font-size: 0.7rem; color: var(--fg-faint); line-height: 1.45; margin: 0; }
+  .hint b { color: var(--fg-dim); font-weight: 600; }
+
+  .hot { display: flex; flex-direction: column; gap: 0.15rem; }
+  .hot .h { display: grid; grid-template-columns: 1fr auto; gap: 0.5rem; font-size: 0.71rem; }
+  .hot .h span:first-child { color: var(--fg-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hot .h span:last-child { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--i-salt); }
+
+  .curtain[hidden] { display: none; }
+  .curtain {
+    position: absolute; inset: 0; z-index: 6; display: grid; place-content: center;
+    gap: 0.6rem; text-align: center; background: rgba(3,6,12,0.72);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .curtain .ring {
+    width: 34px; height: 34px; margin: 0 auto; border-radius: 50%;
+    border: 2px solid rgba(56,232,255,0.2); border-top-color: var(--accent);
+    animation: spin 900ms linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .curtain .ring { animation: none; } }
+  .curtain p { margin: 0; font-size: 0.78rem; color: var(--fg-dim); }
+  .curtain code { font-family: var(--font-mono); font-size: 0.72rem; color: var(--warn); }
+
+  /* ---- trajectory transport ------------------------------------------------ */
+  .transport {
+    position: absolute; left: 50%; transform: translateX(-50%); bottom: 0.9rem;
+    display: none; align-items: center; gap: 0.7rem;
+    padding: 0.5rem 0.85rem; border-radius: 0.7rem;
+    background: rgba(6,10,18,0.86); border: 1px solid var(--line);
+    backdrop-filter: blur(9px); z-index: 6; max-width: min(860px, 82vw);
+  }
+  .transport[data-on="1"] { display: flex; }
+  .transport button {
+    width: 2rem; height: 2rem; flex: 0 0 auto; cursor: pointer;
+    border-radius: 0.45rem; border: 1px solid var(--line);
+    background: rgba(255,255,255,0.05); color: var(--fg);
+    font: inherit; font-size: 0.95rem; line-height: 1;
+  }
+  .transport button:hover { background: rgba(56,232,255,0.14); color: var(--accent); }
+  .transport input[type=range] { width: clamp(180px, 34vw, 420px); accent-color: var(--accent); }
+  .transport select {
+    background: rgba(255,255,255,0.05); color: var(--fg); font: inherit;
+    font-size: 0.72rem; border: 1px solid var(--line); border-radius: 0.4rem;
+    padding: 0.2rem 0.3rem;
+  }
+  .tclock {
+    font-variant-numeric: tabular-nums; font-size: 0.74rem; opacity: 0.9;
+    min-width: 7.5rem; text-align: right;
+  }
+  .tenergy {
+    font-variant-numeric: tabular-nums; font-size: 0.74rem; color: var(--accent);
+    min-width: 9rem;
+  }
+  .credit {
+    position: absolute; z-index: 4; bottom: 0.5rem;
+    left: max(16px, env(safe-area-inset-left, 0px));
+    font-family: var(--font-mono); font-size: 0.6rem; color: var(--fg-faint); pointer-events: none;
+  }
+
+  @media (max-width: 820px) {
+    body { overflow: auto; }
+    .app { height: auto; min-height: 100%; }
+    .stage { height: 62vh; flex: 0 0 auto; }
+    .panel {
+      position: static; width: auto; max-height: none; border-radius: 0;
+      border-left: 0; border-right: 0; backdrop-filter: none; -webkit-backdrop-filter: none;
+      background: rgba(10,16,27,0.95); box-shadow: none;
+    }
+    /* ---- trajectory transport ------------------------------------------------ */
+  .transport {
+    position: absolute; left: 50%; transform: translateX(-50%); bottom: 0.9rem;
+    display: none; align-items: center; gap: 0.7rem;
+    padding: 0.5rem 0.85rem; border-radius: 0.7rem;
+    background: rgba(6,10,18,0.86); border: 1px solid var(--line);
+    backdrop-filter: blur(9px); z-index: 6; max-width: min(860px, 82vw);
+  }
+  .transport[data-on="1"] { display: flex; }
+  .transport button {
+    width: 2rem; height: 2rem; flex: 0 0 auto; cursor: pointer;
+    border-radius: 0.45rem; border: 1px solid var(--line);
+    background: rgba(255,255,255,0.05); color: var(--fg);
+    font: inherit; font-size: 0.95rem; line-height: 1;
+  }
+  .transport button:hover { background: rgba(56,232,255,0.14); color: var(--accent); }
+  .transport input[type=range] { width: clamp(180px, 34vw, 420px); accent-color: var(--accent); }
+  .transport select {
+    background: rgba(255,255,255,0.05); color: var(--fg); font: inherit;
+    font-size: 0.72rem; border: 1px solid var(--line); border-radius: 0.4rem;
+    padding: 0.2rem 0.3rem;
+  }
+  .tclock {
+    font-variant-numeric: tabular-nums; font-size: 0.74rem; opacity: 0.9;
+    min-width: 7.5rem; text-align: right;
+  }
+  .tenergy {
+    font-variant-numeric: tabular-nums; font-size: 0.74rem; color: var(--accent);
+    min-width: 9rem;
+  }
+  .credit { position: static; padding: 0.5rem max(16px, env(safe-area-inset-left, 0px)); }
+  }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<script id="viewer-config" type="application/json">
+{
+  "sceneBase": "scenes/",
+  "scenes": [
+    {"id": "2zcr", "label": "2ZCR", "note": "transferase · 1.92 Å · Ki 135 nM"},
+    {"id": "2wtv", "label": "2WTV", "note": "transferase · 2.40 Å · Ki 1.8 nM"},
+    {"id": "1h22", "label": "1H22", "note": "hydrolase · 2.15 Å · Ki 0.8 nM"}
+  ]
+}
+</script>
+
+<div class="app">
+  <header class="bar">
+    <div>
+      <div class="eyebrow">GenEuclidean · biophysics twin</div>
+      <h1 id="title">Pocket Interaction Studio</h1>
+    </div>
+    <div class="spacer"></div>
+    <div class="readout" id="readout"></div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="gl"></canvas>
+    <div class="vignette"></div>
+
+    <section class="panel rail" aria-label="Display controls">
+      <h2>Complex</h2>
+      <div class="seg" id="seg-scene" role="group" aria-label="Complex"></div>
+
+      <h2>Colour by</h2>
+      <div class="seg" id="seg-color" role="group" aria-label="Colour mode">
+        <button data-mode="element" aria-pressed="true">Element</button>
+        <button data-mode="charge" aria-pressed="false">Charge</button>
+        <button data-mode="born" aria-pressed="false">Born R</button>
+      </div>
+
+      <h2>Protein body</h2>
+      <div class="seg" id="seg-surface" role="group" aria-label="Protein surface style">
+        <button data-surf="glass" aria-pressed="true">Glass</button>
+        <button data-surf="solid" aria-pressed="false">Solid</button>
+        <button data-surf="esp" aria-pressed="false">ESP</button>
+        <button data-surf="off" aria-pressed="false">Off</button>
+      </div>
+
+      <h2>Pocket atoms</h2>
+      <div class="seg" id="seg-pocket" role="group" aria-label="Pocket atom representation">
+        <button data-rep="none" aria-pressed="true">None</button>
+        <button data-rep="contact" aria-pressed="false">Contact</button>
+        <button data-rep="sticks" aria-pressed="false">Sticks</button>
+        <button data-rep="all" aria-pressed="false">All</button>
+      </div>
+
+      <h2>Ligand style</h2>
+      <div class="seg" id="seg-lig" role="group" aria-label="Ligand representation">
+        <button data-lig="ball" aria-pressed="true">Ball &amp; stick</button>
+        <button data-lig="space" aria-pressed="false">Spacefill</button>
+        <button data-lig="licorice" aria-pressed="false">Licorice</button>
+      </div>
+
+      <h2>Interactions</h2>
+      <div class="group" id="kinds"></div>
+
+      <h2>Field</h2>
+      <div class="group">
+        <label class="row"><input type="checkbox" id="chk-esp"><span class="lbl">Electrostatic samples</span></label>
+        <label class="row"><input type="checkbox" id="chk-rings"><span class="lbl">Aromatic ring normals</span></label>
+        <label class="row"><input type="checkbox" id="chk-h" checked><span class="lbl">Hydrogens</span></label>
+      </div>
+
+      <h2>Depth slab</h2>
+      <div class="slider">
+        <label for="rng-slab">Clip back <span id="slab-v">100%</span></label>
+        <input type="range" id="rng-slab" min="25" max="100" value="100" step="1">
+      </div>
+    </section>
+
+    <section class="panel probe" aria-label="Energy and probe">
+      <h2>Energy decomposition</h2>
+      <div class="bars" id="bars"></div>
+
+      <h2>Probe</h2>
+      <div id="probe-body">
+        <p class="hint" id="probe-hint">Click any atom to read its <b>partial charge</b>, <b>effective Born radius</b> and local <b>field</b>.</p>
+        <dl class="kv" id="probe-kv" hidden></dl>
+      </div>
+
+      <h2>Top contact residues</h2>
+      <div class="hot" id="hot"></div>
+    </section>
+
+    <div class="curtain" id="curtain">
+      <div class="ring"></div>
+      <p id="curtain-msg">Loading biophysical twin…</p>
+    </div>
+
+    <div class="transport" id="transport">
+      <button id="t-play" title="Play / pause (space)">&#9654;</button>
+      <button id="t-rew" title="Back to the start">&#9198;</button>
+      <input type="range" id="t-scrub" min="0" max="0" value="0" step="1"
+             aria-label="Trajectory frame">
+      <span class="tclock" id="t-clock">0.00 / 0.00 ps</span>
+      <span class="tenergy" id="t-energy"></span>
+      <select id="t-speed" aria-label="Playback speed">
+        <option value="0.25">0.25x</option>
+        <option value="0.5">0.5x</option>
+        <option value="1" selected>1x</option>
+        <option value="2">2x</option>
+        <option value="4">4x</option>
+      </select>
+    </div>
+
+    <div class="credit" id="credit">drag orbit · shift-drag pan · wheel zoom · click atom</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const CFG = JSON.parse(document.getElementById("viewer-config").textContent);
+
+  // Interaction semantics live here, not in the scene file, so the palette is a design
+  // decision and an unknown kind still renders in a neutral colour.
+  const KINDS = {
+    hbond:              { label: "Hydrogen bond",  color: "#4cc9f0" },
+    salt_bridge:        { label: "Salt bridge",    color: "#f72585" },
+    pi_stacking:        { label: "π-stacking", color: "#b388ff" },
+    cation_pi:          { label: "Cation–π", color: "#4ade80" },
+    halogen_sigma_hole: { label: "Halogen σ-hole", color: "#ff8c42" },
+    hydrophobic:        { label: "Hydrophobic",    color: "#d9c27a" },
+  };
+  const KIND_FALLBACK = { label: "Other contact", color: "#9aa7b8" };
+
+  // CPK-ish palette tuned for a dark ground; ligand carbon is lifted so the ligand reads
+  // as the subject and the pocket recedes.
+  const ELEM = {
+    H:"#dfe7f2", C:"#8e99a8", N:"#4d7fff", O:"#ff5c5c", S:"#ffd93d", P:"#ff9f43",
+    F:"#7bed9f", CL:"#2ed573", BR:"#c44569", I:"#a55eea", SE:"#ffa502",
+    FE:"#e17055", ZN:"#74b9ff", MG:"#55efc4", CA:"#81ecec", MN:"#fab1a0",
+    NA:"#a29bfe", K:"#dfe6e9",
+  };
+  const LIG_C = "#cfd8e4";
+  const VDW = { H:1.10, C:1.70, N:1.55, O:1.52, S:1.80, P:1.80, F:1.47, CL:1.75, BR:1.85, I:1.98 };
+  const elemKey = (e) => String(e || "C").trim().toUpperCase();
+  const elemColor = (e, isLig) => {
+    const k = elemKey(e);
+    if (isLig && k === "C") return LIG_C;
+    return ELEM[k] || "#b0bec5";
+  };
+  const vdw = (e) => VDW[elemKey(e)] || 1.70;
+
+  const hex2rgb = (h) => {
+    const n = parseInt(h.slice(1), 16);
+    return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+  };
+  // Diverging ramp: red = negative, blue = positive (APBS / PyMOL convention).
+  const diverge = (t) => {
+    const x = Math.max(-1, Math.min(1, t));
+    return x < 0
+      ? [1.0, 0.33 + 0.55 * (1 + x), 0.33 + 0.5 * (1 + x)]
+      : [0.88 - 0.6 * x, 0.92 - 0.35 * x, 1.0];
+  };
+  const ramp = (t) => {
+    const x = Math.max(0, Math.min(1, t));
+    return [0.15 + 0.85 * x, 0.45 + 0.25 * Math.sin(Math.PI * x), 1.0 - 0.75 * x];
+  };
+
+  const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
+  const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
+  const mul=(a,s)=>[a[0]*s,a[1]*s,a[2]*s];
+  const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+  const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+  const norm=(a)=>{const l=Math.hypot(a[0],a[1],a[2])||1;return [a[0]/l,a[1]/l,a[2]/l];};
+  const persp = (fovy, asp, n, f) => {
+    const t = 1 / Math.tan(fovy / 2);
+    return new Float32Array([t/asp,0,0,0, 0,t,0,0, 0,0,(f+n)/(n-f),-1, 0,0,2*f*n/(n-f),0]);
+  };
+  const look = (e, c, u) => {
+    const z = norm(sub(e, c)), x = norm(cross(u, z)), y = cross(z, x);
+    return new Float32Array([
+      x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0,
+      -dot(x,e), -dot(y,e), -dot(z,e), 1,
+    ]);
+  };
+
+  const canvas = document.getElementById("gl");
+  const gl = canvas.getContext("webgl2", { antialias: true, alpha: false, depth: true });
+  const curtain = document.getElementById("curtain");
+  const curtainMsg = document.getElementById("curtain-msg");
+
+  if (!gl) {
+    curtain.innerHTML =
+      "<p>This viewer needs <code>WebGL2</code>, which this browser did not provide.</p>" +
+      '<p class="hint">Try a current Chrome, Safari or Firefox with hardware acceleration enabled.</p>';
+    return;
+  }
+
+  const compile = (type, src) => {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) || "shader");
+    return s;
+  };
+  const program = (vs, fs) => {
+    const p = gl.createProgram();
+    gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+    gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p) || "link");
+    return p;
+  };
+
+  // Head-light plus cool fill, then depth cueing into the ground so the pocket recedes
+  // behind the ligand the way it does in a printed figure.
+  const LIGHT = [
+    "vec3 shade(vec3 base, vec3 N, vec3 P, float gloss) {",
+    "  vec3 V = normalize(-P);",
+    "  vec3 L1 = normalize(vec3(0.35, 0.55, 0.78));",
+    "  vec3 L2 = normalize(vec3(-0.6, -0.25, 0.42));",
+    "  float d1 = max(dot(N, L1), 0.0);",
+    "  float d2 = max(dot(N, L2), 0.0) * 0.32;",
+    "  vec3 H = normalize(L1 + V);",
+    "  float spec = pow(max(dot(N, H), 0.0), 38.0) * gloss;",
+    "  float rim = pow(1.0 - max(dot(N, V), 0.0), 2.6) * 0.30;",
+    "  return base * (0.26 + 0.80 * d1 + d2) + vec3(spec) * 0.55 + vec3(0.35,0.72,0.95) * rim;",
+    "}",
+    "vec3 cue(vec3 c, float viewZ, float near, float far) {",
+    "  float t = clamp((-viewZ - near) / max(far - near, 0.001), 0.0, 1.0);",
+    "  return mix(c, vec3(0.012, 0.024, 0.047), t * 0.80);",
+    "}",
+  ].join("\n");
+
+  const SPHERE_VS = [
+    "#version 300 es",
+    "layout(location=0) in vec2 aCorner;",
+    "layout(location=1) in vec3 aCenter;",
+    "layout(location=2) in float aRadius;",
+    "layout(location=3) in vec3 aColor;",
+    "uniform mat4 uView, uProj;",
+    "out vec3 vCenterV; out float vRadius; out vec3 vColor; out vec3 vRayV;",
+    "void main() {",
+    "  vec4 cv = uView * vec4(aCenter, 1.0);",
+    "  vCenterV = cv.xyz; vRadius = aRadius; vColor = aColor;",
+    "  vec3 p = cv.xyz + vec3(aCorner * aRadius * 1.06, 0.0);",
+    "  vRayV = p;",
+    "  gl_Position = uProj * vec4(p, 1.0);",
+    "}",
+  ].join("\n");
+
+  const SPHERE_FS = [
+    "#version 300 es",
+    "precision highp float;",
+    "in vec3 vCenterV; in float vRadius; in vec3 vColor; in vec3 vRayV;",
+    "uniform mat4 uProj; uniform float uNear, uFar, uSlab, uGloss;",
+    "out vec4 frag;",
+    LIGHT,
+    "void main() {",
+    "  vec3 rd = normalize(vRayV);",
+    "  float tca = dot(rd, vCenterV);",
+    "  float d2 = dot(vCenterV, vCenterV) - tca * tca;",
+    "  float r2 = vRadius * vRadius;",
+    "  if (d2 > r2) discard;",
+    "  float t = tca - sqrt(r2 - d2);",
+    "  if (t <= 0.0) discard;",
+    "  vec3 hit = rd * t;",
+    "  if (-hit.z > uSlab) discard;",
+    "  vec3 N = normalize(hit - vCenterV);",
+    "  vec4 clip = uProj * vec4(hit, 1.0);",
+    "  gl_FragDepth = (clip.z / clip.w) * 0.5 + 0.5;",
+    "  frag = vec4(cue(shade(vColor, N, hit, uGloss), hit.z, uNear, uFar), 1.0);",
+    "}",
+  ].join("\n");
+
+  const TUBE_VS = [
+    "#version 300 es",
+    "layout(location=0) in vec3 aPos;",
+    "layout(location=1) in vec3 aNrm;",
+    "layout(location=2) in vec3 aStart;",
+    "layout(location=3) in vec3 aEnd;",
+    "layout(location=4) in float aRadius;",
+    "layout(location=5) in vec3 aColorA;",
+    "layout(location=6) in vec3 aColorB;",
+    "uniform mat4 uView, uProj;",
+    "out vec3 vNrmV; out vec3 vPosV; out vec3 vColor; out float vAlong;",
+    "void main() {",
+    "  vec3 axis = aEnd - aStart;",
+    "  float len = length(axis);",
+    "  vec3 dir = len > 1e-6 ? axis / len : vec3(0.0, 1.0, 0.0);",
+    "  vec3 ref = abs(dir.y) < 0.96 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);",
+    "  vec3 nx = normalize(cross(ref, dir));",
+    "  vec3 nz = cross(dir, nx);",
+    "  vec3 world = aStart + nx * (aPos.x * aRadius) + dir * (aPos.y * len) + nz * (aPos.z * aRadius);",
+    "  vec3 nrm = normalize(nx * aNrm.x + nz * aNrm.z);",
+    "  vColor = aPos.y < 0.5 ? aColorA : aColorB;",
+    "  vAlong = aPos.y * len;",
+    "  vec4 pv = uView * vec4(world, 1.0);",
+    "  vPosV = pv.xyz;",
+    "  vNrmV = mat3(uView) * nrm;",
+    "  gl_Position = uProj * pv;",
+    "}",
+  ].join("\n");
+
+  const TUBE_FS = [
+    "#version 300 es",
+    "precision highp float;",
+    "in vec3 vNrmV; in vec3 vPosV; in vec3 vColor; in float vAlong;",
+    "uniform float uNear, uFar, uSlab, uGloss, uDash, uEmissive;",
+    "out vec4 frag;",
+    LIGHT,
+    "void main() {",
+    "  if (-vPosV.z > uSlab) discard;",
+    "  if (uDash > 0.0 && fract(vAlong / uDash) > 0.58) discard;",
+    "  vec3 N = normalize(vNrmV);",
+    "  vec3 c = shade(vColor, N, vPosV, uGloss);",
+    "  c = mix(c, vColor * 1.45, uEmissive);",
+    "  frag = vec4(cue(c, vPosV.z, uNear, uFar), 1.0);",
+    "}",
+  ].join("\n");
+
+  const progSphere = program(SPHERE_VS, SPHERE_FS);
+  const progTube = program(TUBE_VS, TUBE_FS);
+  const U = (p, n) => gl.getUniformLocation(p, n);
+  const uS = { view:U(progSphere,"uView"), proj:U(progSphere,"uProj"), near:U(progSphere,"uNear"),
+               far:U(progSphere,"uFar"), slab:U(progSphere,"uSlab"), gloss:U(progSphere,"uGloss") };
+  const uT = { view:U(progTube,"uView"), proj:U(progTube,"uProj"), near:U(progTube,"uNear"),
+               far:U(progTube,"uFar"), slab:U(progTube,"uSlab"), gloss:U(progTube,"uGloss"),
+               dash:U(progTube,"uDash"), emis:U(progTube,"uEmissive") };
+
+  const quadVBO = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadVBO);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
+  const tubeMesh = (() => {
+    const sides = 14, pos = [], nrm = [], idx = [];
+    for (let i = 0; i <= sides; i++) {
+      const a = (i / sides) * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+      pos.push(c, 0, s, c, 1, s); nrm.push(c, 0, s, c, 0, s);
+    }
+    for (let i = 0; i < sides; i++) { const b = i * 2; idx.push(b, b+1, b+2, b+1, b+3, b+2); }
+    const inter = new Float32Array((pos.length / 3) * 6);
+    for (let i = 0; i < pos.length / 3; i++) {
+      inter[i*6+0]=pos[i*3]; inter[i*6+1]=pos[i*3+1]; inter[i*6+2]=pos[i*3+2];
+      inter[i*6+3]=nrm[i*3]; inter[i*6+4]=nrm[i*3+1]; inter[i*6+5]=nrm[i*3+2];
+    }
+    const vbo = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, inter, gl.STATIC_DRAW);
+    const ibo = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STATIC_DRAW);
+    return { vbo, ibo, count: idx.length };
+  })();
+
+  function sphereBatch() {
+    const vao = gl.createVertexArray(), inst = gl.createBuffer();
+    gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadVBO);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, inst);
+    const S = 7 * 4;
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, S, 0);  gl.vertexAttribDivisor(1, 1);
+    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, S, 12); gl.vertexAttribDivisor(2, 1);
+    gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 3, gl.FLOAT, false, S, 16); gl.vertexAttribDivisor(3, 1);
+    gl.bindVertexArray(null);
+    return { vao, inst, n: 0, upload(arr) {
+      this.n = arr.length / 7;
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.inst);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.DYNAMIC_DRAW);
+    } };
+  }
+
+  function tubeBatch() {
+    const vao = gl.createVertexArray(), inst = gl.createBuffer();
+    gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, tubeMesh.vbo);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, tubeMesh.ibo);
+    gl.bindBuffer(gl.ARRAY_BUFFER, inst);
+    const S = 13 * 4;
+    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, S, 0);  gl.vertexAttribDivisor(2, 1);
+    gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 3, gl.FLOAT, false, S, 12); gl.vertexAttribDivisor(3, 1);
+    gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 1, gl.FLOAT, false, S, 24); gl.vertexAttribDivisor(4, 1);
+    gl.enableVertexAttribArray(5); gl.vertexAttribPointer(5, 3, gl.FLOAT, false, S, 28); gl.vertexAttribDivisor(5, 1);
+    gl.enableVertexAttribArray(6); gl.vertexAttribPointer(6, 3, gl.FLOAT, false, S, 40); gl.vertexAttribDivisor(6, 1);
+    gl.bindVertexArray(null);
+    return { vao, inst, n: 0, upload(arr) {
+      this.n = arr.length / 13;
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.inst);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.DYNAMIC_DRAW);
+    } };
+  }
+
+  // --- molecular surface: a QuickSurf-style Gaussian density field, contoured with
+  // marching *tetrahedra* (6 tets per cube). Tetrahedra need a 16-case table instead of
+  // marching cubes' 256-entry one, are watertight by construction, and the extra triangles
+  // cost nothing here because the field is small.
+  const MESH_VS = [
+    "#version 300 es",
+    "layout(location=0) in vec3 aPos;",
+    "layout(location=1) in vec3 aNrm;",
+    "layout(location=2) in vec3 aCol;",
+    "uniform mat4 uView, uProj;",
+    "out vec3 vNrmV; out vec3 vPosV; out vec3 vCol;",
+    "void main() {",
+    "  vec4 pv = uView * vec4(aPos, 1.0);",
+    "  vPosV = pv.xyz;",
+    "  vNrmV = mat3(uView) * aNrm;",
+    "  vCol = aCol;",
+    "  gl_Position = uProj * pv;",
+    "}",
+  ].join("\n");
+
+  const MESH_FS = [
+    "#version 300 es",
+    "precision highp float;",
+    "in vec3 vNrmV; in vec3 vPosV; in vec3 vCol;",
+    "uniform float uNear, uFar, uSlab, uAlpha, uFresnel, uGloss;",
+    "out vec4 frag;",
+    LIGHT,
+    "void main() {",
+    "  if (-vPosV.z > uSlab) discard;",
+    "  vec3 N = normalize(vNrmV);",
+    "  vec3 V = normalize(-vPosV);",
+    "  if (dot(N, V) < 0.0) N = -N;",          // two-sided: the cutaway exposes backfaces
+    "  vec3 c = shade(vCol, N, vPosV, uGloss);",
+    "  float f = pow(1.0 - max(dot(N, V), 0.0), 2.2);",
+    "  c += vec3(0.30, 0.68, 0.92) * f * uFresnel;",
+    "  float a = clamp(uAlpha + f * uFresnel * 0.55, 0.0, 1.0);",
+    "  frag = vec4(cue(c, vPosV.z, uNear, uFar), a);",
+    "}",
+  ].join("\n");
+
+  const progMesh = program(MESH_VS, MESH_FS);
+  const uM = { view:U(progMesh,"uView"), proj:U(progMesh,"uProj"), near:U(progMesh,"uNear"),
+               far:U(progMesh,"uFar"), slab:U(progMesh,"uSlab"), alpha:U(progMesh,"uAlpha"),
+               fres:U(progMesh,"uFresnel"), gloss:U(progMesh,"uGloss") };
+
+  function meshBatch() {
+    const vao = gl.createVertexArray(), vbo = gl.createBuffer();
+    gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    const S = 9 * 4;
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, S, 0);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, S, 12);
+    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, S, 24);
+    gl.bindVertexArray(null);
+    return { vao, vbo, n: 0, upload(arr) {
+      this.n = arr.length / 9;
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
+      gl.bufferData(gl.ARRAY_BUFFER, arr instanceof Float32Array ? arr : new Float32Array(arr), gl.STATIC_DRAW);
+    } };
+  }
+
+  // Each cube is split into 6 tetrahedra by these corner indices (unit-cube corner order
+  // below). Every tet shares the cube diagonal 0-6, which is what keeps the mesh closed.
+  const TETS = [
+    [0,5,1,6], [0,1,2,6], [0,2,3,6], [0,3,7,6], [0,7,4,6], [0,4,5,6],
+  ];
+  const CUBE = [
+    [0,0,0],[1,0,0],[1,1,0],[0,1,0],
+    [0,0,1],[1,0,1],[1,1,1],[0,1,1],
+  ];
+
+  function buildSurface(atoms, colorFn, opts) {
+    const spacing = opts.spacing, pad = opts.pad, iso = opts.iso;
+    if (!atoms.length) return new Float32Array(0);
+
+    // bounding box
+    const lo = [Infinity,Infinity,Infinity], hi = [-Infinity,-Infinity,-Infinity];
+    for (const a of atoms) for (let k = 0; k < 3; k++) {
+      lo[k] = Math.min(lo[k], a.xyz[k]); hi[k] = Math.max(hi[k], a.xyz[k]);
+    }
+    for (let k = 0; k < 3; k++) { lo[k] -= pad; hi[k] += pad; }
+    const dim = [0,0,0];
+    for (let k = 0; k < 3; k++) dim[k] = Math.max(2, Math.min(opts.maxDim, Math.ceil((hi[k]-lo[k]) / spacing) + 1));
+    const [nx, ny, nz] = dim;
+    const step = [(hi[0]-lo[0])/(nx-1), (hi[1]-lo[1])/(ny-1), (hi[2]-lo[2])/(nz-1)];
+
+    // Splat each atom's Gaussian into nearby cells only: O(atoms x local cells).
+    const field = new Float32Array(nx*ny*nz);
+    const at = (i,j,k) => field[(k*ny + j)*nx + i];
+    for (const a of atoms) {
+      const sig = Math.max(0.55, vdw(a.element) * opts.sigmaScale);
+      const cut = sig * 2.6, inv2s2 = 1 / (2*sig*sig);
+      const i0 = Math.max(0, Math.floor((a.xyz[0]-cut-lo[0]) / step[0]));
+      const i1 = Math.min(nx-1, Math.ceil((a.xyz[0]+cut-lo[0]) / step[0]));
+      const j0 = Math.max(0, Math.floor((a.xyz[1]-cut-lo[1]) / step[1]));
+      const j1 = Math.min(ny-1, Math.ceil((a.xyz[1]+cut-lo[1]) / step[1]));
+      const k0 = Math.max(0, Math.floor((a.xyz[2]-cut-lo[2]) / step[2]));
+      const k1 = Math.min(nz-1, Math.ceil((a.xyz[2]+cut-lo[2]) / step[2]));
+      for (let k = k0; k <= k1; k++) {
+        const dz = lo[2] + k*step[2] - a.xyz[2];
+        for (let j = j0; j <= j1; j++) {
+          const dy = lo[1] + j*step[1] - a.xyz[1];
+          const base = (k*ny + j)*nx;
+          for (let i = i0; i <= i1; i++) {
+            const dx = lo[0] + i*step[0] - a.xyz[0];
+            const d2 = dx*dx + dy*dy + dz*dz;
+            if (d2 < cut*cut) field[base + i] += Math.exp(-d2 * inv2s2);
+          }
+        }
+      }
+    }
+
+    // central-difference gradient -> smooth outward normals
+    const grad = (i,j,k) => {
+      const ip = Math.min(i+1,nx-1), im = Math.max(i-1,0);
+      const jp = Math.min(j+1,ny-1), jm = Math.max(j-1,0);
+      const kp = Math.min(k+1,nz-1), km = Math.max(k-1,0);
+      return norm([ at(im,j,k)-at(ip,j,k), at(i,jm,k)-at(i,jp,k), at(i,j,km)-at(i,j,kp) ]);
+    };
+    const world = (i,j,k) => [lo[0]+i*step[0], lo[1]+j*step[1], lo[2]+k*step[2]];
+
+    const out = [];
+    const corner = new Array(8);
+    const emit = (p, n, c) => { out.push(p[0],p[1],p[2], n[0],n[1],n[2], c[0],c[1],c[2]); };
+
+    for (let k = 0; k < nz-1; k++) for (let j = 0; j < ny-1; j++) for (let i = 0; i < nx-1; i++) {
+      let lowCount = 0;
+      for (let c = 0; c < 8; c++) {
+        const [di,dj,dk] = CUBE[c];
+        const v = at(i+di, j+dj, k+dk);
+        corner[c] = { v, ijk: [i+di, j+dj, k+dk] };
+        if (v < iso) lowCount++;
+      }
+      if (lowCount === 0 || lowCount === 8) continue;   // wholly inside or outside
+
+      for (const tet of TETS) {
+        const vs = tet.map((c) => corner[c]);
+        const inside = vs.filter((v) => v.v >= iso);
+        const outside = vs.filter((v) => v.v < iso);
+        if (!inside.length || !outside.length) continue;
+
+        const cut = (a, b) => {
+          const t = (iso - a.v) / ((b.v - a.v) || 1e-6);
+          const pa = world(...a.ijk), pb = world(...b.ijk);
+          const p = [pa[0]+(pb[0]-pa[0])*t, pa[1]+(pb[1]-pa[1])*t, pa[2]+(pb[2]-pa[2])*t];
+          const ga = grad(...a.ijk), gb = grad(...b.ijk);
+          const n = norm([ga[0]+(gb[0]-ga[0])*t, ga[1]+(gb[1]-ga[1])*t, ga[2]+(gb[2]-ga[2])*t]);
+          return { p, n, c: colorFn(p) };
+        };
+
+        if (inside.length === 1 || outside.length === 1) {
+          const solo = inside.length === 1 ? inside[0] : outside[0];
+          const others = inside.length === 1 ? outside : inside;
+          const t0 = cut(solo, others[0]), t1 = cut(solo, others[1]), t2 = cut(solo, others[2]);
+          emit(t0.p,t0.n,t0.c); emit(t1.p,t1.n,t1.c); emit(t2.p,t2.n,t2.c);
+        } else {
+          // 2 in / 2 out -> a quad, split into two triangles
+          const q = [cut(inside[0], outside[0]), cut(inside[0], outside[1]),
+                     cut(inside[1], outside[1]), cut(inside[1], outside[0])];
+          emit(q[0].p,q[0].n,q[0].c); emit(q[1].p,q[1].n,q[1].c); emit(q[2].p,q[2].n,q[2].c);
+          emit(q[0].p,q[0].n,q[0].c); emit(q[2].p,q[2].n,q[2].c); emit(q[3].p,q[3].n,q[3].c);
+        }
+      }
+    }
+    return new Float32Array(out);
+  }
+
+  const B = {
+    ligAtoms: sphereBatch(), pocAtoms: sphereBatch(), esp: sphereBatch(), halo: sphereBatch(),
+    ligBonds: tubeBatch(), pocBonds: tubeBatch(), inter: tubeBatch(), rings: tubeBatch(),
+    surface: meshBatch(),
+  };
+
+  let scene = null, view = null, enabledKinds = new Set(), selected = -1;
+  let surfaceKey = "";
+  const ui = {
+    color: "element", pocket: "none", lig: "ball", surf: "glass",
+    esp: false, rings: false, hydro: true, slab: 1.0,
+  };
+  const SURF_STYLE = {
+    glass: { alpha: 0.26, fres: 1.0,  gloss: 0.85, base: [0.42, 0.62, 0.82] },
+    solid: { alpha: 0.97, fres: 0.30, gloss: 0.45, base: [0.58, 0.63, 0.70] },
+    esp:   { alpha: 0.92, fres: 0.35, gloss: 0.40, base: null },
+  };
+  const cam = { theta: 0.72, phi: 1.12, dist: 34, target: [0,0,0], panX: 0, panY: 0 };
+  const el = (id) => document.getElementById(id);
+
+  function buildView() {
+    if (!scene) return;
+    const lig = scene.ligand_atoms || [], poc = scene.pocket_atoms || [];
+    const inter = scene.interactions || [];
+
+    // Which pocket residues make a contact? The default "Contact" representation keeps
+    // only those, because 700 pocket atoms otherwise bury the ligand entirely.
+    const contactRes = new Set();
+    for (const it of inter) if (it.protein_residue) contactRes.add(it.protein_residue);
+
+    const keepAtom = (a, isLig) => {
+      if (!ui.hydro && elemKey(a.element) === "H") return false;
+      if (isLig) return true;
+      if (ui.pocket === "none") return false;
+      if (ui.pocket === "all") return true;
+      if (ui.pocket === "sticks") return !a.is_backbone;
+      return contactRes.has(a.residue_id);
+    };
+
+    const bornOf = (a) => Number(a.born_radius_a || 0);
+    let bMin = Infinity, bMax = -Infinity;
+    for (const a of lig) { const b = bornOf(a); if (b) { bMin = Math.min(bMin,b); bMax = Math.max(bMax,b); } }
+    for (const a of poc) { const b = bornOf(a); if (b) { bMin = Math.min(bMin,b); bMax = Math.max(bMax,b); } }
+    if (!isFinite(bMin)) { bMin = 1; bMax = 2; }
+
+    const colorOf = (a, isLig) => {
+      if (ui.color === "charge") return diverge(Number(a.partial_charge_e || 0) / 0.6);
+      if (ui.color === "born") return ramp((bornOf(a) - bMin) / Math.max(bMax - bMin, 1e-6));
+      return hex2rgb(elemColor(a.element, isLig));
+    };
+
+    // Ligand style: spacefill shows the shape it actually occupies, licorice keeps the
+    // bonds readable inside a surface, ball-and-stick is the default compromise.
+    const LIG_R = { ball: 0.34, space: 1.0, licorice: 0.0 };
+    const ligScale = LIG_R[ui.lig] ?? 0.34;
+    const ligBondR = ui.lig === "licorice" ? 0.17 : 0.105;
+
+    const ligA = [], pocA = [], haloA = [], pickList = [];
+    lig.forEach((a, i) => {
+      if (!keepAtom(a, true)) return;
+      const c = colorOf(a, true);
+      const base = ligScale > 0 ? Math.max(0.30, vdw(a.element) * ligScale) : ligBondR;
+      const r = base * (selected === i ? 1.45 : 1);
+      ligA.push(a.xyz[0], a.xyz[1], a.xyz[2], r, c[0], c[1], c[2]);
+      // Dark silhouette shell, drawn first, so the ligand reads against the protein body.
+      haloA.push(a.xyz[0], a.xyz[1], a.xyz[2], r * 1.16, 0.015, 0.03, 0.055);
+      pickList.push({ i, xyz: a.xyz, r: base, atom: a, lig: true });
+    });
+    poc.forEach((a, j) => {
+      if (!keepAtom(a, false)) return;
+      const c = colorOf(a, false);
+      const r = contactRes.has(a.residue_id) ? 0.30 : 0.19;
+      pocA.push(a.xyz[0], a.xyz[1], a.xyz[2], r, c[0]*0.82, c[1]*0.82, c[2]*0.82);
+      pickList.push({ i: 1e6 + j, xyz: a.xyz, r, atom: a, lig: false });
+    });
+
+    const bondArr = (atoms, bonds, isLig, rad) => {
+      const out = [];
+      for (const b of bonds || []) {
+        const A = atoms[b.source], C = atoms[b.target];
+        if (!A || !C || !keepAtom(A, isLig) || !keepAtom(C, isLig)) continue;
+        const ca = colorOf(A, isLig), cc = colorOf(C, isLig), k = isLig ? 1 : 0.8;
+        out.push(A.xyz[0],A.xyz[1],A.xyz[2], C.xyz[0],C.xyz[1],C.xyz[2], rad,
+                 ca[0]*k,ca[1]*k,ca[2]*k, cc[0]*k,cc[1]*k,cc[2]*k);
+      }
+      return out;
+    };
+
+    const interArr = [], shownInter = [];
+    for (const it of inter) {
+      if (!enabledKinds.has(it.kind)) continue;
+      const c = hex2rgb((KINDS[it.kind] || KIND_FALLBACK).color);
+      interArr.push(it.start_xyz[0],it.start_xyz[1],it.start_xyz[2],
+                    it.end_xyz[0],it.end_xyz[1],it.end_xyz[2], 0.072,
+                    c[0],c[1],c[2], c[0],c[1],c[2]);
+      shownInter.push(it);
+    }
+    for (const h of scene.halogen_sigma_holes || []) {
+      if (!enabledKinds.has("halogen_sigma_hole")) continue;
+      const c = hex2rgb(KINDS.halogen_sigma_hole.color);
+      interArr.push(h.origin_xyz[0],h.origin_xyz[1],h.origin_xyz[2],
+                    h.crown_tip_xyz[0],h.crown_tip_xyz[1],h.crown_tip_xyz[2], 0.11,
+                    c[0],c[1],c[2], c[0]*0.2,c[1]*0.2,c[2]*0.2);
+    }
+
+    const ringArr = [];
+    if (ui.rings) {
+      for (const r of scene.aromatic_rings || []) {
+        const o = r.centroid_xyz, tip = add(o, mul(norm(r.normal_xyz), 1.5));
+        const c = hex2rgb(KINDS.pi_stacking.color);
+        ringArr.push(o[0],o[1],o[2], tip[0],tip[1],tip[2], 0.05, c[0],c[1],c[2], c[0],c[1],c[2]);
+      }
+    }
+
+    const espArr = [];
+    if (ui.esp) {
+      for (const s of scene.esp_field_samples || []) {
+        const c = diverge(Number(s.esp_kbt_e || 0) / 3.0);
+        espArr.push(s.xyz[0], s.xyz[1], s.xyz[2], 0.16, c[0], c[1], c[2]);
+      }
+    }
+
+    B.ligAtoms.upload(ligA);
+    B.halo.upload(haloA);
+    B.pocAtoms.upload(pocA);
+    B.ligBonds.upload(bondArr(lig, scene.ligand_bonds, true, ligBondR));
+    B.pocBonds.upload(bondArr(poc, scene.pocket_bonds, false, 0.062));
+    B.inter.upload(interArr);
+    B.rings.upload(ringArr);
+    B.esp.upload(espArr);
+
+    // The surface is the expensive piece, so rebuild it only when its inputs change.
+    const key = `${scene.metadata && scene.metadata.pdb_id}|${ui.surf}`;
+    if (ui.surf === "off") {
+      if (surfaceKey !== key) { B.surface.upload(new Float32Array(0)); surfaceKey = key; }
+    } else if (surfaceKey !== key) {
+      const style = SURF_STYLE[ui.surf];
+      // ESP mode paints the body by the Coulomb potential of the pocket charges at each
+      // vertex, in k_B T/e -- the standard red-negative / blue-positive convention.
+      const colorFn = style.base
+        ? () => style.base
+        : (p) => {
+            let phi = 0;
+            for (const a of poc) {
+              const q = Number(a.partial_charge_e || 0);
+              if (!q) continue;
+              const dx = p[0]-a.xyz[0], dy = p[1]-a.xyz[1], dz = p[2]-a.xyz[2];
+              const d = Math.sqrt(dx*dx + dy*dy + dz*dz);
+              if (d < 12) phi += q / Math.max(d, 1.4);
+            }
+            return diverge(phi * 4.2);
+          };
+      // 0.70 A: measured 92k triangles in ~144 ms on a 705-atom pocket. Finer spacings
+      // cost linearly in time and memory for no visible gain, because the Gaussian field
+      // is already smooth at this scale (0.55 A -> 152k tris / 242 ms, visually identical).
+      B.surface.upload(buildSurface(poc, colorFn, {
+        spacing: 0.70, pad: 2.4, iso: 0.52, sigmaScale: 0.78, maxDim: 112,
+      }));
+      surfaceKey = key;
+    }
+
+    view = { pickList, shownInter };
+  }
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(1, Math.floor(canvas.clientWidth * dpr));
+    const h = Math.max(1, Math.floor(canvas.clientHeight * dpr));
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  }
+
+  function eye() {
+    const { theta, phi, dist, target, panX, panY } = cam;
+    const d = [Math.sin(phi)*Math.cos(theta), Math.cos(phi), Math.sin(phi)*Math.sin(theta)];
+    const pos = add(target, mul(d, dist));
+    const fwd = norm(sub(target, pos));
+    const right = norm(cross([0,1,0], fwd));
+    const up = cross(fwd, right);
+    const shift = add(mul(right, panX), mul(up, panY));
+    return { pos: add(pos, shift), ctr: add(target, shift), up };
+  }
+
+  function draw() {
+    resize();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(0.012, 0.024, 0.047, 1);
+    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    if (!scene || !view) return;
+
+    const e = eye();
+    const asp = canvas.width / Math.max(canvas.height, 1);
+    const near = Math.max(0.6, cam.dist * 0.04), far = cam.dist * 4.2 + 60;
+    const proj = persp(0.80, asp, near, far);
+    const mv = look(e.pos, e.ctr, e.up);
+    const slabAbs = near + (far - near) * ui.slab;
+
+    gl.useProgram(progTube);
+    gl.uniformMatrix4fv(uT.view, false, mv); gl.uniformMatrix4fv(uT.proj, false, proj);
+    gl.uniform1f(uT.near, near); gl.uniform1f(uT.far, far); gl.uniform1f(uT.slab, slabAbs);
+    const tube = (batch, gloss, dash, emis) => {
+      if (!batch.n) return;
+      gl.uniform1f(uT.gloss, gloss); gl.uniform1f(uT.dash, dash); gl.uniform1f(uT.emis, emis);
+      gl.bindVertexArray(batch.vao);
+      gl.drawElementsInstanced(gl.TRIANGLES, tubeMesh.count, gl.UNSIGNED_SHORT, 0, batch.n);
+    };
+    tube(B.pocBonds, 0.18, 0, 0);
+    tube(B.ligBonds, 0.55, 0, 0);
+    tube(B.inter, 0.30, 0.42, 0.55);
+    tube(B.rings, 0.25, 0.22, 0.45);
+
+    gl.useProgram(progSphere);
+    gl.uniformMatrix4fv(uS.view, false, mv); gl.uniformMatrix4fv(uS.proj, false, proj);
+    gl.uniform1f(uS.near, near); gl.uniform1f(uS.far, far); gl.uniform1f(uS.slab, slabAbs);
+    const spheres = (batch, gloss) => {
+      if (!batch.n) return;
+      gl.uniform1f(uS.gloss, gloss);
+      gl.bindVertexArray(batch.vao);
+      gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, batch.n);
+    };
+    spheres(B.pocAtoms, 0.22);
+    // The halo is a dark shell at 1.16x the atom radius. Because these are ray-traced
+    // impostors, its near surface sits CLOSER to the camera than the ligand's, so writing
+    // depth here makes every ligand fragment fail the depth test and the ligand renders
+    // as a black blob. Painting it with depth writes off keeps the silhouette while
+    // letting the real atom draw over the middle of it.
+    gl.depthMask(false);
+    spheres(B.halo, 0.0);
+    gl.depthMask(true);
+    spheres(B.ligAtoms, 0.88);
+
+    // The protein body goes last and translucent, with depth-write off, so everything
+    // already drawn (ligand, contacts) stays visible through it.
+    if (B.surface.n && ui.surf !== "off") {
+      const st = SURF_STYLE[ui.surf];
+      gl.useProgram(progMesh);
+      gl.uniformMatrix4fv(uM.view, false, mv); gl.uniformMatrix4fv(uM.proj, false, proj);
+      gl.uniform1f(uM.near, near); gl.uniform1f(uM.far, far); gl.uniform1f(uM.slab, slabAbs);
+      gl.uniform1f(uM.alpha, st.alpha); gl.uniform1f(uM.fres, st.fres);
+      gl.uniform1f(uM.gloss, st.gloss);
+      gl.bindVertexArray(B.surface.vao);
+      if (st.alpha >= 0.95) {
+        gl.drawArrays(gl.TRIANGLES, 0, B.surface.n);
+      } else {
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.depthMask(false);
+        gl.enable(gl.CULL_FACE);
+        gl.cullFace(gl.FRONT);                       // far shell first
+        gl.drawArrays(gl.TRIANGLES, 0, B.surface.n);
+        gl.cullFace(gl.BACK);                        // then the near shell over it
+        gl.drawArrays(gl.TRIANGLES, 0, B.surface.n);
+        gl.disable(gl.CULL_FACE);
+        gl.depthMask(true); gl.disable(gl.BLEND);
+      }
+      gl.useProgram(progSphere);
+    }
+
+    if (B.esp.n) {
+      gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE); gl.depthMask(false);
+      spheres(B.esp, 0.0);
+      gl.depthMask(true); gl.disable(gl.BLEND);
+    }
+    gl.bindVertexArray(null);
+  }
+
+  let raf = 0;
+  const invalidate = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; draw(); }); };
+
+  let drag = null;
+  canvas.addEventListener("pointerdown", (ev) => {
+    canvas.setPointerCapture(ev.pointerId);
+    drag = { x: ev.clientX, y: ev.clientY, pan: ev.shiftKey || ev.button === 2, moved: 0 };
+  });
+  canvas.addEventListener("pointermove", (ev) => {
+    if (!drag) return;
+    const dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+    drag.x = ev.clientX; drag.y = ev.clientY; drag.moved += Math.abs(dx) + Math.abs(dy);
+    if (drag.pan) {
+      const k = cam.dist * 0.0016;
+      cam.panX -= dx * k; cam.panY += dy * k;
+    } else {
+      cam.theta -= dx * 0.0062;
+      cam.phi = Math.max(0.12, Math.min(Math.PI - 0.12, cam.phi - dy * 0.0062));
+    }
+    invalidate();
+  });
+  canvas.addEventListener("pointerup", (ev) => { if (drag && drag.moved < 5) pick(ev); drag = null; });
+  canvas.addEventListener("pointercancel", () => { drag = null; });
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  canvas.addEventListener("wheel", (ev) => {
+    ev.preventDefault();
+    cam.dist = Math.max(5, Math.min(220, cam.dist * Math.exp(ev.deltaY * 0.0012)));
+    invalidate();
+  }, { passive: false });
+
+  // CPU ray/sphere pick: a few hundred candidates, so no ID buffer is warranted.
+  function pick(ev) {
+    if (!view) return;
+    const rect = canvas.getBoundingClientRect();
+    const ndcX = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+    const ndcY = 1 - ((ev.clientY - rect.top) / rect.height) * 2;
+    const e = eye();
+    const fwd = norm(sub(e.ctr, e.pos));
+    const right = norm(cross([0,1,0], fwd));
+    const up = cross(fwd, right);
+    const asp = rect.width / Math.max(rect.height, 1);
+    const th = Math.tan(0.80 / 2);
+    const rd = norm(add(fwd, add(mul(right, ndcX * th * asp), mul(up, ndcY * th))));
+    let best = null, bestT = Infinity;
+    for (const c of view.pickList) {
+      const oc = sub(c.xyz, e.pos);
+      const tca = dot(rd, oc);
+      if (tca < 0) continue;
+      const d2 = dot(oc, oc) - tca * tca;
+      const r = c.r * 1.25;
+      if (d2 > r * r) continue;
+      const t = tca - Math.sqrt(r * r - d2);
+      if (t < bestT) { bestT = t; best = c; }
+    }
+    selected = best && best.lig ? best.i : -1;
+    showProbe(best);
+    buildView(); invalidate();
+  }
+
+  function showProbe(c) {
+    const kv = el("probe-kv"), hint = el("probe-hint");
+    if (!c) { kv.hidden = true; hint.hidden = false; return; }
+    const a = c.atom;
+    const f = a.electric_field_v_a || [0,0,0];
+    const ft = a.force_total || [0,0,0];
+    const rows = [
+      ["Atom", `${a.atom_name || a.element} · ${c.lig ? "ligand" : (a.residue_id || "pocket")}`],
+      ["Element", elemKey(a.element)],
+      ["Partial charge", `${Number(a.partial_charge_e || 0).toFixed(3)} e`],
+      ["Born radius", `${Number(a.born_radius_a || 0).toFixed(2)} Å`],
+      ["|E| field", `${Math.hypot(f[0],f[1],f[2]).toFixed(3)} V/Å`],
+      ["|F| total", `${Math.hypot(ft[0],ft[1],ft[2]).toFixed(2)} kcal/mol/Å`],
+    ];
+    kv.innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+    kv.hidden = false; hint.hidden = true;
+  }
+
+  function fitCamera() {
+    const pts = (scene.ligand_atoms || []).map((a) => a.xyz);
+    if (!pts.length) return;
+    let c = [0,0,0];
+    for (const p of pts) c = add(c, p);
+    c = mul(c, 1 / pts.length);
+    let rad = 0;
+    for (const p of pts) rad = Math.max(rad, Math.hypot(p[0]-c[0], p[1]-c[1], p[2]-c[2]));
+    cam.target = c; cam.dist = Math.max(14, rad * 4.4);
+    cam.panX = 0; cam.panY = 0; cam.theta = 0.72; cam.phi = 1.12;
+  }
+
+  function renderReadout() {
+    const es = scene.energy_summary || {};
+    const live = (typeof player !== "undefined" && player.live) || null;
+    // During playback the honest number is the frame's own potential, not the crystal
+    // pose's fitted dG estimate -- they are different quantities and mixing them would
+    // show a static dG beside a moving ligand.
+    const dg = live ? Number(live.u_total) : Number(es.dg_bind_est ?? 0);
+    el("readout").innerHTML = [
+      [live ? "U (frame)" : "ΔG est", `${dg.toFixed(2)} kcal/mol`],
+      ["contacts", String(view ? view.shownInter.length : 0)],
+      ["ligand", `${(scene.ligand_atoms||[]).length} atoms`],
+      ["pocket", `${(scene.pocket_atoms||[]).length} atoms`],
+    ].map(([k, v]) => `<div><span class="k">${k}</span><span class="v">${v}</span></div>`).join("");
+  }
+
+  function renderChrome() {
+    const m = scene.metadata || {}, es = scene.energy_summary || {};
+    const pdb = String(m.pdb_id || m.name || "complex").toUpperCase();
+    const note = (CFG.scenes.find((s) => s.id.toUpperCase() === pdb) || {}).note || "";
+    el("title").textContent = `${pdb} pocket · interaction network`;
+    el("credit").textContent = `${note}  ·  drag orbit · shift-drag pan · wheel zoom · click atom`;
+    renderReadout();
+
+    // During playback the decomposition comes from the frame being shown. The rotational
+    // entropy penalty is a property of the ligand, not of the pose, so it is dropped from
+    // the live panel rather than carried over from the crystal-pose summary.
+    const live = (typeof player !== "undefined" && player.live) || null;
+    const src = live || es;
+    const terms = [
+      ["Coulomb", src.e_coulomb, "#4d7fff"],
+      ["GB desolv", src.dg_gb_solvation, "#ff8c42"],
+      ["van der Waals", src.e_vdw, "#8e99a8"],
+      ["H-bond", src.e_hbond, KINDS.hbond.color],
+      ["π-stacking", src.e_pi_stacking, KINDS.pi_stacking.color],
+      ["Cation–π", src.e_cation_pi, KINDS.cation_pi.color],
+      ["Halogen", src.e_halogen, KINDS.halogen_sigma_hole.color],
+      ["Hydrophobic", src.dg_hydrophobic, KINDS.hydrophobic.color],
+      ...(live ? [] : [["−TΔS rot", es.tds_rotational_penalty, "#ffb84d"]]),
+    ].filter(([, v]) => typeof v === "number" && Math.abs(v) > 1e-9);
+    const peak = Math.max(1e-6, ...terms.map(([, v]) => Math.abs(v)));
+    el("bars").innerHTML = terms.map(([nm, v, col]) => {
+      const w = (Math.abs(v) / peak) * 50;
+      const style = v < 0 ? `right:50%;width:${w}%` : `left:50%;width:${w}%`;
+      return `<div class="b"><span class="n">${nm}</span>` +
+             `<span class="t"><i style="${style};background:${col}"></i></span>` +
+             `<span class="q">${v.toFixed(2)}</span></div>`;
+    }).join("") || '<p class="hint">No energy summary in this scene.</p>';
+
+    el("hot").innerHTML = (scene.per_residue_hotspots || []).slice(0, 7).map((h) => {
+      const label = h.residue_id || h.residue || "?";
+      const e = Number(h.total_kcal_mol ?? h.energy_kcal_mol ?? h.total ?? 0);
+      return `<div class="h"><span>${label}</span><span>${e.toFixed(2)}</span></div>`;
+    }).join("") || '<p class="hint">No per-residue decomposition in this scene.</p>';
+
+    const counts = new Map();
+    for (const it of scene.interactions || []) counts.set(it.kind, (counts.get(it.kind) || 0) + 1);
+    if ((scene.halogen_sigma_holes || []).length) {
+      counts.set("halogen_sigma_hole",
+        (counts.get("halogen_sigma_hole") || 0) + scene.halogen_sigma_holes.length);
+    }
+    el("kinds").innerHTML = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([k, ct]) => {
+      const spec = KINDS[k] || KIND_FALLBACK;
+      const on = enabledKinds.has(k) ? "checked" : "";
+      return `<label class="row"><input type="checkbox" data-kind="${k}" ${on}>` +
+             `<span class="swatch" style="background:${spec.color};color:${spec.color}"></span>` +
+             `<span class="lbl">${spec.label}</span><span class="ct">${ct}</span></label>`;
+    }).join("") || '<p class="hint">No typed interactions in this scene.</p>';
+    el("kinds").querySelectorAll("input[data-kind]").forEach((inp) => {
+      inp.addEventListener("change", () => {
+        if (inp.checked) enabledKinds.add(inp.dataset.kind); else enabledKinds.delete(inp.dataset.kind);
+        buildView(); renderReadout(); invalidate();
+      });
+    });
+  }
+
+  function segment(id, attr, apply) {
+    el(id).addEventListener("click", (ev) => {
+      const btn = ev.target.closest(`button[data-${attr}]`);
+      if (!btn) return;
+      [...el(id).querySelectorAll("button")].forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+      apply(btn.dataset[attr]);
+    });
+  }
+  segment("seg-color", "mode", (v) => { ui.color = v; buildView(); invalidate(); });
+  segment("seg-pocket", "rep", (v) => { ui.pocket = v; buildView(); invalidate(); });
+  segment("seg-lig", "lig", (v) => { ui.lig = v; buildView(); invalidate(); });
+  segment("seg-surface", "surf", (v) => {
+    ui.surf = v;
+    // Contouring a ~110^3 field blocks for a moment, so show the curtain first.
+    curtain.hidden = false;
+    curtainMsg.textContent = v === "off" ? "Hiding surface…" : "Contouring molecular surface…";
+    requestAnimationFrame(() => {
+      buildView();
+      curtain.hidden = true;
+      invalidate();
+    });
+  });
+
+  el("chk-esp").addEventListener("change", (e) => { ui.esp = e.target.checked; buildView(); invalidate(); });
+  el("chk-rings").addEventListener("change", (e) => { ui.rings = e.target.checked; buildView(); invalidate(); });
+  el("chk-h").addEventListener("change", (e) => { ui.hydro = e.target.checked; buildView(); invalidate(); });
+  el("rng-slab").addEventListener("input", (e) => {
+    ui.slab = Number(e.target.value) / 100;
+    el("slab-v").textContent = `${e.target.value}%`;
+    invalidate();
+  });
+
+  async function load(id) {
+    curtain.hidden = false;
+    curtainMsg.textContent = `Loading ${String(id).toUpperCase()}…`;
+    try {
+      const res = await fetch(`${CFG.sceneBase}${id}.json`, { cache: "force-cache" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      scene = await res.json();
+    } catch (err) {
+      curtain.innerHTML =
+        `<p>Could not load <code>${CFG.sceneBase}${id}.json</code>.</p>` +
+        `<p class="hint">${String((err && err.message) || err)}</p>`;
+      return;
+    }
+    selected = -1;
+    if (typeof player !== "undefined") {
+      player.live = null;
+      player.frames = null;
+      player.playing = false;
+    }
+    enabledKinds = new Set(Object.keys(KINDS));
+    fitCamera();
+    buildView();
+    renderChrome();
+    showProbe(null);
+    curtain.hidden = true;
+    invalidate();
+    loadTrajectory(id);
+  }
+
+  // =====================================================================================
+  // Trajectory player
+  // =====================================================================================
+  // The recorded run is a list of ligand poses. Playback rewrites the ligand coordinates
+  // in place and rebuilds the view; the protein surface is NOT rebuilt, because its cache
+  // key is `pdb_id|style` and carries no ligand term -- that is what makes 60 fps possible
+  // on a body that costs ~144 ms to triangulate.
+  //
+  // Frames are recorded every N integration steps, so consecutive poses are ~0.05 ps
+  // apart. Playing them raw looks juddery, so positions are linearly interpolated between
+  // the two bracketing frames. Interpolating a rigid body's Cartesian coordinates shortens
+  // bonds slightly on large rotations; at the per-frame rotations here (well under a
+  // degree) the error is far below a pixel, and it avoids having to re-derive the pose
+  // from the quaternion on the GPU.
+  const player = {
+    frames: null, meta: null, idx: 0, playing: false, speed: 1,
+    last: 0, basePose: null,
+  };
+  const tEl = {
+    bar: el("transport"), play: el("t-play"), rew: el("t-rew"),
+    scrub: el("t-scrub"), clock: el("t-clock"), energy: el("t-energy"),
+    speed: el("t-speed"),
+  };
+
+  function applyFrame(f) {
+    // Continuous frame index: interpolate between floor(f) and floor(f)+1.
+    const n = player.frames.length;
+    const i0 = Math.max(0, Math.min(n - 1, Math.floor(f)));
+    const i1 = Math.min(n - 1, i0 + 1);
+    const w = f - i0;
+    const a = player.frames[i0], b = player.frames[i1];
+    const lig = scene.ligand_atoms || [];
+    const ca = a.coords, cb = b.coords;
+    if (!ca || ca.length !== lig.length) return;
+    for (let k = 0; k < lig.length; k++) {
+      const p = ca[k], q = cb[k];
+      lig[k].xyz = [
+        p[0] + (q[0] - p[0]) * w,
+        p[1] + (q[1] - p[1]) * w,
+        p[2] + (q[2] - p[2]) * w,
+      ];
+    }
+    const t = a.time_ps + (b.time_ps - a.time_ps) * w;
+    const total = player.frames[n - 1].time_ps;
+    tEl.clock.textContent = `${t.toFixed(2)} / ${total.toFixed(2)} ps`;
+    tEl.energy.textContent = `U ${a.u_total.toFixed(1)} kcal/mol`;
+    // The side panels otherwise keep showing the crystal pose while the ligand animates,
+    // which reads as the simulation having no effect on the energy. Point them at the
+    // live frame instead; `liveEnergy` is consumed by renderReadout and renderChrome.
+    player.live = a;
+    buildView();
+    renderReadout();
+    renderChrome();
+    invalidate();
+  }
+
+  function setPlaying(on) {
+    player.playing = on;
+    tEl.play.innerHTML = on ? "&#10073;&#10073;" : "&#9654;";
+    if (on) { player.last = 0; requestAnimationFrame(tick); }
+  }
+
+  function tick(ts) {
+    if (!player.playing || !player.frames) return;
+    if (!player.last) player.last = ts;
+    const dt = Math.min(0.1, (ts - player.last) / 1000);
+    player.last = ts;
+    // 1x means 40 recorded frames per second, which is a readable pace for a run of a
+    // few hundred frames regardless of how much simulated time it spans.
+    player.idx += dt * 40 * player.speed;
+    if (player.idx >= player.frames.length - 1) {
+      player.idx = 0;  // loop, so the approach can be watched repeatedly
+    }
+    tEl.scrub.value = String(Math.round(player.idx));
+    applyFrame(player.idx);
+    requestAnimationFrame(tick);
+  }
+
+  async function loadTrajectory(id) {
+    player.frames = null;
+    player.live = null;
+    player.playing = false;
+    tEl.bar.dataset.on = "0";
+    const base = CFG.trajectoryBase || CFG.sceneBase;
+    let payload = null;
+    try {
+      const res = await fetch(`${base}${id}.traj.json`, { cache: "force-cache" });
+      if (!res.ok) return;              // no trajectory for this scene: stay a still viewer
+      payload = await res.json();
+    } catch (err) {
+      return;
+    }
+    if (!payload || !Array.isArray(payload.frames) || !payload.frames.length) return;
+    const lig = scene.ligand_atoms || [];
+    if (payload.frames[0].coords.length !== lig.length) {
+      console.warn(
+        `trajectory has ${payload.frames[0].coords.length} ligand atoms but the scene has ` +
+        `${lig.length}; refusing to animate a mismatched pair`);
+      return;
+    }
+    player.frames = payload.frames;
+    player.meta = payload.diagnostics || {};
+    player.basePose = lig.map((a) => a.xyz.slice());
+    player.idx = 0;
+    tEl.scrub.min = "0";
+    tEl.scrub.max = String(payload.frames.length - 1);
+    tEl.scrub.value = "0";
+    tEl.bar.dataset.on = "1";
+    applyFrame(0);
+    setPlaying(true);
+  }
+
+  tEl.play.addEventListener("click", () => setPlaying(!player.playing));
+  tEl.rew.addEventListener("click", () => {
+    player.idx = 0; tEl.scrub.value = "0"; applyFrame(0);
+  });
+  tEl.scrub.addEventListener("input", () => {
+    setPlaying(false);
+    player.idx = Number(tEl.scrub.value);
+    applyFrame(player.idx);
+  });
+  tEl.speed.addEventListener("change", () => { player.speed = Number(tEl.speed.value); });
+  window.addEventListener("keydown", (ev) => {
+    if (ev.code === "Space" && player.frames) { ev.preventDefault(); setPlaying(!player.playing); }
+  });
+
+  el("seg-scene").innerHTML = CFG.scenes.map((s, i) =>
+    `<button data-scene="${s.id}" aria-pressed="${i === 0}" title="${s.note || ""}">${s.label}</button>`
+  ).join("");
+  segment("seg-scene", "scene", (v) => load(v));
+
+  window.addEventListener("resize", invalidate);
+  new ResizeObserver(invalidate).observe(canvas);
+  load(CFG.scenes[0].id);
+})();
+</script>
