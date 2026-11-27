@@ -34,7 +34,7 @@ fully unconditional Stage-1 chemical prior pretraining via ``memory=None``.
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal, cast
 
@@ -128,8 +128,11 @@ class DecoderScale:
     ) -> float:
         """Estimate total parameter count for planning memory and compute budgets.
 
-        Accurate to within ~10% of the instantiated module, which is sufficient for
-        choosing a preset against a known GPU memory budget.
+        Measured against the instantiated module at ``vocab_size=66``, the error is
+        **under 0.1%** for every preset (tiny +0.04%, small +0.02%, base +0.01%, large
+        +0.01%, xl +0.00%), so the estimate can be used directly to size a run against a
+        known GPU memory budget. The residual is the handful of scalar gates and norm
+        weights the closed form rounds over.
 
         Args:
             vocab_size: Tokenizer vocabulary size (the output head is weight-tied).
@@ -155,19 +158,41 @@ class DecoderScale:
         return float(vocab_size) * d + float(self.n_layers) * per_layer + d
 
 
-# RECOMMENDED DEFAULT: "small". Bigger is NOT better for de novo molecular design, and
-# the published evidence on this is unusually clear. NovoMolGen (arXiv:2508.13408, ~30k
-# experiments) reports that "goal-directed generation largely saturates beyond
-# approximately 5M parameters": the PMO benchmark sum moves only 16.48 -> 16.70 from 32M
-# to 300M params, and docking top-5% moves -65.8 (5M) -> -66.2 (1B) kcal/mol, i.e. within
-# noise across 200x the parameters. Xu et al. (arXiv:2601.22757) fit L(P, D) across 300
-# models and find, for SMILES, a parameter exponent alpha = 0.0171 against a data
-# exponent beta = 0.4299 -- data buys roughly 25x more loss reduction than parameters.
+# RECOMMENDED DEFAULT: "small". Bigger is NOT better for de novo molecular design.
+#
+# CITE THE VERSION. arXiv:2508.13408 hosts two substantially different studies under one
+# identifier: v1/v2 ("NovoMolGen: Rethinking Molecular Language Model Pretraining",
+# 32M/157M/300M on Llama) and v3 ("A Large Scale Investigation of Scaling Limits in
+# Chemical Language Models", 1 Oct 2026, 42 models over 0.5M-1B on Qwen3/T5Gemma). Every
+# figure below is from **v3**, whose abstract reports ">30,000 experiments"; a reader who
+# checks v1 or v2 will not find the 5M result and will reasonably think it invented.
+#
+# v3, Introduction (verbatim): "Downstream goal-directed generation largely saturates
+# beyond approximately 5M parameters, despite improvements in bits per molecule and
+# linear accessibility of chemical features." v3 Section 3.5 (verbatim): "Gains beyond 5M
+# are marginal, the total docking score moving only from -65.8 at 5M to -66.2 at 1B."
+#
+# For PMO, quote v3's own framing -- Section 3.5: NovoMolGen "surpasses REINVENT ... and
+# ff-RAG from 5M parameters onwards, scoring 16.45 against 16.30 for ff-RAG", and
+# "[s]caling to 1B raises the total only to 16.68". (Do NOT pair the appendix numbers
+# 16.48 and 16.70: those are Table I1 AtomWise-32M and Table I2 BPE-300M respectively, so
+# quoting them as one 32M->300M trend silently splices two different tokenizations.
+# Like-for-like it is 16.48 -> 16.64 for AtomWise and 16.68 -> 16.70 for BPE.)
+#
+# Xu et al. (arXiv:2601.22757, "Unveiling Scaling Behaviors in Molecular Language
+# Models", 30 Jan 2026) train 300 models and fit L(P,D) = L_inf + k_P * P^-alpha +
+# k_D * D^-beta per representation. For SMILES (their Table 1): alpha = 0.0171,
+# beta = 0.4299. The data exponent is ~25x the parameter exponent, so per decade of
+# scaling the data term falls by 10^0.4299 ~ 2.7x against 10^0.0171 ~ 1.04x for
+# parameters. NOTE: that is a statement about exponents, not "25x more loss reduction" --
+# each term's absolute contribution also carries k_P / k_D, which the paper does not
+# report, and the ratio is our derivation rather than a claim either paper makes.
 #
 # Two corollaries worth acting on:
-#   * Loss and sample quality can move in OPPOSITE directions. Scaling 5M -> 32M on
-#     PubChem improved loss 54.1 -> 48.1 bits/molecule while FCD got worse, 2.8 -> 5.1.
-#     Do not model-select on validation loss alone.
+#   * Loss and sample quality can move in OPPOSITE directions. v3 Section 3.3 (verbatim):
+#     "within PubChem SMILES, the FCD rises from 2.8 to 5.1 between 5M and 32M, even as
+#     the loss falls from 54.1 to 48.1." Do not model-select on validation loss alone.
+#     (The FCD-vs-PMO correlation r = 0.376, p = 0.358 is from **v2**, not v3.)
 #   * Memorization, not invalidity, is the real failure mode. GP-MoLFormer trained on
 #     1.1B SMILES reports novelty 0.323 (68% of samples are verbatim training molecules);
 #     ~45% of that corpus were duplicates, and deduplicating to 650M unique lifted
@@ -940,12 +965,24 @@ class ChemLMDecoder(nn.Module):
     def enable_gradient_checkpointing(self, enabled: bool = True) -> None:
         """Toggle per-block gradient checkpointing to trade compute for memory.
 
-        Leave this **off** unless memory is actually binding. Measured on an M3 Pro with
-        36 GiB unified memory, checkpointing saves 4.0x on activations (gradients stay
-        bit-exact) but costs ~17% throughput, and at 5M-200M parameters optimizer state
-        is only 0.3%-11% of the ~28 GiB MPS budget, so there is no memory problem to
-        solve. It earns its cost on the ``large``/``xl`` presets, on long sequences, or
-        at large batch sizes on a 40 GiB A100.
+        Off by default, because on a 36 GiB unified-memory Mac there is usually no memory
+        problem to solve at these scales -- not because the saving is small. Measured on
+        an M3 Pro at the ``small`` preset, batch 32, seq 96, it roughly **halves** GPU
+        memory: ``torch.mps.driver_allocated_memory()`` falls 2672.9 MB -> 1360.9 MB
+        (-49%). Turn it on for the ``large``/``xl`` presets, long sequences, or large
+        batches on a 40 GiB A100.
+
+        .. warning::
+           Do not judge this with ``torch.mps.current_allocated_memory()``. MPS exposes
+           no peak-memory counter, and the current-allocated figure sampled after a step
+           has already had the activations freed, so it shows the saving as +0.3 MB --
+           i.e. it cannot see the effect at all. Earlier revisions of this docstring
+           quoted a 4.0x activation saving and a ~17% throughput cost with no recorded
+           provenance; the throughput direction is not reproducible either, since
+           ``results/tables/chemlm_decoder_benchmark.json`` has the checkpointed
+           ``base`` config running *faster* (2056 vs 1640 tok/s), most likely an
+           allocator-pressure artifact on unified memory. Re-measure before quoting a
+           throughput number.
         """
         self.gradient_checkpointing = bool(enabled)
 
@@ -1212,6 +1249,7 @@ class ChemLMDecoder(nn.Module):
         top_p: float = 1.0,
         min_p: float = 0.0,
         cfg_scale: float = 1.0,
+        suppress_token_ids: Sequence[int] | None = None,
         seed: int | None = None,
         device: torch.device | None = None,
     ) -> Tensor:
@@ -1232,6 +1270,14 @@ class ChemLMDecoder(nn.Module):
             min_p: Minimum probability relative to the mode (``0.0`` disables).
             cfg_scale: Classifier-free guidance weight over pocket conditioning. ``1.0``
                 disables guidance; requires ``memory`` when ``> 1.0``.
+            suppress_token_ids: Token ids that may never be sampled. Defaults to
+                ``(pad_id, bos_id)``, both of which are structurally invalid mid-sequence.
+                Pass an explicit tuple to add the tokenizer's ``<unk>`` id (``3`` for
+                :class:`~geneuclidean.data.tokenizer.MolecularTokenizer`), which matters
+                for honest metrics: ``MolecularTokenizer.decode`` *silently drops* ``<unk>``
+                and *truncates* at ``<pad>``, so an unsuppressed sample containing either
+                can be silently repaired into a parseable string and inflate measured
+                validity. ``eos_id`` is never suppressed -- it is the stop signal.
             seed: Optional seed for reproducible sampling.
             device: Device to sample on (defaults to the model's device).
 
@@ -1249,6 +1295,15 @@ class ChemLMDecoder(nn.Module):
         use_cfg = cfg_scale != 1.0 and memory is not None
         cache: list[AttentionKVCache | None] | None = None
         uncond_cache: list[AttentionKVCache | None] | None = None
+
+        # Forbid tokens that cannot legally occur mid-sequence. Without this the sampler
+        # can emit <pad>/<bos>/<unk>, which the tokenizer's decoder then silently removes
+        # or truncates at -- quietly turning malformed samples into parseable ones.
+        banned = (self.pad_id, int(bos_id)) if suppress_token_ids is None else suppress_token_ids
+        banned_ids = sorted({int(t) for t in banned if 0 <= int(t) < self.vocab_size})
+        suppress_index: Tensor | None = (
+            torch.tensor(banned_ids, dtype=torch.long, device=dev) if banned_ids else None
+        )
 
         for step in range(int(max_new_tokens)):
             step_in = tokens if step == 0 else tokens[:, -1:]
@@ -1274,6 +1329,10 @@ class ChemLMDecoder(nn.Module):
                 )
                 uncond = uncond_logits[:, -1, :].float()
                 next_logits = uncond + float(cfg_scale) * (next_logits - uncond)
+
+            if suppress_index is not None:
+                # After guidance, before truncation, so it binds greedy decoding too.
+                next_logits = next_logits.index_fill(-1, suppress_index, float("-inf"))
 
             if temperature <= 0.0:
                 next_tokens = next_logits.argmax(dim=-1)

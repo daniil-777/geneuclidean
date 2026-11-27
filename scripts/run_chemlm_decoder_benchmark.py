@@ -16,7 +16,20 @@ CPU) and writes a structured JSON report to
   sensitivity.
 - **Tier 3 (Real Chemistry):** Trains a decoder on real ZINC-250k SMILES on the GPU for a
   fixed step budget, then samples with KV-cached decoding and reports RDKit validity,
-  uniqueness, novelty and mean QED, plus the measured KV-cache sampling speedup.
+  uniqueness, novelty and mean QED, together with the wall-clock time of that cached
+  sampling pass. Note that this is *not* a cache speedup measurement: no uncached
+  sampling baseline is run, so ``kv_cached_sample_seconds`` is an absolute cost, not a
+  ratio. Interpretation caveats for the chemistry numbers:
+
+  * Batches are drawn **with replacement**, so ``train_steps * batch_size`` draws touch
+    only ``N * (1 - (1 - 1/N)^(steps*batch))`` distinct molecules -- about 47% of
+    ZINC-250k at 5,000 x 32. The run is well under one epoch, which *inflates* novelty
+    relative to a converged model, because most of the reference corpus was never seen.
+  * Novelty also decays with sample count, so a figure at 512 samples is not comparable
+    to published novelty measured at 30k+.
+  * Mean QED should be read against the corpus mean (0.7318 for ZINC-250k), not against
+    other papers: matching the training distribution is the expected behaviour of a
+    well-fit prior, not evidence of superiority.
 
 Run::
 
@@ -109,9 +122,19 @@ def _reset_peak_memory(device: torch.device) -> None:
 
 
 def _peak_memory_mb(device: torch.device) -> float:
-    """Return peak allocated memory in MiB (``0.0`` on CPU, which has no counter)."""
+    """Return a memory high-water figure in MiB (``0.0`` on CPU, which has no counter).
+
+    On CUDA this is a true peak (``max_memory_allocated``). **On MPS there is no peak
+    counter at all**, so this reports ``driver_allocated_memory()`` -- total memory the
+    Metal driver holds, cache included. That is cache-inclusive rather than a strict
+    peak, but it does track activation pressure: at the ``small`` preset it separates a
+    checkpointed from a non-checkpointed step (1360.9 vs 2672.9 MB). The obvious
+    alternative, ``current_allocated_memory()``, is sampled once the backward pass has
+    already released its activations and reports the two as identical to within 0.3 MB,
+    which is why it must not be used here.
+    """
     if device.type == "mps":
-        return float(torch.mps.current_allocated_memory()) / (1024.0 * 1024.0)
+        return float(torch.mps.driver_allocated_memory()) / (1024.0 * 1024.0)
     if device.type == "cuda":
         return float(torch.cuda.max_memory_allocated()) / (1024.0 * 1024.0)
     return 0.0
@@ -474,6 +497,10 @@ def run_tier3(
         eos_id=tokenizer.EOS_ID,
         temperature=1.0,
         top_p=0.95,
+        # <pad>/<bos>/<unk> are illegal mid-sequence, and the tokenizer's decoder silently
+        # drops <unk> and truncates at <pad>. Leaving them samplable lets a malformed
+        # sample be quietly repaired into a parseable string, inflating validity.
+        suppress_token_ids=(tokenizer.PAD_ID, tokenizer.BOS_ID, tokenizer.UNK_ID),
         seed=0,
         device=device,
     )
@@ -673,6 +700,7 @@ def run_tier4(
             eos_id=tokenizer.EOS_ID,
             temperature=1.0,
             top_p=0.95,
+            suppress_token_ids=(tokenizer.PAD_ID, tokenizer.BOS_ID, tokenizer.UNK_ID),
             seed=0,
             device=device,
         )

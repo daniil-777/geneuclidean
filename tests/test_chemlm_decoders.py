@@ -826,3 +826,182 @@ def test_build_chemlm_decoder_respects_cross_attn_gate_init() -> None:
     gate = dec.blocks[0].cross_attn.gate
     assert gate is not None
     assert float(gate.detach()) == pytest.approx(0.75)
+
+
+# ---------------------------------------------------------------------------
+# Special-token suppression during sampling
+#
+# Without suppression the sampler can emit <pad>/<bos>/<unk>, and
+# ``MolecularTokenizer.decode`` then silently drops <unk> and truncates at <pad>. A
+# malformed sample is therefore quietly repaired into a parseable string, which inflates
+# measured validity. These tests pin the suppression that prevents it.
+# ---------------------------------------------------------------------------
+
+BOS_ID = 1
+EOS_ID = 2
+UNK_ID = 3
+
+
+def _sampled_body(dec: ChemLMDecoder, **gen_kwargs: object) -> torch.Tensor:
+    """Sample and drop the forced leading <bos> column."""
+    kwargs: dict[str, object] = {
+        "batch_size": 96,
+        "memory": None,
+        "max_new_tokens": 24,
+        "bos_id": BOS_ID,
+        "eos_id": EOS_ID,
+        "temperature": 1.0,
+        "seed": 0,
+    }
+    kwargs.update(gen_kwargs)
+    tokens = dec.generate(**kwargs)  # type: ignore[arg-type]
+    return tokens[:, 1:]
+
+
+def test_generate_suppresses_pad_and_bos_by_default() -> None:
+    """<pad> and <bos> are structurally impossible mid-sequence, so never sample them."""
+    torch.manual_seed(0)
+    body = _sampled_body(_tiny_decoder().eval())
+    assert int((body == PAD_ID).sum()) == 0
+    assert int((body == BOS_ID).sum()) == 0
+
+
+def test_generate_can_suppress_the_tokenizer_unk_id() -> None:
+    """<unk> is silently dropped by ``decode``, so callers must be able to forbid it."""
+    torch.manual_seed(0)
+    body = _sampled_body(_tiny_decoder().eval(), suppress_token_ids=(PAD_ID, BOS_ID, UNK_ID))
+    for banned in (PAD_ID, BOS_ID, UNK_ID):
+        assert int((body == banned).sum()) == 0
+
+
+def test_generate_suppression_also_binds_greedy_decoding() -> None:
+    """Suppression is applied to the logits, so it must hold for temperature <= 0 too."""
+    torch.manual_seed(0)
+    body = _sampled_body(
+        _tiny_decoder().eval(), temperature=0.0, suppress_token_ids=(PAD_ID, BOS_ID, UNK_ID)
+    )
+    for banned in (PAD_ID, BOS_ID, UNK_ID):
+        assert int((body == banned).sum()) == 0
+
+
+def test_generate_suppression_can_be_disabled_explicitly() -> None:
+    """An empty tuple restores unrestricted sampling, so the default is a real choice.
+
+    An untrained decoder samples near-uniformly, so with 96 x 24 draws over a 48-token
+    vocabulary at least one banned id is overwhelmingly likely to appear.
+    """
+    torch.manual_seed(0)
+    body = _sampled_body(_tiny_decoder().eval(), suppress_token_ids=())
+    emitted = sum(int((body == banned).sum()) for banned in (PAD_ID, BOS_ID, UNK_ID))
+    assert emitted > 0, "expected an unsuppressed sampler to emit special tokens"
+
+
+def test_generate_never_suppresses_eos() -> None:
+    """<eos> is the stop signal; suppressing it by default would prevent termination."""
+    torch.manual_seed(0)
+    dec = _tiny_decoder().eval()
+    body = _sampled_body(dec)
+    assert int((body == EOS_ID).sum()) > 0, "default suppression must leave <eos> samplable"
+
+
+def test_kv_cached_decoding_matches_full_forward_with_a_property_prefix() -> None:
+    """Cached parity must also hold when property tokens are prepended.
+
+    The benchmark's parity check supplies no ``properties``, so ``prefix_len`` is zero and
+    the prefix branch of ``forward_cached`` is never exercised -- yet that is exactly the
+    path property-conditioned sampling runs through.
+    """
+    torch.manual_seed(5)
+    dec = _tiny_decoder(num_properties=3).eval()
+    ids = torch.randint(4, VOCAB, (2, 9))
+    memory = torch.randn(2, 6, 32)
+    mask = torch.ones(2, 6, dtype=torch.bool)
+    props = torch.randn(2, 3)
+
+    with torch.no_grad():
+        full_logits, _ = dec(ids, memory=memory, memory_mask=mask, properties=props)
+        cache = None
+        step_logits = []
+        for t in range(int(ids.shape[1])):
+            out, cache = dec.forward_cached(
+                ids[:, t : t + 1],
+                memory=memory,
+                memory_mask=mask,
+                kv_cache=cache,
+                properties=props,
+            )
+            step_logits.append(out)
+        cached_logits = torch.cat(step_logits, dim=1)
+
+    assert cached_logits.shape == full_logits.shape
+    max_diff = (cached_logits - full_logits).abs().max().item()
+    assert max_diff < 2e-4, f"property-prefix KV-cache divergence {max_diff:.3e}"
+
+
+_OPTIONAL_3D_MODULES = ("autoregressive3d", "flow3d", "mol3d_recon")
+
+
+def test_decoders_init_has_no_module_level_import_of_the_3d_modules() -> None:
+    """``decoders/__init__`` must not import the optional 3D modules at module level.
+
+    An eager import there makes a missing 3D module break the *entire* decoder registry,
+    including the 1D SMILES decoders -- so ``chemlm`` became unimportable because of a
+    module it does not use. This is asserted on the source rather than on ``sys.modules``
+    because a caller that re-exports a 3D symbol by name (as ``geneuclidean.models``
+    does) will legitimately trigger the lazy import during a normal test session.
+    """
+    import ast
+    from pathlib import Path
+
+    init_path = Path(__import__("geneuclidean.models.decoders", fromlist=["*"]).__file__ or "")
+    assert init_path.is_file(), "could not locate decoders/__init__.py"
+    tree = ast.parse(init_path.read_text(encoding="utf-8"))
+
+    offenders: list[str] = []
+    for node in tree.body:  # module level only; nested imports are the lazy ones
+        if isinstance(node, ast.ImportFrom) and node.module:
+            if node.module.rsplit(".", 1)[-1] in _OPTIONAL_3D_MODULES:
+                offenders.append(f"line {node.lineno}: from {node.module} import ...")
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name.rsplit(".", 1)[-1] in _OPTIONAL_3D_MODULES:
+                    offenders.append(f"line {node.lineno}: import {alias.name}")
+    assert not offenders, "eager 3D imports in decoders/__init__.py: " + "; ".join(offenders)
+
+
+def test_every_exported_3d_symbol_is_registered_for_lazy_resolution() -> None:
+    """Removing the eager imports must not drop any name from the public surface."""
+    from geneuclidean.models import decoders as pkg
+
+    lazy_map = pkg._LAZY_EXPORTS
+    for name in pkg.__all__:
+        assert hasattr(pkg, name), f"{name} in __all__ but unresolvable"
+
+    three_d = {name for name, module in lazy_map.items() if module in _OPTIONAL_3D_MODULES}
+    assert three_d, "expected the 3D symbols to be lazily mapped"
+    # Each must resolve to the identical object its defining submodule exposes.
+    for name in sorted(three_d):
+        module = __import__(f"geneuclidean.models.decoders.{lazy_map[name]}", fromlist=[name])
+        assert getattr(pkg, name) is getattr(module, name), f"{name} resolved to a copy"
+
+
+def test_chemlm_is_buildable_without_touching_the_3d_modules() -> None:
+    """Building a ``chemlm`` decoder must not require any 3D decoder module."""
+    import sys
+
+    for module in _OPTIONAL_3D_MODULES:
+        sys.modules.pop(f"geneuclidean.models.decoders.{module}", None)
+
+    cfg = DecoderConfig(arch="chemlm", vocab_size=VOCAB, d_model=32, n_heads=4, d_ff=64, n_layers=1)
+    dec = build_decoder(cfg)
+    assert isinstance(dec, ChemLMDecoder)
+
+    still_absent = [
+        module
+        for module in _OPTIONAL_3D_MODULES
+        if f"geneuclidean.models.decoders.{module}" not in sys.modules
+    ]
+    assert still_absent == list(_OPTIONAL_3D_MODULES), (
+        "building chemlm pulled in a 3D module: "
+        f"{sorted(set(_OPTIONAL_3D_MODULES) - set(still_absent))}"
+    )
