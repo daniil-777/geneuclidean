@@ -183,6 +183,27 @@ if TYPE_CHECKING:
     from geneuclidean.audit import (
         summarize_audit_batch as summarize_audit_batch,
     )
+    from geneuclidean.biophysics.binding_dynamics import (
+        BindingDynamicsConfig as BindingDynamicsConfig,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        BindingTrajectory as BindingTrajectory,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        RigidBodyState as RigidBodyState,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        TrajectoryFrame as TrajectoryFrame,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        find_escape_direction as find_escape_direction,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        make_dynamics_hamiltonian as make_dynamics_hamiltonian,
+    )
+    from geneuclidean.biophysics.binding_dynamics import (
+        simulate_binding as simulate_binding,
+    )
     from geneuclidean.biophysics.forcefield import (
         BiophysicalAtomParams as BiophysicalAtomParams,
     )
@@ -1204,6 +1225,22 @@ _LAZY_ATTRS: dict[str, tuple[str, str]] = {
         "geneuclidean.biophysics.interaction_viz",
         "render_biophysical_twin_figure",
     ),
+    "BindingDynamicsConfig": (
+        "geneuclidean.biophysics.binding_dynamics",
+        "BindingDynamicsConfig",
+    ),
+    "BindingTrajectory": ("geneuclidean.biophysics.binding_dynamics", "BindingTrajectory"),
+    "RigidBodyState": ("geneuclidean.biophysics.binding_dynamics", "RigidBodyState"),
+    "TrajectoryFrame": ("geneuclidean.biophysics.binding_dynamics", "TrajectoryFrame"),
+    "find_escape_direction": (
+        "geneuclidean.biophysics.binding_dynamics",
+        "find_escape_direction",
+    ),
+    "make_dynamics_hamiltonian": (
+        "geneuclidean.biophysics.binding_dynamics",
+        "make_dynamics_hamiltonian",
+    ),
+    "simulate_binding": ("geneuclidean.biophysics.binding_dynamics", "simulate_binding"),
 }
 
 __all__ = sorted({"__version__", *_LAZY_SUBMODULES, *_LAZY_ATTRS.keys()})
