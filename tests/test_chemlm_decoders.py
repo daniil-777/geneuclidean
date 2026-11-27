@@ -951,9 +951,12 @@ def test_decoders_init_has_no_module_level_import_of_the_3d_modules() -> None:
     does) will legitimately trigger the lazy import during a normal test session.
     """
     import ast
+    import importlib
     from pathlib import Path
 
-    init_path = Path(__import__("geneuclidean.models.decoders", fromlist=["*"]).__file__ or "")
+    # `importlib.import_module`, never `__import__(..., fromlist=["*"])`: the latter walks
+    # `__all__` and would itself trigger the lazy imports this test exists to forbid.
+    init_path = Path(importlib.import_module("geneuclidean.models.decoders").__file__ or "")
     assert init_path.is_file(), "could not locate decoders/__init__.py"
     tree = ast.parse(init_path.read_text(encoding="utf-8"))
 
@@ -969,19 +972,44 @@ def test_decoders_init_has_no_module_level_import_of_the_3d_modules() -> None:
     assert not offenders, "eager 3D imports in decoders/__init__.py: " + "; ".join(offenders)
 
 
-def test_every_exported_3d_symbol_is_registered_for_lazy_resolution() -> None:
-    """Removing the eager imports must not drop any name from the public surface."""
+def _optional_3d_modules_available() -> bool:
+    """Whether the optional 3D decoder modules are present in this checkout."""
+    import importlib.util
+
+    return all(
+        importlib.util.find_spec(f"geneuclidean.models.decoders.{module}") is not None
+        for module in _OPTIONAL_3D_MODULES
+    )
+
+
+def test_every_non_optional_exported_symbol_resolves() -> None:
+    """Deferring the 3D imports must not drop any always-available name from the surface.
+
+    The 3D symbols are excluded deliberately: they are optional, and a clean checkout
+    that lacks those modules must still import this package successfully.
+    """
+    from geneuclidean.models import decoders as pkg
+
+    optional = {name for name, mod in pkg._LAZY_EXPORTS.items() if mod in _OPTIONAL_3D_MODULES}
+    assert optional, "expected the 3D symbols to be lazily mapped"
+
+    unresolvable = [n for n in pkg.__all__ if n not in optional and not hasattr(pkg, n)]
+    assert not unresolvable, f"names in __all__ that do not resolve: {unresolvable}"
+
+
+@pytest.mark.skipif(
+    not _optional_3d_modules_available(), reason="optional 3D decoder modules not installed"
+)
+def test_lazily_exported_3d_symbols_resolve_to_the_identical_object() -> None:
+    """When the 3D modules *are* present, the lazy re-export must not hand back a copy."""
+    import importlib
+
     from geneuclidean.models import decoders as pkg
 
     lazy_map = pkg._LAZY_EXPORTS
-    for name in pkg.__all__:
-        assert hasattr(pkg, name), f"{name} in __all__ but unresolvable"
-
-    three_d = {name for name, module in lazy_map.items() if module in _OPTIONAL_3D_MODULES}
-    assert three_d, "expected the 3D symbols to be lazily mapped"
-    # Each must resolve to the identical object its defining submodule exposes.
-    for name in sorted(three_d):
-        module = __import__(f"geneuclidean.models.decoders.{lazy_map[name]}", fromlist=[name])
+    three_d = sorted(n for n, mod in lazy_map.items() if mod in _OPTIONAL_3D_MODULES)
+    for name in three_d:
+        module = importlib.import_module(f"geneuclidean.models.decoders.{lazy_map[name]}")
         assert getattr(pkg, name) is getattr(module, name), f"{name} resolved to a copy"
 
 
