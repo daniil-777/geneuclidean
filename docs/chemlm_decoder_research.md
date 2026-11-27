@@ -257,6 +257,52 @@ compute-optimal size, so there is no reason to fight for 200M on a Mac.
 | Property conditioning sensitivity | 1.14 |
 | Parameter estimates vs instantiated | **<0.1% error** across all five presets (tiny +0.04%, small +0.02%, base +0.01%, large +0.01%, xl +0.00% at vocab 66) |
 
+### 7a. The control experiment: ChemLM vs the decoder it replaces
+
+**[M]** `scripts/run_chemlm_baseline_comparison.py` →
+`results/tables/chemlm_baseline_comparison.json`. The benchmark above shows ChemLM
+*works*; it trains no baseline, so it cannot show ChemLM is *better*. Comparing its
+numbers against published figures (GP-MoLFormer-46.8M, gpt2_zinc-87M) is a cross-paper
+comparison over different corpora, sample counts and budgets, and proves nothing. This is
+the missing control: same corpus, step budget, optimizer, schedule, batch size, sequence
+length and sampling policy — only the architecture differs.
+
+M3 Pro MPS, 5,000 steps, batch 32, 512 samples, load average 2.18:
+
+| | `chemlm` | legacy `transformer` | verdict |
+|---|---|---|---|
+| validity | 0.9512 (487/512) | 0.9453 (484/512) | z = **+0.43** → noise |
+| uniqueness | 1.0 | 1.0 | identical |
+| novelty (vs all 249,455) | 0.9979 | 0.9979 | identical |
+| mean QED | 0.7364 | **0.7398** | z = **−0.38** → noise, legacy higher |
+| parameters | **27.45M** | 33.74M | **18.6% fewer** |
+| final loss | **0.6133** | 0.6210 | marginal |
+| ms / training step | 165.5 | **154.6** | chemlm **7.1% slower** |
+| sample 512 molecules | **3.0 s** | 31.9 s | **10.63× faster** |
+
+**Molecule quality is indistinguishable.** The validity gap is three molecules out of 512
+(two-proportion z = +0.43, pooled SE 0.0138); the QED gap is 0.5 SE *in the baseline's
+favour*. Both land within 0.008 of ZINC-250k's own mean QED of 0.7318 (chemlm +0.0046,
+legacy +0.0080), which is what a well-fit prior is supposed to do.
+
+**What the architecture actually buys** is inference economics: a **10.63×** sampling
+speedup from the KV cache, and **18.6% fewer parameters** at equal quality from
+grouped-query attention. That is the difference between a usable and an unusable inner
+loop for RL or large-scale screening — but it is not a chemistry result, and nothing here
+supports the claim that this decoder generates better molecules than the one it replaces.
+Training step time is *worse* by 7.1%.
+
+A prototype run of the same experiment gave 0.9551/0.9512 validity, 0.7447/0.7455 QED and
+a 12.2× speedup: the same picture, with run-to-run drift (±0.004 validity, ±0.008 QED)
+already larger than the architecture gap.
+
+The same run settles the special-token question: with suppression disabled the trained
+model emitted **zero** `<pad>`, `<bos>` or `<unk>` tokens across 512 samples, so
+suppressed and unsuppressed metrics are byte-identical. The guard in `generate()` is a
+structural guarantee, not a correction to an inflated number.
+
+---
+
 **A subtlety worth recording.** Sparse MoE cannot be bit-for-bit causally exact. A token's
 expert assignment depends only on its own hidden state, so no information travels
 backwards in time — but perturbing later tokens changes how many tokens each expert

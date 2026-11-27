@@ -1,0 +1,86 @@
+{
+  "config": {
+    "train_steps": 5000,
+    "batch_size": 32,
+    "seq_len": 96,
+    "num_samples": 512,
+    "scale": "small",
+    "corpus_size": 249455,
+    "vocab_size": 66,
+    "device": "mps",
+    "optimizer": "AdamW lr=0.0003 wd=0.01 + OneCycleLR pct_start=0.1",
+    "sampling": "temperature=1.0 top_p=0.95 seed=0, <pad>/<bos>/<unk> suppressed; identical for both models",
+    "corpus_fraction_seen": 0.4734,
+    "epochs_equivalent": 0.641,
+    "note": "Batches are drawn WITH REPLACEMENT, so the run touches only corpus_fraction_seen of the corpus. Novelty measured against the full corpus is therefore optimistic relative to a converged model."
+  },
+  "machine": {
+    "platform": "macOS-27.3-arm64-arm-64bit",
+    "torch": "2.15.0",
+    "loadavg": [
+      2.18408203125,
+      2.79150390625,
+      3.45166015625
+    ]
+  },
+  "chemlm": {
+    "train_seconds": 827.7,
+    "ms_per_step": 165.5,
+    "first_loss": 2.9176,
+    "final_loss": 0.6133,
+    "params_m": 27.45,
+    "kv_cached_sample_seconds": 3.0,
+    "suppressed": {
+      "n_generated": 512,
+      "n_valid": 487,
+      "validity": 0.9512,
+      "uniqueness": 1.0,
+      "novelty": 0.9979,
+      "novelty_reference_size": 249455,
+      "mean_qed": 0.7364
+    },
+    "unsuppressed": {
+      "n_generated": 512,
+      "n_valid": 487,
+      "validity": 0.9512,
+      "uniqueness": 1.0,
+      "novelty": 0.9979,
+      "novelty_reference_size": 249455,
+      "mean_qed": 0.7364
+    },
+    "special_tokens_emitted_when_unsuppressed": {
+      "pad_occurrences": 0,
+      "pad_sequences": 0,
+      "bos_occurrences": 0,
+      "bos_sequences": 0,
+      "unk_occurrences": 0,
+      "unk_sequences": 0
+    }
+  },
+  "legacy_transformer": {
+    "train_seconds": 773.2,
+    "ms_per_step": 154.6,
+    "first_loss": 2.9291,
+    "final_loss": 0.621,
+    "params_m": 33.74,
+    "uncached_sample_seconds": 31.9,
+    "suppressed": {
+      "n_generated": 512,
+      "n_valid": 484,
+      "validity": 0.9453,
+      "uniqueness": 1.0,
+      "novelty": 0.9979,
+      "novelty_reference_size": 249455,
+      "mean_qed": 0.7398
+    }
+  },
+  "verdict": {
+    "validity_delta": 0.0059,
+    "mean_qed_delta": -0.0034,
+    "novelty_delta": 0.0,
+    "param_ratio": 0.814,
+    "sampling_speedup": 10.63,
+    "train_step_ratio": 1.071,
+    "suppression_changed_metrics": false
+  }
+}
