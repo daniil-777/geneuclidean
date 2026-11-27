@@ -97,6 +97,9 @@ llm = [
     "accelerate>=1.0",
     "huggingface-hub>=1.0",
 ]
+biophysics = [
+    "openmm>=8.1",
+]
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",

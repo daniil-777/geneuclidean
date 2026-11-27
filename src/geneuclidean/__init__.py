@@ -46,6 +46,9 @@ if TYPE_CHECKING:
         audit as audit,
     )
     from geneuclidean import (
+        biophysics as biophysics,
+    )
+    from geneuclidean import (
         cli as cli,
     )
     from geneuclidean import (
@@ -179,6 +182,57 @@ if TYPE_CHECKING:
     )
     from geneuclidean.audit import (
         summarize_audit_batch as summarize_audit_batch,
+    )
+    from geneuclidean.biophysics.forcefield import (
+        BiophysicalAtomParams as BiophysicalAtomParams,
+    )
+    from geneuclidean.biophysics.forcefield import (
+        BiophysicalHamiltonian as BiophysicalHamiltonian,
+    )
+    from geneuclidean.biophysics.forcefield import (
+        ComplexEnergyBreakdown as ComplexEnergyBreakdown,
+    )
+    from geneuclidean.biophysics.forcefield import (
+        parameterize_ligand_biophysics as parameterize_ligand_biophysics,
+    )
+    from geneuclidean.biophysics.forcefield import (
+        parameterize_pocket_biophysics as parameterize_pocket_biophysics,
+    )
+    from geneuclidean.biophysics.interaction_viz import (
+        ElectrostaticPotentialGrid as ElectrostaticPotentialGrid,
+    )
+    from geneuclidean.biophysics.interaction_viz import (
+        TypedBiophysicalInteraction as TypedBiophysicalInteraction,
+    )
+    from geneuclidean.biophysics.interaction_viz import (
+        compute_electrostatic_potential_grid as compute_electrostatic_potential_grid,
+    )
+    from geneuclidean.biophysics.interaction_viz import (
+        export_interactive_twin_html as export_interactive_twin_html,
+    )
+    from geneuclidean.biophysics.interaction_viz import (
+        export_web_twin_scene_json as export_web_twin_scene_json,
+    )
+    from geneuclidean.biophysics.interaction_viz import (
+        extract_typed_interaction_network as extract_typed_interaction_network,
+    )
+    from geneuclidean.biophysics.interaction_viz import (
+        render_biophysical_twin_figure as render_biophysical_twin_figure,
+    )
+    from geneuclidean.biophysics.protein_ligand_twin import (
+        OpenMMTwinAdapter as OpenMMTwinAdapter,
+    )
+    from geneuclidean.biophysics.protein_ligand_twin import (
+        ProteinLigandDigitalTwin as ProteinLigandDigitalTwin,
+    )
+    from geneuclidean.biophysics.protein_ligand_twin import (
+        TwinEnsembleSummary as TwinEnsembleSummary,
+    )
+    from geneuclidean.biophysics.protein_ligand_twin import (
+        TwinPhysicsInspection as TwinPhysicsInspection,
+    )
+    from geneuclidean.biophysics.protein_ligand_twin import (
+        TwinRelaxationResult as TwinRelaxationResult,
     )
     from geneuclidean.cns.dmpk_regression import (
         ConformalDMPKRegressor as ConformalDMPKRegressor,
@@ -738,6 +792,7 @@ _LAZY_SUBMODULES: frozenset[str] = frozenset(
         "active_learning",
         "api",
         "audit",
+        "biophysics",
         "cli",
         "cns",
         "config",
@@ -1095,6 +1150,60 @@ _LAZY_ATTRS: dict[str, tuple[str, str]] = {
     "SMILESValenceGrammarMask": ("geneuclidean.models.nlp_ops", "SMILESValenceGrammarMask"),
     "dpo_preference_loss": ("geneuclidean.models.nlp_ops", "dpo_preference_loss"),
     "grpo_policy_loss": ("geneuclidean.models.nlp_ops", "grpo_policy_loss"),
+    # Differentiable Protein-Ligand Biophysical & Force-Field Digital Twin (`biophysics`)
+    "BiophysicalAtomParams": ("geneuclidean.biophysics.forcefield", "BiophysicalAtomParams"),
+    "BiophysicalHamiltonian": ("geneuclidean.biophysics.forcefield", "BiophysicalHamiltonian"),
+    "ComplexEnergyBreakdown": ("geneuclidean.biophysics.forcefield", "ComplexEnergyBreakdown"),
+    "ElectrostaticPotentialGrid": (
+        "geneuclidean.biophysics.interaction_viz",
+        "ElectrostaticPotentialGrid",
+    ),
+    "OpenMMTwinAdapter": ("geneuclidean.biophysics.protein_ligand_twin", "OpenMMTwinAdapter"),
+    "ProteinLigandDigitalTwin": (
+        "geneuclidean.biophysics.protein_ligand_twin",
+        "ProteinLigandDigitalTwin",
+    ),
+    "TwinEnsembleSummary": ("geneuclidean.biophysics.protein_ligand_twin", "TwinEnsembleSummary"),
+    "TwinPhysicsInspection": (
+        "geneuclidean.biophysics.protein_ligand_twin",
+        "TwinPhysicsInspection",
+    ),
+    "TwinRelaxationResult": (
+        "geneuclidean.biophysics.protein_ligand_twin",
+        "TwinRelaxationResult",
+    ),
+    "TypedBiophysicalInteraction": (
+        "geneuclidean.biophysics.interaction_viz",
+        "TypedBiophysicalInteraction",
+    ),
+    "compute_electrostatic_potential_grid": (
+        "geneuclidean.biophysics.interaction_viz",
+        "compute_electrostatic_potential_grid",
+    ),
+    "export_interactive_twin_html": (
+        "geneuclidean.biophysics.interaction_viz",
+        "export_interactive_twin_html",
+    ),
+    "export_web_twin_scene_json": (
+        "geneuclidean.biophysics.interaction_viz",
+        "export_web_twin_scene_json",
+    ),
+    "extract_typed_interaction_network": (
+        "geneuclidean.biophysics.interaction_viz",
+        "extract_typed_interaction_network",
+    ),
+    "parameterize_ligand_biophysics": (
+        "geneuclidean.biophysics.forcefield",
+        "parameterize_ligand_biophysics",
+    ),
+    "parameterize_pocket_biophysics": (
+        "geneuclidean.biophysics.forcefield",
+        "parameterize_pocket_biophysics",
+    ),
+    "render_biophysical_twin_figure": (
+        "geneuclidean.biophysics.interaction_viz",
+        "render_biophysical_twin_figure",
+    ),
 }
 
 __all__ = sorted({"__version__", *_LAZY_SUBMODULES, *_LAZY_ATTRS.keys()})
