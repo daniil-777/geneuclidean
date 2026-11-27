@@ -11,7 +11,12 @@ repository's CASF structures, so the suite does not depend on untracked data.
 
 from __future__ import annotations
 
+import json
 import math
+import os
+import shutil
+import subprocess
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -497,3 +502,177 @@ def test_trajectory_serializes_with_a_schema_version(synthetic_complex: tuple) -
     assert len(first["com"]) == 3
     assert len(first["coords"]) == int(lig.coords.shape[0])
     assert "contract" in payload["diagnostics"]
+
+
+def test_native_library_source_is_packaged() -> None:
+    """The C++ source must ship, or the engine cannot be built from an installed wheel."""
+    import geneuclidean.biophysics as bio
+
+    src = Path(bio.__file__).parent / "_native" / "binding_dynamics.cpp"
+    assert src.is_file(), f"missing native source at {src}"
+
+
+def test_cxx_unavailable_degrades_gracefully_and_auto_falls_back_to_python(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    synthetic_complex: tuple,
+) -> None:
+    """When C++ compilation fails or CXX is missing, build raises and backend='auto' falls back."""
+    from geneuclidean.biophysics._native_dynamics import build_native_library, native_available
+
+    # 1. Failing compiler exit code -> RuntimeError with compiler command diagnostics
+    false_bin = shutil.which("false")
+    if false_bin is not None:
+        monkeypatch.setenv("CXX", false_bin)
+        with pytest.raises(RuntimeError, match="failed to compile"):
+            build_native_library(tmp_path / "fail_compile.so", force=True)
+
+    # 2. Nonexistent CXX binary + unbuilt GENEUCLIDEAN_NATIVE_LIB -> clean fallback to Python
+    missing_lib = tmp_path / "unbuilt_libgexdyn.so"
+    monkeypatch.setenv("CXX", "/nonexistent/gex_missing_cxx_compiler")
+    monkeypatch.setenv("GENEUCLIDEAN_NATIVE_LIB", str(missing_lib))
+
+    with pytest.raises((RuntimeError, FileNotFoundError)):
+        build_native_library(missing_lib, force=True)
+
+    assert native_available() is False
+
+    lig, rec = synthetic_complex
+    cfg = BindingDynamicsConfig(
+        release_steps=4,
+        record_every=2,
+        launch_distance_a=1.0,
+        stage_max_steps=4,
+    )
+    traj = simulate_binding(lig, rec, make_dynamics_hamiltonian(), config=cfg, backend="auto")
+    assert len(traj.frames) >= 2
+    assert "python" in str(traj.diagnostics["backend"]).lower()
+
+
+def _find_empp() -> Path | None:
+    found = shutil.which("em++")
+    if found is not None:
+        return Path(found)
+    emsdk_candidate = Path.home() / "emsdk" / "upstream" / "emscripten" / "em++"
+    return emsdk_candidate if emsdk_candidate.is_file() else None
+
+
+_EMPP_PATH = _find_empp()
+_NODE_PATH = shutil.which("node")
+
+
+@pytest.mark.skipif(
+    _EMPP_PATH is None or _NODE_PATH is None,
+    reason="Emscripten (em++) and Node.js required for WebAssembly parity verification",
+)
+def test_wasm_module_matches_native_engine_via_instantiate_wasm(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    synthetic_complex: tuple,
+) -> None:
+    """Compile _native/binding_dynamics.cpp to WASM and verify parity via Module.instantiateWasm."""
+    nd = _native_or_skip()
+    assert _EMPP_PATH is not None and _NODE_PATH is not None
+
+    monkeypatch.setenv("PATH", f"{_EMPP_PATH.parent}{os.pathsep}{os.environ.get('PATH', '')}")
+
+    wasm_dir = tmp_path / "wasm_out"
+    js_path = nd.build_wasm_module(wasm_dir, optimize="-O2")
+    wasm_path = js_path.with_suffix(".wasm")
+    assert js_path.is_file() and js_path.stat().st_size > 1_000
+    assert wasm_path.is_file() and wasm_path.stat().st_size > 10_000
+
+    lig, rec = synthetic_complex
+    ham = make_dynamics_hamiltonian()
+    blob = nd.pack_engine_blob(lig, rec, ham)
+    blob_path = tmp_path / "engine.bin"
+    blob_path.write_bytes(blob)
+
+    eng = nd.NativeEngine.build(lig, rec, ham)
+    try:
+        quat = np.ascontiguousarray(eng.quat0, dtype=np.float64)
+        com = np.ascontiguousarray(eng.com0 + np.array([0.35, -0.25, 0.40]), dtype=np.float64)
+        u_cpp, terms_cpp = eng.energy(quat, com)
+        f_cpp, t_cpp = eng.forces(quat, com)
+    finally:
+        eng.close()
+
+    pose_json = json.dumps({"quat": quat.tolist(), "com": com.tolist()})
+    harness_js = tmp_path / "verify_wasm.cjs"
+    harness_js.write_text(
+        """\
+const fs = require("fs");
+const vm = require("vm");
+
+const [jsPath, wasmPath, blobPath, poseJson] = process.argv.slice(2);
+const wasmBytes = fs.readFileSync(wasmPath);
+const blobBytes = fs.readFileSync(blobPath);
+const pose = JSON.parse(poseJson);
+
+globalThis.self = globalThis;
+globalThis.location = { href: "file://" + jsPath };
+vm.runInThisContext(fs.readFileSync(jsPath, "utf8") + "\\n;globalThis.__GexDyn = GexDyn;");
+
+(async () => {
+  const mod = await globalThis.__GexDyn({
+    instantiateWasm(imports, successCallback) {
+      WebAssembly.instantiate(wasmBytes, imports).then((res) => {
+        successCallback(res.instance, res.module);
+      });
+      return {};
+    },
+  });
+
+  const version = mod._gex_version();
+  const blobPtr = mod._malloc(blobBytes.length);
+  mod.HEAPU8.set(blobBytes, blobPtr);
+  const handle = mod._gex_create_packed(blobPtr, blobBytes.length);
+  mod._free(blobPtr);
+  if (!handle) {
+    throw new Error("gex_create_packed returned 0");
+  }
+
+  const qPtr = mod._malloc(4 * 8);
+  const cPtr = mod._malloc(3 * 8);
+  const termsPtr = mod._malloc(8 * 8);
+  const fPtr = mod._malloc(3 * 8);
+  const tPtr = mod._malloc(3 * 8);
+
+  mod.HEAPF64.set(pose.quat, qPtr >> 3);
+  mod.HEAPF64.set(pose.com, cPtr >> 3);
+
+  const uTotal = mod._gex_energy(handle, qPtr, cPtr, termsPtr);
+  mod._gex_forces(handle, qPtr, cPtr, 1e-5, 1e-5, fPtr, tPtr);
+
+  const terms = Array.from(mod.HEAPF64.subarray(termsPtr >> 3, (termsPtr >> 3) + 8));
+  const force = Array.from(mod.HEAPF64.subarray(fPtr >> 3, (fPtr >> 3) + 3));
+  const torque = Array.from(mod.HEAPF64.subarray(tPtr >> 3, (tPtr >> 3) + 3));
+
+  mod._free(qPtr);
+  mod._free(cPtr);
+  mod._free(termsPtr);
+  mod._free(fPtr);
+  mod._free(tPtr);
+  mod._gex_destroy(handle);
+
+  process.stdout.write(JSON.stringify({ version, uTotal, terms, force, torque }) + "\\n");
+})().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+""",
+        encoding="utf-8",
+    )
+
+    proc = subprocess.run(
+        [_NODE_PATH, str(harness_js), str(js_path), str(wasm_path), str(blob_path), pose_json],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    wasm_out = json.loads(proc.stdout.strip())
+    assert wasm_out["version"] == 7
+    assert float(wasm_out["uTotal"]) == pytest.approx(u_cpp, rel=1e-12, abs=1e-12)
+    np.testing.assert_allclose(wasm_out["terms"], terms_cpp, rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(wasm_out["force"], f_cpp, rtol=1e-9, atol=1e-9)
+    np.testing.assert_allclose(wasm_out["torque"], t_cpp, rtol=1e-9, atol=1e-9)

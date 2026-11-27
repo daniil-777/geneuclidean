@@ -183,6 +183,18 @@ if TYPE_CHECKING:
     from geneuclidean.audit import (
         summarize_audit_batch as summarize_audit_batch,
     )
+    from geneuclidean.biophysics._native_dynamics import (
+        NativeEngine as NativeEngine,
+    )
+    from geneuclidean.biophysics._native_dynamics import (
+        build_native_library as build_native_library,
+    )
+    from geneuclidean.biophysics._native_dynamics import (
+        build_wasm_module as build_wasm_module,
+    )
+    from geneuclidean.biophysics._native_dynamics import (
+        native_available as native_available,
+    )
     from geneuclidean.biophysics.binding_dynamics import (
         BindingDynamicsConfig as BindingDynamicsConfig,
     )
@@ -1241,6 +1253,13 @@ _LAZY_ATTRS: dict[str, tuple[str, str]] = {
         "make_dynamics_hamiltonian",
     ),
     "simulate_binding": ("geneuclidean.biophysics.binding_dynamics", "simulate_binding"),
+    "NativeEngine": ("geneuclidean.biophysics._native_dynamics", "NativeEngine"),
+    "build_native_library": (
+        "geneuclidean.biophysics._native_dynamics",
+        "build_native_library",
+    ),
+    "build_wasm_module": ("geneuclidean.biophysics._native_dynamics", "build_wasm_module"),
+    "native_available": ("geneuclidean.biophysics._native_dynamics", "native_available"),
 }
 
 __all__ = sorted({"__version__", *_LAZY_SUBMODULES, *_LAZY_ATTRS.keys()})

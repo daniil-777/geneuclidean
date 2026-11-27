@@ -22,10 +22,12 @@ Public Pillars:
    :func:`compute_electrostatic_potential_grid`, :func:`extract_typed_interaction_network`,
    :func:`render_biophysical_twin_figure`, :func:`export_web_twin_scene_json`,
    and :func:`export_interactive_twin_html`.
-4. **Rigid-Body Langevin Association Dynamics**
-   (:mod:`geneuclidean.biophysics.binding_dynamics`):
+4. **Rigid-Body Langevin Association Dynamics & Native C++/WebAssembly Engine**
+   (:mod:`geneuclidean.biophysics.binding_dynamics`,
+   :mod:`geneuclidean.biophysics._native_dynamics`):
    :func:`simulate_binding`, :class:`BindingDynamicsConfig`, :class:`BindingTrajectory`,
-   :func:`make_dynamics_hamiltonian`, and :func:`find_escape_direction`.
+   :func:`make_dynamics_hamiltonian`, :func:`find_escape_direction`, :class:`NativeEngine`,
+   :func:`build_native_library`, and :func:`build_wasm_module`.
 """
 
 from __future__ import annotations
@@ -34,6 +36,26 @@ import importlib
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    # --- Item E: _native_dynamics ---
+    from geneuclidean.biophysics._native_dynamics import (
+        NativeEngine as NativeEngine,
+    )
+    from geneuclidean.biophysics._native_dynamics import (
+        build_native_library as build_native_library,
+    )
+    from geneuclidean.biophysics._native_dynamics import (
+        build_wasm_module as build_wasm_module,
+    )
+    from geneuclidean.biophysics._native_dynamics import (
+        native_available as native_available,
+    )
+    from geneuclidean.biophysics._native_dynamics import (
+        pack_engine_blob as pack_engine_blob,
+    )
+    from geneuclidean.biophysics._native_dynamics import (
+        simulate_binding_native as simulate_binding_native,
+    )
+
     # --- Item D: binding_dynamics ---
     from geneuclidean.biophysics.binding_dynamics import (
         EIGHT_PI_ETA_WATER_300K as EIGHT_PI_ETA_WATER_300K,
@@ -145,6 +167,8 @@ _LAZY_SUBMODULES: frozenset[str] = frozenset(
         "protein_ligand_twin",
         # Item D submodule
         "binding_dynamics",
+        # Item E submodule
+        "_native_dynamics",
     }
 )
 
@@ -237,6 +261,19 @@ _LAZY_ATTRS: dict[str, tuple[str, str]] = {
     ),
     "rigid_body_inertia": ("geneuclidean.biophysics.binding_dynamics", "rigid_body_inertia"),
     "simulate_binding": ("geneuclidean.biophysics.binding_dynamics", "simulate_binding"),
+    # Item E: Native C++ / WebAssembly dynamics bridge (`_native_dynamics`)
+    "NativeEngine": ("geneuclidean.biophysics._native_dynamics", "NativeEngine"),
+    "build_native_library": (
+        "geneuclidean.biophysics._native_dynamics",
+        "build_native_library",
+    ),
+    "build_wasm_module": ("geneuclidean.biophysics._native_dynamics", "build_wasm_module"),
+    "native_available": ("geneuclidean.biophysics._native_dynamics", "native_available"),
+    "pack_engine_blob": ("geneuclidean.biophysics._native_dynamics", "pack_engine_blob"),
+    "simulate_binding_native": (
+        "geneuclidean.biophysics._native_dynamics",
+        "simulate_binding_native",
+    ),
 }
 
 __all__ = sorted(set(_LAZY_SUBMODULES) | set(_LAZY_ATTRS.keys()))
