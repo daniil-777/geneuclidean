@@ -1396,6 +1396,16 @@ class ChemLMDecoder(nn.Module):
         every shape-compatible tensor. Newly introduced cross-attention layers, gates and
         property conditioners are left at their initialization and reported as missing.
 
+        .. important::
+           Construct the target decoder with ``cross_attn_gate_init=0.0`` when using this.
+           The default is ``0.1``, so ``tanh(0.1) ~ 0.0997`` and the freshly initialized
+           cross-attention perturbs the transferred prior from the first step. Flamingo's
+           reason for a **zero**-initialized tanh gate is precisely that it makes the
+           inserted cross-attention an exact no-op at initialization, leaving the
+           pretrained language model intact while the gate learns to open (reported worth
+           +4.2 and to fix training instability, arXiv:2204.14198 Tab. 3). Stage-1 ->
+           Stage-2 transfer is the case where that matters most.
+
         Args:
             state_dict: A checkpoint mapping, possibly wrapped.
 

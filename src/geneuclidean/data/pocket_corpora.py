@@ -23,9 +23,14 @@ this ASCII docstring writes ``A``):
     and 100 proteins from remaining clusters for testing."
 
 Roughly 84,000 qualifying complexes are therefore discarded by every published baseline
-in that lineage. :func:`build_rmsd_filtered_pairs` keeps all of them, which is a free
-**1.84x** increase in training pairs at zero download or compute cost. Pass
+in that lineage. :func:`build_rmsd_filtered_pairs` does not apply that cap, so the
+**1.84x** (184,057 / 100,000) is available at zero download or compute cost. Pass
 ``limit=100_000`` to reproduce the canonical baseline instead.
+
+Read that 1.84x precisely: it is the ratio of the *filtered* set to the published
+*training draw*. The function's own default also deduplicates to the best pose per
+(pocket group, ligand), which returns fewer than 184,057 pairs -- a better default for
+training, but not the literature count. See :func:`build_rmsd_filtered_pairs`.
 
 Note on pocket geometry: GenEuclidean extracts pockets at 10 A *nearest-atom* distance
 (see :func:`geneuclidean.data.featurizer.extract_pocket_from_files`). The CrossDocked
@@ -352,12 +357,29 @@ def build_rmsd_filtered_pairs(
     limit: int | None = None,
     seed: int = 42,
 ) -> list[CrossDockedPair]:
-    """Apply the canonical RMSD filter, keeping **every** qualifying pair by default.
+    """Apply the canonical RMSD filter without the canonical 100,000-pair cap.
 
     Luo et al. (2021) filter to RMSD <= 1 A, yielding 184,057 pairs, then randomly draw
-    only 100,000 for training. Leaving ``limit=None`` keeps all of them -- a free ~1.84x
-    increase in training data over every baseline in that lineage. Pass
-    ``limit=100_000`` to reproduce the published baseline exactly.
+    only 100,000 for training. Leaving ``limit=None`` keeps the whole filtered set
+    instead of that draw.
+
+    .. note::
+       Two caveats on the "1.84x more data" framing, so it is not overstated:
+
+       * The 1.84x refers to **removing the 100,000 cap** (184,057 / 100,000), not to the
+         size of what this function returns.
+       * ``dedupe_by_ligand`` defaults to ``True``, which keeps only the best pose per
+         (pocket group, ligand) and therefore returns **fewer than 184,057** pairs. That
+         is the scientifically preferable default -- without it a single ligand can
+         appear hundreds of times at different pose qualities and dominate the loss --
+         but it means the return value is not the literature count. Pass
+         ``dedupe_by_ligand=False`` to reproduce 184,057, and ``limit=100_000`` to
+         reproduce the published training subset.
+
+       Records whose RMSD column is missing are dropped (see ``rmsd_threshold``), so a
+       ``.types`` variant with absent numeric columns yields a smaller set than the
+       published one. The parse is positional over the leading numeric fields, so verify
+       the recovered count against the release notes before trusting it.
 
     Args:
         pairs: Parsed CrossDocked records.

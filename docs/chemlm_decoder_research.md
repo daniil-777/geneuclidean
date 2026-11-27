@@ -14,27 +14,59 @@ Legend: **[V]** verified against a primary source (paper text or released code) 
 The brief asked for "as powerful an LLM as possible". The evidence says that is the wrong
 objective for de novo molecular design, and it says so unusually clearly.
 
-**[V] NovoMolGen** ([arXiv:2508.13408](https://arxiv.org/abs/2508.13408), ~30k experiments,
-compute 3e15 → 1e19 FLOPs) states verbatim that *"goal-directed generation largely
-saturates beyond approximately 5M parameters, despite improvements in bits per
-molecule."* The supporting numbers:
+**[V] NovoMolGen / "A Large Scale Investigation of Scaling Limits in Chemical Language
+Models"** ([arXiv:2508.13408**v3**](https://arxiv.org/abs/2508.13408v3), >30,000
+experiments) states verbatim: *"Downstream goal-directed generation largely saturates
+beyond approximately 5M parameters, despite improvements in bits per molecule and linear
+accessibility of chemical features."*
+
+> **Cite the version.** This arXiv id hosts two substantially different studies. v1/v2
+> ("NovoMolGen: Rethinking Molecular Language Model Pretraining") train 32M/157M/300M
+> models on Llama and contain **no 5M or 1B model and no total docking score**; v3
+> (1 Oct 2026, retitled) trains 42 models over 0.5M–1B on Qwen3/T5Gemma across four
+> corpora. Every figure below is v3's. An earlier revision of this document cited the
+> bare id, so a reader checking v1 would have found the central claim absent and
+> reasonably concluded it was invented.
 
 | Metric | 5M | 32M | 300M | 1B |
 |---|---|---|---|---|
-| Loss (bits/molecule) | — | 48.1 | — | 45.0 |
-| PMO sum (22 tasks, 10k oracle calls) | — | 16.48 | 16.70 | — |
-| Docking top-5% (5 targets, kcal/mol) | −65.8 | −66.3 | — | −66.2 |
+| Loss (bits/molecule, PubChem SMILES atomwise) | 54.1 | 48.1 | — | — |
+| Total docking top-5% (5 targets, kcal/mol) | −65.8 | −66.3 | −66.1 | −66.2 |
 
-31× more parameters past 32M buys 3.1 bits of loss and **0.2 kcal/mol of docking score**,
-which is inside the noise. For reference, REINVENT scores 14.01 on PMO and f-RAG 16.30.
+v3 §3.5, verbatim: *"Gains beyond 5M are marginal, the total docking score moving only
+from −65.8 at 5M to −66.2 at 1B."* 200× the parameters buys **0.4 kcal/mol**, inside the
+noise.
 
-**[V] Xu et al.** ([arXiv:2601.22757](https://arxiv.org/abs/2601.22757), 300 models,
-1M→650M params, 5 representations) fit `L(P,D) = L∞ + k_P·P^(−α) + k_D·D^(−β)` and find
-for SMILES **α = 0.0171** against **β = 0.4299**. The parameter exponent is ~25× smaller
-than the data exponent: *data buys ~25× more than parameters.* The two papers look
-contradictory and are not — one measures loss, the other measures design quality, and
-Xu et al. concede that de novo metrics "saturate early" and "cannot serve as primary
-evidence for or against scaling".
+For PMO, v3's own framing is the one to quote (§3.5): NovoMolGen *"surpasses REINVENT …
+and ff-RAG from 5M parameters onwards, scoring 16.45 against 16.30 for ff-RAG"*, and
+*"[s]caling to 1B raises the total only to 16.68."* REINVENT scores 14.01.
+
+> **Correction.** This table previously read "PMO sum 16.48 (32M) → 16.70 (300M)". Those
+> two numbers are real but come from *different tokenizations* — 16.48 is Table I1
+> (AtomWise, 32M) and 16.70 is Table I2 (BPE, 300M) — so presenting them as one
+> 32M→300M trend silently spliced two series. Like-for-like it is 16.48 → 16.64
+> (AtomWise) and 16.68 → 16.70 (BPE).
+
+**[V] Xu et al.** ([arXiv:2601.22757](https://arxiv.org/abs/2601.22757), "Unveiling
+Scaling Behaviors in Molecular Language Models", 30 Jan 2026) *"train 300 models and
+conduct over 10,000 experiments"*, fit `L(P,D) = L∞ + k_P·P^(−α) + k_D·D^(−β)` per
+representation, and report for SMILES (their Table 1) **α = 0.0171** against
+**β = 0.4299**. The other representations: DeepSMILES 0.0588/0.3624, FragLink
+0.0282/0.5214, FragSeq 0.0189/0.5207, SAFE 0.0200/0.2001. β > α everywhere.
+
+> **Correction.** This document previously concluded "*data buys ~25× more than
+> parameters*". That does not follow. α and β are **exponents**: per decade of scaling
+> the data term falls by 10^0.4299 ≈ 2.7× against 10^0.0171 ≈ 1.04× for parameters, but
+> each term's absolute contribution also carries k_P / k_D, which the paper does not
+> report. The defensible claim is the ordering — *data scaling dominates parameter
+> scaling for SMILES* — not a 25× loss-reduction ratio. The ratio is ours, not either
+> paper's. **[U]** The further attributions that Xu et al. "concede de novo metrics
+> saturate early" and "cannot serve as primary evidence for or against scaling" could
+> not be verified verbatim in the retrievable text and are demoted from quotations to
+> unverified paraphrase.
+
+The two papers look contradictory and are not: one measures loss, the other design
+quality, and the mechanism below explains why they diverge.
 
 **Mechanism [V]:** chemical *syntax* saturates early (a validity probe reaches 90% of its
 final accuracy at 0.1 tokens/param) while docking/PMO *semantics* need 0.6 and
@@ -51,10 +83,11 @@ numbers above so nobody re-derives this from scratch.
 
 ## 2. Two traps that will produce a misleading result
 
-**[V] Loss and sample quality can move in opposite directions.** Scaling 5M→32M on PubChem
-improved loss 54.1→48.1 bits/molecule while **FCD got worse, 2.8→5.1**. Never
-model-select on validation loss alone. The notebook reports sample metrics separately and
-never selects on loss.
+**[V] Loss and sample quality can move in opposite directions.** arXiv:2508.13408v3 §3.3,
+verbatim: *"within PubChem SMILES, the FCD rises from 2.8 to 5.1 between 5M and 32M, even
+as the loss falls from 54.1 to 48.1."* Never model-select on validation loss alone. The
+notebook reports sample metrics separately and never selects on loss. (The related
+FCD-vs-PMO correlation **r = 0.376, p = 0.358** is from **v2** of that paper, not v3.)
 
 **[V] Loss is not comparable across corpora.** Bits/molecule at 32M: MOSES 25.6, ChEMBL
 33.2, PubChem 48.1, ZINC-22 51.5. A MOSES model is not twice as good as a ZINC-22 model;
@@ -198,7 +231,7 @@ invalid geometry.
 | Finding | Detail |
 |---|---|
 | **Memory is not the constraint** | At 5M–200M params, optimizer state is 0.3%–11% of the ~28 GiB budget. `recommended_max_memory()` = 28.08 GiB = exactly 78% of `hw.memsize`. |
-| **Do not enable gradient checkpointing** | It works perfectly (4.0× activation saving, gradients bit-exact) but costs ~17% throughput to solve a problem you do not have. Defaults to off; the docstring explains when it earns its cost. |
+| **Gradient checkpointing: off by default, but it does save memory** | Re-measured at the `small` preset, batch 32, seq 96: `driver_allocated_memory()` falls **2672.9 MB → 1360.9 MB (−49%)**. An earlier revision of this table claimed "4.0× activation saving … ~17% throughput" with no recorded provenance, and asserted there was no memory gain — that conclusion came from reading `current_allocated_memory()`, which is sampled after the backward pass has freed its activations and reports the two configurations as identical to within 0.3 MB. **MPS exposes no peak-memory counter at all.** The throughput cost is *not* reproducible either: `chemlm_decoder_benchmark.json` has the checkpointed `base` config running *faster* (2056 vs 1640 tok/s), probably an allocator-pressure artifact. Still off by default — on a 36 GiB box there is usually no memory problem to solve — but that is a budget argument, not a "no saving" argument. |
 | **The default allocator will swap your Mac instead of OOMing** | `HIGH_WATERMARK_RATIO` defaults to 1.7 → 47.7 GiB "allowed" on a 36 GiB box; 34 GiB was allocated with no error. Fix requires **both** `PYTORCH_MPS_HIGH_WATERMARK_RATIO=1.0` and `PYTORCH_MPS_LOW_WATERMARK_RATIO=0.9` — setting HIGH alone in (0.0, 1.4) throws, and the widely-copied `HIGH=0.0` *removes* the cap. |
 | **`torch.compile` needs `dynamic=False` + fixed-length padding** | Variable sequence lengths fail with a Metal shader codegen error ([pytorch#206826](https://github.com/pytorch/pytorch/issues/206826)). With defaults, Dynamo marks a dim dynamic on the *second* distinct shape, so the first batch works and then the job dies — it reads like a random flake. Worth 1.46–1.53×. |
 | **Throughput** | 3.5M → 97k tok/s · 26M → ~20k tok/s · 86M → 6.2k tok/s. A ChEMBL-37 epoch (131M tokens) takes 22 min at 5M, 1.8 h at 32M, 5.9 h at 86M. |
@@ -222,7 +255,7 @@ compute-optimal size, so there is no reason to fight for 200M on a Mac.
 | MoE causal leakage | 7.5e-08 — float32 GEMM round-off, not information flow (see below) |
 | Pocket conditioning sensitivity | 0.154 |
 | Property conditioning sensitivity | 1.14 |
-| Parameter estimates vs instantiated | 0.0% error across all presets |
+| Parameter estimates vs instantiated | **<0.1% error** across all five presets (tiny +0.04%, small +0.02%, base +0.01%, large +0.01%, xl +0.00% at vocab 66) |
 
 **A subtlety worth recording.** Sparse MoE cannot be bit-for-bit causally exact. A token's
 expert assignment depends only on its own hidden state, so no information travels
@@ -256,6 +289,20 @@ cross-attention is the right default**, which is what this library does.
 Supporting, from outside chemistry (read with care — different scale): Flamingo
 (arXiv:2204.14198, Tab. 3) settles *where* — cross-attn in **every** layer 70.7 vs once
 in the middle 59.8, and **0-init tanh gating is worth +4.2 and fixes instability**;
+
+> **⚠️ Our default does not match the result we are citing.**
+> `cross_attn_gate_init` defaults to **0.1**, not 0, so `tanh(0.1) ≈ 0.0997` and
+> cross-attention perturbs the decoder's output from the very first step. Flamingo's
+> point is that a **0**-initialised gate makes the newly inserted cross-attention an
+> exact no-op at initialisation, so a pretrained language model is left untouched while
+> the gate learns to open. That matters most in exactly the path this library provides
+> for it — `ChemLMDecoder.load_pretrained_backbone`, which transfers a Stage-1
+> unconditional chemical prior into a Stage-2 pocket-conditioned decoder. **Pass
+> `cross_attn_gate_init=0.0` for that transfer.** The default is left at 0.1 so the
+> measured results in this document stay comparable, but 0.0 is what the cited evidence
+> supports, and the two should be reconciled with a measurement rather than left to
+> drift.
+
 Idefics2 (arXiv:2405.02246, Tab. 3) finds cross-attn wins with a **frozen** backbone
 (66.7 vs 60.3) and loses once LoRA'd (67.3 vs 69.5). DiT's adaLN-Zero result is
 **diffusion-specific** and conditions on *two tokens* (class + timestep); DiT itself notes
