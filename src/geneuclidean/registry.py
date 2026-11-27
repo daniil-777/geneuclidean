@@ -314,7 +314,28 @@ BUILTIN_ENCODER_ALIASES: dict[str, str] = {
     "vn_jepa": "subpocket_vn_jepa",
     "dense_painn": "dense_painn_se3",
 }
-BUILTIN_DECODER_NAMES: frozenset[str] = frozenset({"transformer", "lstm"})
+BUILTIN_DECODER_NAMES: frozenset[str] = frozenset(
+    {
+        "transformer",
+        "lstm",
+        "geom_transformer",
+        "flow3d",
+        "ar3d",
+        "chemlm",
+        "chemlm_moe",
+    }
+)
+BUILTIN_DECODER_ALIASES: dict[str, str] = {
+    "geometry_transformer": "geom_transformer",
+    "pocket_flow3d": "flow3d",
+    "flow_3d": "flow3d",
+    "pocket_ar3d": "ar3d",
+    "ar_3d": "ar3d",
+    "chem_lm": "chemlm",
+    "pocket_chemlm": "chemlm",
+    "chem_lm_moe": "chemlm_moe",
+    "moe_transformer": "chemlm_moe",
+}
 BUILTIN_SAMPLING_STRATEGY_NAMES: frozenset[str] = frozenset(
     {"min_p", "top_p", "top_k", "temperature", "greedy", "typical", "diverse_beam"}
 )
@@ -636,6 +657,7 @@ def ensure_builtin_registry_loaded(kind: str) -> None:
 
 __all__ = [
     "BACKBONE_CATALOG",
+    "BUILTIN_DECODER_ALIASES",
     "BUILTIN_DECODER_NAMES",
     "BUILTIN_ENCODER_ALIASES",
     "BUILTIN_ENCODER_ARCHS",
