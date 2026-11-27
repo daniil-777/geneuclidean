@@ -304,8 +304,6 @@ BUILTIN_ENCODER_NAMES: frozenset[str] = frozenset(
         "cartformer_se3",
         "atomgs_se3",
         "subpocket_vn_jepa",
-        "frame_ipa_se3",
-        "goten_se3",
     }
 )
 BUILTIN_ENCODER_ARCHS: frozenset[str] = BUILTIN_ENCODER_NAMES
@@ -315,10 +313,6 @@ BUILTIN_ENCODER_ALIASES: dict[str, str] = {
     "subpocket_vn": "subpocket_vn_jepa",
     "vn_jepa": "subpocket_vn_jepa",
     "dense_painn": "dense_painn_se3",
-    "frame_ipa": "frame_ipa_se3",
-    "ipa_se3": "frame_ipa_se3",
-    "equiformer_se3": "goten_se3",
-    "goten": "goten_se3",
 }
 BUILTIN_DECODER_NAMES: frozenset[str] = frozenset(
     {
