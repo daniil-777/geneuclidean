@@ -12,8 +12,10 @@ the licensing friction of PDBbind (paywalled from v2021), Binding MOAD (shut dow
 2024-07-01) or BindingNet (unresolved CC BY vs CC BY-NC conflict).
 
 The single highest-leverage finding encoded here concerns the canonical split. Luo et al.
-(NeurIPS 2021, arXiv:2203.10446) filter CrossDocked's 22.5M docked poses to RMSD <= 1 A,
-obtaining **184,057 qualifying pairs**, then *randomly draw only 100,000* for training:
+(NeurIPS 2021, arXiv:2203.10446) filter CrossDocked's 22.5M docked protein-ligand pairs
+to RMSD <= 1 A, obtaining **184,057 qualifying pairs**, then *randomly draw only 100,000*
+for training (quoted verbatim below, except that the paper writes the Angstrom sign where
+this ASCII docstring writes ``A``):
 
     "We filter out data points whose binding pose RMSD is greater than 1A, leading to a
     refined subset consisting of 184,057 data points. We use mmseqs2 to cluster data at

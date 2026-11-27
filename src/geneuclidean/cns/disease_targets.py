@@ -18,9 +18,12 @@ strategy. Counts below are strict binding activities (``pchembl_value`` present,
 
 The headline consequence: **Tourette syndrome has no standalone medicinal-chemistry
 corpus.** Histidine decarboxylase, its most TS-specific target, has **3 activities in all
-of ChEMBL**. GAT1 has 309 and VMAT2 768. Tourette must therefore be modelled as a
-recombination of the dopaminergic, serotonergic and GABAergic families it shares with
-schizophrenia, not as an indication with its own training set. Conversely the most
+of ChEMBL** and 0 strict binding records. GAT1 has 309 *total* activities and VMAT2 768 --
+note that those two are unfiltered totals, not the strict-binding counts defined above,
+which are only 121 and 146; the gap is almost entirely functional assays carrying no
+``pchembl_value``. Tourette must therefore be modelled as a recombination of the
+dopaminergic, serotonergic and GABAergic families it shares with schizophrenia, not as an
+indication with its own training set. Conversely the most
 important schizophrenia target of 2026 -- CHRM4, following Cobenfy's approval -- has only
 609 potent actives, so it is a fine-tuning and evaluation target rather than a pretraining
 one.
