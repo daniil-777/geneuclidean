@@ -61,7 +61,10 @@ for (const tab of ['overview', 'human-twin']) {
     await expect(page.locator('main h1')).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
     for (const theme of ['light', 'dark']) {
-      if (theme === 'dark') await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+      if (theme === 'dark') {
+        await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+        await expect(page.locator('html')).toHaveClass(/dark/);
+      }
       const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
       expect(violations.map(v => ({ id: v.id, elements: v.nodes.map(n => n.target) }))).toEqual([]);
     }

@@ -7,7 +7,7 @@
   --studio-paper: #f8f8f7;
   --studio-lilac: #b8afff;
 }
-.studio-app { background: var(--bg-page); }
+.studio-app { background: var(--bg-page); color: var(--text-primary); }
 .studio-app :where(button, a, summary, input, select, textarea):focus-visible {
   outline: 3px solid #5e67e5;
   outline-offset: 3px;
@@ -144,7 +144,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   html:focus-within,html { scroll-behavior: auto; }
-  .studio-app *, .studio-app *::after, .studio-app *::before { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .studio-app *, .studio-app *::after, .studio-app *::before { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
 }
 @media (max-width: 880px) {
   .studio-nav-inner { gap: 8px; }

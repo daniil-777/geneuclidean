@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect, useState } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Navbar } from './components/Navbar';
 import { loadExperiments, loadMoleculesIndex, loadOverview, loadV4Benchmarks } from './lib/data';
@@ -58,7 +58,7 @@ export function App() {
   const experiments = useDataset(loadExperiments, activeTab === 'experiments', attempt);
   const benchmarks = useDataset(loadV4Benchmarks, ['circuit', 'experiments'].includes(activeTab), attempt);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
     try { window.localStorage.setItem('studio-theme', theme); } catch { /* storage may be disabled */ }
   }, [theme]);
