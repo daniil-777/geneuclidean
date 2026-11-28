@@ -1,17 +1,7 @@
 import {
-  Atom,
-  BarChart3,
-  BookOpen,
-  Brain,
-  Cpu,
-  FlaskConical,
-  Github,
-  Layers,
-  Moon,
-  Sparkles,
-  Sun,
-  Workflow,
+  ArrowUpRight, Box, ChevronDown, GitFork, Menu, Moon, Orbit, Sun, X,
 } from 'lucide-react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import type { StudioTab, ThemeMode } from '../types/studio';
 
 interface NavbarProps {
@@ -23,113 +13,103 @@ interface NavbarProps {
   repoUrl: string;
 }
 
-const NAV_ITEMS: { id: StudioTab; label: string; shortLabel: string; icon: typeof Layers; badge?: string }[] = [
-  { id: 'overview', label: 'Overview', shortLabel: 'Overview', icon: Layers },
-  { id: 'studio3d', label: '3D & 2D Studio', shortLabel: '3D Studio', icon: Atom },
-  { id: 'circuit', label: 'Circuit Studio', shortLabel: 'Circuit', icon: Workflow, badge: '49' },
-  { id: 'generator', label: 'Live AI Generator', shortLabel: 'AI Gen', icon: Sparkles, badge: 'AI' },
-  { id: 'experiments', label: 'Experiments', shortLabel: 'Benchmarks', icon: BarChart3 },
-  { id: 'disorders', label: 'Disorder Portals', shortLabel: 'Disorders', icon: Brain },
-  { id: 'figures', label: 'Figures & Docs', shortLabel: 'Figures', icon: BookOpen },
+const PRIMARY: { id: StudioTab; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'human-twin', label: 'Human twin' },
+  { id: 'studio3d', label: '3D viewer' },
+];
+const TOOLS: typeof PRIMARY = [
+  { id: 'circuit', label: 'Circuit builder' },
+  { id: 'generator', label: 'Molecule generator' },
+  { id: 'experiments', label: 'Experiments' },
+  { id: 'disorders', label: 'Disorders' },
+  { id: 'figures', label: 'Figures & docs' },
 ];
 
-export function Navbar({
-  activeTab,
-  onSelectTab,
-  theme,
-  onToggleTheme,
-  version,
-  repoUrl,
-}: NavbarProps) {
+export function Navbar({ activeTab, onSelectTab, theme, onToggleTheme, version, repoUrl }: NavbarProps) {
+  const [menu, setMenu] = useState<'desktop' | 'mobile' | null>(null);
+  const header = useRef<HTMLElement>(null);
+  const desktopTrigger = useRef<HTMLButtonElement>(null);
+  const mobileTrigger = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => { setMenu(null); }, [activeTab]);
+  useEffect(() => {
+    if (!menu) return;
+    const clickAway = (e: PointerEvent) => {
+      if (!header.current?.contains(e.target as Node)) setMenu(null);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setMenu(null);
+      (menu === 'desktop' ? desktopTrigger : mobileTrigger).current?.focus();
+    };
+    const onLayoutChange = () => setMenu(null);
+    const breakpoint = matchMedia('(max-width: 880px)');
+    document.addEventListener('pointerdown', clickAway);
+    document.addEventListener('keydown', onKey);
+    breakpoint.addEventListener('change', onLayoutChange);
+    return () => {
+      document.removeEventListener('pointerdown', clickAway);
+      document.removeEventListener('keydown', onKey);
+      breakpoint.removeEventListener('change', onLayoutChange);
+    };
+  }, [menu]);
+
+  function choose(e: MouseEvent<HTMLAnchorElement>, id: StudioTab) {
+    if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    setMenu(null);
+    onSelectTab(id);
+  }
+  function link({ id, label }: typeof PRIMARY[number]) {
+    return (
+      <a key={id} href={`#${id}`} onClick={e => choose(e, id)}
+        aria-current={activeTab === id ? 'page' : undefined} className="studio-nav-link">
+        {label}
+      </a>
+    );
+  }
+
   return (
-    <header className="sticky top-0 z-40 glass-panel border-b border-[var(--border-subtle)]">
-      <div className="mx-auto max-w-[1600px] px-3 sm:px-5 h-14 flex items-center justify-between gap-2">
-        {/* Brand mark */}
-        <button
-          type="button"
-          onClick={() => onSelectTab('overview')}
-          className="flex items-center gap-2.5 group shrink-0 text-left cursor-pointer"
-        >
-          <div className="relative h-8 w-8 rounded-lg bg-gradient-to-br from-cyan-500 via-sky-500 to-emerald-500 p-[1px] shadow-sm shadow-cyan-500/20">
-            <div className="h-full w-full rounded-[7px] bg-slate-950 dark:bg-[#060913] flex items-center justify-center">
-              <Cpu className="h-4 w-4 text-cyan-400 group-hover:scale-110 transition-transform" />
-            </div>
+    <header ref={header} className="studio-header" onBlur={e => {
+      if (e.relatedTarget && !e.currentTarget.contains(e.relatedTarget)) setMenu(null);
+    }}>
+      <div className="studio-nav-inner">
+        <a href="#overview" className="studio-brand" onClick={e => choose(e, 'overview')} aria-label="GenEuclidean overview">
+          <span className="studio-mark" aria-hidden="true"><Orbit size={24} strokeWidth={1.75}/></span>
+          GenEuclidean
+        </a>
+        <nav className="studio-primary-nav" aria-label="Studio navigation">
+          {PRIMARY.map(link)}
+          <div className="studio-tools-wrap">
+            <button type="button" ref={desktopTrigger} aria-expanded={menu === 'desktop'}
+              aria-controls="studio-tools" className={`studio-nav-link studio-tools-trigger ${TOOLS.some(item => item.id === activeTab) ? 'current-group' : ''}`}
+              onClick={() => setMenu(menu === 'desktop' ? null : 'desktop')}>
+              Tools <ChevronDown size={14}/>
+            </button>
+            {menu === 'desktop' && <div id="studio-tools" className="studio-drop">{TOOLS.map(link)}</div>}
           </div>
-          <div className="leading-none">
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold tracking-tight text-sm sm:text-[15px] text-[var(--text-primary)]">
-                GenEuclidean
-              </span>
-              <span className="font-mono-num text-[10px] font-semibold px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-600 dark:text-cyan-300 border border-cyan-500/25">
-                {version}
-              </span>
-            </div>
-            <span className="hidden xl:block text-[10px] text-[var(--text-muted)] tracking-wide mt-0.5">
-              49-Block 3D SE(3) · NLP · NanoFold3 Studio
-            </span>
-          </div>
-        </button>
-
-        {/* Primary 6-view studio navigation */}
-        <nav className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto no-scrollbar py-1">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const active = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onSelectTab(item.id)}
-                className={`relative flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
-                  active
-                    ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-200 border border-cyan-500/35 shadow-sm'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-slate-500/10 border border-transparent'
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5 shrink-0" />
-                <span className="hidden md:inline">{item.label}</span>
-                <span className="md:hidden">{item.shortLabel}</span>
-                {item.badge && (
-                  <span className="ml-0.5 text-[9px] font-mono-num font-bold uppercase px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
         </nav>
-
-        {/* Utility actions */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <span
-            title="All molecules are in silico computational hypotheses for academic drug-discovery research, not clinically tested medicines."
-            className="hidden 2xl:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/25"
-          >
-            <FlaskConical className="h-3 w-3" />
-            In Silico Research
-          </span>
-
-          <button
-            type="button"
-            onClick={onToggleTheme}
-            title={theme === 'dark' ? 'Switch to Publication Paper Light Mode' : 'Switch to Obsidian Lab Dark Mode'}
-            className="h-8 w-8 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-cyan-500/40 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-          >
-            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
-
-          <a
-            href={repoUrl}
-            target="_blank"
-            rel="noreferrer"
-            title="View GenEuclidean on GitHub"
-            className="h-8 px-2.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-cyan-500/40 flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-          >
-            <Github className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">GitHub</span>
+        <div className="studio-utilities">
+          <a href={repoUrl} target="_blank" rel="noreferrer" className="studio-repo" aria-label="View source on GitHub (opens in a new tab)">
+            <GitFork size={15} aria-hidden="true"/><span>Source</span><ArrowUpRight size={13} aria-hidden="true"/>
           </a>
+          <button type="button" className="studio-icon-button" onClick={onToggleTheme}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
+            {theme === 'dark' ? <Sun size={18}/> : <Moon size={18}/>}
+          </button>
+          <button type="button" ref={mobileTrigger} className="studio-icon-button studio-menu-toggle" aria-controls="studio-mobile-nav"
+            aria-expanded={menu === 'mobile'} aria-label={menu === 'mobile' ? 'Close navigation' : 'Open navigation'}
+            onClick={() => setMenu(menu === 'mobile' ? null : 'mobile')}>
+            {menu === 'mobile' ? <X size={21}/> : <Menu size={21}/>}
+          </button>
         </div>
       </div>
+      {menu === 'mobile' &&
+        <nav id="studio-mobile-nav" className="studio-mobile-nav" aria-label="Studio navigation">
+          {[...PRIMARY, ...TOOLS].map(link)}
+          <div className="studio-mobile-meta"><Box size={14}/> Studio {version}</div>
+        </nav>}
     </header>
   );
 }

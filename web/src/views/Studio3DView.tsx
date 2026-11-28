@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   Check,
+  ChevronDown,
   Copy,
   Crosshair,
   Download,
@@ -53,11 +54,13 @@ export function Studio3DView({
   const viewerRef = useRef<Mol3DViewerHandle | null>(null);
   const [disorderFilter, setDisorderFilter] = useState<string>(initialDisorderFilter);
   const [searchQuery, setSearchQuery] = useState('');
+  const [catalogOpen, setCatalogOpen] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState<string>(
     initialTarget || molecules[0]?.target || 'DRD1',
   );
   const [complex, setComplex] = useState<ComplexDetail | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [attempt, setAttempt] = useState(0);
   const [copiedSmiles, setCopiedSmiles] = useState(false);
   const [zoom2D, setZoom2D] = useState(false);
   const [activeContactIdx, setActiveContactIdx] = useState<number | null>(null);
@@ -77,6 +80,7 @@ export function Studio3DView({
   useEffect(() => {
     let alive = true;
     setLoading(true);
+    setComplex(null);
     setActiveContactIdx(null);
     loadComplexDetail(selectedTarget)
       .then((data) => {
@@ -91,7 +95,7 @@ export function Studio3DView({
     return () => {
       alive = false;
     };
-  }, [selectedTarget]);
+  }, [selectedTarget, attempt]);
 
   const filteredMolecules = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -107,6 +111,7 @@ export function Studio3DView({
 
   const handleChooseTarget = (target: string) => {
     setSelectedTarget(target);
+    setCatalogOpen(false);
     onSelectTarget(target);
   };
 
@@ -129,14 +134,18 @@ export function Studio3DView({
   };
 
   return (
-    <div className="mx-auto max-w-[1680px] px-3 sm:px-5 py-4">
+    <div className="studio-structure-view mx-auto max-w-[1680px] px-3 sm:px-5 py-4">
+      <button type="button" className="studio-catalog-trigger" aria-expanded={catalogOpen} aria-controls="studio-structure-catalog"
+        onClick={() => setCatalogOpen(open => !open)}>
+        <span>Browse structures</span><strong>{selectedTarget}</strong><ChevronDown size={16}/>
+      </button>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         {/* LEFT RAIL: Disorder Filters, Search & 28 Target Cards */}
-        <aside className="lg:col-span-3 xl:col-span-2.5 flex flex-col gap-3 lg:h-[calc(100vh-5.5rem)]">
+        <aside id="studio-structure-catalog" data-open={catalogOpen} className="lg:col-span-3 xl:col-span-2.5 flex flex-col gap-3 lg:h-[calc(100vh-5.5rem)]">
           <div className="lab-card rounded-2xl p-3 space-y-2.5 shrink-0">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
-                28 Human 3D Complexes
+                {molecules.length} human complexes
               </span>
               <span className="font-mono-num text-[11px] text-[var(--text-muted)]">
                 {filteredMolecules.length}/{molecules.length}
@@ -149,6 +158,7 @@ export function Studio3DView({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search structures by target, PDB or SMILES"
                 placeholder="Search target, PDB, SMILES…"
                 className="w-full pl-8 pr-3 py-1.5 rounded-lg text-xs bg-[var(--bg-elevated)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-cyan-500/60"
               />
@@ -305,9 +315,12 @@ export function Studio3DView({
 
         {/* RIGHT INSPECTOR: 2D SVG Formula, 12-Ep Avoid-ome Safety & Clickable 3D Contacts */}
         <aside className="lg:col-span-4 xl:col-span-3.5 space-y-3 lg:h-[calc(100vh-5.5rem)] lg:overflow-y-auto pr-0.5">
-          {loading || !complex ? (
-            <div className="lab-card rounded-2xl p-8 text-center text-xs text-[var(--text-muted)]">
-              Loading 2D structure &amp; 3D binding telemetry…
+          {!complex ? (
+            <div className="lab-card rounded-2xl p-8 text-center text-sm text-[var(--text-secondary)]" role={loading ? 'status' : 'alert'}>
+              {loading ? 'Loading structure and binding data…' : <>
+                <p>The data for {selectedTarget} could not be loaded.</p>
+                <button type="button" className="studio-inline-action mt-3" onClick={() => setAttempt(previous => previous + 1)}>Retry structure</button>
+              </>}
             </div>
           ) : (
             <>

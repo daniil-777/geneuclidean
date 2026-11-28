@@ -558,7 +558,7 @@ export function CircuitBuilderView({
   ]);
 
   return (
-    <div className="h-[calc(100vh-57px)] w-full flex flex-col overflow-hidden">
+    <div className="studio-circuit-workbench w-full flex flex-col overflow-hidden">
       {/* Top Contextual Preset & Execution Bar */}
       <PresetBar
         presets={CIRCUIT_PRESETS}
