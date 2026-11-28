@@ -1,0 +1,15 @@
+{
+  "formulation": {
+    "compound": {
+      "compound_id": "DRD1_v53_L1",
+      "smiles": "CCN1CCN(Cc2cc(F)cc(C#N)c2)CC1"
+    },
+    "basis": "assumed",
+    "source": "an illustrative comparison of dry intestinal release and rapid equilibrium",
+    "parameters": {
+      "dissolution_per_h": 0.5,
+      "precipitation_per_h": 1.0,
+      "initial_dissolved_fraction": 0.0
+    }
+  }
+}

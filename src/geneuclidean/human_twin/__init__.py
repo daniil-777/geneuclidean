@@ -1,5 +1,6 @@
 """Human exposure scenarios, robotic assay data and independent pharmacokinetic checks."""
 
+from .barrier import BarrierResult, BarrierRun, evaluate_barrier
 from .dialysis import (
     Compound,
     DialysisLimits,
@@ -10,7 +11,33 @@ from .dialysis import (
     evaluate_dialysis,
     plan_dialysis,
 )
-from .exposure import CompetitiveInhibition, Disposition, ExposureProfile, OralMedium, simulate_oral
+from .experiment import (
+    FormulationInput,
+    GastricInput,
+    MechanisticInputs,
+    SinkDissolutionExperiment,
+    run_formulation_experiment,
+)
+from .exposure import (
+    BrainExposureDriver,
+    CompetitiveInhibition,
+    Disposition,
+    ExposureProfile,
+    GastricStage,
+    OralFormulation,
+    OralMedium,
+    SinkDissolutionFit,
+    fit_sink_dissolution,
+    simulate_oral,
+)
+from .kinetics import (
+    BindingRates,
+    D1CompetitionExperiment,
+    MicrosomalExperiment,
+    MicrosomalTrace,
+    scale_microsomal_clearance,
+    simulate_d1_competition,
+)
 from .reference import compare_with_human_data
 from .study import (
     DEFAULT_CANDIDATE,
@@ -22,11 +49,16 @@ from .study import (
 )
 
 __all__ = [
-    "DEFAULT_CANDIDATE",
     "AqueousSolubilityMeasurement",
+    "BarrierResult",
+    "BarrierRun",
+    "BindingRates",
+    "BrainExposureDriver",
     "CompetitiveInhibition",
     "Compound",
     "D1BindingMeasurement",
+    "D1CompetitionExperiment",
+    "DEFAULT_CANDIDATE",
     "DialysisLimits",
     "DialysisPlan",
     "DialysisReadout",
@@ -34,12 +66,26 @@ __all__ = [
     "DialysisRun",
     "Disposition",
     "ExposureProfile",
+    "FormulationInput",
+    "GastricInput",
+    "GastricStage",
+    "MechanisticInputs",
+    "MicrosomalExperiment",
+    "MicrosomalTrace",
+    "OralFormulation",
     "OralMedium",
+    "SinkDissolutionExperiment",
+    "SinkDissolutionFit",
     "compare_with_human_data",
+    "evaluate_barrier",
     "evaluate_dialysis",
+    "fit_sink_dissolution",
     "plan_dialysis",
     "plot_study",
+    "run_formulation_experiment",
     "run_tourette_study",
+    "scale_microsomal_clearance",
+    "simulate_d1_competition",
     "simulate_oral",
     "tourette_candidate",
 ]

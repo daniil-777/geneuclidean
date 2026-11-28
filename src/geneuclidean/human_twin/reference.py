@@ -1,18 +1,140 @@
-"""External human reference checks for two restricted cases of the exposure solver."""
+"""Measured human plasma profiles and reference checks for restricted PK models."""
 
 from __future__ import annotations
 
 import math
+from copy import deepcopy
 from dataclasses import replace
+from functools import cache
 from typing import Any
 
-from scipy.optimize import brentq
+import numpy as np
+from numpy.typing import NDArray
+from scipy.optimize import brentq, least_squares
 
+from geneuclidean.human_twin import _indomethacin
 from geneuclidean.human_twin.exposure import Disposition, OralMedium, simulate_oral
 
 
+def _fit_iv_models(
+    time_h: NDArray[np.float64], training_mg_l: NDArray[np.float64]
+) -> dict[str, tuple[NDArray[np.float64], NDArray[np.float64]]]:
+    """Fit a common post-bolus plasma curve to all training participants."""
+    # Sampling times are identical. Averaging log measurements at each time preserves the
+    # minimizer of the sum of squared log residuals across all training observations.
+    log_conc = np.log(training_mg_l).mean(axis=0)
+    design = np.column_stack((np.ones_like(time_h), -time_h))
+    intercept, rate = np.linalg.lstsq(design, log_conc, rcond=None)[0]
+
+    def two_compartment_residuals(log_parameters: NDArray[np.float64]) -> NDArray[np.float64]:
+        log_a, log_b, log_rate_gap, log_slow = log_parameters
+        slow = np.exp(log_slow)
+        fast = slow + np.exp(log_rate_gap)
+        log_predicted = np.logaddexp(log_a - fast * time_h, log_b - slow * time_h)
+        return np.asarray(log_predicted - log_conc, dtype=np.float64)
+
+    # Fixed initialization independent of held-out data. Positive amplitudes and ordered,
+    # positive rates rule out exchanging the fast and slow terms during optimization.
+    fit = least_squares(
+        two_compartment_residuals, np.log([2.0, 0.25, 1.5, 0.2]), ftol=1e-12, xtol=1e-12, gtol=1e-12
+    )
+    if not fit.success:
+        raise RuntimeError(f"Indomethacin two-compartment fit failed: {fit.message}")
+    a, b, rate_gap, slow = np.exp(fit.x)
+    return {
+        "one_compartment": (np.array([np.exp(intercept)]), np.array([rate])),
+        "two_compartment": (np.array([a, b]), np.array([slow + rate_gap, slow])),
+    }
+
+
+def _concentration_errors(
+    predicted: NDArray[np.float64], observed: NDArray[np.float64]
+) -> dict[str, float]:
+    residual = predicted - observed
+    return {
+        "mae_mg_l": float(np.abs(residual).mean()),
+        "rmse_mg_l": float(np.sqrt(np.mean(np.square(residual)))),
+        "geometric_mean_absolute_fold_error": float(
+            np.exp(np.mean(np.abs(np.log(predicted / observed))))
+        ),
+    }
+
+
+def _indomethacin_iv_profiles(observed: NDArray[np.float64]) -> dict[str, Any]:
+    """Predict all samples of one participant using only the five other profiles."""
+    time_h = np.asarray(_indomethacin.TIME_H)
+    subjects = np.asarray(_indomethacin.SUBJECTS)
+    predictions = {
+        "one_compartment": np.empty_like(observed),
+        "two_compartment": np.empty_like(observed),
+    }
+    folds = []
+    for index, subject in enumerate(subjects):
+        train = subjects != subject
+        models = {}
+        for name, (amplitudes, rates) in _fit_iv_models(time_h, observed[train]).items():
+            predicted = amplitudes @ np.exp(-np.outer(rates, time_h))
+            predictions[name][index] = predicted
+            models[name] = {
+                "amplitudes_mg_l": amplitudes.tolist(),
+                "rates_per_h": rates.tolist(),
+                "predicted_mg_l": predicted.tolist(),
+                "errors": _concentration_errors(predicted, observed[index]),
+            }
+        folds.append(
+            {
+                "held_out_subject": int(subject),
+                "training_subjects": subjects[train].tolist(),
+                "observed_mg_l": observed[index].tolist(),
+                "models": models,
+            }
+        )
+    return {
+        "source": _indomethacin.SOURCE,
+        "data_source": _indomethacin.DATA_SOURCE,
+        "data_source_sha256": _indomethacin.DATA_SHA256,
+        "data_license": "MIT",
+        "data_license_notice": _indomethacin.DATA_LICENSE_NOTICE,
+        "cohort": "Six healthy volunteers in one intravenous indomethacin study",
+        "endpoint": "Total plasma indomethacin concentration (mg/L)",
+        "validation": "Leave-one-subject-out, with one shared curve per training set",
+        "fit_objective": "Unweighted sum of squared natural-log concentration residuals",
+        "model_assumptions": (
+            "Instantaneous IV input and first-order elimination from the central compartment. "
+            "The two-compartment model adds reversible, first-order distribution."
+        ),
+        "model_equations": {
+            "one_compartment": "C(t) = A exp(-k t)",
+            "two_compartment": "C(t) = A exp(-alpha t) + B exp(-beta t), alpha > beta > 0",
+        },
+        "scope": (
+            "Same-study prediction over the sampled 0.25 to 8 hours. The two-compartment "
+            "fit summarizes early and late decline. Enterohepatic recycling described by the "
+            "original investigators is outside these equations. Prediction in another cohort, "
+            "brain exposure and clinical response require independent evidence."
+        ),
+        "n_subjects": int(subjects.size),
+        "n_observations": int(observed.size),
+        "time_h": time_h.tolist(),
+        "subjects_with_lower_two_compartment_rmse": subjects[
+            np.square(predictions["two_compartment"] - observed).mean(axis=1)
+            < np.square(predictions["one_compartment"] - observed).mean(axis=1)
+        ].tolist(),
+        "pooled_held_out_errors": {
+            name: _concentration_errors(values, observed) for name, values in predictions.items()
+        },
+        "folds": folds,
+    }
+
+
 def compare_with_human_data() -> dict[str, Any]:
-    """Compare an independently calibrated oral baseline and a passive BBB null to observations.
+    """Return independent report copies. All fixed clinical comparisons run once per process."""
+    return deepcopy(_human_reference_checks())
+
+
+@cache
+def _human_reference_checks() -> dict[str, Any]:
+    """Compare the oral and passive brain models and cross-validate IV plasma curves.
 
     The ecopipam studies used the same 179.2 mg free-base equivalent. A per-unit
     concentration times the study mass yields mg/L, independent of molecular weight.
@@ -58,6 +180,9 @@ def compare_with_human_data() -> dict[str, Any]:
     paired = simulate_oral(passive, medium, [240], amount_umol=1)
     passive_ratio = float(paired.unbound_brain_auc_um_h[-1] / paired.unbound_plasma_auc_um_h[-1])
     return {
+        "indomethacin_iv_held_out_profiles": _indomethacin_iv_profiles(
+            np.asarray(_indomethacin.PLASMA_MG_L)
+        ),
         "ecopipam_parent_total_plasma": {
             "model": "one-compartment oral limit with apparent parameters",
             "fit": {

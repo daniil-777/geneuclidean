@@ -50,6 +50,7 @@ flowchart LR
 | **Chemical NLP** | [`geneuclidean.nlp`](src/geneuclidean/nlp.py) | 43 pure-PyTorch ops: atom-level SMILES/SELFIES/SAFE tokenizer, stateful valence grammar mask, RoPE/YaRN + GQA + SwiGLU LM, pure-PyTorch LoRA, contrastive CFG, DPO/GRPO, and Masked Diffusion (`MDLM`). |
 | **Co-Folding** | [`geneuclidean.folding`](src/geneuclidean/folding/) | Trainable `NanoFold3` (`PairformerStack` / Apple `SimpleFoldTrunk` + EDM/Flow-Matching all-atom diffusion + `ConfidenceHead`/`AffinityHead`) and 5-backend Hub (`nanofold3`, `boltz2`, `protenix`, `alphafold3`, `esmfold_api`). |
 | **Active Learning** | [`geneuclidean.active_learning`](src/geneuclidean/active_learning/) | Exact PSD `TanimotoGP`, `EnsembleSurrogate`, `ConformalSurrogate`, 14 acquisitions (`KB`/`DPP`/`qEHVI`/Avoid-ome), correlation-gated `MultiFidelityDMTA`, $O(N_A+N_B)$ `CombinatorialThompsonSampler`. |
+| **Chemical assays and human exposure** | [`geneuclidean.assays`](src/geneuclidean/assays.py) · [`geneuclidean.human_twin`](src/geneuclidean/human_twin/) | Buffered solubility and binding, gastric and intestinal release, microsomal clearance, bidirectional barrier assays, plasma and brain exposure, and optional kinetic D1 occupancy. |
 | **Audit, Lead-Opt & Studio** | [`audit/`](src/geneuclidean/audit/) · [`leadopt/`](src/geneuclidean/leadopt/) · [`studio/`](src/geneuclidean/studio/) | 7-axis Beyond-PoseBusters auditor (Cremer–Pople ring & SMARTS torsion strain, pH 7.4 microstate, 6-ch PLIF), 16-reaction synthesis, Avoid-ome MMP, `OpenFE`/`Boltz-2`, 12-ep ADMET, 49-block Circuit Studio & MCP server. |
 
 ---
@@ -120,6 +121,14 @@ preset = ge.get_studio_catalog()["presets"][4]              # nanofold3_cofold_a
 run = ge.execute_circuit(preset, max_samples=4)             # AST-verified codegen + SHA-256 ledger
 ```
 
+### 7. Oral formulation and human exposure
+
+Compare four oral formulation scenarios for a nominated D1 lead. The JSON includes assumed rates, solid and dissolved inventories, predicted plasma and brain exposure, and held-out plasma concentration errors from six indomethacin volunteers. Human safety and tic response for the lead require separate clinical evidence. [Model, measurements and worked example](docs/tourette_human_twin.md)
+
+```sh
+geneuclidean human-twin --output study.json --figure exposure.png
+```
+
 ---
 
 ## Verified Benchmark Highlights
@@ -144,7 +153,7 @@ All metrics are programmatically audited against versioned JSON artifacts in [`r
 
 | Guide / Technical Report | Scope |
 | :--- | :--- |
-| [Tourette human exposure simulator](docs/tourette_human_twin.md) | Candidate-specific solubility and plasma binding, brain exposure scenarios, robotic dialysis QC and human reference checks |
+| [Tourette human exposure simulator](docs/tourette_human_twin.md) | Formulation and gastric transfer, microsomal and barrier assay interpretation, brain exposure, D1 competition and comparisons with measured human PK |
 | [Compound assays and human-relevant lab models](docs/compound_assays.md) | Water solubility, reversible binding, measured liver microsomal depletion, hepatic clearance and evidence for non-animal assays |
 | [`docs/library_api.md`](docs/library_api.md) | Typed Python SDK (`ge`), `geom`, `nlp`, `folding`, `active_learning`, 49-block `studio`, registries & plugins |
 | [`docs/pointcloud_cv_3d_atom_encoding_plan.md`](docs/pointcloud_cv_3d_atom_encoding_plan.md) | 42-method 3D CV → atom encoding synthesis & specs for `CartFormer-SE3`, `AtomGS-SE3`, `SubPocketVN-JEPA` |

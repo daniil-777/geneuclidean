@@ -16,6 +16,7 @@ from rdkit.Chem import Descriptors
 
 from geneuclidean.assays import aqueous_equilibrium, estimate_aqueous_solubility
 from geneuclidean.human_twin.dialysis import Compound, DialysisRun, evaluate_dialysis
+from geneuclidean.human_twin.experiment import MechanisticInputs, run_formulation_experiment
 from geneuclidean.human_twin.exposure import (
     CompetitiveInhibition,
     Disposition,
@@ -129,6 +130,7 @@ def run_tourette_study(
     dialysis: DialysisRun | None = None,
     solubility: AqueousSolubilityMeasurement | None = None,
     binding: D1BindingMeasurement | None = None,
+    experiment: MechanisticInputs | None = None,
 ) -> dict[str, Any]:
     """Run the 2×2×2 sensitivity design, optionally using matched assay evidence.
 
@@ -258,7 +260,7 @@ def run_tourette_study(
     estimate = estimate_aqueous_solubility(compound.smiles)
     _, dossier, key, cid, inchikey = _DOSSIERS[compound_id]
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "compound": compound.model_dump(),
         "target": "human DRD1",
         "dossier": {"path": dossier, "collection": key},
@@ -319,6 +321,14 @@ def run_tourette_study(
             "plasma_auc_ratio_to_structure_informed_scenario": inhibited_auc
             / informed["unbound_plasma_auc_0_48_nm_h"],
         },
+        "formulation_experiment": run_formulation_experiment(
+            compound,
+            informed_pk,
+            informed_medium,
+            times,
+            amount_umol=amount,
+            inputs=experiment or MechanisticInputs(),
+        ),
         "human_reference_checks": compare_with_human_data(),
     }
 
@@ -328,8 +338,38 @@ def plot_study(report: dict[str, Any], path: Path) -> None:
     from matplotlib.figure import Figure
     from matplotlib.lines import Line2D
 
-    figure = Figure(figsize=(12, 5.6), layout="constrained")
-    axes = figure.subplots(1, 3, sharex=True)
+    experiment = report.get("formulation_experiment")
+    figure = Figure(figsize=(12, 8.6 if experiment else 5.6), layout="constrained")
+    if experiment:
+        top, bottom = figure.subplots(2, 3, sharex=True)
+        axes = top
+        colors_by_case = {
+            "gastric_to_intestine": "#8b437a",
+            "rapid_equilibrium": "#375b9a",
+            "faster_solid_release": "#1b8473",
+            "slower_solid_release": "#ad6418",
+            "supplied_formulation": "#a34967",
+        }
+        for case, data in experiment["cases"].items():
+            label = case.replace("_", " ").capitalize()
+            for ax, field in zip(
+                bottom, ("gut_solid_umol", "unbound_plasma_nm", "unbound_brain_nm"), strict=True
+            ):
+                ax.plot(
+                    experiment["time_h"], data[field], label=label, color=colors_by_case[case], lw=2
+                )
+        for ax, title, unit in zip(
+            bottom,
+            ("Solid remaining in the gut", "Plasma by formulation", "Brain ISF by formulation"),
+            ("Parent amount (µmol)", "Unbound concentration (nM)", "Unbound concentration (nM)"),
+            strict=True,
+        ):
+            ax.set(title=title, ylabel=unit, xlabel="Time after model input (h)", ylim=(0, None))
+            ax.spines[["top", "right"]].set_visible(False)
+            ax.grid(axis="y", alpha=0.22)
+        bottom[0].legend(frameon=False)
+    else:
+        axes = figure.subplots(1, 3, sharex=True)
     axes[1].sharey(axes[0])
     colors = {2.0: "#00736f", 10.0: "#aa4284"}
     styles = {10.0: "-", 80.0: "--"}
