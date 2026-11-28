@@ -1,12 +1,13 @@
 import {
   ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Atom, Boxes, Braces,
   ChevronDown, FileOutput, GitBranch, Layers3, Repeat2,
-  Scan, Search, SlidersHorizontal, Workflow, type LucideIcon,
+  ListFilter, Scan, Search, SlidersHorizontal, Workflow, type LucideIcon,
 } from 'lucide-react';
 import { Fragment, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { BLOCK_MAP, SIGNAL_META } from '../../lib/circuitCatalog';
-import { getBlockImplementation, projectCircuitStages, type CircuitStage, type StageId } from '../../lib/circuitStages';
+import { projectCircuitStages, type CircuitStage, type StageId } from '../../lib/circuitStages';
 import type { CircuitEdge, CircuitGraphV1, CircuitNode, ParamSpec, RunCircuitResponse } from '../../types/circuit';
+import { StageDiagram } from './StageDiagram';
 import './stageEditor.css';
 
 interface StageEditorProps {
@@ -34,10 +35,10 @@ const blockRoles = new Map<string, string>([
   ['multiconformer_ensemble', 'Supplies several pocket shapes for the target and an optional comparison protein.'],
   ['painn_se3', 'Combines features from neighboring atoms to encode the pocket.'],
   ['cartformer_se3', 'Encodes the 3D arrangement of pocket atoms.'],
-  ['nlp_perceiver_bridge', 'Compresses atom features into tokens for the decoder.'],
+  ['nlp_perceiver_bridge', 'Turns pocket atom features into decoder tokens.'],
   ['nlp_rope_gqa_lm', 'Reads pocket tokens and proposes molecular strings.'],
-  ['pocket_ensemble_cfg', 'Scores candidates across target and comparison pockets.'],
-  ['nlp_lora_rl_aligner', 'Uses candidate rewards to guide alignment of the molecular model.'],
+  ['pocket_ensemble_cfg', 'Scores molecules across target and comparison pockets.'],
+  ['nlp_lora_rl_aligner', 'Uses reward scores to align the molecular model.'],
   ['safe_gpt', 'Samples a sequence of molecular fragments and decodes it to SMILES.'],
 ]);
 
@@ -47,6 +48,21 @@ function definitionFor(node: CircuitNode) {
 
 function blockName(node: CircuitNode) {
   return node.label || definitionFor(node)?.shortName || node.blockType;
+}
+
+function roleOf(node: CircuitNode) {
+  return blockRoles.get(node.blockType) ?? definitionFor(node)?.summary ?? node.blockType;
+}
+
+type EditorMode = 'diagram' | 'form';
+const modeStorageKey = 'studio.circuit.stageMode';
+
+function savedMode(): EditorMode {
+  try {
+    return window.localStorage.getItem(modeStorageKey) === 'form' ? 'form' : 'diagram';
+  } catch {
+    return 'diagram';
+  }
 }
 
 function SignalArrow() {
@@ -93,27 +109,27 @@ function KeyParameter({ spec, node, onUpdate }: { spec: ParamSpec; node: Circuit
   </div>;
 }
 
-function BlockSettings({ node, onUpdate, onOpenCanvas }: {
-  node: CircuitNode; onUpdate: UpdateParam; onOpenCanvas: StageEditorProps['onOpenCanvas'];
+function BlockSettings({ node, name, showAll, onUpdate, onOpenCanvas }: {
+  node: CircuitNode; name: string; showAll: boolean;
+  onUpdate: UpdateParam; onOpenCanvas: StageEditorProps['onOpenCanvas'];
 }) {
-  const def = definitionFor(node);
-  const ordered = [...new Set([...keyParams, ...(def?.params ?? []).map(p => p.key)])];
-  const specs = ordered.map(k => def?.params.find(s => s.key === k)).filter((s): s is ParamSpec => !!s).slice(0, 2);
-  const steps = getBlockImplementation(node.blockType);
-  return <div className="stage-inspect" aria-label={'Inspecting ' + blockName(node)}>
-    {steps.length > 0 && <section className="stage-architecture">
-      <h3>Python architecture</h3>
-      <ol>{steps.map(step => <li key={step.label}><a href={'https://github.com/daniil-777/geneuclidean/blob/main/' + step.source}
-        target="_blank" rel="noreferrer">{step.label}<ArrowUpRight size={13} /></a><p>{step.description}</p></li>)}</ol>
-    </section>}
-    <section className="stage-settings">
-      <div className="stage-settings-head"><div><h3>Key parameters</h3><p>{blockName(node)}</p></div>
-        <button type="button" onClick={() => onOpenCanvas(node.id)}>Edit in full canvas <ArrowUpRight size={15} /></button></div>
-      {specs.length ? <div className="stage-param-grid">{specs.map(spec =>
-        <KeyParameter key={spec.key} spec={spec} node={node} onUpdate={onUpdate} />)}</div> :
-        <p>This block has no catalog parameters.</p>}
-    </section>
-  </div>;
+  const specs = definitionFor(node)?.params ?? [];
+  const priority = keyParams.flatMap(key => specs.find(spec => spec.key === key) ?? []);
+  const ordered = [...new Set([...priority, ...specs])];
+  const rest = ordered.slice(2);
+  const renderParameter = (spec: ParamSpec) =>
+    <KeyParameter key={spec.key} spec={spec} node={node} onUpdate={onUpdate} />;
+
+  return <section className="stage-settings" aria-label={'Settings for ' + name}>
+    <div className="stage-settings-head"><div><h3>Key parameters</h3>{!showAll && <p>{name}</p>}</div>
+      <button type="button" onClick={() => onOpenCanvas(node.id)}>Edit in full canvas <ArrowUpRight size={15} /></button></div>
+    {ordered.length ? <div className="stage-param-grid">{ordered.slice(0, 2).map(renderParameter)}</div> :
+      <p>This block has no catalog parameters.</p>}
+    {showAll && rest.length > 0 && <details className="stage-more-params">
+      <summary>More parameters <small>{rest.length}</small><ChevronDown size={16} /></summary>
+      <div className="stage-param-grid">{rest.map(renderParameter)}</div>
+    </details>}
+  </section>;
 }
 
 function ConnectionRows({ edges, nodes, nameOf, onInspect }: {
@@ -152,6 +168,7 @@ export function StageEditor({ circuit, onUpdateNodeParam, onOpenCanvas, result }
     const name = blockName(node);
     return (nameCounts.get(name) ?? 0) > 1 ? name + ' · ' + node.id : name;
   }
+  const [mode, setMode] = useState<EditorMode>(savedMode);
   const [stageId, setStageId] = useState<StageId | null>(null);
   const [nodeId, setNodeId] = useState<string | null>(null);
   const [extraOpen, setExtraOpen] = useState(false);
@@ -161,22 +178,20 @@ export function StageEditor({ circuit, onUpdateNodeParam, onOpenCanvas, result }
   const overviewOrigin = useRef<StageId | null>(null);
   const stage = model.stages.find(s => s.id === stageId);
   const selected = stage?.nodes.find(n => n.id === nodeId);
-  const adjacentForward = useMemo(() => {
-    const linked = new Set<string>();
-    if (!stage) return linked;
-    const previous = new Map(stage.nodes.slice(1).map((node, i) => [node.id, stage.nodes[i].id]));
-    for (const edge of stage.internal) {
-      if (edge.kind === 'forward' && previous.get(edge.target) === edge.source) linked.add(edge.target);
-    }
-    return linked;
-  }, [stage]);
+  const formNode = selected ?? stage?.nodes[0];
+  function changeMode(next: EditorMode) {
+    if (next === mode) return;
+    if (formNode) setNodeId(formNode.id);
+    setMode(next);
+    try { window.localStorage.setItem(modeStorageKey, next); } catch { /* Storage is optional. */ }
+  }
   const open = (item: CircuitStage, id?: string) => {
     if (!stage) {
       overviewOrigin.current = item.id;
       if (model.additional.includes(item)) setExtraOpen(true);
     }
     setStageId(item.id);
-    setNodeId(id ?? (item.nodes.length === 1 ? item.nodes[0].id : null));
+    setNodeId(id ?? (item.nodes.length === 1 || mode === 'form' ? item.nodes[0]?.id : null) ?? null);
   };
   function inspect(node: CircuitNode) {
     const group = model.stages.find(s => s.id === model.stageByNode.get(node.id));
@@ -228,7 +243,14 @@ export function StageEditor({ circuit, onUpdateNodeParam, onOpenCanvas, result }
       <button type="button" className="stage-back" onClick={() => {setStageId(null); setNodeId(null);}}><ArrowLeft size={16}/> Back to overview</button>
       <section className="stage-detail" data-open-stage={stage.id} key={stage.id}>
         <div className="stage-detail-heading"><span className="stage-icon">{StageIcon && <StageIcon/>}</span>
-          <div><h2 ref={title} tabIndex={-1}>{stage.label}</h2><p>{stage.description}</p></div></div>
+          <div><h2 ref={title} tabIndex={-1}>{stage.label}</h2><p>{stage.description}</p></div>
+          {stage.nodes.length > 0 && <div role="group" aria-label="Stage editor mode" className="stage-mode-switch">
+            <button type="button" aria-pressed={mode === 'diagram'} onClick={() => changeMode('diagram')}>
+              <Workflow size={16} />Diagram</button>
+            <button type="button" aria-pressed={mode === 'form'} onClick={() => changeMode('form')}>
+              <ListFilter size={16} />Parameter form</button>
+          </div>}
+        </div>
         {stage.id === 'smiles' ?
           <div className="stage-products">
             <h3>Decoder output ports</h3>
@@ -242,27 +264,34 @@ export function StageEditor({ circuit, onUpdateNodeParam, onOpenCanvas, result }
             {result?.molecules.length ? <ul>{result.molecules.map((m,i) => <li key={m.id + '-' + i}><strong>{m.name || m.id}</strong><code>{m.smiles}</code></li>)}</ul> :
               <p>{result ? 'This run returned no molecules.' : circuit.execution.mode === 'browser_sim'
                 ? 'Run preview to inspect reference SMILES.' : 'Run the circuit to inspect its molecule strings.'}</p>}
-          </div> : <>
-            <h3>Blocks</h3>
-            <div className={'stage-blocks' + (stage.nodes.length > 4 ? ' stage-many' : '')}>
-              {stage.nodes.map((node, i) => <Fragment key={node.id}>
-                {i > 0 && (adjacentForward.has(node.id) ? <SignalArrow/> : <span className="stage-gap"/>)}
-                <button type="button" className="stage-block" title={node.blockType} aria-label={'Inspect ' + nameOf(node)}
-                  aria-pressed={selected?.id === node.id} data-block-id={node.id} onClick={() => setNodeId(node.id)}>
-                  <strong>{nameOf(node)}</strong>
-                  <small>{node.disabled ? 'Disabled · ' : ''}{blockRoles.get(node.blockType) ?? definitionFor(node)?.summary ?? node.blockType}</small>
-                </button>
-              </Fragment>)}
-            </div>
-            {selected && <BlockSettings node={selected} onUpdate={onUpdateNodeParam} onOpenCanvas={onOpenCanvas}/>}
-            <section className="stage-wires" aria-label="Connections"><h3>Connections</h3>
-              {stage.internal.length > 0 && <ConnectionRows edges={stage.internal} nodes={nodes} nameOf={nameOf} onInspect={inspect}/>}
-              {stage.incoming.length + stage.outgoing.length > 0 && <details open={stage.internal.length === 0 || undefined}>
-                <summary><span>Boundary connections</span><small>{count(stage.incoming.length + stage.outgoing.length)}</small><ChevronDown size={16}/></summary>
-                <ConnectionRows edges={[...stage.incoming, ...stage.outgoing]} nodes={nodes} nameOf={nameOf} onInspect={inspect}/>
+          </div> : mode === 'form' && formNode ?
+          <form className="stage-parameter-form" aria-label={stage.label + ' parameter form'} onSubmit={e => e.preventDefault()}>
+            <label className="stage-form-block">Block
+              <select value={formNode.id} onChange={e => setNodeId(e.currentTarget.value)}>
+                {stage.nodes.map(node => <option key={node.id} value={node.id}>
+                  {nameOf(node)}{node.disabled ? ' (disabled)' : ''}
+                </option>)}
+              </select>
+            </label>
+            <p className="stage-form-role">{roleOf(formNode)}</p>
+            <BlockSettings key={formNode.id} node={formNode} name={nameOf(formNode)} showAll
+              onUpdate={onUpdateNodeParam} onOpenCanvas={onOpenCanvas} />
+          </form> : <>
+            <StageDiagram stage={stage} selectedNodeId={selected?.id ?? null} onSelectNode={setNodeId}
+              nameOf={nameOf} descriptionOf={roleOf} />
+            {selected && <BlockSettings key={selected.id} node={selected} name={nameOf(selected)} showAll={false}
+              onUpdate={onUpdateNodeParam} onOpenCanvas={onOpenCanvas} />}
+            {stage.internal.length + stage.incoming.length + stage.outgoing.length > 0 &&
+              <details className="stage-wires stage-wire-index">
+                <summary>Connection list <small>{count(stage.internal.length + stage.incoming.length + stage.outgoing.length)}</small><ChevronDown size={16}/></summary>
+                <section aria-label="Connections">
+                  {stage.internal.length > 0 && <ConnectionRows edges={stage.internal} nodes={nodes} nameOf={nameOf} onInspect={inspect}/>}
+                  {stage.incoming.length + stage.outgoing.length > 0 && <details open={stage.internal.length === 0 || undefined}>
+                    <summary><span>Boundary connections</span><small>{count(stage.incoming.length + stage.outgoing.length)}</small><ChevronDown size={16}/></summary>
+                    <ConnectionRows edges={[...stage.incoming, ...stage.outgoing]} nodes={nodes} nameOf={nameOf} onInspect={inspect}/>
+                  </details>}
+                </section>
               </details>}
-              {!stage.internal.length && !stage.incoming.length && !stage.outgoing.length && <p>There are no wires to these blocks.</p>}
-            </section>
           </>}
       </section>
     </>}

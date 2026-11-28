@@ -34,9 +34,9 @@ export interface StageProjection {
 
 const stageText: Record<StageId, readonly [string, string]> = {
   input: ['Inputs', 'Structures and molecules supplied to the circuit.'],
-  encoder: ['Encoder', 'Turn molecular or pocket geometry into a representation for later blocks.'],
-  decoder: ['Decoder', 'Use the conditioning inputs to propose or refine molecular sequences.'],
-  smiles: ['SMILES', 'Candidate molecules represented as text at the decoder output.'],
+  encoder: ['Encoder', 'Turns 3D atom geometry into model features.'],
+  decoder: ['Decoder', 'Proposes or refines molecular sequences.'],
+  smiles: ['SMILES', 'Represents candidate structures as text.'],
   screening: ['Screening', 'Search, rank and match candidate molecules.'],
   learning: ['Active learning', 'Model observations, estimate uncertainty and select experiments.'],
   physics: ['Structure & physics', 'Model 3D structures and evaluate candidate poses.'],
@@ -106,7 +106,7 @@ export function projectCircuitStages(graph: CircuitGraphV1): StageProjection {
   const input = groups.get('input');
   if (input?.nodes.every(node => ['protein_pocket', 'multiconformer_ensemble'].includes(node.blockType))) {
     input.label = 'Pocket';
-    input.description = 'The 3D binding-site atoms and coordinates supplied to the circuit.';
+    input.description = 'Supplies 3D binding-site coordinates.';
   }
 
   const aggregate = new Map<string, StageLink>();
@@ -171,7 +171,7 @@ export interface ImplementationStep {
 const implementation: Record<string, ImplementationStep[]> = {
   painn_se3: [
     { label: 'Build a neighbor graph', description: 'Connect nearby pocket atoms using the radius cutoff and neighbor limit.', source: 'src/geneuclidean/models/encoders/painn.py#L266' },
-    { label: 'Embed pocket atoms', description: 'Map atom features into scalar channels and expand interatomic distances into radial features.', source: 'src/geneuclidean/models/encoders/painn.py#L274' },
+    { label: 'Embed pocket atoms', description: 'Map atom features into scalar channels and expand interatomic distances into radial features.', source: 'src/geneuclidean/models/encoders/painn.py#L275' },
     { label: 'Exchange geometric messages', description: 'Update scalar and vector channels using neighbor features and edge directions.', source: 'src/geneuclidean/models/encoders/painn.py#L290' },
     { label: 'Read out the pocket', description: 'Return per-atom features and a masked attention pool over the pocket.', source: 'src/geneuclidean/models/encoders/painn.py#L296' },
   ],

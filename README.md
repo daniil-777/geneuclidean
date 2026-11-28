@@ -112,7 +112,7 @@ rescues = ge.AvoidomeMMPEngine().propose_rescues(ge.IBOGAINE_SMILES)
 
 ### 6. Apple-Style 49-Block Circuit Studio (CLI + Web + Python)
 
-Open the [Circuit editor](https://daniil-777.github.io/geneuclidean/#circuit) to trace the pocket through the encoder and decoder to its SMILES output. Choose a stage to follow its connections or inspect a block’s key settings. Switch to **Wiring canvas** to edit individual wires, export a graph or inspect the generated Python. [Circuit editor design and research](docs/circuit_editor_design.md)
+Open the [Circuit editor](https://daniil-777.github.io/geneuclidean/#circuit) to trace the pocket through the encoder and decoder to its SMILES output. Open a stage in **Diagram** to trace individual ports, or choose **Parameter form** to edit that stage’s blocks. Switch to **Wiring canvas** to edit individual wires, export a graph or inspect the generated Python. [Circuit editor design and research](docs/circuit_editor_design.md)
 
 ```bash
 .venv/bin/geneuclidean studio --host 127.0.0.1 --port 8765  # live local Python bridge for web/

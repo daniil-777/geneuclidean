@@ -36,6 +36,59 @@ async function checkBounds(items: Locator) {
   expect(problems).toEqual([]);
 }
 
+// Inspect the drawn SVG in CSS pixels so the test also catches transforms, layout
+// breakpoints, detached handles and connectors painted across block labels.
+async function readDiagram(stage: Locator) {
+  return stage.evaluate(root => {
+    const nodes = [...root.querySelectorAll('[data-diagram-node]')];
+    const ports = [...root.querySelectorAll<SVGCircleElement>('circle[data-port-id]')];
+    const cards = nodes.map(el => el.getBoundingClientRect());
+    const errors: string[] = [];
+    const wires = [...root.querySelectorAll<SVGPathElement>('path[data-wire-id]')].map(wire => {
+      const length = wire.getTotalLength();
+      const transform = wire.getScreenCTM()!;
+      const points = Array.from({ length: 65 }, (_, i) => {
+        const p = wire.getPointAtLength(length * i / 64).matrixTransform(transform);
+        return { x: p.x, y: p.y };
+      });
+      const { wireId, source, sourcePort, target, targetPort } = wire.dataset;
+      for (const [index, nodeId, portId] of [[0, source, sourcePort], [64, target, targetPort]] as const) {
+        const port = ports.find(p => p.dataset.nodeId === nodeId && p.dataset.portId === portId &&
+          p.dataset.edgeId === wireId && p.dataset.portDirection === (index === 0 ? 'output' : 'input'));
+        if (!port) { errors.push(`${wireId}: missing ${nodeId}.${portId}`); continue; }
+        const r = port.getBoundingClientRect();
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        const node = nodes.find(n => n.getAttribute('data-node-id') === nodeId)?.getBoundingClientRect();
+        if (!node || Math.min(Math.abs(cx - node.left), Math.abs(cx - node.right),
+              Math.abs(cy - node.top), Math.abs(cy - node.bottom)) > 2 ||
+            cx < node.left - 2 || cx > node.right + 2 || cy < node.top - 2 || cy > node.bottom + 2) {
+          errors.push(`${wireId}: ${portId} floats away from its block`);
+        }
+        const d = Math.hypot(points[index].x - cx, points[index].y - cy);
+        if (d > r.width / 2 + 1) errors.push(`${wireId}: misses ${nodeId}.${portId} by ${d.toFixed(1)}px`);
+      }
+      if (points.some(p => cards.some(r => p.x > r.left + 2 && p.x < r.right - 2 && p.y > r.top + 2 && p.y < r.bottom - 2))) {
+        errors.push(`${wireId}: runs through a block`);
+      }
+      if (length < 8 || getComputedStyle(wire).stroke === 'none') errors.push(`${wireId}: invisible route`);
+      return { id: wireId, source, sourcePort, target, targetPort, points };
+    });
+    for (const [i, a] of cards.entries()) {
+      if (cards.slice(0, i).some(b => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 &&
+          Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1)) errors.push(`Overlapping card ${i}`);
+    }
+    return { errors, wires };
+  });
+}
+
+async function openConnectionList(page: Page) {
+  await page.locator('summary').filter({ hasText: /^Connection list/ }).click();
+}
+
+function mode(page: Page, name: 'Diagram' | 'Parameter form') {
+  return page.getByRole('group', { name: 'Stage editor mode' }).getByRole('button', { name, exact: true });
+}
+
 test('traces the default pocket-to-SMILES path and its two parallel decoder signals by keyboard', async ({ page }) => {
   await openEditor(page);
   await expect(page.getByRole('combobox', { name: 'Preset' })).toHaveValue('tourette_scz_champion');
@@ -49,14 +102,22 @@ test('traces the default pocket-to-SMILES path and its two parallel decoder sign
   await encoder.focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Encoder', exact: true })).toBeFocused();
-  await expect(page.locator('[data-connection-id="e2"] code')).toHaveText(['pocket_graph', 'pocket_graph']);
+  await expect(mode(page, 'Diagram')).toHaveAttribute('aria-pressed', 'true');
+  const encoderWire = page.locator('path[data-wire-id="e2"]');
+  await expect(encoderWire).toHaveAttribute('data-source-port', 'pocket_graph');
+  await expect(encoderWire).toHaveAttribute('data-target-port', 'pocket_graph');
   await page.getByRole('button', { name: 'Back to overview' }).press('Space');
   await expect(encoder).toBeFocused();
   await page.getByRole('button', { name: 'Open Decoder', exact: true }).click();
-  const rows = page.getByRole('region', { name: 'Connections' });
-  await expect(rows.locator('[data-connection-id="e7"] code')).toHaveText(['molecules', 'molecules']);
-  await expect(rows.locator('[data-connection-id="e8"] code')).toHaveText(['pmi_scores', 'rewards']);
-  await rows.locator('[data-connection-id="e8"]').getByRole('button').last().click();
+  const reward = page.locator('path[data-wire-id="e8"]');
+  await reward.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[data-wire-detail]')).toContainText('pmi_scores');
+  await expect(page.locator('[data-wire-detail]')).toContainText('rewards');
+  await openConnectionList(page);
+  const rewardsRow = page.locator('[data-connection-id="e8"]');
+  await expect(rewardsRow.locator('code')).toHaveText(['pmi_scores', 'rewards']);
+  await rewardsRow.getByRole('button').last().press('Space');
   await expect(page.locator('[data-block-id="n_rl"]')).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: 'Back to overview' }).click();
   await page.getByRole('button', { name: 'Open SMILES', exact: true }).click();
@@ -66,21 +127,59 @@ test('traces the default pocket-to-SMILES path and its two parallel decoder sign
   await expect(page.locator('.stage-products li code').first()).toHaveText(/\S+/);
 });
 
-test('keeps cards, parallel endpoint pairs and connectors separate at each screen size', async ({ page }) => {
+test('attaches each wire to its declared ports and separates both parallel decoder paths at each width', async ({ page }) => {
   await openEditor(page);
   for (const width of [1440, 768, 375, 320]) {
     await page.setViewportSize({ width, height: 900 });
     await checkBounds(page.locator('.stage-flow > *'));
-    await page.getByRole('button', { name: 'Open Decoder', exact: true }).click();
-    await expect(page.locator('[data-block-id]')).toHaveCount(3);
-    await checkBounds(page.locator('.stage-blocks > *'));
-    await page.getByText('Boundary connections', { exact: true }).click();
-    const rows = page.locator('[data-connection-id]:visible');
-    await expect(rows).toHaveCount(8);
-    await checkBounds(rows);
-    await checkBounds(rows.locator(':scope > *'));
-    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
-    await page.getByRole('button', { name: 'Back to overview' }).click();
+    for (const stage of ['Encoder', 'Decoder']) {
+      await page.getByRole('button', { name: 'Open ' + stage, exact: true }).click();
+      const diagram = page.locator('[data-diagram-stage]');
+      await expect(diagram.locator('[data-diagram-node]')).toHaveCount(stage === 'Encoder' ? 2 : 3);
+      const { errors, wires } = await readDiagram(diagram);
+      expect(errors, `${stage} at ${width}px`).toEqual([]);
+      expect(wires.map(w => [w.id, w.source, w.sourcePort, w.target, w.targetPort])).toEqual(stage === 'Encoder'
+        ? [['e2', 'n_cart', 'pocket_graph', 'n_bridge', 'pocket_graph']]
+        : [['e6', 'n_lm', 'molecules', 'n_cfg', 'lm_candidates'],
+           ['e7', 'n_cfg', 'molecules', 'n_rl', 'molecules'], ['e8', 'n_cfg', 'pmi_scores', 'n_rl', 'rewards']]);
+      const positions = await diagram.locator('[data-diagram-node]').evaluateAll(els => els.map(el => {
+        const r = el.getBoundingClientRect();
+        return { x: r.left, y: r.top };
+      }));
+      if (width === 1440) expect(positions[1].x).toBeGreaterThan(positions[0].x + 10);
+      if (width <= 375) expect(positions[1].y).toBeGreaterThan(positions[0].y + 10);
+      if (stage === 'Decoder') {
+        const a = wires.find(w => w.id === 'e7')!.points;
+        const b = wires.find(w => w.id === 'e8')!.points;
+        expect(Math.min(...a.flatMap(p => b.map(q => Math.hypot(p.x - q.x, p.y - q.y))))).toBeGreaterThan(2);
+        if (width === 1440) {
+          const zoom = diagram.getByLabel('Zoom level');
+          const fit = await zoom.textContent();
+          await diagram.getByRole('button', { name: 'Zoom in', exact: true }).click();
+          await expect(zoom).not.toHaveText(fit!);
+          expect((await readDiagram(diagram)).errors).toEqual([]);
+          await diagram.getByRole('button', { name: 'Fit diagram' }).click();
+          await expect(zoom).toHaveText(fit!);
+          const wire = diagram.locator('path[data-wire-id="e7"]');
+          await wire.scrollIntoViewIfNeeded();
+          const mid = await wire.evaluate(el => {
+            const path = el as SVGPathElement;
+            const p = path.getPointAtLength(path.getTotalLength() / 2).matrixTransform(path.getScreenCTM()!);
+            return { x: p.x, y: p.y };
+          });
+          await page.mouse.click(mid.x, mid.y);
+          await expect(wire).toHaveAttribute('aria-pressed', 'true');
+        }
+        await openConnectionList(page);
+        await page.getByText('Boundary connections', { exact: true }).click();
+        const rows = page.locator('[data-connection-id]:visible');
+        await expect(rows).toHaveCount(8);
+        await checkBounds(rows);
+        await checkBounds(rows.locator(':scope > *'));
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+      await page.getByRole('button', { name: 'Back to overview' }).click();
+    }
   }
 });
 
@@ -113,6 +212,7 @@ test('preserves feedback, offers valid empty-state actions and clears drilldown 
   await preset.selectOption('al_dmta_closed_loop');
   await expect(page.getByRole('heading', { name: 'Signal path' })).toBeVisible();
   await page.getByRole('button', { name: 'Open Active learning' }).click();
+  await openConnectionList(page);
   await page.getByText('Boundary connections', { exact: true }).click();
   const feedback = page.locator('[data-connection-id="e_fb_1"]');
   await expect(feedback).toContainText('Feedback');
@@ -130,7 +230,8 @@ for (const theme of ['light', 'dark']) {
   test(`stage overview and encoder settings pass automated accessibility checks in ${theme} mode`, async ({ page }) => {
     await openEditor(page);
     if (theme === 'dark') await page.getByRole('button', { name: 'Switch to dark mode' }).click();
-    for (const view of ['overview', 'encoder']) {
+    for (const view of ['overview', 'encoder', 'form']) {
+      if (view === 'form') await mode(page, 'Parameter form').click();
       if (view === 'encoder') {
         await page.getByRole('button', { name: 'Open Encoder', exact: true }).click();
         await page.getByRole('button', { name: 'Inspect CartFormer-SE3', exact: true }).click();
@@ -197,6 +298,7 @@ test('imports distinct decoder outputs and preserves an unknown consumer in the 
   await expect(products.filter({ hasText: 'aligned_mols' })).toBeVisible();
   await products.filter({ hasText: 'Additional decoder' }).click();
   await expect(page.locator('[data-block-id="second"]')).toHaveAttribute('aria-pressed', 'true');
+  await openConnectionList(page);
   await page.getByText('Boundary connections', { exact: true }).click();
   const edge = page.locator('[data-connection-id="extra_readout"]');
   await expect(edge.locator('code')).toHaveText(['molecules', 'candidates']);
@@ -205,4 +307,64 @@ test('imports distinct decoder outputs and preserves an unknown consumer in the 
   await expect(page.locator('[data-block-id="custom"]')).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: 'Wiring canvas' }).click();
   expect(await exportGraph(page)).toEqual(graph);
+});
+
+
+test('edits advanced settings by keyboard in the form, preserving selection, value and mode', async ({ page }) => {
+  await openEditor(page);
+  await page.getByRole('button', { name: 'Open Encoder', exact: true }).press('Enter');
+  await mode(page, 'Parameter form').press('Space');
+  await expect(mode(page, 'Parameter form')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-diagram-stage]')).toHaveCount(0);
+  const block = page.getByRole('combobox', { name: 'Block', exact: true });
+  await block.press('p');
+  await expect(block).toHaveValue('n_bridge');
+  const advanced = page.getByRole('slider', { name: 'ScaleMatch RMS', exact: true });
+  await expect(advanced).toBeHidden();
+  await page.locator('summary').filter({ hasText: /^More parameters/ }).press('Enter');
+  await expect(advanced).toHaveValue('1');
+  await advanced.press('ArrowRight');
+  await expect(advanced).toHaveValue('1.1');
+  await mode(page, 'Diagram').press('Enter');
+  await expect(page.locator('[data-block-id="n_bridge"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(advanced).toBeHidden();
+  await mode(page, 'Parameter form').press('Enter');
+  await expect(block).toHaveValue('n_bridge');
+  await page.getByRole('button', { name: 'Edit in full canvas' }).press('Enter');
+  expect((await exportGraph(page)).nodes.find(n => n.id === 'n_bridge')?.params.output_rms_scale).toBe(1.1);
+  await page.getByRole('button', { name: 'Stage view' }).click();
+  await expect(mode(page, 'Parameter form')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Back to overview' }).click();
+  await page.getByRole('button', { name: 'Open Decoder', exact: true }).click();
+  await expect(mode(page, 'Parameter form')).toHaveAttribute('aria-pressed', 'true');
+  await page.reload();
+  await page.getByRole('button', { name: 'Open Encoder', exact: true }).click();
+  await expect(mode(page, 'Parameter form')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('links single-block diagrams to the implementation and keeps code steps separate from circuit wires', async ({ page }) => {
+  await openEditor(page);
+  await page.getByRole('combobox', { name: 'Preset' }).selectOption('se3_denovo_cns');
+  const operations = {
+    Encoder: ['build_radius_knn_graph(', 'self.node_embed(', 'self.message_blocks', 'self.out_proj('],
+    Decoder: ['self.perceiver(', 'select_next_tokens(', 'safe_to_smiles('],
+  };
+  for (const [name, signatures] of Object.entries(operations)) {
+    await page.getByRole('button', { name: 'Open ' + name, exact: true }).click();
+    const diagram = page.locator('[data-diagram-stage]');
+    await expect(diagram.locator('[data-diagram-node]')).toHaveCount(1);
+    await expect(diagram.locator('path[data-wire-id]')).toHaveCount(0);
+    const steps = diagram.locator('[data-implementation-step]');
+    await expect(steps).toHaveCount(signatures.length);
+    for (const [i, signature] of signatures.entries()) {
+      const url = new URL((await steps.nth(i).getAttribute('href'))!);
+      expect(url.origin).toBe('https://github.com');
+      expect(url.pathname).toMatch(/^\/daniil-777\/geneuclidean\/blob\/[^/]+\/src\/geneuclidean\/.*\.py$/);
+      expect(url.hash).toMatch(/^#L\d+$/);
+      const filename = url.pathname.slice(url.pathname.indexOf('src/geneuclidean/'));
+      const source = await readFile(new URL('../../../' + filename, import.meta.url), 'utf8');
+      expect(source.split('\n')[Number(url.hash.slice(2)) - 1]).toContain(signature);
+    }
+    await page.getByRole('button', { name: 'Back to overview' }).click();
+  }
 });

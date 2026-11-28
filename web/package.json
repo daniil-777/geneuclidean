@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test:browser": "playwright test",
-    "test:circuit": "node --experimental-strip-types --test tests/circuitStages.test.mjs",
+    "test:circuit": "node --experimental-strip-types --test tests/circuitStages.test.mjs tests/stageDiagram.test.mjs",
     "test:twin": "node --experimental-strip-types --test tests/humanTwin.test.mjs",
     "typecheck": "tsc -b --noEmit"
   },
