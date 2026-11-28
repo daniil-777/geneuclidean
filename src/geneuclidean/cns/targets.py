@@ -148,8 +148,9 @@ CNS_TARGET_REGISTRY: dict[str, CNSTargetSpec] = {
             ),
         ),
         notes=(
-            "9LLG (2.77 A, flupentixol) and 9URL (3.04 A, SKF-83566 benzazepine) provide "
-            "inactive antagonist pockets; 9U5E (2.49 A) and 7LJC (3.00 A) are active controls."
+            "9LLG (2.77 A, flupentixol) is the inactive antagonist template. "
+            "9URL (3.04 A, SKF-83566) contains a Gs-bound signaling complex. "
+            "9U5E (2.49 A) and 7LJC (3.00 A) are active controls."
         ),
         disease_area="tourette",
         moa_class="ANTAGONIST",

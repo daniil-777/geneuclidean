@@ -2048,5 +2048,95 @@ def studio(
     run_studio_server(host=host, port=port, cors_origin=cors_origin, quiet=quiet)
 
 
+@app.command("human-twin")
+def human_twin(
+    candidate: str = typer.Option("DRD1_v53_L1", help="Repository Tourette lead ID."),
+    output: Path | None = typer.Option(None, help="Write the full research report as JSON."),
+    figure: Path | None = typer.Option(
+        None, help="Write a figure of the brain exposure scenarios."
+    ),
+    solubility: Path | None = typer.Option(
+        None,
+        exists=True,
+        dir_okay=False,
+        help="Measured buffered-water equilibrium solubility JSON.",
+    ),
+    dialysis_run: Path | None = typer.Option(
+        None, exists=True, dir_okay=False, help="Human plasma dialysis run JSON."
+    ),
+    d1_binding: Path | None = typer.Option(
+        None,
+        exists=True,
+        dir_okay=False,
+        help="Parent-specific human DRD1 equilibrium Kd record JSON.",
+    ),
+) -> None:
+    """Run human exposure sensitivity scenarios for a nominated Tourette compound."""
+    from geneuclidean.human_twin import (
+        AqueousSolubilityMeasurement,
+        D1BindingMeasurement,
+        DialysisRun,
+        plot_study,
+        run_tourette_study,
+    )
+
+    outputs = [p.resolve() for p in (output, figure) if p is not None]
+    inputs = {p.resolve() for p in (dialysis_run, solubility, d1_binding) if p is not None}
+    if len(set(outputs)) != len(outputs) or inputs.intersection(outputs):
+        raise typer.BadParameter("Use separate paths for evidence, JSON output and figure")
+    try:
+        run = DialysisRun.model_validate_json(dialysis_run.read_bytes()) if dialysis_run else None
+        binding = (
+            D1BindingMeasurement.model_validate_json(d1_binding.read_bytes())
+            if d1_binding
+            else None
+        )
+        aqueous = (
+            AqueousSolubilityMeasurement.model_validate_json(solubility.read_bytes())
+            if solubility
+            else None
+        )
+        report = run_tourette_study(candidate, dialysis=run, solubility=aqueous, binding=binding)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    if figure is not None:
+        plot_study(report, figure)
+    if output is not None:
+        output.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    peaks = [s["sampled_brain_cmax_nm"] for s in report["scenarios"]]
+    typer.echo(f"{candidate} | {len(peaks)} sensitivity scenarios | 1 µmol model input")
+    typer.echo(f"Sampled unbound brain peaks span {min(peaks):.3g} to {max(peaks):.3g} nM.")
+    informed = report["structure_informed_scenario"]["exposure"]["sampled_brain_cmax_nm"]
+    typer.echo(f"With assay-informed inputs, the modeled brain peak is {informed:.3g} nM.")
+    typer.echo("Individual tic response and clinical safety are undetermined.")
+
+
+@app.command("dialysis-plan")
+def dialysis_plan(
+    plate_id: str = typer.Option(..., help="Unique plate barcode."),
+    reference_id: str = typer.Option(..., help="Lab-qualified reference material ID."),
+    reference_smiles: str = typer.Option(..., help="Structure of the reference material."),
+    output: Path = typer.Option(..., help="Write paired positions and controls as JSON."),
+    candidate: str = typer.Option("DRD1_v53_L1", help="Repository Tourette lead ID."),
+    replicates: int = typer.Option(3, min=2, max=32, help="Technical replicates per role."),
+    seed: int = typer.Option(0, help="Randomization seed."),
+) -> None:
+    """Prepare an offline randomized 96-position equilibrium dialysis worklist."""
+    from geneuclidean.human_twin import Compound, plan_dialysis, tourette_candidate
+
+    try:
+        plan = plan_dialysis(
+            tourette_candidate(candidate),
+            Compound(compound_id=reference_id, smiles=reference_smiles),
+            plate_id=plate_id,
+            replicates=replicates,
+            seed=seed,
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    output.write_text(plan.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    typer.echo(f"Planned {len(plan.wells)} paired positions on {plan.plate_id}.")
+
+
 if __name__ == "__main__":
     app()
