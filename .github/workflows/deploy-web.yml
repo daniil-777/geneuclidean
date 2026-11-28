@@ -43,6 +43,10 @@ jobs:
         working-directory: web
         run: npm run test:twin
 
+      - name: Check circuit stage projections
+        working-directory: web
+        run: npm run test:circuit
+
       - name: Typecheck & Build production bundle
         working-directory: web
         run: npm run build

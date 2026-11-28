@@ -1,0 +1,73 @@
+.circuit-guided-shell {
+  width: min(100%, var(--studio-width)); margin: auto;
+  padding: clamp(24px, 3.8vw, 54px) var(--studio-gutter) 32px;
+}
+.circuit-workspace-head, .circuit-guide-toolbar, .circuit-guide-actions, .circuit-view-switch {
+  display: flex; align-items: center;
+}
+.circuit-workspace-head, .circuit-guide-toolbar { justify-content: space-between; gap: 12px 22px; }
+.circuit-workspace-head { flex-wrap: wrap; }
+.circuit-workspace-head h1 {
+  margin: 0; font-size: clamp(35px, 4.1vw, 58px); line-height: 1.05;
+  font-weight: 680; letter-spacing: -.065em; color: var(--text-primary);
+}
+.circuit-view-switch {
+  gap: 3px; padding: 3px; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 24px;
+}
+.circuit-view-switch button, .circuit-guide-actions button {
+  display: inline-flex; justify-content: center; align-items: center;
+  gap: 7px; min-height: 40px; padding: 0 14px; border-radius: 24px;
+  font-size: 13px; font-weight: 590; cursor: pointer; white-space: nowrap;
+}
+.circuit-view-switch button { color: var(--text-secondary); }
+.circuit-view-switch button[aria-pressed=true] {
+  color: var(--text-primary); background: var(--bg-surface); box-shadow: 0 1px 5px #17192322;
+}
+.circuit-guide-toolbar { margin-block: clamp(22px, 2.4vw, 34px) 14px; flex-wrap: wrap; }
+.circuit-guide-toolbar label { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 13px; font-weight: 580; color: var(--text-secondary); }
+.circuit-guide-toolbar select {
+  min-width: 0; max-width: 100%; min-height: 42px; border-radius: 12px; cursor: pointer;
+  padding-inline: 12px 26px; background: var(--bg-surface); color: var(--text-primary);
+  font-weight: 570; border: 1px solid var(--border-strong);
+}
+.circuit-guide-actions { gap: 5px; }
+.circuit-guide-actions button { min-width: 42px; padding-inline: 10px; border: 1px solid var(--border-strong); color: var(--text-primary); }
+.circuit-guide-actions button:disabled { opacity: .4; cursor: default; }
+.circuit-guide-actions button:enabled:hover, .circuit-view-switch button[aria-pressed=false]:hover { background: var(--bg-elevated); }
+.circuit-guide-actions button.circuit-run-action { background: var(--text-primary); color: var(--bg-surface); padding-inline: 16px; margin-left: 4px; }
+.circuit-guide-actions button.circuit-run-action:enabled:hover { filter: brightness(.9); }
+.circuit-guide-status { color: var(--text-secondary); padding-block: 12px; font-size: 13px; }
+.circuit-guide-status:empty { padding: 0; }
+.circuit-workspace-head.is-compact { flex: none; padding: 5px var(--studio-gutter); border-bottom: 1px solid var(--border-subtle); }
+.circuit-workspace-head.is-compact h1 { font-size: 21px; letter-spacing: -.045em; }
+.circuit-workspace-head.is-compact button { min-height: 33px; }
+@media (max-width: 740px) {
+  .circuit-wiring-body > :is([data-right-drawer], [data-block-palette]) {
+    position: absolute; inset-block: 0; max-width: calc(100% - 44px); background: var(--bg-surface);
+  }
+  .circuit-wiring-body > [data-right-drawer] { right: 0; }
+  .circuit-wiring-body > [data-block-palette] { left: 0; z-index: 25; }
+}
+@media (max-width: 600px) {
+  .circuit-guide-toolbar label { width: 100%; flex-direction: column; align-items: stretch; gap: 4px; }
+  .circuit-guide-toolbar select { flex: 1; }
+  .circuit-guide-toolbar { gap: 10px; }
+  .circuit-guide-actions { margin-left: auto; }
+  .circuit-view-switch button, .circuit-guide-actions button { min-height: 44px; }
+  .circuit-workspace-head.is-compact { gap: 5px; padding-inline: 8px; }
+  .circuit-workspace-head.is-compact h1 { font-size: 17px; }
+  .circuit-workspace-head.is-compact button { padding-inline: 8px; font-size: 12px; }
+}
+
+@media (max-width: 740px) {
+  .circuit-wiring-body { isolation: isolate; }
+  .circuit-wiring-body > [data-right-drawer] { z-index: 41; }
+  .circuit-wiring-body > [data-block-palette] { z-index: 42; }
+  .circuit-wiring-tools {
+    height: auto; max-width: 100%; overflow-x: auto;
+    flex-wrap: wrap; gap: 3px; padding: 4px 6px;
+  }
+  .circuit-wiring-tools > div:first-child { flex: 1 0 100%; }
+  .circuit-wiring-tools > div:last-child { flex-wrap: wrap; row-gap: 4px; }
+  .circuit-wiring-tools > div:last-child button { white-space: nowrap; }
+}

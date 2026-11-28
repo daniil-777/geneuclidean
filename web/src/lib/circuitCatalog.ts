@@ -2005,9 +2005,9 @@ export const BLOCK_CATALOG: BlockDefinition[] = [
   },
 ];
 
-export const BLOCK_CATALOG_MAP: Record<string, BlockDefinition> = Object.fromEntries(
-  BLOCK_CATALOG.map((b) => [b.blockType, b]),
-);
+// Imports may use any block name, including names inherited by plain objects.
+export const BLOCK_CATALOG_MAP: Record<string, BlockDefinition> = Object.create(null);
+for (const block of BLOCK_CATALOG) BLOCK_CATALOG_MAP[block.blockType] = block;
 
 export function createDefaultParams(blockType: string): Record<string, number | string | boolean> {
   const def = BLOCK_CATALOG_MAP[blockType];
