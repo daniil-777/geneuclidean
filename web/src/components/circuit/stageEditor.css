@@ -157,6 +157,7 @@
 .stage-wire-index { border-top: 1px solid var(--stage-border); }
 .stage-wire-index > summary { min-height: 46px; }
 @media (max-width: 630px) {
+  .stage-back { scroll-margin-top: calc(var(--studio-header-height) + 8px); }
   .stage-mode-switch { width: 100%; }
   .stage-mode-switch button { flex: 1; min-height: 44px; }
 }

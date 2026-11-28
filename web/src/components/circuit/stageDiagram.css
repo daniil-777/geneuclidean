@@ -71,6 +71,7 @@
 .sd-wire-hit { stroke: transparent; stroke-width: 14px; }
 .sd-port { pointer-events: all; cursor: pointer; stroke: var(--wire); stroke-width: 2px; fill: var(--bg-surface); }
 .sd-port[data-port-direction="output"] { fill: var(--wire); }
+.sd-port-caption { position: absolute; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 10px/14px var(--font-mono); color: var(--text-secondary); pointer-events: none; }
 .sd-node {
   display: flex;
   position: absolute;

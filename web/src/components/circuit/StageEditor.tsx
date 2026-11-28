@@ -198,7 +198,12 @@ export function StageEditor({ circuit, onUpdateNodeParam, onOpenCanvas, result }
     if (group) open(group, node.id);
   }
   useLayoutEffect(() => {
-    if (stage && lastStage.current !== stage.id) title.current?.focus();
+    if (stage && lastStage.current !== stage.id) {
+      title.current?.focus();
+      if (window.matchMedia('(max-width: 630px)').matches) {
+        root.current?.querySelector('.stage-back')?.scrollIntoView({ block: 'start', behavior: 'instant' });
+      }
+    }
     if (!stage && lastStage.current && overviewOrigin.current) {
       root.current?.querySelector<HTMLButtonElement>('[data-stage-id="' + overviewOrigin.current + '"]')?.focus();
     }

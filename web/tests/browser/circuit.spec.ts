@@ -149,6 +149,15 @@ test('attaches each wire to its declared ports and separates both parallel decod
       if (width === 1440) expect(positions[1].x).toBeGreaterThan(positions[0].x + 10);
       if (width <= 375) expect(positions[1].y).toBeGreaterThan(positions[0].y + 10);
       if (stage === 'Decoder') {
+        const captions = diagram.locator('[data-diagram-node] small');
+        await expect(captions).toHaveCount(3);
+        const clipped = await captions.evaluateAll(elements => elements.filter(el => {
+          const box = el.getBoundingClientRect();
+          const card = el.closest('button')!.getBoundingClientRect();
+          return el.clientHeight === 0 || el.scrollHeight > el.clientHeight + 1 ||
+            box.top < card.top - 1 || box.bottom > card.bottom + 1;
+        }).map(el => el.closest('button')!.dataset.nodeId));
+        expect(clipped, `Clipped decoder captions at ${width}px`).toEqual([]);
         const a = wires.find(w => w.id === 'e7')!.points;
         const b = wires.find(w => w.id === 'e8')!.points;
         expect(Math.min(...a.flatMap(p => b.map(q => Math.hypot(p.x - q.x, p.y - q.y))))).toBeGreaterThan(2);
