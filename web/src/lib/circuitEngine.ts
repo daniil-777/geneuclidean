@@ -1490,67 +1490,28 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
           break;
         }
         case 'nanofold3_cofold': {
-          const trunkEdge = incomingFor(node.id, 'trunk_graph');
-          const trunk = portVar(trunkEdge, '{}');
-          const molsEdge = incomingFor(node.id, 'molecules');
-          const defaultLig = '"CN1CCN(C(=O)c2ccc3ccccc3n2)CC1"';
-          out.push(
-            ...pyCall(indent, `${v}_model`, 'ge_folding.build_nanofold3', [
-              `preset=${pyStr(p.preset ?? 'nano')}`,
-              `diffusion_mode=${pyStr(p.diffusion_mode ?? 'edm')}`,
-              'enable_affinity_head=True',
-            ]),
-          );
-          if (molsEdge) {
-            const mols = portVar(molsEdge, '[]');
-            out.push(`${indent}${v}_mols = list(${mols})`);
-            out.push(`${indent}${v}_lig_smi = ${v}_mols[0] if ${v}_mols else ${defaultLig}`);
-          } else if (trunkEdge) {
-            out.push(
-              `${indent}${v}_mols = ${trunk}.get("molecules", []) if isinstance(${trunk}, dict) else []`,
-            );
-            out.push(`${indent}${v}_lig_smi = ${v}_mols[0] if ${v}_mols else ${defaultLig}`);
-          } else {
-            out.push(`${indent}${v}_lig_smi = ${defaultLig}`);
-          }
-          out.push(
-            ...pyCall(indent, `${v}_res`, 'ge_folding.fold_complex', [
-              'protein_sequence="ACDEFGHIKLMNPQRSTVWY"',
-              `ligand_smiles=${v}_lig_smi`,
-              'backend="nanofold3"',
-              `num_samples=${pyNum(p.num_samples, 2)}`,
-              `num_steps=${pyNum(p.num_steps, 20)}`,
-              `num_recycles=${pyNum(p.recycles, 2)}`,
-              'predict_affinity=True',
-              'run_audit=False',
-            ]),
-          );
-          out.push(`${indent}${v}_poses = [${v}_res.ligand_mol_3d] if ${v}_res.ligand_mol_3d else []`);
-          out.push(`${indent}${v}_cofold_graph = {"trunk": ${trunk}, "model": ${v}_model, "result": ${v}_res}`);
-          out.push(
-            `${indent}${v}_diffusion_report = {"mode": ${pyStr(p.diffusion_mode ?? 'edm')}, "plddt": ${v}_res.plddt_mean, "iptm": ${v}_res.iptm}`,
-          );
+          const trunk = portVar(incomingFor(node.id, 'trunk_graph'), '{}');
+          const mols = portVar(incomingFor(node.id, 'molecules'), '[]');
+          out.push(`${indent}from geneuclidean.studio.folding import cofold_candidate, confidence_scores`);
+          out.push(...pyCall(indent, `${v}_res`, 'cofold_candidate', [
+            trunk, mols, `seed=${pyNum(circuit.execution.seed, 42)}`,
+            `num_steps=${pyNum(p.num_steps, 20)}`, `num_samples=${pyNum(p.num_samples, 2)}`,
+            `flex_mode=${pyStr(p.flex_mode ?? 'flexible_pocket_and_ligand')}`,
+          ]));
+          out.push(`${indent}${v}_pose = ${v}_res.ligand_mol_3d if ${v}_res else None`);
+          out.push(`${indent}${v}_poses = [${v}_pose] if ${v}_pose is not None else []`);
+          out.push(`${indent}${v}_cofold_graph = {"result": ${v}_res}`);
+          out.push(`${indent}${v}_diffusion_report = confidence_scores(${v}_res, include_affinity=True)`);
           break;
         }
         case 'confidence_head': {
           const cg = portVar(incomingFor(node.id, 'cofold_graph'), '{}');
           const poses = portVar(incomingFor(node.id, 'poses'), '[]');
-          out.push(
-            ...pyCall(indent, `${v}_head`, 'ge_folding.ConfidenceHead', [
-              'c_s=192',
-              'c_z=64',
-              `num_blocks=${pyNum(p.num_blocks, 2)}`,
-              `trunk_mode=${pyStr(p.trunk_mode ?? 'pairformer')}`,
-              `enable_affinity_head=${pyBool(p.enable_affinity_head ?? true)}`,
-            ]),
-          );
-          out.push(`${indent}${v}_scored_poses = list(${poses})`);
-          out.push(
-            `${indent}${v}_confidence_scores = {"min_iptm": ${pyNum(p.min_iptm, 0.6)}, "min_plddt": ${pyNum(p.min_plddt, 70.0)}}`,
-          );
-          out.push(
-            `${indent}${v}_confidence_report = {"cofold": ${cg}, "head": ${v}_head.__class__.__name__, "affinity": ${pyBool(p.enable_affinity_head ?? true)}}`,
-          );
+          out.push(`${indent}from geneuclidean.studio.folding import confidence_scores, passes_confidence`);
+          out.push(`${indent}${v}_confidence_scores = confidence_scores(${cg}.get("result"), include_affinity=${pyBool(p.enable_affinity_head ?? true)})`);
+          out.push(`${indent}${v}_accepted = passes_confidence(${v}_confidence_scores, min_iptm=${pyNum(p.min_iptm, 0.6)}, min_plddt=${pyNum(p.min_plddt, 70)})`);
+          out.push(`${indent}${v}_scored_poses = list(${poses}) if ${v}_accepted else []`);
+          out.push(`${indent}${v}_confidence_report = dict(${v}_confidence_scores)`);
           break;
         }
         case 'external_folder_runner': {
@@ -1648,20 +1609,19 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
         }
         case 'conformal_dmpk': {
           const mols = portVar(incomingFor(node.id, 'molecules'), 'molecules');
+          const endpoint = pyStr(p.endpoint ?? 'OpenADMET_LogD');
           out.push(
-            ...pyCall(indent, `${v}_dmpk`, 'ge.ConformalDMPKRegressor', [
-              `endpoint=${pyStr(p.endpoint ?? 'OpenADMET_LogD')}`,
+            ...pyCall(indent, `${v}_dmpk`, 'ge.ConformalDMPKRegressor.from_reference_data', [
+              `endpoint=${endpoint}`,
               `alpha=${pyNum(p.alpha, 0.1)}`,
               `n_estimators=${pyNum(p.n_estimators, 80)}`,
+              'max_rows=300',
+              `seed=${circuit.execution.seed}`,
             ]),
           );
-          out.push(`${indent}${v}_dmpk_intervals = ${v}_dmpk.predict_intervals(${mols})`);
-          out.push(
-            `${indent}${v}_dmpk_scores = {`,
-            `${indent}    s: {"pred": iv.mean, "lo": iv.lo, "hi": iv.hi}`,
-            `${indent}    for s, iv in zip(${mols}, ${v}_dmpk_intervals)`,
-            `${indent}}`,
-          );
+          out.push(`${indent}${v}_preds = ${v}_dmpk.predict(${mols})`);
+          out.push(`${indent}${v}_dmpk_intervals = {'endpoint': ${endpoint}, 'alpha': ${pyNum(p.alpha, 0.1)}, 'predictions': [p.to_dict() for p in ${v}_preds]}`);
+          out.push(`${indent}${v}_dmpk_scores = {p.smiles: p.y_pred for p in ${v}_preds if p.valid}`);
           break;
         }
         case 'openfe_rbfe_exporter': {
@@ -1708,9 +1668,7 @@ export function generatePythonSdk(circuit: CircuitGraphV1): CodegenResult {
             ...pyCall(indent, `${v}_dossier`, 'ge.build_credibility_dossier', [
               `model_name=${pyStr(circuit.name)}`,
               'model_version="5.3.0"',
-              `ei_saturation_tol=${pyNum(p.ei_saturation_tol, 0.02)}`,
-              `jaccard_stability_tol=${pyNum(p.jaccard_stability_tol, 0.85)}`,
-              `export_fda_ema=${pyBool(p.export_fda_ema_dossier ?? true)}`,
+              `context_of_use=${pyStr('In silico prioritization for ' + circuit.execution.targetContext)}`,
             ]),
           );
           break;
@@ -1823,7 +1781,7 @@ export async function simulateCircuitInBrowser(
         graphSha256,
         resultSha256: graphSha256,
         timestampUtc: new Date().toISOString(),
-        fdaEmaPrinciples: '10/10 Passed',
+        fdaEmaPrinciples: 'unassessed',
       },
       generatedCode: codegen.pythonCode,
     };
@@ -2018,26 +1976,11 @@ export async function simulateCircuitInBrowser(
           summary = `${isSf ? 'SimpleFold O(L²)' : 'Pairformer O(L³)'} · ${p.num_blocks ?? 6}L`;
           break;
         }
-        case 'nanofold3_cofold': {
-          const stepsCount = Number(p.num_steps ?? 20);
-          durationMs = Math.round(32 + stepsCount * 1.1 + jitter * 18);
-          outputShapes.poses = `All-Atom 3D [det=+1]`;
-          metrics.diffusion_mode = String(p.diffusion_mode ?? 'edm');
-          metrics.kabsch_det = 1.0;
-          summary = `${p.diffusion_mode === 'flow_matching' ? 'FM' : 'EDM'} ${stepsCount}st · det=+1`;
+        case 'nanofold3_cofold':
+        case 'confidence_head':
+          durationMs = 0;
+          summary = 'Requires local co-folding weights and receptor coordinates';
           break;
-        }
-        case 'confidence_head': {
-          const plddt = Number((84.2 + jitter * 7.8).toFixed(1));
-          const iptm = Number((0.76 + jitter * 0.14).toFixed(2));
-          durationMs = Math.round(14 + jitter * 9);
-          outputShapes.confidence_scores = `pLDDT ${plddt} · ipTM ${iptm}`;
-          metrics.plddt_mean = plddt;
-          metrics.iptm = iptm;
-          metrics.predicted_pkd = p.enable_affinity_head ? Number((8.35 + jitter * 0.65).toFixed(2)) : null;
-          summary = `pLDDT ${plddt} · ipTM ${iptm}${p.enable_affinity_head ? ` · pKd ${metrics.predicted_pkd}` : ''}`;
-          break;
-        }
         case 'external_folder_runner':
           durationMs = Math.round(16 + jitter * 12);
           outputShapes.job_manifest = `${String(p.backend ?? 'boltz2')} spec`;
@@ -2161,19 +2104,9 @@ export async function simulateCircuitInBrowser(
           break;
         }
         case 'conformal_dmpk': {
-          const ep = String(p.endpoint ?? 'OpenADMET_LogD');
-          const rhoMap: Record<string, number> = {
-            OpenADMET_LogD: 0.873,
-            OpenADMET_log10_KSOL: 0.743,
-            OpenADMET_log10_HLM_CLint: 0.614,
-            Biogen_log_HLM_CLint: 0.608,
-            Biogen_log_Solubility_pH68: 0.332,
-          };
-          const rhoVal = rhoMap[ep] ?? 0.74;
-          durationMs = Math.round(14 + jitter * 10);
-          metrics.spearman_rho = rhoVal;
-          metrics.coverage_pct = Number(((1 - Number(p.alpha ?? 0.1)) * 100 + 2.1).toFixed(1));
-          summary = `ρ=${rhoVal.toFixed(3)} · ${metrics.coverage_pct}% cov`;
+          durationMs = 0;
+          metrics.endpoint = String(p.endpoint ?? 'OpenADMET_LogD');
+          summary = 'Run locally with measured endpoint labels';
           break;
         }
         case 'openfe_rbfe_exporter':
@@ -2192,7 +2125,7 @@ export async function simulateCircuitInBrowser(
           break;
         case 'dmta_ledger':
           durationMs = Math.round(8 + jitter * 6);
-          summary = `FDA/EMA 10/10 · Sealed`;
+          summary = 'Prepared simulated ledger';
           break;
         default:
           summary = 'Executed';
@@ -2318,7 +2251,7 @@ export async function simulateCircuitInBrowser(
       graphSha256,
       resultSha256,
       timestampUtc: new Date().toISOString(),
-      fdaEmaPrinciples: '10/10 Passed',
+      fdaEmaPrinciples: 'unassessed',
     },
     generatedCode: codegen.pythonCode,
   };

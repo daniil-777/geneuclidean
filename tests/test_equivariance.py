@@ -578,3 +578,26 @@ def test_e3nn_lstm_v15_so3_invariance(device: str) -> None:
 
     tol = 5e-5 if device == "cpu" else 1e-4
     assert (out.logits - ref.logits).abs().max().item() < tol
+
+
+def test_tiled_neighbors_and_masked_pool_preserve_gradients() -> None:
+    from geneuclidean.models.encoders.dense_knn import build_dense_knn_graph
+    from geneuclidean.models.encoders.rbf import MaskedAttentionPool
+
+    coords = torch.randn(2, 17, 3, generator=torch.Generator().manual_seed(31)).requires_grad_()
+    mask = torch.ones(2, 17, dtype=torch.bool)
+    mask[0, 8:] = False
+    a = build_dense_knn_graph(coords, mask, max_neighbors=3, query_chunk_size=4)
+    b = build_dense_knn_graph(coords, mask, max_neighbors=3, query_chunk_size=17)
+    for key in ("nbr_idx", "nbr_mask", "edge_env", "edge_dist", "r_eff"):
+        torch.testing.assert_close(getattr(a, key), getattr(b, key))
+    grads = [torch.autograd.grad(graph.edge_env.sum(), coords)[0] for graph in (a, b)]
+    torch.testing.assert_close(*grads)
+
+    nodes = torch.randn(2, 17, 4).masked_fill(~mask[..., None], float("nan")).requires_grad_()
+    pool = MaskedAttentionPool(4)
+    pooled = pool(nodes, mask)
+    torch.testing.assert_close(pooled, pool(nodes.nan_to_num(), mask))
+    pooled[:, 0].sum().backward()
+    assert nodes.grad is not None and torch.isfinite(nodes.grad).all()
+    assert torch.all(nodes.grad[~mask] == 0)

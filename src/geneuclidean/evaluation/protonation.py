@@ -22,7 +22,9 @@ Rules applied at physiological ``pH = 7.4``:
    Preserves existing formal ``+1`` quaternary ammonium centers (e.g., trospium) without
    altering valence or double-protonating nearby amines.
 4. **Strong Organic Acids** (``pKa < 5.0``):
-   Deprotonates carboxylic acids, sulfonic/phosphonic acids, and 5-substituted tetrazoles.
+   Deprotonates carboxylic acids, sulfonic acids, and tetrazoles. Assigns the first
+   acidic ionization of a phosphonate or phosphate while retaining pre-existing
+   anions. Further phosphorus ionization depends on the compound-specific pKa.
 5. **Idempotency**:
    Running :func:`protonate_mol_ph74` twice produces the exact same ionization state and
    canonical isomeric SMILES.
@@ -56,8 +58,9 @@ _SMARTS_STR_BASIC_AMINE_ANY_STATE = (
 _SMARTS_STR_AMIDINE_GUANIDINE_IMINE = "[NX2;+0]=[CX3]([NX3])[#6,N]"
 _SMARTS_STR_AMIDINE_GUANIDINE_ANY = "[NX2,NX3+;!$([N+](=O)[O-])]=[CX3]([NX3])[#6,N]"
 _SMARTS_STR_CARBOXYLIC_OH = "[OX2H1;+0][CX3]=O"
-_SMARTS_STR_SULFO_PHOSPHO_OH = "[OX2H1;+0][SX4,PX4](=O)=O"
-_SMARTS_STR_TETRAZOLE_NH = "[nH1;+0]1nnnn1"
+_SMARTS_STR_SULFONIC_OH = "[OX2H1;+0][SX4](=O)=O"
+_SMARTS_STR_PHOSPHORUS_OH = "[OX2H1;+0][PX4](=O)"
+_SMARTS_STR_TETRAZOLE_NH = "[nH1;+0;$([nH]1nnnc1),$([nH]1nncn1)]"
 _SMARTS_STR_NITRO_N = "[$([NX3](=O)=O),$([NX3+](=O)[O-])]"
 
 
@@ -70,7 +73,8 @@ def _compiled_smarts() -> dict[str, Chem.Mol]:
         "amidine_imine": _SMARTS_STR_AMIDINE_GUANIDINE_IMINE,
         "amidine_any": _SMARTS_STR_AMIDINE_GUANIDINE_ANY,
         "carboxylic_oh": _SMARTS_STR_CARBOXYLIC_OH,
-        "sulfo_phospho_oh": _SMARTS_STR_SULFO_PHOSPHO_OH,
+        "sulfonic_oh": _SMARTS_STR_SULFONIC_OH,
+        "phosphorus_oh": _SMARTS_STR_PHOSPHORUS_OH,
         "tetrazole_nh": _SMARTS_STR_TETRAZOLE_NH,
         "nitro_n": _SMARTS_STR_NITRO_N,
     }
@@ -158,6 +162,12 @@ def extract_canonical_isomeric_smiles(mol_3d: Chem.Mol) -> str:
     return str(Chem.MolToSmiles(Chem.RemoveHs(mol_copy), canonical=True, isomericSmiles=True))
 
 
+def _protonate_nitrogen(atom: Chem.Atom) -> None:
+    atom.SetNumExplicitHs(atom.GetTotalNumHs() + 1)
+    atom.SetNoImplicit(True)
+    atom.SetFormalCharge(1)
+
+
 def protonate_mol_ph74(mol: Chem.Mol, *, preserve_coords: bool = False) -> Chem.Mol:
     """Deterministically assign physiological pH 7.4 formal charges to an RDKit ``Mol``.
 
@@ -215,7 +225,7 @@ def protonate_mol_ph74(mol: Chem.Mol, *, preserve_coords: bool = False) -> Chem.
             continue
         if any(int(round(float(dist_mat[n_idx, p]))) <= 3 for p in protonated):
             continue
-        rw.GetAtomWithIdx(n_idx).SetFormalCharge(1)
+        _protonate_nitrogen(rw.GetAtomWithIdx(n_idx))
         protonated.add(n_idx)
         protonated_imines.add(n_idx)
 
@@ -244,16 +254,24 @@ def protonate_mol_ph74(mol: Chem.Mol, *, preserve_coords: bool = False) -> Chem.
         # Prevent unphysical diprotonation of 1,2-diamines / 1,4-piperazines (<= 3 bonds apart)
         if any(int(round(float(dist_mat[n_idx, p]))) <= 3 for p in protonated):
             continue
-        rw.GetAtomWithIdx(n_idx).SetFormalCharge(1)
+        _protonate_nitrogen(rw.GetAtomWithIdx(n_idx))
         protonated.add(n_idx)
 
     # 3. Deprotonate strong organic acids (pKa < 5.0)
-    for key in ("carboxylic_oh", "sulfo_phospho_oh", "tetrazole_nh"):
+    for key in ("carboxylic_oh", "sulfonic_oh", "phosphorus_oh", "tetrazole_nh"):
         for match in rw.GetSubstructMatches(pats[key]):
-            a_idx = int(match[0])
-            atom = rw.GetAtomWithIdx(a_idx)
-            if atom.GetFormalCharge() == 0:
-                atom.SetFormalCharge(-1)
+            if key == "phosphorus_oh":
+                phosphorus = rw.GetAtomWithIdx(int(match[1]))
+                if any(
+                    n.GetAtomicNum() == 8 and n.GetFormalCharge() < 0
+                    for n in phosphorus.GetNeighbors()
+                ):
+                    continue
+            atom = rw.GetAtomWithIdx(int(match[0]))
+            # Enumerated tautomers often carry explicit hydrogen counts.
+            atom.SetNumExplicitHs(0)
+            atom.SetNoImplicit(True)
+            atom.SetFormalCharge(-1)
 
     out = rw.GetMol()
     Chem.SanitizeMol(out)

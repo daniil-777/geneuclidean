@@ -1050,6 +1050,7 @@ class NanoFold3Backend(BaseFoldingBackend):
         t0 = time.perf_counter()
         spec = job.validated()
 
+        weight_source = "provided_model"
         if model is None:
             try:
                 nf_mod = importlib.import_module("geneuclidean.folding.nanofold3")
@@ -1060,11 +1061,13 @@ class NanoFold3Backend(BaseFoldingBackend):
                     "geneuclidean.folding.nanofold3 is available.",
                 ) from exc
             if checkpoint_path is not None:
+                weight_source = "checkpoint"
                 model = nf_mod.NanoFold3.from_pretrained(
                     _sanitize_path(checkpoint_path),
                     device=device or "auto",
                 )
             else:
+                weight_source = "random_initialization"
                 model = nf_mod.build_nanofold3(
                     preset=preset,
                     trunk_mode=trunk_mode,
@@ -1155,6 +1158,26 @@ class NanoFold3Backend(BaseFoldingBackend):
                 metadata=meta,
             )
 
+        result = dataclasses.replace(
+            result, metadata={**result.metadata, "weight_source": weight_source}
+        )
+        if weight_source == "random_initialization":
+            # Preserve architecture demonstrations without publishing random heads as predictions.
+            result = dataclasses.replace(
+                result,
+                plddt_mean=math.nan,
+                plddt_per_atom=(),
+                ligand_plddt=math.nan,
+                ptm=math.nan,
+                iptm=math.nan,
+                ranking_score=math.nan,
+                pae_matrix=None,
+                pde_matrix=None,
+                predicted_pkd=None,
+                affinity_pred=None,
+                binding_prob=None,
+                confidence_summary=None,
+            )
         if output_dir is not None and result.pdb_text:
             dest_dir = _sanitize_path(output_dir)
             dest_dir.mkdir(parents=True, exist_ok=True)

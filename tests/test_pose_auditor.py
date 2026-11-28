@@ -226,3 +226,23 @@ def test_beyond_posebusters_7axis_auditor_end_to_end() -> None:
     summary = summarize_audit_batch([rep_ok, rep_dcu])
     assert summary["n_audited"] == 2
     assert summary["hygiene_pass_rate"] == 0.5
+
+
+def test_explicit_protons_acids_and_tetrazole_tautomers() -> None:
+    from geneuclidean.evaluation.protonation import protonate_mol_ph74
+
+    cases = (
+        ("CC(=O)[OH]", -1),
+        ("CS(=O)(=O)[OH]", -1),
+        ("C[NH2]", 1),
+        ("CP(=O)(O)O", -1),
+        ("CP(=O)([O-])O", -1),
+        ("CP(=O)([O-])[O-]", -2),
+        ("c1nnn[nH]1", -1),
+        ("c1nn[nH]n1", -1),
+    )
+    for smiles, charge in cases:
+        result = protonate_mol_ph74(Chem.MolFromSmiles(smiles))
+        assert Chem.GetFormalCharge(result) == charge
+        assert all(a.GetNumRadicalElectrons() == 0 for a in result.GetAtoms())
+        assert Chem.MolToSmiles(protonate_mol_ph74(result)) == Chem.MolToSmiles(result)

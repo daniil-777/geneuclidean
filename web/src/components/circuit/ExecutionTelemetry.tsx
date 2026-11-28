@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   Copy,
   Play,
-  ShieldCheck,
   Sparkles,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -80,6 +79,7 @@ export function ExecutionTelemetry({
     );
   }
 
+  const lastCoverage = runResult.dmtaTrace.at(-1)?.conformalCoverage;
   const molSvgMap = new Map(moleculesIndex.map((m) => [m.canonical_smiles, m]));
   // Deduplicate steps to latest round per node for crisp timeline display
   const latestSteps = runResult.steps.filter((s) => s.round === runResult.roundsCompleted);
@@ -114,9 +114,6 @@ export function ExecutionTelemetry({
               <Copy className="h-2.5 w-2.5 shrink-0" />
             )}
           </button>
-          <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold whitespace-nowrap shrink-0">
-            <ShieldCheck className="h-3 w-3 shrink-0" /> FDA/EMA 10/10
-          </span>
         </div>
       </div>
 
@@ -214,7 +211,7 @@ export function ExecutionTelemetry({
             <span>
               90% Cov:{' '}
               <strong className="text-pink-600 dark:text-pink-400">
-                {(runResult.dmtaTrace[runResult.dmtaTrace.length - 1].conformalCoverage * 100).toFixed(0)}%
+                {lastCoverage == null ? 'Unavailable' : `${(lastCoverage * 100).toFixed(0)}%`}
               </strong>
             </span>
           </div>

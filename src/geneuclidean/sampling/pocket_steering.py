@@ -356,6 +356,7 @@ def sample_contrastive_ensemble_llm(
                     use_null_pocket=False,
                     latent_temp=latent_temp,
                     deterministic_z=(latent_temp <= 0.0),
+                    generator=generator,
                     return_attn=False,
                 )
                 pref = pref.to(device=prompt_embeds.device, dtype=prompt_embeds.dtype)
@@ -380,6 +381,7 @@ def sample_contrastive_ensemble_llm(
                     use_null_pocket=False,
                     latent_temp=latent_temp,
                     deterministic_z=(latent_temp <= 0.0),
+                    generator=generator,
                     return_attn=False,
                 )
                 off_pref = off_pref.to(device=prompt_embeds.device, dtype=prompt_embeds.dtype)

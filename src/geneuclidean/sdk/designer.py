@@ -587,6 +587,7 @@ class MoleculeDesigner:
         filters: Sequence[MoleculeFilterProtocol] | None,
         rerank: bool,
         top_k_hits: int | None,
+        min_tanimoto_dist: float | None,
         metadata: dict[str, Any],
         callbacks: Sequence[DesignCallbackProtocol] | None = None,
         pocket: Pocket | PocketFeatures | None = None,
@@ -622,10 +623,26 @@ class MoleculeDesigner:
         if stage_log:
             metadata["filter_stages"] = stage_log
 
-        if rerank:
-            filtered.sort(key=lambda r: r.composite_reward, reverse=True)
-        if top_k_hits is not None:
-            filtered = filtered[: int(top_k_hits)]
+        if top_k_hits is not None and top_k_hits < 0:
+            raise ValueError("top_k_hits must be nonnegative")
+        if min_tanimoto_dist is not None:
+            from geneuclidean.sampling.rerank import maxmin_diversity_select
+
+            if not rerank:
+                raise ValueError("Diversity selection requires rerank=True")
+            indices = maxmin_diversity_select(
+                [r.canonical_smiles or r.smiles for r in filtered],
+                [r.composite_reward for r in filtered],
+                k=len(filtered) if top_k_hits is None else top_k_hits,
+                min_tanimoto_dist=min_tanimoto_dist,
+            )
+            metadata["min_tanimoto_dist"] = min_tanimoto_dist
+            filtered = [filtered[i] for i in indices]
+        else:
+            if rerank:
+                filtered.sort(key=lambda r: r.composite_reward, reverse=True)
+            if top_k_hits is not None:
+                filtered = filtered[:top_k_hits]
 
         result = DesignResult(
             pocket_id=pocket_id,
@@ -664,6 +681,7 @@ class MoleculeDesigner:
         callbacks: Sequence[DesignCallbackProtocol] | None = None,
         rerank: bool = True,
         top_k_hits: int | None = None,
+        min_tanimoto_dist: float | None = None,
         seed: int = 42,
     ) -> DesignResult:
         """Generate and score *de novo* candidate ligands conditioned on a 3D binding pocket."""
@@ -726,6 +744,7 @@ class MoleculeDesigner:
                 samp_res = sample_molecules_detailed(
                     model=self.model,
                     pocket_batch=batch,
+                    pocket_output=pocket_out,
                     tokenizer=self.tokenizer,
                     sampling_cfg=sampling_cfg,
                     generator=gen,
@@ -751,6 +770,7 @@ class MoleculeDesigner:
             filters=filters,
             rerank=rerank,
             top_k_hits=top_k_hits,
+            min_tanimoto_dist=min_tanimoto_dist,
             metadata=run_meta,
             callbacks=callbacks,
             pocket=pocket,
@@ -782,6 +802,7 @@ class MoleculeDesigner:
         callbacks: Sequence[DesignCallbackProtocol] | None = None,
         rerank: bool = True,
         top_k_hits: int | None = None,
+        min_tanimoto_dist: float | None = None,
         seed: int = 42,
     ) -> DesignResult:
         """Run 3D-pocket-conditioned SAFE/LLM scaffold decoration & R-group optimization.
@@ -856,6 +877,7 @@ class MoleculeDesigner:
             filters=filters,
             rerank=rerank,
             top_k_hits=top_k_hits,
+            min_tanimoto_dist=min_tanimoto_dist,
             metadata=run_meta,
             callbacks=callbacks,
             pocket=pocket,
@@ -888,6 +910,7 @@ class MoleculeDesigner:
         callbacks: Sequence[DesignCallbackProtocol] | None = None,
         rerank: bool = True,
         top_k_hits: int | None = None,
+        min_tanimoto_dist: float | None = None,
         seed: int = 42,
     ) -> DesignResult:
         """Design ligands conditioned on an ensemble of 3D conformations & off-target repulsion.
@@ -974,6 +997,7 @@ class MoleculeDesigner:
             filters=filters,
             rerank=rerank,
             top_k_hits=top_k_hits,
+            min_tanimoto_dist=min_tanimoto_dist,
             metadata=run_meta,
             callbacks=callbacks,
             pocket=on_pockets[0],

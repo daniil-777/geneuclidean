@@ -306,7 +306,12 @@ def test_split_conformal_finite_sample_coverage_and_credibility_dossier(tmp_path
         == sha
     )
     assert len(dossier["fda_ema_10_principles_checklist"]) == 10
-    assert all(dossier["fda_ema_10_principles_checklist"].values())
+    assert set(dossier["fda_ema_10_principles_checklist"].values()) == {None}
+    key = "4_clear_context_of_use"
+    reviewed = build_credibility_dossier(principle_assessments={key: False})
+    assert reviewed["fda_ema_10_principles_checklist"][key] is False
+    with pytest.raises(ValueError, match="known checklist principle"):
+        build_credibility_dossier(principle_assessments={"unknown": True})
 
     md = render_credibility_markdown(dossier)
     assert "AI Credibility Dossier" in md and "bbb" in md

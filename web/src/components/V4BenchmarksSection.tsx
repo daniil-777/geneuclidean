@@ -107,7 +107,7 @@ export function V4BenchmarksSection({
               {v4.gate1_expansion.mean_pb_pct.toFixed(0)}% PB
             </span>
             <span className="px-2.5 py-1 rounded-lg bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30 font-semibold">
-              FDA/EMA {dossier.fda_ema_principles_passed}/{dossier.fda_ema_principles_total}
+              {dossier.fda_ema_principles_total} guiding principles
             </span>
           </div>
         </div>
@@ -550,7 +550,7 @@ export function V4BenchmarksSection({
                 <ShieldCheck className="h-3.5 w-3.5" /> FDA / EMA AI Credibility Dossier
               </span>
               <span className="font-mono-num text-xs font-extrabold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">
-                {dossier.fda_ema_principles_passed}/{dossier.fda_ema_principles_total} PASS
+                {dossier.fda_ema_principles_total} checklist items
               </span>
             </div>
             <div className="text-xs text-[var(--text-secondary)] space-y-1">

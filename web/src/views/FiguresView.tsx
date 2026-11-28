@@ -313,7 +313,7 @@ export function FiguresView({ figures, repoUrl }: FiguresViewProps) {
 
           <div className="rounded-xl bg-[var(--bg-elevated)]/70 border border-[var(--border-subtle)] p-3.5 text-xs text-[var(--text-secondary)] space-y-1">
             <div className="font-semibold text-[var(--text-primary)]">
-              MIT License · Strict Zero-Leakage CI &amp; FDA/EMA 10/10 Dossier
+              MIT License · Scaffold-split validation &amp; AI credibility dossier
             </div>
             <p>
               Verified on Apple Silicon M3 Pro (MPS) and Google Colab T4/L4/A100 GPUs across 28

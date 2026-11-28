@@ -71,6 +71,7 @@ def build_credibility_dossier(
     applicability_domain_summary: Mapping[str, Any] | None = None,
     physics_gate1_metrics: Mapping[str, Any] | None = None,
     provenance_files: Mapping[str, str | Path] | None = None,
+    principle_assessments: Mapping[str, bool] | None = None,
     deviations_and_limitations: Sequence[str] | None = None,
     generated_at_utc: str | None = None,
 ) -> CredibilityDossier:
@@ -85,6 +86,7 @@ def build_credibility_dossier(
         "applicability_domain_summary": applicability_domain_summary,
         "physics_gate1_metrics": physics_gate1_metrics,
         "provenance_files": provenance_files,
+        "principle_assessments": principle_assessments,
         "deviations_and_limitations": deviations_and_limitations,
         "generated_at_utc": generated_at_utc,
     }

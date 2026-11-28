@@ -110,12 +110,21 @@ class PocketCVAE(nn.Module):
         return mu_q, logvar_q.clamp(min=self._LOGVAR_MIN, max=self._LOGVAR_MAX)
 
     @staticmethod
-    def reparameterize(mu: Tensor, logvar: Tensor, latent_temp: float = 1.0) -> Tensor:
+    def reparameterize(
+        mu: Tensor,
+        logvar: Tensor,
+        latent_temp: float = 1.0,
+        *,
+        generator: torch.Generator | None = None,
+    ) -> Tensor:
         """Reparameterization trick ``z = mu + (latent_temp * sigma) * eps``."""
         if latent_temp <= 0.0:
             return mu
         std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
+        draw_device = generator.device if generator is not None else std.device
+        eps = torch.randn(std.shape, dtype=std.dtype, device=draw_device, generator=generator).to(
+            std.device
+        )
         return mu + (float(latent_temp) * std) * eps
 
     def project_latent(self, z: Tensor) -> Tensor:
@@ -130,6 +139,8 @@ class PocketCVAE(nn.Module):
         pocket_pooled: Tensor,
         ligand_emb: Tensor | None = None,
         latent_temp: float = 1.0,
+        *,
+        generator: torch.Generator | None = None,
     ) -> CVAEOutput:
         """Compute prior (and optional posterior) latent tokens.
 
@@ -139,11 +150,11 @@ class PocketCVAE(nn.Module):
         mu_p, logvar_p = self.encode_prior(pocket_pooled)
         if ligand_emb is not None:
             mu_q, logvar_q = self.encode_posterior(pocket_pooled, ligand_emb)
-            z = self.reparameterize(mu_q, logvar_q, latent_temp=latent_temp)
+            z = self.reparameterize(mu_q, logvar_q, latent_temp=latent_temp, generator=generator)
         else:
             mu_q = None
             logvar_q = None
-            z = self.reparameterize(mu_p, logvar_p, latent_temp=latent_temp)
+            z = self.reparameterize(mu_p, logvar_p, latent_temp=latent_temp, generator=generator)
 
         z_tokens = self.project_latent(z)
         return CVAEOutput(
@@ -159,18 +170,26 @@ class PocketCVAE(nn.Module):
         self,
         pocket_pooled: Tensor,
         latent_temp: float = 1.0,
+        *,
+        generator: torch.Generator | None = None,
     ) -> Tensor:
         """Sample ``K`` latent memory tokens ``[B, K, d_model]`` from prior ``p(z | p)``."""
-        return self.forward(pocket_pooled, ligand_emb=None, latent_temp=latent_temp).z_tokens
+        return self.forward(
+            pocket_pooled, ligand_emb=None, latent_temp=latent_temp, generator=generator
+        ).z_tokens
 
     def refine(
         self,
         pocket_pooled: Tensor,
         ligand_emb: Tensor,
         latent_temp: float = 0.5,
+        *,
+        generator: torch.Generator | None = None,
     ) -> Tensor:
         """Sample focused analog tokens ``[B, K, d_model]`` around a seed ligand posterior."""
-        return self.forward(pocket_pooled, ligand_emb=ligand_emb, latent_temp=latent_temp).z_tokens
+        return self.forward(
+            pocket_pooled, ligand_emb=ligand_emb, latent_temp=latent_temp, generator=generator
+        ).z_tokens
 
 
 __all__ = ["CVAEOutput", "PocketCVAE"]

@@ -5,6 +5,13 @@ This project adheres to [Semantic Versioning](https://semver.org/) and follows [
 
 ---
 
+## Unreleased
+
+- Added offline compound assays for solubility, finite-dose binding and precipitation, microsomal depletion and hepatic blood clearance. [Models and evidence](docs/compound_assays.md)
+- Added optional strict fingerprint-distance selection to the SDK and pipelines. Seeded CVAE draws now follow the caller's generator. Dense encoder neighbor search uses query tiles and generation metrics operate on packed fingerprints.
+- Corrected completed-candidate triage, the v4 ADMET pass flag, canonical scaffold grouping, conformal ranks and electric fields. Studio DMPK predictions use measured endpoint labels, and the decoding Pareto plot handles ties.
+- Credibility dossiers leave each guiding principle unassessed until a reviewer supplies a verdict. Studio reports observed calibration coverage when the sample supports it.
+
 ## [5.3.0] — 2026-11-26
 
 ### Added

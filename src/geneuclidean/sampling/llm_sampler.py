@@ -178,6 +178,7 @@ def _sample_chunk_kv_cached(
         use_posterior=(exp_seed_fp is not None),
         deterministic_z=(latent_temp <= 0.0),
         return_attn=return_attn,
+        generator=generator,
     )
 
     prompt_ids = _build_initial_prompt_ids(model, batch_size=chunk_size, device=device)
@@ -292,6 +293,99 @@ def _sample_chunk_kv_cached(
 
 
 @torch.no_grad()
+def _sample_llm_batch(
+    model: PocketConditionedLLM,
+    pocket_out: PocketEncoderOutput,
+    atom_mask: Tensor,
+    num_samples: int = 32,
+    max_new_tokens: int = 96,
+    strategy: str = "min_p",
+    temperature: float = 1.0,
+    min_p: float = 0.08,
+    top_p: float = 0.92,
+    top_k: int = 30,
+    cfg_scale: float = 1.6,
+    latent_temp: float = 1.0,
+    repetition_penalty: float = 1.05,
+    seed_ligand_fp: Tensor | None = None,
+    batch_size: int = 32,
+    seed: int | None = None,
+    *,
+    return_attn: bool,
+) -> tuple[list[str], Tensor | None]:
+    """Decode in bounded chunks, retaining attention maps only on request."""
+    if num_samples < 1:
+        raise ValueError(f"num_samples must be >= 1, got {num_samples}")
+    if max_new_tokens < 1:
+        raise ValueError(f"max_new_tokens must be >= 1, got {max_new_tokens}")
+    if batch_size < 1:
+        raise ValueError(f"batch_size must be >= 1, got {batch_size}")
+
+    was_training = model.training
+    model.eval()
+    generator: torch.Generator | None = None
+    if seed is not None:
+        generator = torch.Generator(device="cpu").manual_seed(int(seed))
+
+    all_smiles: list[str] = []
+    all_attns: list[Tensor] = []
+    pocket_batch = int(pocket_out.node_emb.shape[0])
+
+    try:
+        remaining = int(num_samples)
+        offset = 0
+        while remaining > 0:
+            cur_bs = min(remaining, int(batch_size))
+            if pocket_batch == num_samples:
+                chunk_pocket = PocketEncoderOutput(
+                    node_emb=pocket_out.node_emb[offset : offset + cur_bs],
+                    pooled_emb=pocket_out.pooled_emb[offset : offset + cur_bs],
+                    vec_emb=(
+                        pocket_out.vec_emb[offset : offset + cur_bs]
+                        if pocket_out.vec_emb is not None
+                        else None
+                    ),
+                )
+                chunk_mask = atom_mask[offset : offset + cur_bs]
+            else:
+                chunk_pocket = pocket_out
+                chunk_mask = atom_mask
+            chunk_fp = seed_ligand_fp
+            if chunk_fp is not None and chunk_fp.ndim == 2 and chunk_fp.shape[0] == num_samples:
+                chunk_fp = chunk_fp[offset : offset + cur_bs]
+
+            chunk_smiles, chunk_attn = _sample_chunk_kv_cached(
+                model=model,
+                pocket_out=chunk_pocket,
+                atom_mask=chunk_mask,
+                chunk_size=cur_bs,
+                max_new_tokens=max_new_tokens,
+                strategy=strategy,
+                temperature=temperature,
+                min_p=min_p,
+                top_p=top_p,
+                top_k=top_k,
+                cfg_scale=cfg_scale,
+                latent_temp=latent_temp,
+                repetition_penalty=repetition_penalty,
+                seed_ligand_fp=chunk_fp,
+                generator=generator,
+                return_attn=return_attn,
+            )
+            all_smiles.extend(chunk_smiles)
+            if return_attn:
+                assert chunk_attn is not None
+                all_attns.append(chunk_attn.detach())
+            remaining -= cur_bs
+            offset += cur_bs
+    finally:
+        if was_training:
+            model.train()
+
+    return all_smiles, torch.cat(all_attns, dim=0) if return_attn else None
+
+
+@torch.no_grad()
 def sample_llm_with_attention(
     model: PocketConditionedLLM,
     pocket_out: PocketEncoderOutput,
@@ -336,79 +430,27 @@ def sample_llm_with_attention(
         Tuple ``(smiles_list, perceiver_attn_weights)`` where ``perceiver_attn_weights`` has shape
         ``[num_samples, H, Q, N]`` with exact ``0.0`` weight on masked pocket atoms.
     """
-    if num_samples < 1:
-        raise ValueError(f"num_samples must be >= 1, got {num_samples}")
-    if max_new_tokens < 1:
-        raise ValueError(f"max_new_tokens must be >= 1, got {max_new_tokens}")
-    if batch_size < 1:
-        raise ValueError(f"batch_size must be >= 1, got {batch_size}")
-
-    was_training = model.training
-    model.eval()
-    generator: torch.Generator | None = None
-    if seed is not None:
-        generator = torch.Generator(device="cpu").manual_seed(int(seed))
-
-    all_smiles: list[str] = []
-    all_attns: list[Tensor] = []
-    pocket_batch = int(pocket_out.node_emb.shape[0])
-
-    try:
-        remaining = int(num_samples)
-        offset = 0
-        while remaining > 0:
-            cur_bs = min(remaining, int(batch_size))
-            if pocket_batch == num_samples:
-                chunk_pocket = PocketEncoderOutput(
-                    node_emb=pocket_out.node_emb[offset : offset + cur_bs],
-                    pooled_emb=pocket_out.pooled_emb[offset : offset + cur_bs],
-                    vec_emb=(
-                        pocket_out.vec_emb[offset : offset + cur_bs]
-                        if pocket_out.vec_emb is not None
-                        else None
-                    ),
-                )
-                chunk_mask = atom_mask[offset : offset + cur_bs]
-                chunk_fp = (
-                    seed_ligand_fp[offset : offset + cur_bs]
-                    if seed_ligand_fp is not None
-                    and seed_ligand_fp.ndim == 2
-                    and seed_ligand_fp.shape[0] == num_samples
-                    else seed_ligand_fp
-                )
-            else:
-                chunk_pocket = pocket_out
-                chunk_mask = atom_mask
-                chunk_fp = seed_ligand_fp
-
-            chunk_smiles, chunk_attn = _sample_chunk_kv_cached(
-                model=model,
-                pocket_out=chunk_pocket,
-                atom_mask=chunk_mask,
-                chunk_size=cur_bs,
-                max_new_tokens=max_new_tokens,
-                strategy=strategy,
-                temperature=temperature,
-                min_p=min_p,
-                top_p=top_p,
-                top_k=top_k,
-                cfg_scale=cfg_scale,
-                latent_temp=latent_temp,
-                repetition_penalty=repetition_penalty,
-                seed_ligand_fp=chunk_fp,
-                generator=generator,
-                return_attn=True,
-            )
-            all_smiles.extend(chunk_smiles)
-            assert chunk_attn is not None
-            all_attns.append(chunk_attn.detach())
-            remaining -= cur_bs
-            offset += cur_bs
-    finally:
-        if was_training:
-            model.train()
-
-    return all_smiles, torch.cat(all_attns, dim=0)
+    smiles, attention = _sample_llm_batch(
+        model=model,
+        pocket_out=pocket_out,
+        atom_mask=atom_mask,
+        num_samples=num_samples,
+        max_new_tokens=max_new_tokens,
+        strategy=strategy,
+        temperature=temperature,
+        min_p=min_p,
+        top_p=top_p,
+        top_k=top_k,
+        cfg_scale=cfg_scale,
+        latent_temp=latent_temp,
+        repetition_penalty=repetition_penalty,
+        seed_ligand_fp=seed_ligand_fp,
+        batch_size=batch_size,
+        seed=seed,
+        return_attn=True,
+    )
+    assert attention is not None
+    return smiles, attention
 
 
 @torch.no_grad()
@@ -431,7 +473,7 @@ def sample_llm_molecules(
     seed: int | None = None,
 ) -> list[str]:
     """Generate SMILES strings conditioned on a 3D pocket via KV-cached CFG decoding."""
-    smiles, _ = sample_llm_with_attention(
+    smiles, _ = _sample_llm_batch(
         model=model,
         pocket_out=pocket_out,
         atom_mask=atom_mask,
@@ -448,6 +490,7 @@ def sample_llm_molecules(
         seed_ligand_fp=seed_ligand_fp,
         batch_size=batch_size,
         seed=seed,
+        return_attn=False,
     )
     return smiles
 

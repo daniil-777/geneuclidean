@@ -93,8 +93,8 @@ print(json.dumps({
 def test_studio_source_has_zero_eval_exec_or_shell_true() -> None:
     """AST security audit: zero eval(), exec(), or subprocess(..., shell=True) in studio/."""
     studio_dir = Path(ge.__file__).resolve().parent / "studio"
-    py_files = sorted(studio_dir.glob("*.py"))
-    assert len(py_files) == 5
+    py_files = sorted(studio_dir.rglob("*.py"))
+    assert {"graph_compiler.py", "server.py", "folding.py"} <= {p.name for p in py_files}
 
     for path in py_files:
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -444,6 +444,7 @@ def test_real_local_execution_across_all_flagship_presets(preset_id: str) -> Non
     assert res["provenanceLedger"]["schema"] == "geneuclidean_dmta_ledger_v1"
     assert len(res["provenanceLedger"]["graphSha256"]) == 64
     assert len(res["provenanceLedger"]["resultSha256"]) == 64
+    assert res["provenanceLedger"]["fdaEmaPrinciples"] == "unassessed"
     assert ast.parse(res["generatedCode"]) is not None
 
     if preset_id == "blank_breadboard":
@@ -810,15 +811,16 @@ def test_tanimoto_gp_zero_norm_kernel_and_leak_free_loo_conformal() -> None:
     )
     assert all(r >= 0.0 for r in loo_norm)
 
-    # End-to-end AL DMTA closed loop produces non-collapsed leak-free conformal q_hat
+    # A four-observation campaign cannot calibrate a finite 90% interval.
     al_preset = get_preset("al_dmta_closed_loop")
     al_preset["execution"]["dmtaRounds"] = 3
     res = execute_circuit(al_preset, max_samples=4, timeout_sec=30.0)
     assert res["status"] == "completed"
     conf_steps = [s for s in res["steps"] if s["blockType"] == "conformal_calibrator"]
     assert len(conf_steps) == 3
-    final_q_hat = float(conf_steps[-1]["metrics"]["q_hat"])
-    assert final_q_hat > 0.25, f"q_hat collapsed to in-sample memorization: {final_q_hat}"
+    assert all(step["metrics"]["n_cal"] < 9 for step in conf_steps)
+    assert all(step["metrics"]["q_hat"] is None for step in conf_steps)
+    assert all(step["metrics"]["empirical_coverage"] is None for step in conf_steps)
 
 
 # ---------------------------------------------------------------------------
@@ -1032,4 +1034,91 @@ def test_all_13_new_v53_blocks_validate_compile_and_execute_real_python() -> Non
     assert len(run_res["steps"]) == len(custom_circuit["nodes"])
     for step in run_res["steps"]:
         assert step["executionBackend"] == "real_python", f"Expected real_python on {step}"
-        assert step["status"] == "ok", f"Unexpected step status: {step}"
+        if step["blockType"] == "nanofold3_cofold":
+            assert step["status"] in {"ok", "skipped"}
+            if step["status"] == "skipped":
+                assert "predicted_pkd" not in step["metrics"]
+        else:
+            assert step["status"] == "ok", f"Unexpected step status: {step}"
+
+
+def test_studio_folding_requires_matching_pocket_ligand_and_checkpoint(
+    tmp_path, monkeypatch
+) -> None:
+    from geneuclidean import folding
+    from geneuclidean.studio.folding import cofold_candidate, confidence_scores, passes_confidence
+
+    monkeypatch.delenv("GENEUCLIDEAN_NANOFOLD3_CHECKPOINT", raising=False)
+    checkpoint = tmp_path / "weights.pt"
+    pdb = tmp_path / "receptor.pdb"
+    options = dict(seed=7, num_samples=1, num_steps=8, flex_mode="ligand_only")
+    trunk = {"pocket": {"pocket_pdb": pdb}, "molecules": ["CCO"]}
+    assert cofold_candidate(trunk, [], **options) is None
+    assert confidence_scores(None, include_affinity=True) == {}
+    calls = []
+
+    def capture(**inputs):
+        calls.append(inputs)
+        return folding.FoldedComplexResult(
+            backend="nanofold3",
+            plddt_mean=91.5,
+            iptm=0.72,
+            predicted_pkd=6.5,
+            metadata={"weight_source": "checkpoint"},
+        )
+
+    monkeypatch.setenv("GENEUCLIDEAN_NANOFOLD3_CHECKPOINT", str(checkpoint))
+    monkeypatch.setattr(folding, "fold_complex", capture)
+    assert cofold_candidate(trunk, [], **options) is None
+    pdb.write_text("END\n")
+    result = cofold_candidate(trunk, ["CCN"], **options)
+    assert calls[0]["pocket_pdb"] == pdb and calls[0]["ligand_smiles"] == "CCN"
+    assert calls[0]["checkpoint_path"] == str(checkpoint) and calls[0]["seeds"] == (7,)
+    scores = confidence_scores(result, include_affinity=False)
+    assert scores == {"plddt_mean": 91.5, "iptm": 0.72}
+    assert confidence_scores(result, include_affinity=True)["predicted_pkd"] == 6.5
+    assert passes_confidence(scores, min_iptm=0.7, min_plddt=90.0)
+    assert not passes_confidence(scores, min_iptm=0.8, min_plddt=90.0)
+
+
+def test_studio_uses_measured_endpoint_labels_and_observed_coverage(tmp_path, monkeypatch) -> None:
+    from geneuclidean.studio.graph_compiler import (
+        _run_conformal_calibrator,
+        _run_conformal_dmpk,
+        _RuntimeContext,
+    )
+
+    monkeypatch.chdir(tmp_path)
+    ctx = _RuntimeContext(
+        seed=7,
+        target_context="DRD1",
+        budget=8,
+        max_samples=8,
+        dry_run=False,
+        tmp_dir=tmp_path,
+        deadline=float("inf"),
+    )
+    config = {"endpoint": "OpenADMET_log10_KSOL", "alpha": 0.1, "n_estimators": 2}
+    inputs = {"molecules": ["CCO"]}
+    missing = _run_conformal_dmpk("assay", config, inputs, ctx)
+    assert missing.status == "skipped"
+    assert missing.outputs["dmpk_scores"] == {}
+
+    data_dir = tmp_path / "data/cns_neuro/v4_expansion/admet"
+    data_dir.mkdir(parents=True)
+    (data_dir / "openadmet_expansionrx_train.csv").write_text(
+        "SMILES,KSOL,LogD\nCC,100,-2\nCCC,100,-2\nCO,100,-2\nCCO,100,-2\n"
+    )
+    measured = _run_conformal_dmpk("assay", config, inputs, ctx)
+    assert measured.status == "ok"
+    assert measured.outputs["dmpk_scores"] == {"CCO": 2}
+    assert measured.outputs["dmpk_intervals"]["q_hat"] is None
+
+    posterior = {"smiles": ["CCO"], "mean": [2], "std": [0.5]}
+    for residuals, expected in [([], None), ([1, 2, 3, 4], 3)]:
+        posterior["loo_abs_residuals"] = residuals
+        obs = _run_conformal_calibrator(
+            "cal", {"mode": "absolute", "alpha": 0.5}, {"posterior": posterior}, ctx
+        )
+        assert obs.metrics["q_hat"] == expected
+        assert obs.metrics["empirical_coverage"] == (0.5 if residuals else None)

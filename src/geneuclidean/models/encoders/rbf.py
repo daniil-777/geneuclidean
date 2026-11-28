@@ -303,8 +303,7 @@ class MaskedAttentionPool(nn.Module):
     def forward(self, node_emb: Tensor, atom_mask: Tensor) -> Tensor:
         """Pool ``node_emb[B, N, D]`` over real atoms ``atom_mask[B, N]`` -> ``[B, out_dim]``."""
         mask_bool = atom_mask.to(torch.bool)
-        mask_f = mask_bool.unsqueeze(-1).to(node_emb.dtype)
-        safe_nodes = node_emb * mask_f
+        safe_nodes = torch.where(mask_bool.unsqueeze(-1), node_emb, 0.0)
 
         logits = self.attn_score(safe_nodes).squeeze(-1)  # [B, N]
         masked_logits = logits.masked_fill(~mask_bool, float("-inf"))

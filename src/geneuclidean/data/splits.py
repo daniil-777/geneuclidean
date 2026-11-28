@@ -24,8 +24,8 @@ def compute_murcko_scaffold(smiles: str) -> str:
     try:
         scaf = str(MurckoScaffold.MurckoScaffoldSmiles(mol=mol, includeChirality=False))
     except Exception:
-        return smiles
-    return scaf if scaf else smiles
+        scaf = ""
+    return scaf or str(Chem.MolToSmiles(mol, canonical=True, isomericSmiles=False))
 
 
 def make_scaffold_split(

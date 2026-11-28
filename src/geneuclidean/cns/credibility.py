@@ -32,6 +32,19 @@ from typing import Any
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+_CREDIBILITY_PRINCIPLES = (
+    "1_human_centric_by_design",
+    "2_risk_based_approach",
+    "3_adherence_to_standards",
+    "4_clear_context_of_use",
+    "5_multidisciplinary_expertise",
+    "6_data_governance_and_provenance",
+    "7_model_design_and_reproducibility",
+    "8_risk_based_performance_uq_and_ad",
+    "9_lifecycle_management",
+    "10_clear_essential_information",
+)
+
 CREDIBILITY_SCHEMA_VERSION: str = "geneuclidean-v4.0-fda-ema-credibility-dossier"
 DEFAULT_CONTEXT_OF_USE: str = (
     "Exploratory preclinical in silico hypothesis generation, 3D pocket-conditioned lead "
@@ -78,18 +91,16 @@ class ConformalPredictionResult:
         }
 
 
-def _finite_sample_conformal_quantile(scores: NDArray[np.float64], alpha: float) -> float:
-    """Compute exact finite-sample upper quantile ``ceil((n + 1)(1 - alpha)) / n``."""
-    n = len(scores)
-    if n == 0:
-        return 1.0
-    rank = int(math.ceil((n + 1) * (1.0 - alpha)))
-    if rank >= n:
-        return float(np.max(scores))
-    if rank <= 1:
-        return float(np.min(scores))
-    sorted_scores = np.sort(scores)
-    return float(sorted_scores[rank - 1])
+def _finite_sample_conformal_quantile(
+    scores: NDArray[np.float64], alpha: float, *, upper_bound: float = 1.0
+) -> float:
+    """Return the split-conformal order statistic, including the extra upper-bound score."""
+    if not 0 < alpha < 1:
+        raise ValueError("alpha must be in (0, 1)")
+    rank = math.ceil((len(scores) + 1) * (1 - alpha))
+    if rank > len(scores):
+        return upper_bound
+    return float(np.partition(scores, rank - 1)[rank - 1])
 
 
 class SplitConformalBinaryCalibrator:
@@ -141,16 +152,8 @@ class SplitConformalBinaryCalibrator:
         if self.mondrian:
             neg_scores = scores[y == 0]
             pos_scores = scores[y == 1]
-            self.q_hat_neg = (
-                _finite_sample_conformal_quantile(neg_scores, self.alpha)
-                if len(neg_scores) > 0
-                else self.q_hat
-            )
-            self.q_hat_pos = (
-                _finite_sample_conformal_quantile(pos_scores, self.alpha)
-                if len(pos_scores) > 0
-                else self.q_hat
-            )
+            self.q_hat_neg = _finite_sample_conformal_quantile(neg_scores, self.alpha)
+            self.q_hat_pos = _finite_sample_conformal_quantile(pos_scores, self.alpha)
         else:
             self.q_hat_neg = self.q_hat
             self.q_hat_pos = self.q_hat
@@ -310,6 +313,7 @@ def build_credibility_dossier(
     applicability_domain_summary: Mapping[str, Any] | None = None,
     physics_gate1_metrics: Mapping[str, Any] | None = None,
     provenance_files: Mapping[str, str | Path] | None = None,
+    principle_assessments: Mapping[str, bool] | None = None,
     deviations_and_limitations: Sequence[str] | None = None,
     generated_at_utc: str | None = None,
 ) -> dict[str, Any]:
@@ -319,11 +323,19 @@ def build_credibility_dossier(
     steps, the 10 Joint FDA-EMA Guiding Principles, SHA-256 artifact provenance, scaffold-CV
     calibration (ECE/Brier), Split-Conformal coverage, ECFP4 Applicability Domain metrics,
     held-out physics Gate 1 RMSD/PoseBusters checks, and explicit human-in-the-loop scope.
+    Optionally pass reviewer decisions keyed by the identifiers in
+    ``fda_ema_10_principles_checklist``. Unreviewed entries have value ``None``.
     """
     timestamp = generated_at_utc or datetime.datetime.now(datetime.UTC).isoformat(
         timespec="seconds"
     )
     provenance = _collect_provenance_hashes(provenance_files)
+    # A dossier supplies the checklist. Only an explicit reviewer assessment supplies a verdict.
+    checklist: dict[str, bool | None] = dict.fromkeys(_CREDIBILITY_PRINCIPLES)
+    for principle, assessed in (principle_assessments or {}).items():
+        if principle not in checklist or not isinstance(assessed, bool):
+            raise ValueError(f"Expected a known checklist principle and boolean, got {principle!r}")
+        checklist[principle] = assessed
 
     # Extract concise per-endpoint calibration & conformal summaries if provided
     endpoints_summary: dict[str, Any] = {}
@@ -341,7 +353,7 @@ def build_credibility_dossier(
                 endpoints_summary[str(ep_name)] = {
                     "n_samples": ep_data.get("n_samples"),
                     "n_unique_scaffolds": ep_data.get("n_unique_scaffolds"),
-                    "scaffold_leakage_groups": ep_data.get("scaffold_leakage_groups", 0),
+                    "scaffold_leakage_groups": ep_data.get("scaffold_leakage_groups"),
                     "oof_roc_auc": ep_data.get("oof_roc_auc"),
                     "oof_pr_auc": ep_data.get("oof_pr_auc"),
                     "oof_brier_score": ep_data.get("oof_brier_score"),
@@ -491,18 +503,7 @@ def build_credibility_dossier(
                 "offline unit tests before promoting any updated oracle artifact or target pocket."
             ),
         },
-        "fda_ema_10_principles_checklist": {
-            "1_human_centric_by_design": True,
-            "2_risk_based_approach": True,
-            "3_adherence_to_standards": True,
-            "4_clear_context_of_use": True,
-            "5_multidisciplinary_expertise": True,
-            "6_data_governance_and_provenance": True,
-            "7_model_design_and_reproducibility": True,
-            "8_risk_based_performance_uq_and_ad": True,
-            "9_lifecycle_management": True,
-            "10_clear_essential_information": True,
-        },
+        "fda_ema_10_principles_checklist": checklist,
         "human_in_the_loop_boundary": HUMAN_IN_THE_LOOP_DISCLAIMER,
     }
     return dossier

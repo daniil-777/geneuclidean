@@ -906,15 +906,10 @@ def plot_generated_molecule_grid(
 
 def _compute_pareto_front(xs: NDArray[np.float64], ys: NDArray[np.float64]) -> NDArray[np.intp]:
     """Return sorted indices of non-dominated points maximizing both ``x`` and ``y``."""
-    order = np.argsort(-xs)
-    front: list[int] = []
-    best_y = -np.inf
-    for idx in order:
-        if ys[idx] >= best_y:
-            front.append(int(idx))
-            best_y = float(ys[idx])
-    front_arr = np.asarray(front, dtype=np.intp)
-    return front_arr[np.argsort(xs[front_arr])]
+    from geneuclidean.active_learning.acquisitions import pareto_front
+
+    front, _ = pareto_front(np.column_stack((xs, ys)))
+    return front[np.argsort(xs[front], kind="stable")]
 
 
 def plot_decoding_pareto(

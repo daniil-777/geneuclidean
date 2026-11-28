@@ -1986,7 +1986,7 @@ export const BLOCK_CATALOG: BlockDefinition[] = [
     category: 'outputs',
     pythonSymbol: 'geneuclidean.sdk.credibility.build_credibility_dossier',
     executionTier: 'zero_torch',
-    badge: 'FDA/EMA 10/10',
+    badge: 'Credibility dossier',
     summary:
       'Seals every circuit execution or multi-round DMTA loop into a chained SHA-256 DMTALedger + FDA/EMA CredibilityDossier + StoppingAdvisor.',
     inputs: [
@@ -2000,7 +2000,7 @@ export const BLOCK_CATALOG: BlockDefinition[] = [
     params: [
       { key: 'ei_saturation_tol', label: 'EI Saturation Threshold', type: 'number', default: 0.02, min: 0.005, max: 0.1, step: 0.005 },
       { key: 'jaccard_stability_tol', label: 'Top-K Jaccard Stop', type: 'number', default: 0.85, min: 0.5, max: 0.98, step: 0.05 },
-      { key: 'export_fda_ema_dossier', label: 'Generate FDA/EMA 10/10 Dossier', type: 'boolean', default: true },
+      { key: 'export_fda_ema_dossier', label: 'Generate credibility dossier', type: 'boolean', default: true },
     ],
   },
 ];

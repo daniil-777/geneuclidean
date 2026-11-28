@@ -1703,65 +1703,22 @@ def _emit_block_code(
             ]
         )
     elif block_type == "nanofold3_cofold":
-        has_trunk = bool(in_expr_list("trunk_graph"))
-        has_mols = bool(in_expr_list("molecules"))
         trunk_in = in_expr("trunk_graph", "{}")
         mols_in = in_expr("molecules", "[]")
-        default_lig = "'CN1CCN(C(=O)c2ccc3ccccc3n2)CC1'"
         lines.extend(
             [
-                f"{indent}{var}_model = ge_folding.build_nanofold3(",
-                f"{indent}    preset={_py_lit(p['preset'])},",
-                f"{indent}    diffusion_mode={_py_lit(p['diffusion_mode'])},",
-                f"{indent}    enable_affinity_head=True,",
+                f"{indent}from geneuclidean.studio import folding as studio_fold",
+                f"{indent}{var}_res = studio_fold.cofold_candidate(",
+                f"{indent}    {trunk_in}, {mols_in}, seed=SEED,",
+                f"{indent}    num_steps={int(p['num_steps'])},",
+                f"{indent}    num_samples={int(p['num_samples'])},",
+                f"{indent}    flex_mode={_py_lit(p['flex_mode'])},",
                 f"{indent})",
-            ]
-        )
-        if has_mols:
-            lines.extend(
-                [
-                    f"{indent}{var}_mols = list({mols_in})",
-                    f"{indent}{var}_lig_smi = {var}_mols[0] if {var}_mols else {default_lig}",
-                ]
-            )
-        elif has_trunk:
-            lines.extend(
-                [
-                    f"{indent}{var}_mols = (",
-                    f"{indent}    {trunk_in}.get('molecules', [])",
-                    f"{indent}    if isinstance({trunk_in}, dict)",
-                    f"{indent}    else []",
-                    f"{indent})",
-                    f"{indent}{var}_lig_smi = {var}_mols[0] if {var}_mols else {default_lig}",
-                ]
-            )
-        else:
-            lines.append(f"{indent}{var}_lig_smi = {default_lig}")
-        lines.extend(
-            [
-                f"{indent}{var}_res = ge_folding.fold_complex(",
-                f"{indent}    protein_sequence='ACDEFGHIKLMNPQRSTVWY',",
-                f"{indent}    ligand_smiles={var}_lig_smi,",
-                f"{indent}    backend='nanofold3',",
-                f"{indent}    num_samples={_py_lit(int(p['num_samples']))},",
-                f"{indent}    num_steps={_py_lit(int(p['num_steps']))},",
-                f"{indent}    num_recycles={_py_lit(int(p['recycles']))},",
-                f"{indent}    predict_affinity=True,",
-                f"{indent}    run_audit=False,",
-                f"{indent})",
-                f"{indent}{var}_poses = (",
-                f"{indent}    [{var}_res.ligand_mol_3d] if {var}_res.ligand_mol_3d else []",
-                f"{indent})",
-                f"{indent}{var}_cofold_graph = {{",
-                f"{indent}    'model': {var}_model,",
-                f"{indent}    'result': {var}_res,",
-                f"{indent}    'flex_mode': {_py_lit(p['flex_mode'])},",
-                f"{indent}}}",
-                f"{indent}{var}_diffusion_report = {{",
-                f"{indent}    'diffusion_mode': {_py_lit(p['diffusion_mode'])},",
-                f"{indent}    'plddt_mean': {var}_res.plddt_mean,",
-                f"{indent}    'iptm': {var}_res.iptm,",
-                f"{indent}}}",
+                f"{indent}{var}_pose = {var}_res.ligand_mol_3d if {var}_res else None",
+                f"{indent}{var}_poses = [{var}_pose] if {var}_pose is not None else []",
+                f"{indent}{var}_cofold_graph = {{'result': {var}_res}}",
+                f"{indent}{var}_diffusion_report = studio_fold.confidence_scores(",
+                f"{indent}    {var}_res, include_affinity=True)",
             ]
         )
     elif block_type == "confidence_head":
@@ -1769,23 +1726,15 @@ def _emit_block_code(
         poses_in = in_expr("poses", "[]")
         lines.extend(
             [
-                f"{indent}{var}_head = ge_folding.ConfidenceHead(",
-                f"{indent}    c_s=192,",
-                f"{indent}    c_z=64,",
-                f"{indent}    num_blocks={_py_lit(int(p['num_blocks']))},",
-                f"{indent}    trunk_mode={_py_lit(p['trunk_mode'])},",
-                f"{indent}    enable_affinity_head={_py_lit(bool(p['enable_affinity_head']))},",
+                f"{indent}from geneuclidean.studio import folding as studio_fold",
+                f"{indent}{var}_confidence_scores = studio_fold.confidence_scores(",
+                f"{indent}    {cg_in}.get('result'),",
+                f"{indent}    include_affinity={_py_lit(bool(p['enable_affinity_head']))},",
                 f"{indent})",
-                f"{indent}{var}_scored_poses = list({poses_in})",
-                f"{indent}{var}_confidence_scores = {{",
-                f"{indent}    'min_iptm': {_py_lit(float(p['min_iptm']))},",
-                f"{indent}    'min_plddt': {_py_lit(float(p['min_plddt']))},",
-                f"{indent}}}",
-                f"{indent}{var}_confidence_report = {{",
-                f"{indent}    'cofold': {cg_in},",
-                f"{indent}    'head': {var}_head.__class__.__name__,",
-                f"{indent}    'enable_affinity_head': {_py_lit(bool(p['enable_affinity_head']))},",
-                f"{indent}}}",
+                f"{indent}{var}_accepted = studio_fold.passes_confidence({var}_confidence_scores,",
+                f"{indent}    min_iptm={float(p['min_iptm'])}, min_plddt={float(p['min_plddt'])})",
+                f"{indent}{var}_scored_poses = list({poses_in}) if {var}_accepted else []",
+                f"{indent}{var}_confidence_report = dict({var}_confidence_scores)",
             ]
         )
     elif block_type == "external_folder_runner":
@@ -1889,18 +1838,15 @@ def _emit_block_code(
         al_lit = _py_lit(float(p["alpha"]))
         lines.extend(
             [
-                f"{indent}{var}_reg = ge.ConformalDMPKRegressor(",
-                f"{indent}    endpoint={ep_lit},",
-                f"{indent}    alpha={al_lit},",
+                f"{indent}{var}_reg = ge.ConformalDMPKRegressor.from_reference_data(",
+                f"{indent}    endpoint={ep_lit}, alpha={al_lit}, seed=SEED, max_rows=300,",
                 f"{indent}    n_estimators={_py_lit(int(p['n_estimators']))},",
-                f"{indent}    seed=SEED,",
                 f"{indent})",
-                f"{indent}{var}_dmpk_intervals = {{",
-                f"{indent}    'endpoint': {ep_lit},",
-                f"{indent}    'alpha': {al_lit},",
-                f"{indent}    'n_molecules': len({mols_in}),",
-                f"{indent}}}",
-                f"{indent}{var}_dmpk_scores = {{s: 0.0 for s in {mols_in}}}",
+                f"{indent}{var}_preds = {var}_reg.predict({mols_in})",
+                f"{indent}{var}_dmpk_intervals = {{'endpoint': {ep_lit}, 'alpha': {al_lit},",
+                f"{indent}    'predictions': [p.to_dict() for p in {var}_preds]}}",
+                f"{indent}{var}_dmpk_scores = {{p.smiles: p.y_pred"
+                f" for p in {var}_preds if p.valid}}",
             ]
         )
     elif block_type == "openfe_rbfe_exporter":
@@ -2198,7 +2144,7 @@ class _RuntimeContext:
     al_observed: dict[str, float] = field(default_factory=dict)
     al_prev_top_k: set[str] = field(default_factory=set)
     al_last_ei_max: float = 0.0
-    al_last_coverage: float = 0.90
+    al_last_coverage: float | None = None
     molecules_by_smi: dict[str, dict[str, Any]] = field(default_factory=dict)
     molecule_order: list[str] = field(default_factory=list)
 
@@ -3924,6 +3870,8 @@ def _run_conformal_calibrator(
     _ = node_id
     import numpy as np
 
+    from geneuclidean.cns.credibility import _finite_sample_conformal_quantile
+
     post = inputs.get("posterior")
     post_dict = dict(post) if isinstance(post, Mapping) else {"smiles": [], "mean": [], "std": []}
     smis = list(post_dict.get("smiles", []))
@@ -3952,42 +3900,33 @@ def _run_conformal_calibrator(
                     err = abs(float(cal_in[s]) - m)
                     residuals.append(err / sd if mode == "normalized" else err)
 
-    n_cal = len(residuals)
-    if n_cal >= 3:
-        res_arr = np.array(residuals, dtype=np.float64)
-        q_level = min(1.0, math.ceil((n_cal + 1) * (1.0 - alpha)) / float(n_cal))
-        q_hat = float(np.quantile(res_arr, q_level, method="higher"))
-        # Leak-free cross-conformal / jackknife coverage: compare each r_i against quantile(r_{-i})
-        covered = 0
-        q_loo_level = min(1.0, math.ceil(n_cal * (1.0 - alpha)) / float(n_cal - 1))
-        for idx_r in range(n_cal):
-            others = np.delete(res_arr, idx_r)
-            q_others = float(np.quantile(others, q_loo_level, method="higher"))
-            if float(res_arr[idx_r]) <= q_others + 1e-12:
-                covered += 1
-        emp_cov = covered / float(n_cal)
-    else:
-        q_hat = 1.645
-        emp_cov = 1.0 - alpha
+    res_arr = np.asarray(residuals, dtype=np.float64)
+    res_arr = res_arr[np.isfinite(res_arr)]
+    n_cal = len(res_arr)
+    radius = _finite_sample_conformal_quantile(res_arr, alpha, upper_bound=math.inf)
+    q_hat = round(radius, 4) if math.isfinite(radius) else None
 
-    lo_list = [
-        m - (q_hat * sd if mode == "normalized" else q_hat)
-        for m, sd in zip(means, stds, strict=False)
-    ]
-    hi_list = [
-        m + (q_hat * sd if mode == "normalized" else q_hat)
-        for m, sd in zip(means, stds, strict=False)
-    ]
-    ctx.al_last_coverage = emp_cov
-
+    # Each score is covered by its leave-one-out interval iff fewer than rank
+    # other scores are strictly smaller. A single sort also handles ties.
+    coverage = None
+    rank = math.ceil(n_cal * (1 - alpha))
+    if n_cal >= 2 and rank < n_cal:
+        counts_below = np.searchsorted(np.sort(res_arr), res_arr, side="left")
+        coverage = round(float(np.mean(counts_below < rank)), 4)
+    ctx.al_last_coverage = coverage
+    widths = [radius * sd if mode == "normalized" else radius for sd in stds]
     out_post = {
         **post_dict,
         "conformal_mode": mode,
         "alpha": alpha,
-        "q_hat": round(q_hat, 4),
-        "empirical_coverage": round(emp_cov, 4),
-        "interval_lo": lo_list,
-        "interval_hi": hi_list,
+        "q_hat": q_hat,
+        "empirical_coverage": coverage,
+        "interval_lo": [
+            m - w if math.isfinite(w) else None for m, w in zip(means, widths, strict=True)
+        ],
+        "interval_hi": [
+            m + w if math.isfinite(w) else None for m, w in zip(means, widths, strict=True)
+        ],
     }
     return _BlockStepOutcome(
         outputs={"calibrated_uq": out_post},
@@ -3995,10 +3934,8 @@ def _run_conformal_calibrator(
         execution_backend="real_python",
         input_shapes={"posterior": f"Dist[{len(smis)}]"},
         output_shapes={"calibrated_uq": f"Conformal[{len(smis)}] @ {int((1 - alpha) * 100)}%"},
-        metrics={"q_hat": round(q_hat, 4), "empirical_coverage": round(emp_cov, 4), "n_cal": n_cal},
-        summary=(
-            f"Calibrated {mode} Split-Conformal intervals (q_hat={q_hat:.3f}, cov={emp_cov:.1%})."
-        ),
+        metrics={"q_hat": q_hat, "empirical_coverage": coverage, "n_cal": n_cal},
+        summary=f"Evaluated {mode} conformal calibration on {n_cal} residuals.",
     )
 
 
@@ -4514,119 +4451,44 @@ def _run_pairformer_stack(
 def _run_nanofold3_cofold(
     node_id: str, params: Mapping[str, Any], inputs: Mapping[str, Any], ctx: _RuntimeContext
 ) -> _BlockStepOutcome:
-    tg = inputs.get("trunk_graph")
-    target_id = (
-        str(tg.get("target_id", ctx.target_context))
-        if isinstance(tg, Mapping)
-        else ctx.target_context
-    )
-    mols = _extract_smiles_list(inputs.get("molecules"))
-    if not mols and isinstance(tg, Mapping):
-        mols = _extract_smiles_list(tg.get("molecules"))
-    if not mols:
-        mols = [s for _, s in _target_seed_smiles(target_id, 2, ctx.seed)]
-    lig_smi = mols[0]
-    diff_mode = str(params["diffusion_mode"])
-    flex_mode = str(params["flex_mode"])
+    from geneuclidean.studio.folding import cofold_candidate, confidence_scores
 
-    if importlib.util.find_spec("torch") is None:
-        mol_3d = _embed_3d_ligand(lig_smi, seed=ctx.seed, protonate=True)
-        poses = [mol_3d] if mol_3d is not None else []
-        _record_molecule(ctx, lig_smi, source_node_id=node_id, target=target_id)
-        return _BlockStepOutcome(
-            outputs={
-                "poses": poses,
-                "cofold_graph": {
-                    **(dict(tg) if isinstance(tg, Mapping) else {}),
-                    "target_id": target_id,
-                    "smiles": [lig_smi],
-                },
-                "diffusion_report": {"diffusion_mode": diff_mode, "kabsch_det": 1.0},
-            },
-            status="simulated_fallback",
-            execution_backend="deterministic_surrogate",
-            input_shapes={"trunk_graph": f"Trunk({target_id})"},
-            output_shapes={"poses": f"3DPoses[{len(poses)}]"},
-            metrics={"diffusion_mode": diff_mode, "n_poses": len(poses)},
-            summary=f"NanoFold3 {diff_mode} fallback ({len(poses)} embedded pose).",
+    trunk = inputs.get("trunk_graph")
+    trunk = trunk if isinstance(trunk, Mapping) else {}
+    mols = _extract_smiles_list(inputs.get("molecules")) or _extract_smiles_list(
+        trunk.get("molecules")
+    )
+    result = cofold_candidate(
+        trunk,
+        mols,
+        seed=ctx.seed,
+        num_steps=int(params["num_steps"]),
+        num_samples=min(ctx.max_samples, int(params["num_samples"])),
+        flex_mode=str(params["flex_mode"]),
+    )
+    poses = []
+    metrics = confidence_scores(result, include_affinity=True)
+    if result is not None and result.ligand_mol_3d is not None:
+        result.ligand_mol_3d.SetProp("INPUT_SMILES", mols[0])
+        poses.append(result.ligand_mol_3d)
+        _record_molecule(
+            ctx,
+            mols[0],
+            source_node_id=node_id,
+            target=str(trunk.get("target_id", ctx.target_context)),
+            metrics={"pred_pkd": metrics.get("predicted_pkd")},
         )
-
-    import geneuclidean.folding as ge_folding
-
-    res_nf = ge_folding.fold_complex(
-        protein_sequence="ACDEFGHIKL",
-        ligand_smiles=lig_smi,
-        backend="nanofold3",
-        name=f"{target_id}_nanofold3",
-        seeds=(ctx.seed,),
-        num_samples=1,
-        predict_affinity=True,
-        run_audit=False,
-        num_steps=2,
-        num_recycles=1,
-        diffusion_mode=diff_mode,
-        flex_mode=flex_mode,
-    )
-    nf_poses: list[Any] = []
-    if res_nf.ligand_mol_3d is not None:
-        res_nf.ligand_mol_3d.SetProp("INPUT_SMILES", lig_smi)
-        nf_poses.append(res_nf.ligand_mol_3d)
-    else:
-        fallback_3d = _embed_3d_ligand(lig_smi, seed=ctx.seed, protonate=True)
-        if fallback_3d is not None:
-            nf_poses.append(fallback_3d)
-
-    plddt_val = round(float(res_nf.plddt_mean or 0.0), 2)
-    ptm_val = round(float(res_nf.ptm or 0.0), 4)
-    iptm_val = round(float(res_nf.iptm or 0.0), 4)
-    pkd_val = round(float(res_nf.predicted_pkd), 3) if res_nf.predicted_pkd is not None else None
-    _record_molecule(
-        ctx,
-        lig_smi,
-        source_node_id=node_id,
-        name=f"{target_id}_NanoFold3",
-        target=target_id,
-        metrics={"pred_pkd": pkd_val},
-    )
-
-    cofold_payload = {
-        **(dict(tg) if isinstance(tg, Mapping) else {}),
-        "target_id": target_id,
-        "smiles": [lig_smi],
-        "plddt_mean": plddt_val,
-        "ptm": ptm_val,
-        "iptm": iptm_val,
-        "predicted_pkd": pkd_val,
-        "diffusion_mode": diff_mode,
-        "flex_mode": flex_mode,
-    }
-    report_dict: dict[str, int | float | str | bool | None] = {
-        "backend": "nanofold3",
-        "diffusion_mode": diff_mode,
-        "flex_mode": flex_mode,
-        "kabsch_det": 1.0,
-        "plddt_mean": plddt_val,
-        "ptm": ptm_val,
-        "iptm": iptm_val,
-        "predicted_pkd": pkd_val,
-    }
     return _BlockStepOutcome(
-        outputs={
-            "poses": nf_poses,
-            "cofold_graph": cofold_payload,
-            "diffusion_report": report_dict,
-        },
-        status="ok",
+        outputs={"poses": poses, "cofold_graph": {"result": result}, "diffusion_report": metrics},
+        status="ok" if result is not None else "skipped",
         execution_backend="real_python",
-        input_shapes={"trunk_graph": f"Trunk({target_id})"},
-        output_shapes={
-            "poses": f"CoFold3D[{len(nf_poses)}]",
-            "cofold_graph": f"NanoFold3({diff_mode})",
-        },
-        metrics=report_dict,
+        input_shapes={"molecules": f"Batch[{len(mols)}]"},
+        output_shapes={"poses": f"CoFold3D[{len(poses)}]"},
+        metrics=dict(metrics),
         summary=(
-            f"Ran real NanoFold3 {diff_mode.upper()} co-folding on {target_id} "
-            f"(Kabsch det=+1, pLDDT={plddt_val:.1f}, ipTM={iptm_val:.3f})."
+            "Co-folded the candidate with the source receptor and local checkpoint."
+            if result is not None
+            else "Requires a ligand, receptor PDB and GENEUCLIDEAN_NANOFOLD3_CHECKPOINT."
         ),
     )
 
@@ -4634,115 +4496,30 @@ def _run_nanofold3_cofold(
 def _run_confidence_head(
     node_id: str, params: Mapping[str, Any], inputs: Mapping[str, Any], ctx: _RuntimeContext
 ) -> _BlockStepOutcome:
-    _ = node_id
-    cg = inputs.get("cofold_graph")
-    raw_poses = inputs.get("poses")
-    poses = raw_poses if isinstance(raw_poses, list) else []
-    target_id = (
-        str(cg.get("target_id", ctx.target_context))
-        if isinstance(cg, Mapping)
-        else ctx.target_context
+    from geneuclidean.studio.folding import confidence_scores, passes_confidence
+
+    graph = inputs.get("cofold_graph")
+    result = graph.get("result") if isinstance(graph, Mapping) else None
+    scores = confidence_scores(result, include_affinity=bool(params["enable_affinity_head"]))
+    accepted = passes_confidence(
+        scores, min_iptm=float(params["min_iptm"]), min_plddt=float(params["min_plddt"])
     )
-    enable_aff = bool(params["enable_affinity_head"])
-    head_trunk = str(params["trunk_mode"])
-
-    if importlib.util.find_spec("torch") is None:
-        return _BlockStepOutcome(
-            outputs={
-                "scored_poses": poses,
-                "confidence_scores": {f"{target_id}_plddt": 78.4, f"{target_id}_iptm": 0.72},
-                "confidence_report": {"enable_affinity_head": enable_aff},
-            },
-            status="simulated_fallback",
-            execution_backend="deterministic_surrogate",
-            input_shapes={"cofold_graph": f"CoFold({target_id})"},
-            output_shapes={"scored_poses": f"Ranked[{len(poses)}]"},
-            metrics={"plddt_mean": 78.4, "iptm": 0.72},
-            summary=f"ConfidenceHead fallback for {target_id}.",
-        )
-
-    import torch
-
-    import geneuclidean.folding as ge_folding
-
-    torch.manual_seed(ctx.seed)
-    raw_s_t = cg.get("s_trunk") if isinstance(cg, Mapping) else None
-    s_t: torch.Tensor = (
-        raw_s_t
-        if isinstance(raw_s_t, torch.Tensor)
-        else torch.randn(1, 10, 64, dtype=torch.float32)
-    )
-    raw_z_t = cg.get("z_trunk") if isinstance(cg, Mapping) else None
-    z_t: torch.Tensor = (
-        raw_z_t
-        if isinstance(raw_z_t, torch.Tensor)
-        else torch.randn(1, 10, 10, 32, dtype=torch.float32)
-    )
-    seq_len = int(s_t.shape[1])
-    t_mask = torch.ones(1, seq_len, dtype=torch.bool)
-    split = max(1, seq_len - 3)
-    chain_id = torch.tensor(
-        [[0] * split + [1] * (seq_len - split)],
-        dtype=torch.long,
-    )
-    x_rep = torch.randn(1, seq_len, 3, dtype=torch.float32)
-    with torch.no_grad():
-        head = ge_folding.ConfidenceHead(
-            c_s=int(s_t.shape[-1]),
-            c_z=int(z_t.shape[-1]),
-            num_blocks=1,
-            head_dim=32,
-            trunk_mode=head_trunk,
-            enable_affinity_head=enable_aff,
-        )
-        conf_out = head(s_t, z_t, x_rep, t_mask, chain_id)
-        plddt_mean = round(float(conf_out.plddt.mean().item()), 2)
-        pae_mean = round(float(conf_out.pae.mean().item()), 2)
-        ptm_val = round(float(conf_out.ptm.mean().item()), 4)
-        iptm_val = round(float(conf_out.iptm.mean().item()), 4)
-        rank_val = round(float(conf_out.ranking_score.mean().item()), 4)
-        pkd_val = (
-            round(float(conf_out.predicted_pkd.mean().item()), 3)
-            if conf_out.predicted_pkd is not None
-            else None
-        )
-
-    scores: dict[str, float] = {
-        "plddt_mean": plddt_mean,
-        "pae_mean": pae_mean,
-        "ptm": ptm_val,
-        "iptm": iptm_val,
-        "ranking_score": rank_val,
-    }
-    if pkd_val is not None:
-        scores["predicted_pkd"] = pkd_val
-    report: dict[str, int | float | str | bool | None] = {
-        "trunk_mode": head_trunk,
-        "plddt_bins": 50,
-        "plddt_mean": plddt_mean,
-        "pae_mean": pae_mean,
-        "ptm": ptm_val,
-        "iptm": iptm_val,
-        "ranking_score": rank_val,
-        "predicted_pkd": pkd_val,
-    }
+    poses = inputs.get("poses") or []
     return _BlockStepOutcome(
         outputs={
-            "scored_poses": poses,
+            "scored_poses": poses if accepted else [],
             "confidence_scores": scores,
-            "confidence_report": report,
+            "confidence_report": scores,
         },
-        status="ok",
+        status="ok" if scores else "skipped",
         execution_backend="real_python",
-        input_shapes={"cofold_graph": f"s{list(s_t.shape)}", "poses": f"3DPoses[{len(poses)}]"},
-        output_shapes={
-            "scored_poses": f"Ranked[{len(poses)}]",
-            "confidence_scores": f"AF3({len(scores)} metrics)",
-        },
-        metrics=report,
+        input_shapes={"poses": f"3DPoses[{len(poses)}]"},
+        output_shapes={"confidence_scores": f"Metrics[{len(scores)}]"},
+        metrics=dict(scores),
         summary=(
-            f"Ran real 50-bin ConfidenceHead ({head_trunk}) on {target_id}: "
-            f"pLDDT={plddt_mean:.1f}, PAE={pae_mean:.1f}Å, ipTM={iptm_val:.3f}."
+            "Read confidence values from the predicted complex."
+            if scores
+            else "No checkpoint-backed co-fold confidence is available."
         ),
     )
 
@@ -5029,44 +4806,45 @@ def _run_cns_admet_suite(
 def _run_conformal_dmpk(
     node_id: str, params: Mapping[str, Any], inputs: Mapping[str, Any], ctx: _RuntimeContext
 ) -> _BlockStepOutcome:
-    from rdkit import Chem
-    from rdkit.Chem import Descriptors
-
     from geneuclidean.cns.dmpk_regression import ConformalDMPKRegressor
 
     mols = _extract_smiles_list(inputs.get("molecules"))[: ctx.max_samples]
     endpoint = str(params["endpoint"])
     alpha = float(params["alpha"])
-
-    # Fit real ConformalDMPKRegressor on curated scaffolds with true RDKit cLogP target
-    calib_pairs = _target_seed_smiles(ctx.target_context, 30, ctx.seed, dedup_murcko=False)
-    cal_smis: list[str] = []
-    cal_ys: list[float] = []
-    for _, s in calib_pairs:
-        m = Chem.MolFromSmiles(s)
-        if m is not None:
-            cal_smis.append(s)
-            cal_ys.append(float(Descriptors.MolLogP(m)))  # type: ignore[attr-defined]
-
-    reg = ConformalDMPKRegressor(
-        endpoint=endpoint,
-        alpha=alpha,
-        n_estimators=min(20, int(params["n_estimators"])),
-        seed=ctx.seed,
-    )
-    fit_stats = reg.fit(cal_smis[:20], cal_ys[:20], cal_smis[20:], cal_ys[20:])
-    preds = reg.predict(mols)
+    try:
+        reg = ConformalDMPKRegressor.from_reference_data(
+            endpoint,
+            alpha=alpha,
+            n_estimators=int(params["n_estimators"]),
+            seed=ctx.seed,
+            max_rows=300,
+        )
+    except FileNotFoundError as exc:
+        return _BlockStepOutcome(
+            outputs={
+                "dmpk_intervals": {"endpoint": endpoint, "predictions": []},
+                "dmpk_scores": {},
+            },
+            status="skipped",
+            execution_backend="real_python",
+            input_shapes={"molecules": f"Batch[{len(mols)}]"},
+            output_shapes={},
+            metrics={"endpoint": endpoint, "n_predicted": 0},
+            summary=f"{endpoint} requires measured labels from {exc.filename}.",
+        )
+    radius = round(reg.q_hat, 4) if math.isfinite(reg.q_hat) else None
+    preds = [pr.to_dict() for pr in reg.predict(mols)]
     dmpk_scores: dict[str, float] = {}
     for pr in preds:
-        if pr.valid:
-            dmpk_scores[pr.smiles] = round(pr.y_pred, 4)
+        if pr["valid"]:
+            dmpk_scores[pr["smiles"]] = pr["y_pred"]
             _record_molecule(
                 ctx,
-                pr.smiles,
+                pr["smiles"],
                 source_node_id=node_id,
                 metrics={
-                    "conformal_lo": round(pr.interval_lo, 3),
-                    "conformal_hi": round(pr.interval_hi, 3),
+                    "conformal_lo": pr["interval_lo"],
+                    "conformal_hi": pr["interval_hi"],
                 },
             )
     return _BlockStepOutcome(
@@ -5074,8 +4852,8 @@ def _run_conformal_dmpk(
             "dmpk_intervals": {
                 "endpoint": endpoint,
                 "alpha": alpha,
-                "q_hat": fit_stats["q_hat"],
-                "predictions": [p.to_dict() for p in preds],
+                "q_hat": radius,
+                "predictions": preds,
             },
             "dmpk_scores": dmpk_scores,
         },
@@ -5085,13 +4863,13 @@ def _run_conformal_dmpk(
         output_shapes={"dmpk_intervals": f"Conformal[{len(preds)}] ({endpoint})"},
         metrics={
             "endpoint": endpoint,
-            "q_hat": float(fit_stats["q_hat"]),
+            "q_hat": radius,
             "alpha": alpha,
             "n_predicted": len(preds),
         },
         summary=(
             f"Predicted {len(preds)} {endpoint} Split-Conformal intervals "
-            f"(q_hat=±{fit_stats['q_hat']:.3f})."
+            f"from measured labels ({reg.cal_size} calibration observations)."
         ),
     )
 
@@ -5284,9 +5062,9 @@ def _run_dmta_ledger(
         "round": ctx.round_idx,
         "n_observed": len(ctx.al_observed),
         "ei_max": round(ctx.al_last_ei_max, 4),
-        "conformal_coverage": round(ctx.al_last_coverage, 4),
+        "conformal_coverage": ctx.al_last_coverage,
         "stop_recommended": stop_recommended,
-        "fda_ema_principles": "10/10",
+        "fda_ema_principles": "unassessed",
     }
     return _BlockStepOutcome(
         outputs={"dossier": out_payload},
@@ -5297,11 +5075,11 @@ def _run_dmta_ledger(
         metrics={
             "n_observed": len(ctx.al_observed),
             "stop_recommended": stop_recommended,
-            "fda_ema_principles": "10/10",
+            "fda_ema_principles": "unassessed",
         },
         summary=(
             f"Sealed round-{ctx.round_idx} CredibilityDossier "
-            f"({len(ctx.al_observed)} observed, FDA/EMA 10/10)."
+            f"({len(ctx.al_observed)} observations)."
         ),
     )
 
@@ -5392,7 +5170,7 @@ def execute_circuit(
                 "graphSha256": graph_sha,
                 "resultSha256": graph_sha,
                 "timestampUtc": timestamp_utc,
-                "fdaEmaPrinciples": "10/10",
+                "fdaEmaPrinciples": "unassessed",
             },
             "generatedCode": "",
         }
@@ -5555,7 +5333,7 @@ def execute_circuit(
                             "bestValue": round(best_val, 4),
                             "meanAcquired": round(mean_acq, 4),
                             "topHitRecall": round(recall_proxy, 4),
-                            "conformalCoverage": round(ctx.al_last_coverage, 4),
+                            "conformalCoverage": ctx.al_last_coverage,
                             "eiMax": round(ctx.al_last_ei_max, 4),
                             "topKJaccard": round(jaccard, 4),
                         }
@@ -5613,7 +5391,7 @@ def execute_circuit(
             "graphSha256": graph_sha,
             "resultSha256": result_sha,
             "timestampUtc": timestamp_utc,
-            "fdaEmaPrinciples": "10/10",
+            "fdaEmaPrinciples": "unassessed",
         },
         "generatedCode": codegen.python_code,
     }

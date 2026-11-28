@@ -671,7 +671,19 @@ def triage_molecule(mol_or_smiles: str | Chem.Mol) -> MedChemTriageResult:
     # 5. Lilly-Inspired MedChem Demerit Score (0..300, pass <= 100)
     demerits = 0
     reasons: list[str] = []
-    hard_reject = False
+    # These representations parse correctly, but a finished organic candidate
+    # needs one connected structure with all attachment points resolved.
+    if len(Chem.GetMolFrags(mol)) != 1:
+        reasons.append("multiple_components")
+    if any(atom.GetAtomicNum() == 0 for atom in mol.GetAtoms()):
+        reasons.append("unresolved_attachment")
+    if not any(atom.GetAtomicNum() == 6 for atom in mol.GetAtoms()):
+        reasons.append("no_organic_parent")
+    if any(atom.GetNumRadicalElectrons() for atom in mol.GetAtoms()):
+        reasons.append("radical")
+    hard_reject = bool(reasons)
+    if hard_reject:
+        demerits += 150
 
     if not reagent_free:
         demerits += 150

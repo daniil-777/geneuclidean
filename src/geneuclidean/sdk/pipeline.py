@@ -88,6 +88,7 @@ class DesignPipeline:
     rerank: bool = True
     top_k_hits: int | None = None
     default_sampling_kwargs: Mapping[str, Any] = field(default_factory=dict)
+    min_tanimoto_dist: float | None = None
 
     def add_filter(
         self,
@@ -155,9 +156,11 @@ class DesignPipeline:
             oracle_path=oracle_path,
         )
 
-    def with_top_k(self, k: int | None, *, rerank: bool = True) -> DesignPipeline:
-        """Configure final reranking and top-k hit cap."""
-        return replace(self, top_k_hits=k, rerank=bool(rerank))
+    def with_top_k(
+        self, k: int | None, *, rerank: bool = True, min_tanimoto_dist: float | None = None
+    ) -> DesignPipeline:
+        """Cap the shortlist and optionally require a minimum pairwise ECFP4 distance."""
+        return replace(self, top_k_hits=k, rerank=bool(rerank), min_tanimoto_dist=min_tanimoto_dist)
 
     def with_cns_safe_only(self, enabled: bool = True) -> DesignPipeline:
         """Toggle built-in strict CNS lead gate (valid + triage + MPO v2 >= 4.0 + ADMET)."""
@@ -182,6 +185,7 @@ class DesignPipeline:
             "admet_profile": self.admet_profile,
             "rerank": self.rerank,
             "top_k_hits": self.top_k_hits,
+            "min_tanimoto_dist": self.min_tanimoto_dist,
             "default_sampling_kwargs": dict(self.default_sampling_kwargs),
         }
 
@@ -201,6 +205,8 @@ class DesignPipeline:
         (:meth:`MoleculeDesigner.design`).
         """
         merged_sampling = {**dict(self.default_sampling_kwargs), **sampling_overrides}
+        if self.min_tanimoto_dist is not None:
+            merged_sampling.setdefault("min_tanimoto_dist", self.min_tanimoto_dist)
         if core_smiles_with_dummy is not None:
             res = self.designer.decorate(
                 pocket,
