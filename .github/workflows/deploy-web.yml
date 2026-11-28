@@ -7,19 +7,26 @@ on:
       - "web/**"
       - "results/figures/**"
       - ".github/workflows/deploy-web.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "web/**"
+      - "results/figures/**"
+      - ".github/workflows/deploy-web.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('studio-pr-{0}', github.event.pull_request.number) || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
+    permissions:
+      contents: read
+      pages: read
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -33,6 +40,7 @@ jobs:
           cache-dependency-path: web/package-lock.json
 
       - name: Setup GitHub Pages
+        if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v5
 
       - name: Install web dependencies
@@ -58,11 +66,16 @@ jobs:
           npm run test:browser
 
       - name: Upload GitHub Pages artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: web/dist
 
   deploy:
+    if: github.event_name != 'pull_request'
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

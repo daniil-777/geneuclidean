@@ -105,10 +105,8 @@ for (const orientation of ['vertical', 'horizontal']) {
     }
     assert.deepEqual(d.edges.filter(e => e.source === 'n_cfg').map(e => [e.sourcePort, e.targetPort]),
       [['molecules', 'molecules'], ['pmi_scores', 'rewards']]);
-    if (orientation === 'horizontal') {
-      assert.ok(d.width <= 800);
-      assert.ok(d.nodes.every(n => n.width >= 210 && n.height >= 94));
-    }
+    assert.ok(d.nodes.every(n => n.width >= 210 && n.height >= 112));
+    if (orientation === 'horizontal') assert.ok(d.width <= 800);
   });
 
   test(orientation + ' fans, parallel branches, feedback, self-loops and disconnected nodes stay distinct', () => {
