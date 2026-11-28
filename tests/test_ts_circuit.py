@@ -137,6 +137,7 @@ def test_13_target_cstc_circuit_audit_completeness_and_honesty() -> None:
 
     # Verify key honest audit caveats are explicitly captured
     assert "9URL" in TOURETTE_CSTC_CIRCUIT_AUDIT["DRD1"].audit_notes
+    assert "Gs-bound" in get_cns_target("DRD1").notes
     assert TOURETTE_CSTC_CIRCUIT_AUDIT["VMAT2"].clinical_evidence_grade == "Phase 2/3 Failed in TS"
     assert "AZD5213" in TOURETTE_CSTC_CIRCUIT_AUDIT["HRH3"].audit_notes
     assert TOURETTE_CSTC_CIRCUIT_AUDIT["GABRA5"].multichain_interface == ("C", "B")

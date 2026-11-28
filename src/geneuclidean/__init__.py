@@ -76,6 +76,9 @@ if TYPE_CHECKING:
         geom as geom,
     )
     from geneuclidean import (
+        human_twin as human_twin,
+    )
+    from geneuclidean import (
         interop as interop,
     )
     from geneuclidean import (
@@ -838,6 +841,7 @@ _LAZY_SUBMODULES: frozenset[str] = frozenset(
         "exceptions",
         "folding",
         "geom",
+        "human_twin",
         "interop",
         "leadopt",
         "mcp_server",

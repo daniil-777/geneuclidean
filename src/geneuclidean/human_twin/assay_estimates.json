@@ -1,0 +1,76 @@
+{
+  "source": "https://raw.githubusercontent.com/molecularinformatics/Computational-ADME/b00df003de117ce9e5b381afd886095c5f2af2d5/ADME_public_set_3521.csv",
+  "sha256": "2cfabc2667740c224487876c33b23124159ef43294e0f9e4d926cb6276c95a3b",
+  "rdkit": "2026.03.6",
+  "scikit_learn": "1.9.1",
+  "endpoints": {
+    "Biogen_log_Solubility_pH68": {
+      "n_train": 1303,
+      "n_calibration": 435,
+      "n_test": 435,
+      "seed": 42,
+      "heldout_mae_log10": 0.4184,
+      "training_median_baseline_mae_log10": 0.4657,
+      "heldout_interval_coverage": 0.908,
+      "nominal_interval_coverage": 0.9,
+      "predictions": {
+        "DRD1_v53_L1": {
+          "smiles": "CCN1CCN(Cc2cc(F)cc(C#N)c2)CC1",
+          "valid": true,
+          "endpoint": "Biogen_log_Solubility_pH68",
+          "y_pred": 1.6193,
+          "interval_lo": 0.5227,
+          "interval_hi": 2.7158,
+          "interval_width": 2.1931,
+          "alpha": 0.1,
+          "max_training_tanimoto": 0.4318
+        },
+        "DRD1_1": {
+          "smiles": "CN1CCN(C(=O)c2ccc3ccccc3n2)CC1",
+          "valid": true,
+          "endpoint": "Biogen_log_Solubility_pH68",
+          "y_pred": 1.5478,
+          "interval_lo": 0.4512,
+          "interval_hi": 2.6444,
+          "interval_width": 2.1931,
+          "alpha": 0.1,
+          "max_training_tanimoto": 0.4167
+        }
+      }
+    },
+    "Biogen_log_Human_Unbound_Percent": {
+      "n_train": 116,
+      "n_calibration": 39,
+      "n_test": 39,
+      "seed": 42,
+      "heldout_mae_log10": 0.424,
+      "training_median_baseline_mae_log10": 0.6903,
+      "heldout_interval_coverage": 0.9487,
+      "nominal_interval_coverage": 0.9,
+      "predictions": {
+        "DRD1_v53_L1": {
+          "smiles": "CCN1CCN(Cc2cc(F)cc(C#N)c2)CC1",
+          "valid": true,
+          "endpoint": "Biogen_log_Human_Unbound_Percent",
+          "y_pred": 1.4257,
+          "interval_lo": 0.3617,
+          "interval_hi": 2.4897,
+          "interval_width": 2.128,
+          "alpha": 0.1,
+          "max_training_tanimoto": 0.2687
+        },
+        "DRD1_1": {
+          "smiles": "CN1CCN(C(=O)c2ccc3ccccc3n2)CC1",
+          "valid": true,
+          "endpoint": "Biogen_log_Human_Unbound_Percent",
+          "y_pred": 1.4985,
+          "interval_lo": 0.4345,
+          "interval_hi": 2.5625,
+          "interval_width": 2.128,
+          "alpha": 0.1,
+          "max_training_tanimoto": 0.3448
+        }
+      }
+    }
+  }
+}

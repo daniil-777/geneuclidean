@@ -31,6 +31,11 @@ REFERENCE_ENDPOINTS = {
     "OpenADMET_LogD": (_OPENADMET, "LogD", False),
     "OpenADMET_log10_KSOL": (_OPENADMET, "KSOL", True),
     "OpenADMET_log10_HLM_CLint": (_OPENADMET, "HLM CLint", True),
+    "Biogen_log_Human_Unbound_Percent": (
+        _BIOGEN,
+        "LOG PLASMA PROTEIN BINDING (HUMAN) (% unbound)",
+        False,
+    ),
     "Biogen_log_HLM_CLint": (_BIOGEN, "LOG HLM_CLint (mL/min/kg)", False),
     "Biogen_log_Solubility_pH68": (_BIOGEN, "LOG SOLUBILITY PH 6.8 (ug/mL)", False),
 }
