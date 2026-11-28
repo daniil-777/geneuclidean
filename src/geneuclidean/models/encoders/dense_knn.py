@@ -176,6 +176,19 @@ def safe_masked_softmax(logits: Tensor, mask: Tensor, dim: int = -1) -> Tensor:
     return torch.where(mask_b, probs, torch.zeros_like(probs))
 
 
+def _nearest_tile(
+    centered: Tensor, mask: Tensor, start: int, stop: int, k: int, cutoff: float
+) -> tuple[Tensor, Tensor]:
+    distances = torch.cdist(
+        centered[:, start:stop], centered, compute_mode="donot_use_mm_for_euclid_dist"
+    )
+    distances.masked_fill_(~mask[:, None, :], float("inf"))
+    distances.diagonal(offset=start, dim1=1, dim2=2).fill_(float("inf"))
+    nearest, indices = torch.topk(distances, k=k, dim=-1, largest=False, sorted=True)
+    valid = (nearest < cutoff) & mask[:, start:stop, None]
+    return indices.masked_fill_(~valid, 0), valid
+
+
 def build_dense_knn_graph(
     coords: Tensor,
     atom_mask: Tensor,
@@ -183,6 +196,7 @@ def build_dense_knn_graph(
     max_neighbors: int = 24,
     *,
     adaptive_cutoff: bool = True,
+    query_chunk_size: int | None = None,
 ) -> DenseKNNGraph:
     """Build a tie-safe, smooth, dense batched 3D radius + k-NN graph in pure PyTorch.
 
@@ -197,6 +211,8 @@ def build_dense_knn_graph(
         atom_mask: Boolean validity mask of shape ``[B, N]`` (``True`` for real atoms).
         cutoff: Hard radial interaction cutoff in Angstroms (``> 0``).
         max_neighbors: Maximum incoming neighbors ``K`` per atom (``>= 1``).
+        query_chunk_size: Maximum query atoms per distance tile. The default targets 16 MiB
+            of float32 distances per tile across the batch. All atoms remain searchable.
         adaptive_cutoff: If ``True`` (default), adapt per-atom cosine envelope radius to
             ``min(cutoff, d_{i, K+1})`` for exact equidistant tie-swap invariance.
 
@@ -211,6 +227,8 @@ def build_dense_knn_graph(
         )
     if cutoff <= 0.0:
         raise ValueError(f"cutoff must be positive, got {cutoff}")
+    if query_chunk_size is not None and query_chunk_size < 1:
+        raise ValueError("query_chunk_size must be positive")
     if max_neighbors < 1:
         raise ValueError(f"max_neighbors must be >= 1, got {max_neighbors}")
 
@@ -253,21 +271,20 @@ def build_dense_knn_graph(
     # Neighbor selection runs strictly outside autograd so torch.cdist never injects a
     # 0/0 backward singularity on exact coordinate clashes (d = 0).
     with torch.no_grad():
-        dist_matrix = torch.cdist(
-            centered.detach(),
-            centered.detach(),
-            compute_mode="donot_use_mm_for_euclid_dist",
-        )
-        eye = torch.eye(num_atoms, device=device, dtype=torch.bool).unsqueeze(0)
-        valid_pair = (
-            mask_bool.unsqueeze(2) & mask_bool.unsqueeze(1) & (~eye) & (dist_matrix < cutoff_f)
-        )
-        dist_masked = dist_matrix.masked_fill(~valid_pair, float("inf"))
-        knn_dist_all, knn_idx_all = torch.topk(
-            dist_masked, k=k_query, dim=-1, largest=False, sorted=True
-        )
-        edge_valid_all = torch.isfinite(knn_dist_all)
-        safe_idx_all = torch.where(edge_valid_all, knn_idx_all, torch.zeros_like(knn_idx_all))
+        chunk_size = query_chunk_size or max(1, 4_194_304 // (batch_size * num_atoms))
+        if chunk_size >= num_atoms:
+            safe_idx_all, edge_valid_all = _nearest_tile(
+                centered, mask_bool, 0, num_atoms, k_query, cutoff_f
+            )
+        else:
+            shape = (batch_size, num_atoms, k_query)
+            safe_idx_all = torch.empty(shape, dtype=torch.long, device=device)
+            edge_valid_all = torch.empty(shape, dtype=torch.bool, device=device)
+            for start in range(0, num_atoms, chunk_size):
+                stop = min(start + chunk_size, num_atoms)
+                safe_idx_all[:, start:stop], edge_valid_all[:, start:stop] = _nearest_tile(
+                    centered, mask_bool, start, stop, k_query, cutoff_f
+                )
 
     # Recompute exact differentiable displacements and smooth distances from gathered coords.
     nbr_coords_all = gather_neighbors(centered, safe_idx_all)  # [B, N, k_query, 3]

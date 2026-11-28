@@ -788,6 +788,7 @@ def test_nanofold3_backend_adapter_with_mock_model(tmp_path: Path) -> None:
 
     assert res.backend == "nanofold3"
     assert res.plddt_mean == pytest.approx(88.5)
+    assert res.metadata["weight_source"] == "provided_model"
     assert res.ptm == pytest.approx(0.81)
     assert res.affinity_pred is None
     assert res.predicted_pkd is None
@@ -960,3 +961,28 @@ def test_sanitization_bonded_atom_pairs_pocket_pdb_and_pocket_center() -> None:
     assert captured["pocket_center"] == (1.5, -2.0, 3.25)
     assert res.predicted_pkd == pytest.approx(7.1)
     assert res.binding_prob == pytest.approx(0.88)
+
+
+def test_untrained_nanofold3_hub_omits_learned_scores(monkeypatch) -> None:
+    from geneuclidean.folding import FoldedComplexResult, fold_complex, nanofold3
+
+    class ExampleModel:
+        def fold_sequence(self, sequence, **kwargs):
+            return FoldedComplexResult(
+                backend="nanofold3",
+                pdb_text="END",
+                plddt_mean=90,
+                iptm=0.8,
+                ranking_score=0.8,
+                predicted_pkd=7,
+                affinity_pred=7,
+                binding_prob=0.9,
+            )
+
+    monkeypatch.setattr(nanofold3, "build_nanofold3", lambda **kwargs: ExampleModel())
+    result = fold_complex(protein_sequence="ACDE", backend="nanofold3")
+    assert result.pdb_text == "END" and result.metadata["weight_source"] == "random_initialization"
+    assert all(
+        result.to_dict()[key] is None
+        for key in ("plddt_mean", "iptm", "ranking_score", "predicted_pkd", "binding_prob")
+    )

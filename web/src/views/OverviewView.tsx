@@ -84,7 +84,7 @@ const PIPELINE_STAGES = [
     details: [
       'SAFE-GPT-87M + 4-Ch GDPO lifts 12-endpoint Pharma-Safe 5.5× vs v3.1 (6.8% → 37.3%, 22/24 Holm) with 0.0% DCU and 0.0% PDE10A sink.',
       'Slashes Biogen MDR1-MDCK efflux 7.6× (0.448 → 0.059) and validates external Rat Kp,uu (ρ = +0.724, p = 3.85×10⁻⁴⁰).',
-      'Anti-Goodhart discipline: AutoDock Vina v1.2.7 is 100% held out from training, verifying 100% PoseBusters & FDA/EMA 10/10 dossier.',
+      'The campaign evaluated generated poses with held-out AutoDock Vina and recorded its PoseBusters results in a credibility dossier.',
     ],
   },
 ] as const;
@@ -485,7 +485,7 @@ export function OverviewView({ overview, theme, onNavigate }: OverviewViewProps)
             icon: Activity,
             color: 'text-violet-500',
             title: '12-Ep Avoid-ome + Kp,uu',
-            body: '5-fold scaffold-CV oracles + 90% Split-Conformal UQ + external Rat Kp,uu ρ=+0.724 (p=3.85×10⁻⁴⁰) + FDA/EMA 10/10 dossier.',
+            body: '5-fold scaffold-CV oracles + 90% Split-Conformal UQ + external Rat Kp,uu ρ=+0.724 (p=3.85×10⁻⁴⁰) + AI credibility dossier.',
           },
           {
             icon: Layers,

@@ -144,6 +144,7 @@ All metrics are programmatically audited against versioned JSON artifacts in [`r
 
 | Guide / Technical Report | Scope |
 | :--- | :--- |
+| [Compound assays and human-relevant lab models](docs/compound_assays.md) | Water solubility, reversible binding, measured liver microsomal depletion, hepatic clearance and evidence for non-animal assays |
 | [`docs/library_api.md`](docs/library_api.md) | Typed Python SDK (`ge`), `geom`, `nlp`, `folding`, `active_learning`, 49-block `studio`, registries & plugins |
 | [`docs/pointcloud_cv_3d_atom_encoding_plan.md`](docs/pointcloud_cv_3d_atom_encoding_plan.md) | 42-method 3D CV → atom encoding synthesis & specs for `CartFormer-SE3`, `AtomGS-SE3`, `SubPocketVN-JEPA` |
 | [`docs/alphafold3_nanofold_design.md`](docs/alphafold3_nanofold_design.md) | `NanoFold3` (`Pairformer` / `SimpleFold` + EDM/Flow-Matching + Kabsch) & 5-backend co-folding architecture |

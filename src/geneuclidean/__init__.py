@@ -43,6 +43,9 @@ if TYPE_CHECKING:
         api as api,
     )
     from geneuclidean import (
+        assays as assays,
+    )
+    from geneuclidean import (
         audit as audit,
     )
     from geneuclidean import (
@@ -824,6 +827,7 @@ _LAZY_SUBMODULES: frozenset[str] = frozenset(
     {
         "active_learning",
         "api",
+        "assays",
         "audit",
         "biophysics",
         "cli",

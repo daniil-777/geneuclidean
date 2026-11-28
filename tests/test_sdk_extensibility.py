@@ -715,3 +715,48 @@ def test_pocket_visualize_dock_error_decorate_and_register_backbone(
         BACKBONE_REGISTRY.pop(custom_id, None)
         BACKBONE_REGISTRY.pop("custom-chem-alias", None)
         BACKBONE_CATALOG.pop(custom_id, None)
+
+
+def test_completed_candidate_triage_and_serialized_v4_gate() -> None:
+    from dataclasses import replace
+
+    from geneuclidean.cns.admet import PharmaAdmetPrediction
+
+    smis = ["*CC", "CC.CC", "[Na+]", "[CH3]"]
+    expected = ["unresolved_attachment", "multiple_components", "no_organic_parent", "radical"]
+    for report, reason in zip(ge.score_molecules(smis, include_admet=False), expected, strict=True):
+        assert report.valid and not ge.TriageFilter().keep(report)
+        assert reason in report.triage_alerts
+        assert report.hygiene_gate == report.composite_reward == 0
+    panel = PharmaAdmetPrediction("CC", "CC", True, {"bbb": 0.9}, {}, {}, {}, True, False).to_dict()
+    report = ge.MoleculeReport("CC", "CC", True, cns_mpo_v2=5, triage_passed=True, admet=panel)
+    assert not report.is_cns_lead
+    assert not ge.ADMETFilter().keep(report)
+    no_herg = replace(report, admet={**panel, "admet_v4_pass": True})
+    assert ge.ADMETFilter(max_herg_prob=0.3, pass_when_missing=True).keep(no_herg)
+    assert not ge.ADMETFilter(max_herg_prob=0.3, pass_when_missing=False).keep(no_herg)
+    invalid = replace(no_herg, admet={"admet_pass": True, "herg_prob": float("nan")})
+    assert not ge.ADMETFilter(max_herg_prob=0.3).keep(invalid)
+
+
+def test_pipeline_selects_diverse_reports_after_filtering(tmp_path, monkeypatch) -> None:
+    from geneuclidean.sampling import llm_sampler
+    from geneuclidean.sampling.rerank import maxmin_diversity_select
+
+    candidates = ["CCO", "OCC", "CCC", "c1ccccc1", "Cc1ccccc1", "C1CCOCC1", "*CC"]
+    monkeypatch.setattr(llm_sampler, "sample_llm_molecules", lambda **kwargs: candidates)
+    designer = ge.MoleculeDesigner.from_mock(device="cpu")
+    pdb, ligand = _write_mini_drd1_pocket(tmp_path)
+    pocket = ge.Pocket.from_pdb(pdb, ligand_sdf=ligand)
+    pipeline = ge.DesignPipeline(designer).with_admet(enabled=False).add_filter(ge.TriageFilter())
+    opts = dict(n=len(candidates), seed=42)
+    pool = pipeline.run(pocket, **opts)
+    assert len(pool) >= 3
+    scores = [r.composite_reward for r in pool]
+    expected = maxmin_diversity_select(pool.smiles, scores, k=5, min_tanimoto_dist=1.0)
+    selected = pipeline.with_top_k(5, min_tanimoto_dist=1.0).run(pocket, **opts)
+    assert 0 < len(selected) < 5
+    assert selected.smiles == [pool.smiles[i] for i in expected]
+    assert selected.unique_rate == pool.unique_rate and selected.valid_rate == 1
+    with pytest.raises(ValueError, match="nonnegative"):
+        pipeline.with_top_k(-1).run(pocket, **opts)

@@ -3,22 +3,77 @@
 Extends GenEuclidean's 12-endpoint binary Avoid-ome suite toward OpenADMET-aligned
 continuous pharmacokinetic regression (``LogD_7.4``, kinetic solubility ``KSOL``,
 ``HLM_CLint``, ``MDR1-MDCK ER``) with exact distribution-free Split-Conformal prediction
-intervals ``[y_lo, y_hi]`` guaranteeing finite-sample marginal coverage ``>= 1 - alpha``.
+intervals with marginal coverage under exchangeability. Scaffold-shift coverage is empirical.
 """
 
 from __future__ import annotations
 
+import csv
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
 from scipy.stats import spearmanr
 from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
+from sklearn.model_selection import GroupShuffleSplit
 
 from geneuclidean.cns.admet import featurize_admet_smiles, make_scaffold_kfold
+from geneuclidean.cns.credibility import _finite_sample_conformal_quantile
+from geneuclidean.data.splits import compute_murcko_scaffold
+
+_OPENADMET = "openadmet_expansionrx_train.csv"
+_BIOGEN = "ADME_public_set_3521.csv"
+REFERENCE_ENDPOINTS = {
+    "OpenADMET_LogD": (_OPENADMET, "LogD", False),
+    "OpenADMET_log10_KSOL": (_OPENADMET, "KSOL", True),
+    "OpenADMET_log10_HLM_CLint": (_OPENADMET, "HLM CLint", True),
+    "Biogen_log_HLM_CLint": (_BIOGEN, "LOG HLM_CLint (mL/min/kg)", False),
+    "Biogen_log_Solubility_pH68": (_BIOGEN, "LOG SOLUBILITY PH 6.8 (ug/mL)", False),
+}
+
+
+def load_reference_endpoint(
+    endpoint: str, data_dir: str | Path, *, max_rows: int | None = None
+) -> tuple[list[str], list[float]]:
+    """Read uncensored, quantified observations from the named reference assay CSV."""
+    if endpoint not in REFERENCE_ENDPOINTS:
+        raise ValueError(f"Unknown reference endpoint {endpoint!r}")
+    if max_rows is not None and max_rows <= 0:
+        raise ValueError("max_rows must be positive")
+    filename, column, use_log = REFERENCE_ENDPOINTS[endpoint]
+    smiles, labels = [], []
+    with (Path(data_dir) / filename).open(encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        if not {"SMILES", column}.issubset(reader.fieldnames or ()):
+            raise ValueError(f"{filename} requires SMILES and {column!r} columns")
+        for row in reader:
+            smi = (row["SMILES"] or "").strip()
+            try:
+                value = float(row[column] or "")
+            except ValueError:
+                continue
+            if not smi or not math.isfinite(value) or (use_log and value <= 0):
+                continue
+            smiles.append(smi)
+            labels.append(math.log10(value) if use_log else value)
+            if len(labels) == max_rows:
+                break
+    return smiles, labels
+
+
+def _split_calibration(
+    smiles: Sequence[str], seed: int
+) -> tuple[NDArray[np.intp], NDArray[np.intp]]:
+    groups = [compute_murcko_scaffold(s) for s in smiles]
+    if len(set(groups)) < 2:
+        raise ValueError("Training and calibration need at least two distinct scaffolds")
+    splitter = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=seed)
+    train, calibration = next(splitter.split(groups, groups=groups))
+    return np.asarray(train, dtype=np.intp), np.asarray(calibration, dtype=np.intp)
 
 
 @dataclass(frozen=True)
@@ -60,6 +115,8 @@ class ConformalDMPKRegressor:
         n_estimators: int = 80,
         seed: int = 42,
     ) -> None:
+        if not 0 < alpha < 1:
+            raise ValueError("alpha must be in (0, 1)")
         self.endpoint = str(endpoint)
         self.alpha = float(alpha)
         self.n_estimators = int(n_estimators)
@@ -68,6 +125,29 @@ class ConformalDMPKRegressor:
         self._rf: RandomForestRegressor | None = None
         self.q_hat: float = float("nan")
         self.cal_size: int = 0
+
+    @classmethod
+    def from_reference_data(
+        cls,
+        endpoint: str,
+        *,
+        data_dir: str | Path = "data/cns_neuro/v4_expansion/admet",
+        max_rows: int | None = None,
+        alpha: float = 0.10,
+        n_estimators: int = 80,
+        seed: int = 42,
+    ) -> ConformalDMPKRegressor:
+        """Fit from local endpoint-specific measurements using disjoint calibration scaffolds."""
+        smiles, labels = load_reference_endpoint(endpoint, data_dir, max_rows=max_rows)
+        tr, ca = _split_calibration(smiles, seed)
+        model = cls(endpoint, alpha=alpha, n_estimators=n_estimators, seed=seed)
+        model.fit(
+            [smiles[i] for i in tr],
+            [labels[i] for i in tr],
+            [smiles[i] for i in ca],
+            [labels[i] for i in ca],
+        )
+        return model
 
     def _fit_base(self, x_train: NDArray[np.float32], y_train: NDArray[np.float64]) -> None:
         self._hgb = HistGradientBoostingRegressor(
@@ -101,22 +181,23 @@ class ConformalDMPKRegressor:
         y_cal: Sequence[float],
     ) -> dict[str, float]:
         """Fit ensemble on ``smiles_train`` and calibrate Split-Conformal on ``smiles_cal``."""
-        x_tr, _, v_tr, _ = featurize_admet_smiles(smiles_train)
         y_tr_arr = np.asarray(y_train, dtype=np.float64)
-        self._fit_base(x_tr[v_tr], y_tr_arr[v_tr])
-
+        y_ca_arr = np.asarray(y_cal, dtype=np.float64)
+        for smis, labels in ((smiles_train, y_tr_arr), (smiles_cal, y_ca_arr)):
+            if labels.shape != (len(smis),) or not np.isfinite(labels).all():
+                raise ValueError("Each SMILES requires one finite endpoint label")
+        x_tr, _, v_tr, _ = featurize_admet_smiles(smiles_train)
         x_ca, _, v_ca, _ = featurize_admet_smiles(smiles_cal)
-        y_ca_arr = np.asarray(y_cal, dtype=np.float64)[v_ca]
-        preds_ca = self._predict_raw(x_ca[v_ca])
-        residuals = np.abs(y_ca_arr - preds_ca)
-        n_cal = len(residuals)
-        self.cal_size = int(n_cal)
-        if n_cal == 0:
-            self.q_hat = 1.0
-        else:
-            # Exact finite-sample split-conformal quantile index ceil((n+1)*(1-alpha))/n
-            level = min(1.0, math.ceil((n_cal + 1) * (1.0 - self.alpha)) / float(n_cal))
-            self.q_hat = float(np.quantile(residuals, level, method="higher"))
+        if not v_tr.any():
+            raise ValueError("Training requires at least one valid molecule")
+        self._fit_base(x_tr[v_tr], y_tr_arr[v_tr])
+        residuals = (
+            np.abs(y_ca_arr[v_ca] - self._predict_raw(x_ca[v_ca]))
+            if v_ca.any()
+            else np.empty(0, dtype=np.float64)
+        )
+        n_cal = self.cal_size = len(residuals)
+        self.q_hat = _finite_sample_conformal_quantile(residuals, self.alpha, upper_bound=math.inf)
         return {
             "n_train": int(v_tr.sum()),
             "n_cal": int(n_cal),
@@ -176,6 +257,8 @@ def evaluate_scaffold_cv_conformal_dmpk(
     """Run strict Bemis-Murcko scaffold-CV evaluating accuracy + Split-Conformal coverage."""
     smis = list(smiles_list)
     ys = np.asarray(y_values, dtype=np.float64)
+    if ys.shape != (len(smis),) or not np.isfinite(ys).all():
+        raise ValueError("Each SMILES requires one finite endpoint label")
     folds = make_scaffold_kfold(smis, n_splits=n_splits, seed=seed)
 
     oof_pred = np.full(len(smis), float("nan"), dtype=np.float64)
@@ -183,13 +266,10 @@ def evaluate_scaffold_cv_conformal_dmpk(
     oof_hi = np.full(len(smis), float("nan"), dtype=np.float64)
 
     for f_idx, (tr_idx, va_idx) in enumerate(folds):
-        # Split tr_idx 80/20 into proper-train and calibration (preserving scaffold grouping)
-        split_at = max(8, int(0.8 * len(tr_idx)))
-        prop_idx = tr_idx[:split_at]
-        cal_idx = tr_idx[split_at:]
-        if len(cal_idx) < 4:
-            cal_idx = tr_idx[-4:]
-            prop_idx = tr_idx[:-4]
+        if not len(va_idx):
+            raise ValueError("Each evaluation fold requires at least one scaffold")
+        proper, calibration = _split_calibration([smis[i] for i in tr_idx], seed + f_idx)
+        prop_idx, cal_idx = tr_idx[proper], tr_idx[calibration]
         reg = ConformalDMPKRegressor(
             endpoint=endpoint, alpha=alpha, n_estimators=n_estimators, seed=seed + f_idx
         )
@@ -223,6 +303,7 @@ def evaluate_scaffold_cv_conformal_dmpk(
         "endpoint": endpoint,
         "n_valid": int(ok.sum()),
         "n_splits": int(n_splits),
+        "n_finite_intervals": int((np.isfinite(yl) & np.isfinite(yh)).sum()),
         "target_coverage": round(1.0 - alpha, 3),
         "empirical_coverage": round(cov, 4),
         "mean_interval_width": round(width, 4),
@@ -236,5 +317,7 @@ def evaluate_scaffold_cv_conformal_dmpk(
 __all__ = [
     "ConformalDMPKRegressor",
     "ConformalRegressionPrediction",
+    "REFERENCE_ENDPOINTS",
     "evaluate_scaffold_cv_conformal_dmpk",
+    "load_reference_endpoint",
 ]

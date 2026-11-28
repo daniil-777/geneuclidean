@@ -18,18 +18,23 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
 from geneuclidean.config import SamplingConfig
+from geneuclidean.models.cvae import PocketCVAE
 from geneuclidean.registry import (
     SAMPLING_STRATEGY_REGISTRY,
     list_sampling_strategies,
     register_sampling_strategy,
 )
+
+if TYPE_CHECKING:
+    from geneuclidean.models.encoders.rbf import PocketEncoderOutput
+
 
 _BOND_TOKENS = frozenset({"=", "#", "/", "\\", ":"})
 
@@ -461,7 +466,7 @@ def select_next_tokens(
     )
     # Handle generator device compatibility cleanly across CPU / MPS
     if generator is not None and generator.device != probs.device:
-        sampled = torch.multinomial(probs.detach().cpu(), num_samples=1, generator=generator)
+        sampled = torch.multinomial(probs.to(generator.device), num_samples=1, generator=generator)
         return sampled.squeeze(-1).to(device=probs.device)
     return torch.multinomial(probs, num_samples=1, generator=generator).squeeze(-1)
 
@@ -506,6 +511,7 @@ def _sample_cvae_tokens(
     num_samples: int,
     latent_temp: float = 1.0,
     seed_ligand_fp: Tensor | None = None,
+    generator: torch.Generator | None = None,
 ) -> Tensor | None:
     """Sample per-molecule CVAE prior or posterior refinement tokens ``[num_samples, K, D]``."""
     cvae = getattr(model, "cvae", None)
@@ -516,6 +522,9 @@ def _sample_cvae_tokens(
         pooled_emb.expand(num_samples, -1).contiguous() if pooled_emb.size(0) == 1 else pooled_emb
     )
 
+    # External CVAE implementations can still use the original sampling signature.
+    rng_kwargs = {"generator": generator} if isinstance(cvae, PocketCVAE) else {}
+
     if seed_ligand_fp is not None:
         fp = seed_ligand_fp.to(device=pooled_exp.device, dtype=pooled_exp.dtype)
         if fp.ndim == 1:
@@ -525,7 +534,9 @@ def _sample_cvae_tokens(
 
         if hasattr(cvae, "refine"):
             try:
-                return _extract_z_tensor(cvae.refine(pooled_exp, fp, latent_temp=latent_temp))
+                return _extract_z_tensor(
+                    cvae.refine(pooled_exp, fp, latent_temp=latent_temp, **rng_kwargs)
+                )
             except (RuntimeError, ValueError):
                 ligand_enc = getattr(model, "ligand_encoder", None)
                 if ligand_enc is None and hasattr(model, "heads"):
@@ -535,14 +546,18 @@ def _sample_cvae_tokens(
                 if ligand_enc is not None:
                     lig_emb = ligand_enc(fp)
                     return _extract_z_tensor(
-                        cvae.refine(pooled_exp, lig_emb, latent_temp=latent_temp)
+                        cvae.refine(pooled_exp, lig_emb, latent_temp=latent_temp, **rng_kwargs)
                     )
                 raise
         raise AttributeError("Model CVAE does not implement .refine(...) for hit-to-lead seeding.")
 
     if hasattr(cvae, "sample_prior"):
-        return _extract_z_tensor(cvae.sample_prior(pooled_exp, latent_temp=latent_temp))
-    return _extract_z_tensor(cvae(pooled_exp, ligand_emb=None, latent_temp=latent_temp))
+        return _extract_z_tensor(
+            cvae.sample_prior(pooled_exp, latent_temp=latent_temp, **rng_kwargs)
+        )
+    return _extract_z_tensor(
+        cvae(pooled_exp, ligand_emb=None, latent_temp=latent_temp, **rng_kwargs)
+    )
 
 
 def _prepare_pocket_tensors(
@@ -885,6 +900,7 @@ def sample_molecules_detailed(
     device: torch.device | None = None,
     return_attn: bool = False,
     length_penalty_alpha: float = 0.6,
+    pocket_output: PocketEncoderOutput | None = None,
 ) -> SamplingResult:
     """Generate molecules conditioned on a 3D protein pocket with full diagnostics.
 
@@ -900,6 +916,7 @@ def sample_molecules_detailed(
         seed_ligand_fp: Optional seed ligand fingerprint for TamGen-style CVAE refinement.
         generator: Optional ``torch.Generator`` for deterministic sampling.
         device: Optional execution device (defaults to first model parameter's device).
+        pocket_output: Optional encoding of this pocket, reused for generation and scoring.
         return_attn: Whether to extract per-molecule cross-attention maps over pocket atoms.
         length_penalty_alpha: Length penalty exponent for ``diverse_beam``.
 
@@ -920,7 +937,9 @@ def sample_molecules_detailed(
     # 1. Encode the 3D pocket ONCE
     coords, node_feats, atom_mask = _prepare_pocket_tensors(pocket_batch, eff_device)
     n_pocket_atoms = int(coords.size(1))
-    pocket_out_single = model.encode_pocket(coords, node_feats, atom_mask)  # type: ignore[operator]
+    pocket_out_single = pocket_output
+    if pocket_out_single is None:
+        pocket_out_single = model.encode_pocket(coords, node_feats, atom_mask)  # type: ignore[operator]
 
     # 2. Dispatch Diverse Beam Search
     if sampling_cfg.strategy == "diverse_beam":
@@ -930,6 +949,7 @@ def sample_molecules_detailed(
             num_samples=1,
             latent_temp=sampling_cfg.latent_temp,
             seed_ligand_fp=seed_ligand_fp,
+            generator=generator,
         )
         mem_cond, mask_cond = model.build_memory(  # type: ignore[operator]
             pocket_out_single,
@@ -980,6 +1000,7 @@ def sample_molecules_detailed(
         num_samples=num_samples,
         latent_temp=sampling_cfg.latent_temp,
         seed_ligand_fp=seed_ligand_fp,
+        generator=generator,
     )
     mem_cond, mask_cond = model.build_memory(  # type: ignore[operator]
         pocket_out_batched,

@@ -20,15 +20,17 @@ Runs three real end-to-end industrial benchmarks and writes
 
 from __future__ import annotations
 
-import csv
 import json
-import math
 import time
 from pathlib import Path
 from typing import Any
 
 from geneuclidean.cns.admet import CNSAdmetSuite
-from geneuclidean.cns.dmpk_regression import evaluate_scaffold_cv_conformal_dmpk
+from geneuclidean.cns.dmpk_regression import (
+    REFERENCE_ENDPOINTS,
+    evaluate_scaffold_cv_conformal_dmpk,
+    load_reference_endpoint,
+)
 from geneuclidean.cns.scaffold_hop import IBOGAINE_SMILES
 from geneuclidean.interop import export_openfe_rbfe_network
 from geneuclidean.leadopt import AvoidomeMMPEngine
@@ -36,44 +38,8 @@ from geneuclidean.synthesis import enumerate_makeable_analogs
 
 OUT_JSON = Path("results/tables/phase3_phase4_leadopt_dmpk_benchmark.json")
 V4_ADMET_PATH = Path("data/cns_neuro.nosync/v4_admet_avoidome_oracles.joblib")
-OPENADMET_TRAIN = Path("data/cns_neuro.nosync/v4_expansion/admet/openadmet_expansionrx_train.csv")
-BIOGEN_CSV = Path("data/cns_neuro.nosync/v4_expansion/admet/ADME_public_set_3521.csv")
+REFERENCE_DATA_DIR = Path("data/cns_neuro.nosync/v4_expansion/admet")
 DONEPEZIL_SMILES = "COc1cc2c(cc1OC)C(=O)C(CC1CCN(Cc3ccccc3)CC1)C2"
-
-
-def _load_continuous_endpoint(
-    csv_path: Path,
-    smiles_col: str,
-    target_col: str,
-    *,
-    log10_transform: bool = False,
-    max_n: int = 1200,
-) -> tuple[list[str], list[float]]:
-    smis: list[str] = []
-    vals: list[float] = []
-    if not csv_path.is_file():
-        return smis, vals
-    with csv_path.open("r", encoding="utf-8", newline="") as handle:
-        for row in csv.DictReader(handle):
-            s = (row.get(smiles_col) or "").strip()
-            raw = (row.get(target_col) or "").strip()
-            if not s or not raw:
-                continue
-            try:
-                v = float(raw)
-            except ValueError:
-                continue
-            if not math.isfinite(v):
-                continue
-            if log10_transform:
-                if v <= 0.0:
-                    continue
-                v = math.log10(v)
-            smis.append(s)
-            vals.append(v)
-            if len(smis) >= max_n:
-                break
-    return smis, vals
 
 
 def main() -> None:
@@ -133,22 +99,12 @@ def main() -> None:
     )
 
     print("=== [3/3] OpenADMET-ExpansionRx & Biogen 5-Fold Scaffold-CV Conformal DMPK ===")
-    dmpk_specs = [
-        ("OpenADMET_LogD", OPENADMET_TRAIN, "SMILES", "LogD", False),
-        ("OpenADMET_log10_KSOL", OPENADMET_TRAIN, "SMILES", "KSOL", True),
-        ("OpenADMET_log10_HLM_CLint", OPENADMET_TRAIN, "SMILES", "HLM CLint", True),
-        ("Biogen_log_HLM_CLint", BIOGEN_CSV, "SMILES", "LOG HLM_CLint (mL/min/kg)", False),
-        (
-            "Biogen_log_Solubility_pH68",
-            BIOGEN_CSV,
-            "SMILES",
-            "LOG SOLUBILITY PH 6.8 (ug/mL)",
-            False,
-        ),
-    ]
     dmpk_results: list[dict[str, Any]] = []
-    for ep_name, path, scol, tcol, do_log in dmpk_specs:
-        smis, vals = _load_continuous_endpoint(path, scol, tcol, log10_transform=do_log, max_n=1000)
+    for ep_name in REFERENCE_ENDPOINTS:
+        try:
+            smis, vals = load_reference_endpoint(ep_name, REFERENCE_DATA_DIR, max_rows=1000)
+        except FileNotFoundError:
+            continue
         if len(smis) < 40:
             continue
         res = evaluate_scaffold_cv_conformal_dmpk(

@@ -385,6 +385,36 @@ def _smooth_switch_c2(dist: Tensor, r_on: float, r_off: float) -> Tensor:
     return torch.where(dist <= r_on, torch.ones_like(dist), switched)
 
 
+def _screened_field_kernel(
+    dist: Tensor,
+    soft_dist: Tensor,
+    dielectric: Tensor,
+    dielectric_slope: Tensor | float,
+    switch: Tensor | float = 1.0,
+    switch_slope: Tensor | float = 0.0,
+) -> Tensor:
+    """Radial coefficient of -grad(switch / (dielectric * soft_dist)), scaled to V/Å."""
+    slope = switch * (soft_dist.reciprocal().square() + dielectric_slope / (dist * dielectric))
+    return (
+        COULOMB_KCAL_ANGSTROM
+        * KCAL_MOL_E_TO_VOLT
+        * (slope - switch_slope / dist)
+        / (dielectric * soft_dist)
+    )
+
+
+def _mehler_solmajer_value_and_slope(dist: Tensor, min_eps: float) -> tuple[Tensor, Tensor]:
+    """Evaluate the smoothly floored dielectric and its distance derivative per Å."""
+    a = -8.5525
+    b = 78.5 - a
+    rate = 0.003627 * b
+    fraction = (1.0 + 7.7839 * torch.exp(-rate * dist)).reciprocal()
+    above_floor = (a + b * fraction) - min_eps
+    eps = min_eps + torch.nn.functional.softplus(above_floor, beta=2.5)
+    slope = torch.sigmoid(2.5 * above_floor) * b * rate * fraction * (1.0 - fraction)
+    return eps, slope
+
+
 def compute_ring_geometry_from_coords(
     coords: Tensor,
     ring_atom_indices: Tensor,
@@ -1606,13 +1636,8 @@ class BiophysicalHamiltonian(nn.Module):
     @staticmethod
     def mehler_solmajer_dielectric(dist: Tensor, min_eps: float = 4.0) -> Tensor:
         """Smooth Mehler–Solmajer sigmoidal dielectric :math:`\\varepsilon(r)`."""
-        a_const = -8.5525
-        b_const = 78.5 - a_const  # 87.0525
-        kappa = 7.7839
-        lam = 0.003627
-        raw_eps = a_const + b_const / (1.0 + kappa * torch.exp(-lam * b_const * dist))
-        # Smoothly floor at interior_dielectric (4.0) without any derivative kink
-        return min_eps + torch.nn.functional.softplus(raw_eps - min_eps, beta=2.5)
+        eps, _ = _mehler_solmajer_value_and_slope(dist, min_eps)
+        return eps
 
     @staticmethod
     def compute_effective_born_radii(
@@ -1865,22 +1890,28 @@ class BiophysicalHamiltonian(nn.Module):
         r_elec = torch.sqrt(sq_lp + soft_r2 + 1e-8)
         if self.dielectric_mode == "gb_obc2":
             eps_ij = torch.full_like(dist_lp, self.interior_dielectric)
+            eps_slope: Tensor | float = 0.0
         else:
-            eps_ij = self.mehler_solmajer_dielectric(dist_lp, min_eps=self.interior_dielectric)
+            eps_ij, eps_slope = _mehler_solmajer_value_and_slope(dist_lp, self.interior_dielectric)
 
         qi = lig.partial_charges.unsqueeze(1)  # [NL, 1]
         qj = rec.partial_charges.unsqueeze(0)  # [1, NP]
         pair_coulomb = (COULOMB_KCAL_ANGSTROM * qi * qj / (eps_ij * r_elec)) * sw_cut
         e_coulomb = pair_coulomb.sum()
 
-        # Analytical 3D electric field E_i (V/A) produced by partner charges:
-        # E(r_i) = sum_j (k_e * q_j / (eps(r_ij) * r_elec^3)) * (r_i - r_j) * V_conv
-        efield_kernel = (
-            COULOMB_KCAL_ANGSTROM
-            * KCAL_MOL_E_TO_VOLT
-            * sw_cut
-            / (eps_ij * r_elec * r_elec * r_elec + 1e-8)
-        )  # [NL, NP]
+        # Differentiate the same switched Coulomb potential reported above.
+        r2 = dist_lp.square()
+        on2, off2 = self.switch_on**2, self.nonbonded_cutoff**2
+        switch_slope = (
+            -12
+            * dist_lp
+            * (off2 - r2).clamp_min(0)
+            * (r2 - on2).clamp_min(0)
+            / max((off2 - on2) ** 3, 1e-8)
+        )
+        efield_kernel = _screened_field_kernel(
+            dist_lp, r_elec, eps_ij, eps_slope, sw_cut, switch_slope
+        )
         lig_efield = (efield_kernel.unsqueeze(-1) * qj.unsqueeze(-1) * diff_lp).sum(dim=1)
         rec_efield = -(efield_kernel.unsqueeze(-1) * qi.unsqueeze(-1) * diff_lp).sum(dim=0)
 

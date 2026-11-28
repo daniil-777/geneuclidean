@@ -43,8 +43,8 @@ from numpy.typing import NDArray
 from geneuclidean.biophysics.forcefield import (
     COULOMB_KCAL_ANGSTROM,
     KB_KCAL_MOL_K,
-    KCAL_MOL_E_TO_VOLT,
-    BiophysicalHamiltonian,
+    _mehler_solmajer_value_and_slope,
+    _screened_field_kernel,
     compute_donor_axes_from_coords,
     compute_halogen_axes_from_coords,
     compute_ring_geometry_from_coords,
@@ -230,7 +230,7 @@ def compute_electrostatic_potential_grid(
             # Core regularization at r_core = 0.85 * r_vdw avoids nuclear singularities
             r_core2 = (0.85 * src_r).pow(2).unsqueeze(0)
             r_soft = torch.sqrt(sq + r_core2 + 1e-6)
-            eps_r = BiophysicalHamiltonian.mehler_solmajer_dielectric(
+            eps_r, eps_slope = _mehler_solmajer_value_and_slope(
                 dist, min_eps=twin.hamiltonian.interior_dielectric
             )
 
@@ -239,12 +239,7 @@ def compute_electrostatic_potential_grid(
             esp_flat[start : start + chunk] = phi_kcal_e / kbt_kcal
 
             # Electric field vector E(x) in V/A
-            ef_kern = (
-                COULOMB_KCAL_ANGSTROM
-                * KCAL_MOL_E_TO_VOLT
-                * src_q.unsqueeze(0)
-                / (eps_r * r_soft * r_soft * r_soft + 1e-8)
-            )
+            ef_kern = src_q.unsqueeze(0) * _screened_field_kernel(dist, r_soft, eps_r, eps_slope)
             ef_flat[start : start + chunk] = (ef_kern.unsqueeze(-1) * diff).sum(dim=1)
 
     esp_3d = esp_flat.detach().cpu().numpy().reshape(nx, ny, nz).astype(np.float32)

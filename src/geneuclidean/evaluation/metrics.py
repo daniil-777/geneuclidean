@@ -20,6 +20,7 @@ from __future__ import annotations
 import contextlib
 import importlib.util
 import io
+import math
 from collections.abc import Callable, Mapping, Sequence
 from functools import lru_cache
 from pathlib import Path
@@ -281,7 +282,7 @@ def compute_internal_diversity(
 ) -> float:
     """Compute exact MOSES ECFP4 internal diversity ``IntDiv_p`` in ``[0, 1]``.
 
-    Uses exact vectorized BLAS pairwise Tanimoto for ``len(fps) <= max_exact``,
+    Uses packed RDKit fingerprints and row-wise Tanimoto similarities for ``len(fps) <= max_exact``,
     and deterministic popcount-stratified subsampling for larger sets.
     """
     n = len(fps)
@@ -291,11 +292,12 @@ def compute_internal_diversity(
         msg = f"Internal diversity order p must be >= 1, got {p}"
         raise ValueError(msg)
 
-    mat = _fps_to_matrix(fps)
+    if max_exact < 1:
+        raise ValueError("max_exact must be positive")
     if n > max_exact:
         # Stratified subsample across fingerprint bit-density quantiles
         rng = np.random.default_rng(seed)
-        popcounts = mat.sum(axis=1)
+        popcounts = np.fromiter((fp.GetNumOnBits() for fp in fps), dtype=np.intp, count=n)
         order = np.argsort(popcounts, kind="mergesort")
         n_strata = min(20, max_exact)
         strata = np.array_split(order, n_strata)
@@ -305,17 +307,15 @@ def compute_internal_diversity(
         for idx, stratum in enumerate(strata):
             take = min(len(stratum), base_take + (1 if idx < rem else 0))
             chosen.append(rng.choice(stratum, size=take, replace=False))
-        sel = np.concatenate(chosen)
-        mat = mat[sel]
+        fps = [fps[int(i)] for i in np.concatenate(chosen)]
 
-    inter = mat @ mat.T
-    norms = mat.sum(axis=1)
-    union = norms[:, None] + norms[None, :] - inter
-    tanimoto = np.divide(inter, union, out=np.zeros_like(inter), where=union > 0.0)
-    np.fill_diagonal(tanimoto, 1.0)
-    tanimoto = np.clip(tanimoto, 0.0, 1.0)
-
-    mean_tp = float(np.mean(np.power(tanimoto, p, dtype=np.float64)))
+    # The MOSES mean includes both triangle halves and unit self-similarities.
+    n = len(fps)
+    sum_tp = float(n)
+    for i in range(1, n):
+        similarities = DataStructs.BulkTanimotoSimilarity(fps[i], fps[:i])
+        sum_tp += 2.0 * float(np.sum(np.power(similarities, p)))
+    mean_tp = sum_tp / (n * n)
     return float(np.clip(1.0 - mean_tp ** (1.0 / p), 0.0, 1.0))
 
 
@@ -327,21 +327,9 @@ def compute_snn(
     if not gen_fps or not ref_fps:
         return float("nan")
 
-    g_mat = _fps_to_matrix(gen_fps)
-    r_mat = _fps_to_matrix(ref_fps)
-    g_norms = g_mat.sum(axis=1)
-    r_norms = r_mat.sum(axis=1)
-
-    # Chunk over generated molecules to cap peak memory on large sets
-    max_sims = np.empty(len(gen_fps), dtype=np.float64)
-    chunk_size = 512
-    for start in range(0, len(gen_fps), chunk_size):
-        end = min(start + chunk_size, len(gen_fps))
-        inter = g_mat[start:end] @ r_mat.T
-        union = g_norms[start:end, None] + r_norms[None, :] - inter
-        sim = np.divide(inter, union, out=np.zeros_like(inter), where=union > 0.0)
-        max_sims[start:end] = np.max(sim, axis=1)
-    return float(np.mean(max_sims))
+    references = list(ref_fps)
+    maxima = (float(max(DataStructs.BulkTanimotoSimilarity(fp, references))) for fp in gen_fps)
+    return math.fsum(maxima) / len(gen_fps)
 
 
 def compute_frechet_fingerprint_distance(
@@ -485,7 +473,7 @@ def evaluate_generation_metrics(
     # Canonicalize training set & extract training scaffolds
     train_canon_set: set[str] = set()
     train_scaffolds: set[str] = set()
-    train_fps: list[DataStructs.ExplicitBitVect] = []
+    ref_mols: list[Chem.Mol] = []
     for smi in train_smiles:
         mol = parse_mol(smi)
         if mol is None:
@@ -494,8 +482,8 @@ def evaluate_generation_metrics(
         if canon not in train_canon_set:
             train_canon_set.add(canon)
             train_scaffolds.add(get_murcko_scaffold(mol))
-            if reference_smiles is None:
-                train_fps.append(get_morgan_bit_fp(mol))
+        if reference_smiles is None:
+            ref_mols.append(mol)
 
     novel_canon = [c for c in unique_map if c not in train_canon_set]
     n_novel = len(novel_canon)
@@ -516,20 +504,9 @@ def evaluate_generation_metrics(
         murcko_scaffold_novelty = 0.0
 
     # Reference set for SNN, FFD, W1, and JSD
-    ref_source = reference_smiles if reference_smiles is not None else train_smiles
-    ref_mols: list[Chem.Mol] = []
     if reference_smiles is not None:
-        for smi in reference_smiles:
-            mol = parse_mol(smi)
-            if mol is not None:
-                ref_mols.append(mol)
-        ref_fps = [get_morgan_bit_fp(m) for m in ref_mols]
-    else:
-        for smi in ref_source:
-            mol = parse_mol(smi)
-            if mol is not None:
-                ref_mols.append(mol)
-        ref_fps = train_fps if train_fps else [get_morgan_bit_fp(m) for m in ref_mols]
+        ref_mols = [mol for smi in reference_smiles if (mol := parse_mol(smi)) is not None]
+    ref_fps = [get_morgan_bit_fp(m) for m in ref_mols]
 
     snn = compute_snn(valid_fps, ref_fps)
     ffd = compute_frechet_fingerprint_distance(valid_fps, ref_fps, n_components=ffd_components)

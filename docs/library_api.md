@@ -121,6 +121,30 @@ print(pipe.describe())  # JSON-serializable provenance for FDA/EMA Credibility D
 
 ---
 
+### Screening a diverse shortlist
+
+Use `with_top_k(8, min_tanimoto_dist=0.65)` to require a minimum pairwise distance after structural filters. The selector starts with the highest composite score, then balances quality and distance with 2,048-bit radius-two Morgan fingerprints. A strict threshold can return fewer than eight. The same optional keyword is available on `design`, `decorate` and `design_ensemble`. The default selection order is preserved when the keyword is omitted.
+
+
+```python
+screen = (
+    ge.DesignPipeline(designer)
+    .add_filter(ge.TriageFilter())
+    .with_top_k(8, min_tanimoto_dist=0.65)
+)
+result = screen.run(pocket, n=128, seed=42)
+```
+
+### Compound assays
+
+`ge.assays.estimate_aqueous_solubility(smiles)` returns a structure-based estimate of log₁₀ aqueous mol/L. `aqueous_equilibrium` takes supplied solubility and binding constants to predict free, bound and undissolved compound. `fit_microsomal_depletion` fits a positive quantified parent-concentration series. `well_stirred_hepatic_clearance` takes blood flow, blood unbound fraction and scaled whole-organ intrinsic clearance. See the [assay examples, measured comparison and research review](compound_assays.md).
+
+For the Studio DMPK block, place the OpenADMET or Biogen CSV named by `geneuclidean.cns.dmpk_regression.REFERENCE_ENDPOINTS` under `data/cns_neuro/v4_expansion/admet/`. Both generated Python and the local runner train from the selected endpoint. The Studio uses the first 300 usable rows. `ge.ConformalDMPKRegressor.from_reference_data` also accepts `data_dir` and `max_rows`, and `fit` accepts independently supplied measurements and calibration rows. A calibration set too small for the requested coverage gives unbounded intervals, serialized as null limits. Coverage on held-out scaffolds is empirical.
+
+### Checkpoint-backed co-folding in Studio
+
+The Studio co-folding and confidence blocks require a source pocket PDB, a ligand and a local NanoFold3 checkpoint. Set `GENEUCLIDEAN_NANOFOLD3_CHECKPOINT` to the checkpoint file when running Studio or an exported program. The checkpoint determines the trained architecture. Confidence and affinity values come from the same predicted complex, and both configured confidence cutoffs apply to poses. The folding hub records whether weights came from a checkpoint, a caller-supplied model or random initialization.
+
 ## 5. Extending GenEuclidean Without Modifying Core Source
 
 GenEuclidean provides thread-safe generic registries (`ge.Registry[T]`) backed by runtime-checkable PEP 544 protocols (`ge.protocols`) and standard Python `importlib.metadata.entry_points` discovery (`ge.discover_plugins()`).

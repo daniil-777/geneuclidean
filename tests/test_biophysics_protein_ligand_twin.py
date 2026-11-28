@@ -857,3 +857,47 @@ def test_biophysics_public_module_alias_consistent() -> None:
     assert bp.ProteinLigandDigitalTwin is ProteinLigandDigitalTwin
     assert bp.BiophysicalHamiltonian is BiophysicalHamiltonian
     assert bp.BiophysicalAtomParams is BiophysicalAtomParams
+
+
+@pytest.mark.parametrize("distance", [3.0, 11.0])
+def test_electric_fields_differentiate_reported_potential(distance: float) -> None:
+    from geneuclidean.biophysics.forcefield import KB_KCAL_MOL_K, KCAL_MOL_E_TO_VOLT
+
+    rec = _make_single_atom_params((0, 0, 0), z=7, charge=1)
+
+    def probe(x: float):
+        ligand = _make_single_atom_params((x, 0, 0), z=6, charge=1)
+        return ProteinLigandDigitalTwin(ligand, rec)
+
+    twin = probe(distance)
+    delta = 0.005
+    finite_difference = (
+        (
+            probe(distance - delta).evaluate_complex().e_coulomb
+            - probe(distance + delta).evaluate_complex().e_coulomb
+        )
+        * KCAL_MOL_E_TO_VOLT
+        / (2 * delta)
+    )
+    breakdown = twin.evaluate_complex()
+    assert breakdown.ligand_electric_field[0, 0].item() == pytest.approx(
+        finite_difference, rel=0.003
+    )
+    assert breakdown.pocket_electric_field[0, 0].item() == pytest.approx(
+        -finite_difference, rel=0.003
+    )
+
+    grid = compute_electrostatic_potential_grid(
+        twin, padding=0.3, grid_spacing=0.1, source="pocket"
+    )
+    mid = grid.shape[0] // 2
+    line = grid.esp_kbt_e[:, mid, mid]
+    dx = grid.axes_xyz[0][mid + 1] - grid.axes_xyz[0][mid - 1]
+    expected = (
+        (line[mid - 1] - line[mid + 1])
+        / dx
+        * KB_KCAL_MOL_K
+        * grid.temperature_k
+        * KCAL_MOL_E_TO_VOLT
+    )
+    assert grid.electric_field_v_a[mid, mid, mid, 0] == pytest.approx(expected, rel=0.01)

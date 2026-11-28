@@ -113,6 +113,13 @@ def triage_molecules(smiles_list: Sequence[str | Chem.Mol]) -> list[MedChemTriag
 # ---------------------------------------------------------------------------
 
 
+def _admet_pass(admet: Mapping[str, Any], *, missing: bool) -> bool:
+    for key in ("admet_v4_pass", "admet_pass", "v4_pharma_safe"):
+        if key in admet:
+            return bool(admet[key])
+    return missing
+
+
 @dataclass(frozen=True)
 class MoleculeReport:
     """Comprehensive physicochemical, CNS MPO, MedChem triage, pH 7.4 & ADMET scorecard."""
@@ -171,10 +178,10 @@ class MoleculeReport:
     @property
     def is_cns_lead(self) -> bool:
         """Return ``True`` if valid, triage-passing, CNS MPO v2 >= 4.0, and ADMET-passing."""
-        if not self.valid or not self.triage_passed or self.cns_mpo_v2 < 4.0:
+        if not self.valid or not self.triage_passed or not self.cns_mpo_v2 >= 4.0:
             return False
         if self.admet is not None:
-            return bool(self.admet.get("admet_pass", self.admet.get("v4_pharma_safe", True)))
+            return _admet_pass(self.admet, missing=True)
         return True
 
     def to_dict(self) -> dict[str, Any]:
@@ -337,22 +344,27 @@ class ADMETFilter:
             return False
         if report.admet is None:
             return self.pass_when_missing
-        if self.require_admet_pass and not bool(
-            report.admet.get("admet_pass", report.admet.get("v4_pharma_safe", True))
+        if self.require_admet_pass and not _admet_pass(
+            report.admet, missing=self.pass_when_missing
         ):
             return False
         probs = report.admet.get("probabilities", report.admet)
-        if self.min_bbb_prob is not None:
-            bbb_val = probs.get("bbb", report.admet.get("bbb_prob"))
-            if bbb_val is not None and float(bbb_val) < self.min_bbb_prob:
+        for name, lower, upper in (
+            ("bbb", self.min_bbb_prob, None),
+            ("herg", None, self.max_herg_prob),
+            ("pgp", None, self.max_pgp_prob),
+        ):
+            if lower is None and upper is None:
+                continue
+            value = probs.get(name, report.admet.get(f"{name}_prob"))
+            if value is None:
+                if self.pass_when_missing:
+                    continue
                 return False
-        if self.max_herg_prob is not None:
-            herg_val = probs.get("herg", report.admet.get("herg_prob"))
-            if herg_val is not None and float(herg_val) > self.max_herg_prob:
+            prob = float(value)
+            if not 0.0 <= prob <= 1.0:
                 return False
-        if self.max_pgp_prob is not None:
-            pgp_val = probs.get("pgp", report.admet.get("pgp_prob"))
-            if pgp_val is not None and float(pgp_val) > self.max_pgp_prob:
+            if (lower is not None and prob < lower) or (upper is not None and prob > upper):
                 return False
         return True
 
@@ -647,6 +659,7 @@ def score_molecules(
                     + list(tr.pains_alerts)
                     + list(tr.brenk_alerts)
                     + list(tr.nih_alerts)
+                    + list(tr.lilly_demerit_reasons)
                 )
                 if tr is not None
                 else ()
@@ -736,6 +749,7 @@ def score_molecules(
                 + list(tr_item.pains_alerts)
                 + list(tr_item.brenk_alerts)
                 + list(tr_item.nih_alerts)
+                + list(tr_item.lilly_demerit_reasons)
             )
             hygiene_gate = float(tr_item.hygiene_gate)
             triage_passed = bool(tr_item.triage_pass)

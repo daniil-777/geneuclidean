@@ -215,7 +215,7 @@ export interface DmtaRoundPoint {
   bestValue: number;
   meanAcquired: number;
   topHitRecall: number;
-  conformalCoverage: number;
+  conformalCoverage: number | null;
   eiMax: number;
   topKJaccard: number;
 }

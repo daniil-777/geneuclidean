@@ -581,6 +581,9 @@ class PocketConditionedLLM(nn.Module):
                 exp_pocket = pocket_out
                 exp_mask = atom_mask
 
+            generator: torch.Generator | None = (
+                torch.Generator(device="cpu").manual_seed(int(seed)) if seed is not None else None
+            )
             cond_prefix, _, _ = self.build_soft_prefix(
                 pocket_out=exp_pocket,
                 atom_mask=exp_mask,
@@ -589,6 +592,7 @@ class PocketConditionedLLM(nn.Module):
                 use_posterior=False,
                 deterministic_z=(latent_temp <= 0.0),
                 return_attn=False,
+                generator=generator,
             )
             prompt_ids, prefix_str = self.build_decoration_prompt_ids(
                 core_smiles_with_dummy,
@@ -631,9 +635,6 @@ class PocketConditionedLLM(nn.Module):
             past_key_values = outputs.past_key_values
             step_logits: Tensor = outputs.logits[:, -1, :].float()
 
-            generator: torch.Generator | None = (
-                torch.Generator(device="cpu").manual_seed(int(seed)) if seed is not None else None
-            )
             finished = torch.zeros(num_samples, dtype=torch.bool, device=llm_device)
             generated_cols: list[Tensor] = []
             ignore_rep_ids = tuple({self.pad_token_id, self.bos_token_id, self.eos_token_id})
@@ -846,6 +847,7 @@ class PocketConditionedLLM(nn.Module):
         deterministic_z: bool = False,
         return_attn: bool = False,
         batch_size: int | None = None,
+        generator: torch.Generator | None = None,
     ) -> tuple[Tensor, Tensor | None, dict[str, Tensor | None]]:
         """Project 3D pocket features into ``[B, M, llm_dim]`` soft-prompt embeddings."""
         cvae_stats: dict[str, Tensor | None] = {
@@ -901,7 +903,9 @@ class PocketConditionedLLM(nn.Module):
                     if (use_posterior and ligand_fp is not None)
                     else None
                 )
-                cvae_out = self.cvae(pooled_emb, ligand_emb=lig_emb, latent_temp=eff_temp)
+                cvae_out = self.cvae(
+                    pooled_emb, ligand_emb=lig_emb, latent_temp=eff_temp, generator=generator
+                )
             cvae_tokens: Tensor = self.cvae_proj(cvae_out.z_tokens.to(dtype=torch.float32))
             prefix_parts.append(cvae_tokens)
             cvae_stats = {

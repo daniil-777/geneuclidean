@@ -254,6 +254,8 @@ def maxmin_diversity_select(
     n = len(smiles_list)
     if len(scores) != n:
         raise ValueError(f"scores length ({len(scores)}) != smiles_list length ({n})")
+    if not 0.0 <= min_tanimoto_dist <= 1.0:
+        raise ValueError("min_tanimoto_dist must be in [0, 1]")
     if k <= 0 or n == 0:
         return []
 

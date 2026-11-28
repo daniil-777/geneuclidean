@@ -733,3 +733,15 @@ def test_all_visualization_figures_smoke(tmp_path: Path) -> None:
     _assert_valid_png(
         plot_pocket_embedding_tsne(embs, pkd_labels, tmp_path / "09b_pocket_pca.png", method="pca")
     )
+
+
+def test_packed_metrics_and_pareto_front_cover_ties() -> None:
+    from geneuclidean.evaluation.metrics import compute_snn
+    from geneuclidean.evaluation.visualization import _compute_pareto_front
+
+    fps = [get_morgan_bit_fp(Chem.MolFromSmiles(s)) for s in ["CO", "CCO", "OCC", "c1ccccc1"]]
+    matrix = np.array([[DataStructs.TanimotoSimilarity(a, b) for a in fps] for b in fps])
+    assert compute_internal_diversity(fps, p=2) == pytest.approx(1 - np.sqrt((matrix**2).mean()))
+    assert compute_snn(fps[:2], fps[2:]) == pytest.approx(matrix[:2, 2:].max(axis=1).mean())
+    front = _compute_pareto_front(np.array([1, 0.5, 1, 0.5, 1]), np.array([1, 1, 0.5, 2, 1]))
+    assert front.tolist() == [3, 0, 4]

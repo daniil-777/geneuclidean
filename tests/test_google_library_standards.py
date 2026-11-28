@@ -170,7 +170,6 @@ def test_version_parity_across_package_metadata() -> None:
         ("geneuclidean.nlp", 15.0),
         ("geneuclidean.folding", 15.0),
         ("geneuclidean.active_learning", 15.0),
-        # studio eagerly imports stdlib http.server + ast + 49-block catalog (zero heavy ML libs)
         ("geneuclidean.studio", 150.0),
     ],
 )

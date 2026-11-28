@@ -4596,7 +4596,7 @@ BLOCK_DEFINITIONS: tuple[BlockDefinition, ...] = (
         category="outputs",
         python_symbol="geneuclidean.sdk.credibility.build_credibility_dossier",
         execution_tier="zero_torch",
-        badge="FDA/EMA 10/10",
+        badge="Credibility dossier",
         summary=(
             "Seals every circuit execution or multi-round DMTA loop into a chained SHA-256 "
             "DMTALedger, FDA/EMA 10-principle CredibilityDossier, and StoppingAdvisor verdict."
@@ -4657,7 +4657,7 @@ BLOCK_DEFINITIONS: tuple[BlockDefinition, ...] = (
             ),
             ParamSpec(
                 key="export_fda_ema_dossier",
-                label="Generate FDA/EMA 10/10 Dossier",
+                label="Generate credibility dossier",
                 type="boolean",
                 default=True,
             ),

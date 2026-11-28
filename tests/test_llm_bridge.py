@@ -807,3 +807,39 @@ def test_live_qwen25_bfloat16_bridge_and_kv_sampler() -> None:
         )
     assert len(smiles) == 2
     assert all(isinstance(s, str) for s in smiles)
+
+
+def test_seed_controls_latents_and_posterior_chunks_without_retaining_attention(
+    monkeypatch,
+) -> None:
+    from geneuclidean.sampling.llm_sampler import sample_llm_molecules, sample_llm_with_attention
+
+    model = _build_mock_bridge()
+    coords, features, mask = _make_pocket_batch(batch_size=1)
+    with torch.no_grad():
+        pocket = model.encode_pocket(coords, features, mask)
+    flags = []
+    original = model.build_soft_prefix
+
+    def observe(*args, **kwargs):
+        if not kwargs.get("use_null_pocket"):
+            flags.append(kwargs.get("return_attn"))
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(model, "build_soft_prefix", observe)
+    kwargs = dict(
+        num_samples=3,
+        batch_size=2,
+        max_new_tokens=5,
+        seed=7,
+        seed_ligand_fp=torch.zeros(3, model.v2_cfg.multitask.ligand_fp_dim),
+    )
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(1)
+        state = torch.random.get_rng_state()
+        without = sample_llm_molecules(model, pocket, mask, **kwargs)
+        assert torch.equal(state, torch.random.get_rng_state())
+        torch.manual_seed(17)
+        with_maps, attention = sample_llm_with_attention(model, pocket, mask, **kwargs)
+    assert without == with_maps and attention.shape[0] == 3
+    assert flags == [False, False, True, True]
