@@ -262,7 +262,26 @@ def test_reusable_submodules_and_ablation_toggles() -> None:
     )
     outer_r = torch.zeros((2, 16, graph.nbr_idx.shape[2], 3, 3), dtype=torch.float32)
     q5 = torch.zeros((2, 16, graph.nbr_idx.shape[2], 5), dtype=torch.float32)
+    x_ten.requires_grad_()
     cds, cdv, cdx = attn(s, v, x_ten, graph, rbf, outer_r, q5, atom_mask)
+    # The explicit polar/axial edge bases define the unfused chiral projection.
+    reference = attn(
+        s,
+        v,
+        x_ten,
+        graph,
+        rbf,
+        outer_r,
+        q5,
+        atom_mask,
+        geom_edge_i=torch.cat((graph.edge_dir, q5, graph.edge_dir), dim=-1),
+        geom_edge_j=torch.cat((graph.edge_dir, q5, -graph.edge_dir), dim=-1),
+    )
+    for fused, separate in zip((cds, cdv, cdx), reference, strict=True):
+        torch.testing.assert_close(fused, separate, atol=1e-6, rtol=1e-5)
+    grad = torch.autograd.grad(cds.square().sum(), x_ten)[0]
+    ref_grad = torch.autograd.grad(reference[0].square().sum(), x_ten)[0]
+    torch.testing.assert_close(grad, ref_grad, atol=1e-6, rtol=1e-5)
     cs, cv, cx = ffn(s + cds, v + cdv, x_ten + cdx, atom_mask)
     cs_lm, cv_lm = lm(cs, cv, cx, graph.centered_coords, node_feats, atom_mask)
     assert cs_lm.shape == (2, 16, 32) and cv_lm.shape == (2, 16, 8, 3)

@@ -93,8 +93,8 @@ print(json.dumps({
 def test_studio_source_has_zero_eval_exec_or_shell_true() -> None:
     """AST security audit: zero eval(), exec(), or subprocess(..., shell=True) in studio/."""
     studio_dir = Path(ge.__file__).resolve().parent / "studio"
-    py_files = sorted(studio_dir.glob("*.py"))
-    assert len(py_files) == 5
+    py_files = sorted(studio_dir.rglob("*.py"))
+    assert {"graph_compiler.py", "server.py", "folding.py"} <= {p.name for p in py_files}
 
     for path in py_files:
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))

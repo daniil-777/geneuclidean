@@ -40,6 +40,10 @@ print(trace.half_life_min, trace.apparent_clint_ul_min_mg)  # ~10, ~138.6
 
 **Hepatic blood clearance.** For a scenario with independently supplied hepatic blood flow Q, unbound fraction in blood fᵤ and scaled whole-organ unbound intrinsic clearance CLᵤ, `well_stirred_hepatic_clearance` evaluates Q fᵤ CLᵤ / (Q + fᵤ CLᵤ). The result tends toward blood flow at high extraction. Microsomal µL/min/mg and the body-weight-normalized mL/min/kg in some datasets require separate binding and scaling information before conversion to whole-organ mL/min. The model covers hepatic elimination under steady mixing. It gives no tissue concentration time course, renal clearance, toxicity, patient-specific effect or dosing recommendation. [Wilkinson and Shand](https://doi.org/10.1002/cpt1975184377) · [Open Systems Pharmacology model structure](https://docs.open-systems-pharmacology.org/mechanistic-modeling-of-pharmacokinetics-and-dynamics/modeling-concepts/principles-of-pbpk-modeling)
 
+The pH 7.4 pose-preparation heuristic also handles explicit hydrogens on acidic oxygens, tetrazoles and amines. It assigns the first acidic ionization of phosphonates and preserves an explicitly specified higher charge. In measured phosphonate analogs, second pKa values ranged from 5.4 to 7.6, so a compound-specific value matters when assigning further ionization. The equilibrium assay above supports neutral or monoprotic inputs. [Measured phosphonate titrations](https://pubmed.ncbi.nlm.nih.gov/10959850/)
+
+An end-to-end check supplied the 1BZC receptor, its deposited 29-heavy-atom ligand and a local NanoFold3 checkpoint to Studio's folding code. It returned a conformer with all 29 heavy atoms, computed the pose audit and read confidence and affinity from the same model result. This checks input and result handling. Predictive accuracy requires independent pose or affinity measurements. [1BZC deposition](https://www.rcsb.org/structure/1BZC)
+
 ## What laboratories can automate
 
 | Approach | Demonstrated measurement | What to carry into a twin |

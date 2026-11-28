@@ -740,12 +740,25 @@ def test_completed_candidate_triage_and_serialized_v4_gate() -> None:
 
 
 def test_pipeline_selects_diverse_reports_after_filtering(tmp_path, monkeypatch) -> None:
-    from geneuclidean.sampling import llm_sampler
+    from types import SimpleNamespace
+
+    from geneuclidean.config import SamplingConfig
+    from geneuclidean.sampling import decoder_strategies
     from geneuclidean.sampling.rerank import maxmin_diversity_select
 
     candidates = ["CCO", "OCC", "CCC", "c1ccccc1", "Cc1ccccc1", "C1CCOCC1", "*CC"]
-    monkeypatch.setattr(llm_sampler, "sample_llm_molecules", lambda **kwargs: candidates)
-    designer = ge.MoleculeDesigner.from_mock(device="cpu")
+    monkeypatch.setattr(
+        decoder_strategies,
+        "sample_molecules_detailed",
+        lambda **kwargs: SimpleNamespace(smiles=candidates),
+    )
+    designer = ge.MoleculeDesigner(
+        backend="v2",
+        device="cpu",
+        backbone_id="fixture",
+        model=SimpleNamespace(encode_pocket=lambda *args: None),
+        cfg=SimpleNamespace(sampling=SamplingConfig()),
+    )
     pdb, ligand = _write_mini_drd1_pocket(tmp_path)
     pocket = ge.Pocket.from_pdb(pdb, ligand_sdf=ligand)
     pipeline = ge.DesignPipeline(designer).with_admet(enabled=False).add_filter(ge.TriageFilter())

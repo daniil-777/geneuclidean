@@ -182,7 +182,7 @@ class CartFormerAttentionLayer(nn.Module):
     Uses exact pre-gather algebraic factorization into head space (``v_i, v_j, S_i, S_j,
     omega_i - omega_j``), multi-query scalar keys/values with full ``H``-head queries,
     equivariant message bottlenecks (``C_msg = 8``), a single compact row-vectorized
-    ``index_select`` gather (``232`` floats/edge), and zero-permute ``torch.bmm`` reductions.
+    ``index_select`` gather, and batched ``torch.bmm`` reductions.
 
     Smooth cutoff gating is applied strictly post-softmax (zero ``+ log f_c`` singularity)
     with tie-shell denominator cancellation for exact equidistant neighbor tie-swap invariance.
@@ -303,28 +303,27 @@ class CartFormerAttentionLayer(nn.Module):
         x_low: Tensor = self.x_down_proj(x_ten)  # [B, N, C_msg, 3, 3]
         kv: Tensor = self.kv_proj(s)  # [B, N, 2*d_h]
 
+        # Polar and axial terms both project onto the same edge direction, with
+        # opposite parity at the neighbor. Combine them per atom before the gather.
+        gi, gj = vh_i, vh_j_src
         if self.use_se3_chirality:
             assert self.om_to_heads is not None
-            om_h: Tensor = self.om_to_heads(skew_matrix_to_vector(x_ten))  # [B, N, H, 3]
-            geom_i_h = torch.cat((vh_i, sh_i, om_h), dim=-1)  # [B, N, H, 11]
-            geom_j_h = torch.cat((vh_j_src, sh_j_src, om_h), dim=-1)  # [B, N, H, 11]
-            gdim = 11
-            if geom_edge_i is None or geom_edge_j is None:
-                ge_i = torch.cat((edge_dir, quad_basis_5, edge_dir), dim=-1)
-                ge_j = torch.cat((edge_dir, quad_basis_5, -edge_dir), dim=-1)
-            else:
-                ge_i, ge_j = geom_edge_i, geom_edge_j
+            omega: Tensor = self.om_to_heads(skew_matrix_to_vector(x_ten))
+            gi, gj = gi + omega, gj - omega
+        geom_i_h = torch.cat((gi, sh_i), dim=-1)
+        geom_j_h = torch.cat((gj, sh_j_src), dim=-1)
+        if geom_edge_i is None or geom_edge_j is None:
+            ge_i = ge_j = torch.cat((edge_dir, quad_basis_5), dim=-1)
+        elif self.use_se3_chirality and geom_edge_i.size(-1) == 11:
+            # Preserve custom, independently supplied axial bases on the public layer.
+            geom_i_h = torch.cat((vh_i, sh_i, omega), dim=-1)
+            geom_j_h = torch.cat((vh_j_src, sh_j_src, omega), dim=-1)
+            ge_i, ge_j = geom_edge_i, geom_edge_j
         else:
-            geom_i_h = torch.cat((vh_i, sh_i), dim=-1)  # [B, N, H, 8]
-            geom_j_h = torch.cat((vh_j_src, sh_j_src), dim=-1)  # [B, N, H, 8]
-            gdim = 8
-            if geom_edge_i is None or geom_edge_j is None:
-                ge_i = torch.cat((edge_dir, quad_basis_5), dim=-1)
-                ge_j = ge_i
-            else:
-                ge_i, ge_j = geom_edge_i[..., :8], geom_edge_j[..., :8]
+            ge_i, ge_j = geom_edge_i[..., :8], geom_edge_j[..., :8]
+        gdim = geom_i_h.size(-1)
 
-        # 2. Single ultra-compact row-vectorized neighbor gather (~232 floats/edge!).
+        # Gather each neighbor once for the scalar, geometric and tensor messages.
         m3 = self.msg_dim * 3
         m9 = self.msg_dim * 9
         pack = torch.cat(
@@ -1125,8 +1124,7 @@ class CartFormerSE3Encoder(nn.Module):
         ed_outer_12 = torch.cat((graph.edge_dir, edge_outer_traceless_flat), dim=-1).reshape(
             bn, k_eff, 12
         )
-        geom_edge_i = torch.cat((graph.edge_dir, quad_basis_5, graph.edge_dir), dim=-1)
-        geom_edge_j = torch.cat((graph.edge_dir, quad_basis_5, -graph.edge_dir), dim=-1)
+        geom_edge = torch.cat((graph.edge_dir, quad_basis_5), dim=-1)
         eff_mask = (graph.nbr_mask & (graph.edge_env > 0.0)).unsqueeze(-1)
         env_max = graph.edge_env.max(dim=2, keepdim=True).values.unsqueeze(-1)
 
@@ -1163,8 +1161,8 @@ class CartFormerSE3Encoder(nn.Module):
                 quad_basis_5,
                 mask_bool,
                 flat_nbr_idx=flat_nbr_idx,
-                geom_edge_i=geom_edge_i,
-                geom_edge_j=geom_edge_j,
+                geom_edge_i=geom_edge,
+                geom_edge_j=geom_edge,
                 ed_outer_12=ed_outer_12,
                 eff_mask=eff_mask,
                 env_max=env_max,
