@@ -10,6 +10,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 from pydantic import ValidationError
+from rdkit import Chem
+from rdkit.Chem import inchi
 from typer.testing import CliRunner
 
 import geneuclidean as ge
@@ -266,6 +268,10 @@ def test_both_dossier_structures_and_measured_input_provenance(dialysis: Dialysi
         raw_data_uri="fixture://binding",
     )
     result = run_tourette_study(dialysis=dialysis, binding=binding)
+    assert result["public_record"]["pubchem_cid"] == 81540663
+    assert result["public_record"]["standard_inchikey"] == inchi.MolToInchiKey(
+        Chem.MolFromSmiles(dialysis.plan.candidate.smiles)
+    )
     fit = result["structure_informed_scenario"]
     assert fit["exposure"]["disposition"]["fraction_unbound_plasma"] == 0.25
     assert result["plasma_binding_evidence"]["run"]["matrix"] == "human_plasma"
@@ -334,6 +340,10 @@ def test_cli_report_figure_and_plate(tmp_path: Path) -> None:
         is None
     )
     assert all(s["equilibrium_d1_occupancy_fraction"] is None for s in data["scenarios"])
+    assert data["public_record"]["pubchem_cid"] == 1863793
+    assert data["public_record"]["standard_inchikey"] == inchi.MolToInchiKey(
+        Chem.MolFromSmiles(data["compound"]["smiles"])
+    )
     scenario = data["structure_informed_scenario"]
     assert scenario["fraction_unbound_plasma_basis"] == "structure estimate"
     corners = scenario["assay_sensitivity"]["corners"]

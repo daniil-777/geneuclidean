@@ -197,7 +197,10 @@ Source: [`results/tables/cns_drd1_vs_drd2_selectivity.json`](../results/tables/c
 
 ### 3.4 Curated Top-12 *De Novo* CNS Candidate Dossiers & Transparent Triage Audit
 
-#### Table 6 — Curated Prioritized *In Silico* CNS Leads (100% PoseBusters Pass, Anchor-Verified, Joint CNS-Safe, Novel `Max ChEMBL Tan <= 0.53`)
+#### Table 6 — Curated Prioritized *In Silico* CNS Leads (100% PoseBusters Pass, Anchor-Verified, Joint CNS-Safe, Campaign panel `Max ChEMBL Tan <= 0.53`)
+
+These similarity values refer to the ChEMBL compounds compared in this campaign. The exact DRD1_1 structure already has a public chemical record. [PubChem CID 1863793](https://pubchem.ncbi.nlm.nih.gov/compound/1863793)
+
 Source: [`results/tables/cns_iter3_top_hits_dossier.json`](../results/tables/cns_iter3_top_hits_dossier.json) (all compounds strictly *in silico* computational hypotheses). For `DRD3` and `PDE10A`, we explicitly present our **medicinal-chemistry curated `#2` leads** alongside full disclosure of the automated `#1` triage flags below.
 
 | Target (`PDB`) | Dossier Lead | Vina $\Delta G$ (kcal/mol) | LE / `LLE_Vina` | Anchor Contact (Mode, Å) | PLIF | $\Delta\Delta G_{\text{vs DRD2}}$ | MPO v2 | BBB / P-gp / hERG | AD | Max ChEMBL Tan. (Nearest ID) | Canonical SMILES |

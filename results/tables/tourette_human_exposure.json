@@ -10,6 +10,16 @@
     "collection": "flagship_leads"
   },
   "material_status": "computational nomination",
+  "public_record": {
+    "pubchem_cid": 81540663,
+    "standard_inchikey": "GNBFDAWHNCBRMW-UHFFFAOYSA-N",
+    "url": "https://pubchem.ncbi.nlm.nih.gov/compound/81540663",
+    "bioassay_lookup": {
+      "date": "2026-11-28",
+      "linked_aids": [],
+      "url": "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/81540663/aids/JSON"
+    }
+  },
   "calculated_molecular_weight_g_mol": 247.317,
   "esol_log10_mol_l": -2.867126345684829,
   "esol_context": "structure estimate, pH unspecified",

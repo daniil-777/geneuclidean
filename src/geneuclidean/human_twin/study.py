@@ -32,11 +32,15 @@ _DOSSIERS = {
         "CCN1CCN(Cc2cc(F)cc(C#N)c2)CC1",
         "results/tables/ts_scz_realistic_ligands_v53.json",
         "flagship_leads",
+        81540663,
+        "GNBFDAWHNCBRMW-UHFFFAOYSA-N",
     ),
     "DRD1_1": (
         "CN1CCN(C(=O)c2ccc3ccccc3n2)CC1",
         "results/tables/cns_iter3_top_hits_dossier.json",
         "flagship_top12",
+        1863793,
+        "BUDZFNSWLSQCII-UHFFFAOYSA-N",
     ),
 }
 
@@ -252,13 +256,23 @@ def run_tourette_study(
             }
         )
     estimate = estimate_aqueous_solubility(compound.smiles)
-    _, dossier, key = _DOSSIERS[compound_id]
+    _, dossier, key, cid, inchikey = _DOSSIERS[compound_id]
     return {
         "schema_version": 1,
         "compound": compound.model_dump(),
         "target": "human DRD1",
         "dossier": {"path": dossier, "collection": key},
         "material_status": "computational nomination",
+        "public_record": {
+            "pubchem_cid": cid,
+            "standard_inchikey": inchikey,
+            "url": f"https://pubchem.ncbi.nlm.nih.gov/compound/{cid}",
+            "bioassay_lookup": {
+                "date": "2026-11-28",
+                "linked_aids": [],
+                "url": f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/{cid}/aids/JSON",
+            },
+        },
         "calculated_molecular_weight_g_mol": round(weight, 3),
         "esol_log10_mol_l": estimate.log_s_mol_l,
         "esol_context": "structure estimate, pH unspecified",
