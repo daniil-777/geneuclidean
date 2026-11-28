@@ -2048,12 +2048,81 @@ def studio(
     run_studio_server(host=host, port=port, cors_origin=cors_origin, quiet=quiet)
 
 
+def _print_mechanistic_evidence(experiment: dict[str, Any]) -> None:
+    """Report decisions on submitted evidence alongside the resulting exposure scenarios."""
+    source = experiment["formulation_source"]
+    fit = experiment["sink_dissolution_fit"]
+    if fit is not None:
+        status = "accepted" if fit["accepted"] else "rejected"
+        typer.echo(
+            f"Dissolution fit {status} for lot {source['material_lot']}. "
+            f"RMSE was {fit['rmse_fraction_of_load']:.2%} of the assay load "
+            f"(limit {source['max_rmse_fraction_of_load']:.2%})."
+        )
+        if fit["accepted"]:
+            typer.echo(
+                "The supplied formulation uses a dissolution rate of "
+                f"{fit['dissolution_per_h']:.3g} h⁻¹."
+            )
+        else:
+            typer.echo(
+                f"{fit['reason']}. The exposure comparison excludes the supplied formulation."
+            )
+            typer.echo(f"Dissolution observations are at {source['raw_data_uri']}.")
+    elif "parameters" in source:
+        typer.echo(
+            f"Supplied formulation parameters ({source['basis']}) come from {source['source']}."
+        )
+
+    barrier = experiment["barrier_assay"]
+    if barrier is not None:
+        analysis = barrier["analysis"]
+        label = f"Barrier assay {analysis['run_id']} ({analysis['cell_model']})"
+        if analysis["reasons"]:
+            typer.echo(f"{label} failed QC. Directional permeability and efflux were withheld.")
+            for reason in analysis["reasons"]:
+                typer.echo(f"  - {reason}")
+            typer.echo(f"QC criteria come from {analysis['qc_source']}.")
+            typer.echo(f"Barrier observations are at {analysis['raw_data_uri']}.")
+        else:
+            typer.echo(f"{label} passed QC.")
+            typer.echo(
+                f"In vitro Papp A→B {analysis['papp_ab_cm_s']:.3g} cm/s, "
+                f"B→A {analysis['papp_ba_cm_s']:.3g} cm/s, "
+                f"apparent efflux ratio {analysis['efflux_ratio']:.3g}."
+            )
+
+    liver = experiment["liver_ivive"]
+    if liver is not None:
+        n_replicates = len(liver["fits"])
+        unit = "replicate" if n_replicates == 1 else "replicates"
+        scaled = liver["scaled_microsomal_unbound_clint_l_h"]
+        total = liver["total_liver_unbound_clint_l_h"]
+        typer.echo(
+            f"Microsomal depletion passed QC in {n_replicates} {unit}. "
+            f"Scaled microsomal unbound intrinsic clearance is {scaled:.3g} L/h. "
+            f"The model uses {total:.3g} L/h total liver unbound intrinsic clearance."
+        )
+    kinetics = experiment["d1_kinetic_evidence"]
+    if kinetics is not None:
+        typer.echo(
+            "Modeled D1 site fractions use the supplied binding rates "
+            f"for parent lot {kinetics['parent_material_lot']}."
+        )
+
+
 @app.command("human-twin")
 def human_twin(
     candidate: str = typer.Option("DRD1_v53_L1", help="Repository Tourette lead ID."),
     output: Path | None = typer.Option(None, help="Write the full research report as JSON."),
     figure: Path | None = typer.Option(
         None, help="Write a figure of the brain exposure scenarios."
+    ),
+    experiment: Path | None = typer.Option(
+        None,
+        exists=True,
+        dir_okay=False,
+        help="Formulation, gastric transit, microsome, barrier and D1 kinetics records as JSON.",
     ),
     solubility: Path | None = typer.Option(
         None,
@@ -2076,12 +2145,15 @@ def human_twin(
         AqueousSolubilityMeasurement,
         D1BindingMeasurement,
         DialysisRun,
+        MechanisticInputs,
         plot_study,
         run_tourette_study,
     )
 
     outputs = [p.resolve() for p in (output, figure) if p is not None]
-    inputs = {p.resolve() for p in (dialysis_run, solubility, d1_binding) if p is not None}
+    inputs = {
+        p.resolve() for p in (dialysis_run, solubility, d1_binding, experiment) if p is not None
+    }
     if len(set(outputs)) != len(outputs) or inputs.intersection(outputs):
         raise typer.BadParameter("Use separate paths for evidence, JSON output and figure")
     try:
@@ -2096,7 +2168,12 @@ def human_twin(
             if solubility
             else None
         )
-        report = run_tourette_study(candidate, dialysis=run, solubility=aqueous, binding=binding)
+        mechanisms = (
+            MechanisticInputs.model_validate_json(experiment.read_bytes()) if experiment else None
+        )
+        report = run_tourette_study(
+            candidate, dialysis=run, solubility=aqueous, binding=binding, experiment=mechanisms
+        )
     except ValueError as exc:
         raise typer.BadParameter(str(exc)) from exc
     if figure is not None:
@@ -2107,7 +2184,15 @@ def human_twin(
     typer.echo(f"{candidate} | {len(peaks)} sensitivity scenarios | 1 µmol model input")
     typer.echo(f"Sampled unbound brain peaks span {min(peaks):.3g} to {max(peaks):.3g} nM.")
     informed = report["structure_informed_scenario"]["exposure"]["sampled_brain_cmax_nm"]
-    typer.echo(f"With assay-informed inputs, the modeled brain peak is {informed:.3g} nM.")
+    typer.echo(f"The structure-informed scenario gives a modeled brain peak of {informed:.3g} nM.")
+    formulation = report["formulation_experiment"]
+    if mechanisms is not None:
+        _print_mechanistic_evidence(formulation)
+    for name, case in formulation["cases"].items():
+        typer.echo(
+            f"{name.replace('_', ' ')}: sampled brain peak {case['sampled_brain_cmax_nm']:.3g} nM "
+            f"at {case['sampled_brain_tmax_h']:g} h"
+        )
     typer.echo("Individual tic response and clinical safety are undetermined.")
 
 
