@@ -1,11 +1,7 @@
-export type StudioTab =
-  | 'overview'
-  | 'studio3d'
-  | 'circuit'
-  | 'generator'
-  | 'experiments'
-  | 'disorders'
-  | 'figures';
+export const studioTabs = [
+  'overview', 'human-twin', 'studio3d', 'circuit', 'generator', 'experiments', 'disorders', 'figures',
+] as const;
+export type StudioTab = (typeof studioTabs)[number];
 
 export type ThemeMode = 'dark' | 'light';
 

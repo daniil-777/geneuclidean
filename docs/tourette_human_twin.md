@@ -74,6 +74,12 @@ Human-cell assays, organ chips and computation can replace specific animal exper
 - **Brain exposure.** The transport flux is `CLin × Cu,plasma − CLout × Cu,brain`. An apparent unbound distribution volume relates brain amount to interstitial concentration. With positive efflux and plasma exposure, equal initial and final brain amounts give a brain-to-plasma unbound AUC ratio of `CLin / CLout`. The model uses one brain compartment. Region-specific exposure, CSF kinetics and age-dependent physiology would require further data. [Brain transport framework](https://pubmed.ncbi.nlm.nih.gov/18058202/) · [Multi-compartment CNS PBPK](https://doi.org/10.1007/s10928-021-09768-7)
 - **Target binding.** A compound-matched equilibrium dissociation constant (Kd) enables the conditional one-site calculation `Cu,brain / (Cu,brain + Kd)`, assuming negligible competition and ligand depletion. The kinetic experiment can instead follow parent and dopamine as competing ligands using separate association and dissociation rates. Both describe occupancy. Antagonism requires a functional assay. In the registry, 9LLG is the inactive DRD1 template and 9URL is a Gs-bound complex. [9LLG](https://www.rcsb.org/structure/9LLG) · [9URL](https://www.rcsb.org/structure/9URL)
 
+### Using the web studio
+
+Open the simulator, select either lead and choose an oral formulation. The solid trace shows the selected scenario. The dashed trace shows rapid intestinal equilibrium for the same compound, transit and hepatic clearance. Switch between brain and plasma, then move the time control to read the selected scenario at half-hour intervals. The three summary values describe unbound brain exposure. [Open the Tourette simulator](https://daniil-777.github.io/geneuclidean/#human-twin)
+
+The sliders recalculate intestinal release, intestinal transit and liver intrinsic clearance in the browser. The gastric release and emptying assumptions stay fixed in the gastric scenario. A copied link restores the selected inputs. The JSON download includes both trajectories, their units, assumptions and compound identity. The Python interface below also accepts laboratory evidence and D1 kinetics. The browser and Python solvers are checked against each other for the two leads, all four formulations and changed rates. [Numerical checks](../web/tests/humanTwin.test.mjs)
+
 ### Running the study
 
 ```sh

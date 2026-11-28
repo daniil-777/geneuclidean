@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./studio-shell.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -7,15 +8,15 @@
   --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Light Publication Paper & Apple Alabaster Mode */
-  --bg-page: #f8fafc;
+  --bg-page: #f8f8f7;
   --bg-surface: #ffffff;
-  --bg-elevated: #f1f5f9;
-  --bg-glass: rgba(255, 255, 255, 0.84);
+  --bg-elevated: #eaeaec;
+  --bg-glass: rgba(248, 248, 247, 0.93);
   --border-subtle: rgba(15, 23, 42, 0.1);
   --border-strong: rgba(15, 23, 42, 0.18);
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
+  --text-primary: #171922;
+  --text-secondary: #50525f;
+  --text-muted: #646775;
   --accent-cyan: #0284c7;
   --accent-emerald: #059669;
   --accent-amber: #d97706;
@@ -42,10 +43,10 @@
 
 .dark {
   /* Deep Obsidian Precision Lab Mode */
-  --bg-page: #060913;
-  --bg-surface: #0d1322;
-  --bg-elevated: #131c31;
-  --bg-glass: rgba(13, 19, 34, 0.82);
+  --bg-page: #111219;
+  --bg-surface: #1a1b25;
+  --bg-elevated: #2b2d39;
+  --bg-glass: rgba(18, 19, 26, 0.93);
   --border-subtle: rgba(148, 163, 184, 0.14);
   --border-strong: rgba(148, 163, 184, 0.24);
   --text-primary: #f8fafc;
@@ -87,12 +88,6 @@ body {
   background-color: var(--bg-page);
   color: var(--text-primary);
   transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.dark body {
-  background-image:
-    radial-gradient(ellipse 80% 50% at 50% -15%, rgba(56, 189, 248, 0.11), transparent 65%),
-    radial-gradient(ellipse 55% 40% at 88% 12%, rgba(16, 185, 129, 0.08), transparent 60%);
 }
 
 .font-mono-num {

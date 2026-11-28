@@ -1,26 +1,17 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GenEuclidean v5.3 — 49-Block 3D SE(3), Chemical NLP &amp; NanoFold3 Circuit Studio</title>
-    <link
-      rel="icon"
-      type="image/svg+xml"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2306b6d4'/%3E%3Cstop offset='1' stop-color='%2310b981'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='%23060913'/%3E%3Crect x='1.5' y='1.5' width='29' height='29' rx='6.5' fill='none' stroke='url(%23g)' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='5' fill='none' stroke='%2338bdf8' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%2334d399'/%3E%3C/svg%3E"
-    />
-    <meta
-      name="description"
-      content="Interactive scientific web studio for GenEuclidean v5.3: 49-block visual Circuit Studio uniting 3D SE(3) geometric encoders (CartFormer, DensePaiNN, AtomGS, SubPocketVN-JEPA), first-principles Chemical NLP (RoPE+GQA, LoRA DPO/GRPO, MDLM), NanoFold3 Co-Folding, 28 human 3D CNS targets, and 12-endpoint Avoid-ome safety."
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <meta name="theme-color" content="#fafafa" />
+    <title>Molecular studio · GenEuclidean</title>
+    <meta name="description" content="Explore molecular structures, generate leads, and compare the modeled brain exposure of two Tourette research candidates in your browser." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='11' fill='%23141a27'/%3E%3Cg fill='none' stroke='%23b8afff' stroke-width='3.2' stroke-linejoin='round'%3E%3Cpath d='m10 16 10-6 10 6v9l-10 6-10-6z'/%3E%3Cpath d='m10 16 10 6 10-6m-10 6v9'/%3E%3C/g%3E%3C/svg%3E" />
+    <script>
+      try { document.documentElement.classList.toggle('dark', localStorage.getItem('studio-theme') === 'dark'); } catch {}
+    </script>
   </head>
-  <body class="antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
+  <body class="antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

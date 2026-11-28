@@ -279,20 +279,15 @@ export function ExperimentsView({
   const d1ControlsNeg = experiments.drd1_vs_drd2.clinical_controls.filter((c) => !c.is_d1_selective);
 
   return (
-    <div className="mx-auto max-w-[1600px] px-4 sm:px-6 py-6 sm:py-8 space-y-8">
+    <div className="studio-workbench-page mx-auto max-w-[1600px] px-4 sm:px-6 py-6 sm:py-8 space-y-8">
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="text-[11px] font-mono-num uppercase tracking-widest text-cyan-600 dark:text-cyan-400 font-semibold">
-            Interactive Scientific Benchmarks Lab
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
-            Verified Experiments, Gates 1–2, Ablations &amp; 3D Selectivity
+            Experiments
           </h1>
           <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1">
-            Every chart and table is compiled live from committed repository evaluation JSON/CSV
-            artifacts — hover any point, sort any column, or click any heatmap target to open it in
-            the 3D Studio.
+            Compare model benchmarks, inspect selectivity and open a target from its heatmap to explore the binding pocket.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs font-mono-num">

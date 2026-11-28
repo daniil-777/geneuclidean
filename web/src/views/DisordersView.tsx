@@ -22,8 +22,8 @@ interface PortalSpec {
 const PORTALS: PortalSpec[] = [
   {
     id: 'Tourette (CSTC+GABA)',
-    name: 'Tourette Syndrome — CSTC & GABAergic Circuits',
-    subtitle: 'Direct-Pathway D1 Anti-EPS, Basal-Ganglia Signal Filter & GABA Braking',
+    name: 'Tourette syndrome',
+    subtitle: 'Dopamine D1 and GABAergic circuits',
     accent: 'from-cyan-500/18 to-emerald-500/10',
     borderAccent: 'border-cyan-500/45',
     badge: 'v4.0 CSTC+GABA LIVE',
@@ -76,14 +76,14 @@ const PORTALS: PortalSpec[] = [
 
 export function DisordersView({ molecules, v4Discovery, onLaunchStudio }: DisordersViewProps) {
   return (
-    <div className="mx-auto max-w-[1600px] px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+    <div className="studio-workbench-page mx-auto max-w-[1600px] px-4 sm:px-6 py-6 sm:py-8 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-[11px] font-mono-num uppercase tracking-widest text-cyan-600 dark:text-cyan-400 font-semibold">
             Translational Tri-Disorder Portals ({v4Discovery.active_version})
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
-            Neurological &amp; Psychiatric Discovery Portals ({molecules.length} Human 3D Targets)
+            Disorder portals
           </h1>
           <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1 max-w-3xl">
             Every target below is backed by a verified <em>Homo sapiens</em> crystal/cryo-EM pocket,
@@ -150,7 +150,11 @@ export function DisordersView({ molecules, v4Discovery, onLaunchStudio }: Disord
                   ))}
                 </div>
 
-                {/* Live 3D target cards */}
+                {portal.id === 'Tourette (CSTC+GABA)' && (
+                  <a href="#human-twin" className="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold bg-[var(--text-primary)] text-[var(--bg-surface)]">
+                    Open Tourette simulator <ArrowRight size={16} aria-hidden />
+                  </a>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 max-h-[290px] overflow-y-auto pr-0.5">
                   {matched.map((mol) => (
                     <button

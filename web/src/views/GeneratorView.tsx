@@ -9,7 +9,6 @@ import {
   Search,
   ShieldCheck,
   Sliders,
-  Sparkles,
   Zap,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -244,21 +243,15 @@ export function GeneratorView({ molecules, theme, onInspectIn3D }: GeneratorView
   };
 
   return (
-    <div className="mx-auto max-w-[1600px] px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+    <div className="studio-workbench-page mx-auto max-w-[1600px] px-4 sm:px-6 py-6 sm:py-8 space-y-6">
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="inline-flex items-center gap-1.5 text-[11px] font-mono-num uppercase tracking-widest text-emerald-600 dark:text-emerald-400 font-semibold">
-            <Sparkles className="h-3.5 w-3.5" /> Zero-Backend Client-Side Neural Inference (Pure TS INT8)
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
-            Live AI De Novo Molecule Generator &amp; CNS Scorer
+            Molecule generator
           </h1>
           <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1 max-w-3xl">
-            Synthesize novel small molecules live in your browser using GenEuclidean&apos;s distilled
-            1.69M-parameter INT8 KV-cached Transformer conditioned on frozen chiral{' '}
-            <code className="font-mono-num">PaiNN-SE3</code> 3D pocket embeddings, scored in real time
-            by <strong>RDKit.js WASM</strong> + 15 calibrated scaffold-CV CNS ADMET &amp; target QSAR oracles.
+            Generate molecules from a target pocket. The local transformer proposes structures, and RDKit and the CNS models estimate their properties.
           </p>
         </div>
 

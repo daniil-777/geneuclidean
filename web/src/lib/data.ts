@@ -32,6 +32,9 @@ function fetchJsonCached<T>(relPath: string): Promise<T> {
       throw new Error(`HTTP ${res.status} loading ${url}`);
     }
     return res.json() as Promise<T>;
+  }).catch((error: unknown) => {
+    jsonCache.delete(url);
+    throw error;
   });
   jsonCache.set(url, promise);
   return promise;

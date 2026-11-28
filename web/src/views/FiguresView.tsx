@@ -114,20 +114,16 @@ export function FiguresView({ figures, repoUrl }: FiguresViewProps) {
   };
 
   return (
-    <div className="mx-auto max-w-[1600px] px-4 sm:px-6 py-6 sm:py-8 space-y-10">
+    <div className="studio-workbench-page mx-auto max-w-[1600px] px-4 sm:px-6 py-6 sm:py-8 space-y-10">
       {/* Header & Category Filter */}
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <div className="text-[11px] font-mono-num uppercase tracking-widest text-cyan-600 dark:text-cyan-400 font-semibold">
-              300-DPI Publication Gallery
-            </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
-              Figures, Manuscripts &amp; Reproducibility Hub
+              Figures &amp; documentation
             </h1>
             <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1">
-              All {figures.length} publication-grade 300-DPI figures rendered directly from verified
-              evaluation tables — click any figure for high-resolution inspection.
+              Explore {figures.length} research figures and open each image at publication resolution.
             </p>
           </div>
 

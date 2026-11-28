@@ -1,0 +1,75 @@
+{
+  "disposition": {
+    "absorption_per_h": 1.0,
+    "gut_transit_per_h": 0.2,
+    "gut_escape_fraction": 1,
+    "central_volume_l": 5,
+    "peripheral_volume_l": 30,
+    "peripheral_exchange_l_h": 5,
+    "brain_unbound_volume_l": 10,
+    "bbb_in_l_h": 2,
+    "bbb_out_l_h": 2,
+    "blood_to_plasma_ratio": 1,
+    "liver_blood_flow_l_h": 90,
+    "liver_unbound_clint_l_h": 10,
+    "other_plasma_clearance_l_h": 1
+  },
+  "intestinalMedium": {
+    "ph": 6.8,
+    "volume_l": 0.25,
+    "partner_total_um": 0.0,
+    "partner_kd_um": null
+  },
+  "gastric": {
+    "medium": {
+      "ph": 2.0,
+      "volume_l": 0.25,
+      "free_solubility_um": 100.0,
+      "partner_total_um": 0.0,
+      "partner_kd_um": null
+    },
+    "formulation": {
+      "dissolution_per_h": 2.0,
+      "precipitation_per_h": 1.0,
+      "initial_dissolved_fraction": 0.0
+    },
+    "solid_emptying_per_h": 0.7170488074758055,
+    "liquid_emptying_per_h": 1.7328679513998633
+  },
+  "gastricSource": "https://pubmed.ncbi.nlm.nih.gov/3731973/",
+  "formulations": {
+    "rapid_equilibrium": null,
+    "faster_solid_release": {
+      "dissolution_per_h": 2.0,
+      "precipitation_per_h": 1.0,
+      "initial_dissolved_fraction": 0.0
+    },
+    "slower_solid_release": {
+      "dissolution_per_h": 0.25,
+      "precipitation_per_h": 1.0,
+      "initial_dissolved_fraction": 0.0
+    },
+    "gastric_to_intestine": {
+      "dissolution_per_h": 2.0,
+      "precipitation_per_h": 1.0,
+      "initial_dissolved_fraction": 0.0
+    }
+  },
+  "amountUmol": 1.0,
+  "durationH": 48.0,
+  "assaySource": "https://raw.githubusercontent.com/molecularinformatics/Computational-ADME/b00df003de117ce9e5b381afd886095c5f2af2d5/ADME_public_set_3521.csv",
+  "leads": {
+    "DRD1_v53_L1": {
+      "smiles": "CCN1CCN(Cc2cc(F)cc(C#N)c2)CC1",
+      "pubchemCid": 81540663,
+      "solubilityUm": 168.28524145877665,
+      "fractionUnboundPlasma": 0.2665017099946764
+    },
+    "DRD1_1": {
+      "smiles": "CN1CCN(C(=O)c2ccc3ccccc3n2)CC1",
+      "pubchemCid": 1863793,
+      "solubilityUm": 138.2653837234934,
+      "fractionUnboundPlasma": 0.3151374380204506
+    }
+  }
+}
