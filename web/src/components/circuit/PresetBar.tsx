@@ -60,7 +60,7 @@ export function PresetBar({
   const warningCount = validation.diagnostics.filter((d) => d.severity === 'warning').length;
 
   return (
-    <div className="h-12 shrink-0 circuit-glass border-b border-[var(--circuit-node-border)] px-3 flex items-center justify-between gap-2 z-30">
+    <div className="circuit-wiring-tools h-12 shrink-0 circuit-glass border-b border-[var(--circuit-node-border)] px-3 flex items-center justify-between gap-2 z-30">
       {/* Left: 7 Flagship One-Click Preset Pills (Apple Segmented Strip) */}
       <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
         <span className="hidden 2xl:inline text-[10px] font-mono-num uppercase tracking-wider text-[var(--text-muted)] font-semibold shrink-0">

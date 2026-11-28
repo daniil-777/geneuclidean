@@ -1,10 +1,11 @@
-import { Activity, Code2, PanelRightClose, PanelRightOpen, Sliders } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Activity, Code2, Layers, PanelRightClose, PanelRightOpen, Play, Redo2, Sliders, Undo2, Workflow } from 'lucide-react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { BlockPalette } from '../components/circuit/BlockPalette';
 import { Canvas } from '../components/circuit/Canvas';
 import { CodeExportDrawer } from '../components/circuit/CodeExportDrawer';
 import { ExecutionTelemetry } from '../components/circuit/ExecutionTelemetry';
 import { InspectorPanel } from '../components/circuit/InspectorPanel';
+import { StageEditor } from '../components/circuit/StageEditor';
 import { PresetBar } from '../components/circuit/PresetBar';
 import {
   BLOCK_MAP,
@@ -38,6 +39,8 @@ import type {
 } from '../types/circuit';
 import type { MoleculeIndexEntry, ThemeMode, V4BenchmarksData } from '../types/studio';
 
+import './circuitWorkspace.css';
+
 interface CircuitBuilderViewProps {
   molecules: MoleculeIndexEntry[];
   v4Benchmarks: V4BenchmarksData | null;
@@ -46,6 +49,13 @@ interface CircuitBuilderViewProps {
 }
 
 const MAX_HISTORY = 50;
+const DEFAULT_PRESET = CIRCUIT_PRESETS.find(p => p.id === 'tourette_scz_champion')!;
+
+interface GraphHistory {
+  current: CircuitGraphV1;
+  past: CircuitGraphV1[];
+  future: CircuitGraphV1[];
+}
 
 export function CircuitBuilderView({
   molecules,
@@ -53,21 +63,36 @@ export function CircuitBuilderView({
   theme,
   onInspectIn3D,
 }: CircuitBuilderViewProps) {
-  const [circuit, setCircuit] = useState<CircuitGraphV1>(() =>
-    cloneCircuitGraph(CIRCUIT_PRESETS[0].graph),
-  );
-  const [activePresetId, setActivePresetId] = useState<string | null>(CIRCUIT_PRESETS[0].id);
-  const [past, setPast] = useState<CircuitGraphV1[]>([]);
-  const [future, setFuture] = useState<CircuitGraphV1[]>([]);
+  const [history, setHistory] = useState<GraphHistory>(() => ({
+    current: cloneCircuitGraph(DEFAULT_PRESET.graph), past: [], future: [],
+  }));
+  const { current: circuit, past, future } = history;
+  const activePresetId = useMemo(() => {
+    const id = circuit.metadata?.presetId;
+    const preset = CIRCUIT_PRESETS.find(p => p.id === id)?.graph;
+    if (!preset || preset.nodes.length !== circuit.nodes.length || preset.edges.length !== circuit.edges.length) return null;
+    const types = new Map(preset.nodes.map(n => [n.id, n.blockType]));
+    const edges = new Map(preset.edges.map(e => [e.id, e]));
+    const sameTopology = circuit.nodes.every(n => types.get(n.id) === n.blockType) && circuit.edges.every(e => {
+      const saved = edges.get(e.id);
+      return saved?.source === e.source && saved?.sourcePort === e.sourcePort &&
+        saved?.target === e.target && saved?.targetPort === e.targetPort && saved?.kind === e.kind;
+    });
+    return sameTopology ? id ?? null : null;
+  }, [circuit.nodes, circuit.edges, circuit.metadata?.presetId]);
+  const [view, setView] = useState<'stages' | 'wiring'>('stages');
+  const [documentVersion, setDocumentVersion] = useState(0);
+  const runVersion = useRef(0);
+  const pendingCanvasFocus = useRef<string | null>(null);
 
   const [viewport, setViewport] = useState({ x: 32, y: 40, zoom: 0.78 });
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
-    CIRCUIT_PRESETS[0].graph.nodes[0]?.id ?? null,
+    null,
   );
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
 
-  const [dockCollapsed, setDockCollapsed] = useState(false);
-  const [drawerCollapsed, setDrawerCollapsed] = useState(false);
+  const [dockCollapsed, setDockCollapsed] = useState(() => window.innerWidth < 1000);
+  const [drawerCollapsed, setDrawerCollapsed] = useState(() => window.innerWidth < 1000);
   const [rightTab, setRightTab] = useState<RightDrawerTab>('inspector');
 
   const [localHealth, setLocalHealth] = useState<LocalEngineHealth>({
@@ -84,6 +109,7 @@ export function CircuitBuilderView({
     null,
   );
 
+  const inspectorTabRef = useRef<HTMLButtonElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const toastTimerRef = useRef<number | null>(null);
@@ -94,37 +120,52 @@ export function CircuitBuilderView({
     toastTimerRef.current = window.setTimeout(() => setToastMessage(null), tone === 'error' ? 3800 : 2600);
   }, []);
 
-  // Push undoable state transition
-  const commitGraph = useCallback((next: CircuitGraphV1) => {
-    setCircuit((prev) => {
-      setPast((p) => [...p.slice(-(MAX_HISTORY - 1)), prev]);
-      setFuture([]);
-      return next;
-    });
+  const commitGraph = useCallback((next: CircuitGraphV1, beforeEdit?: CircuitGraphV1) => {
+    setHistory(h => ({
+      current: next, past: [...h.past.slice(-(MAX_HISTORY - 1)), beforeEdit ?? h.current], future: [],
+    }));
   }, []);
 
   const handleUndo = useCallback(() => {
-    setPast((p) => {
-      if (p.length === 0) return p;
-      const previous = p[p.length - 1];
-      setFuture((f) => [circuit, ...f.slice(0, MAX_HISTORY - 1)]);
-      setCircuit(previous);
-      return p.slice(0, -1);
-    });
-  }, [circuit]);
+    setHistory(h => h.past.length ? {
+      current: h.past[h.past.length - 1], past: h.past.slice(0, -1), future: [h.current, ...h.future],
+    } : h);
+  }, []);
 
   const handleRedo = useCallback(() => {
-    setFuture((f) => {
-      if (f.length === 0) return f;
-      const next = f[0];
-      setPast((p) => [...p.slice(-(MAX_HISTORY - 1)), circuit]);
-      setCircuit(next);
-      return f.slice(1);
-    });
+    setHistory(h => h.future.length ? {
+      current: h.future[0], past: [...h.past, h.current], future: h.future.slice(1),
+    } : h);
+  }, []);
+
+  // Positions and collapsed cards are presentation edits. Their immutable parameter
+  // objects and execution settings still identify the run that produced these results.
+  const lastRunGraph = useRef(circuit);
+  useLayoutEffect(() => {
+    const previous = lastRunGraph.current;
+    lastRunGraph.current = circuit;
+    if (previous.execution === circuit.execution && previous.edges === circuit.edges &&
+        previous.id === circuit.id && previous.nodes.length === circuit.nodes.length &&
+        previous.nodes.every((node, i) => {
+          const next = circuit.nodes[i];
+          return node.id === next.id && node.blockType === next.blockType &&
+            node.disabled === next.disabled && node.params === next.params;
+        })) return;
+    runVersion.current++;
+    setRunResult(null);
+    setNodeStatuses({});
+    setNodeTelemetry({});
+    setActiveEdgeIds(new Set());
+    setIsRunning(false);
   }, [circuit]);
+  useEffect(() => () => {
+    runVersion.current++;
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+  }, []);
 
   const validation = useMemo(() => validateCircuit(circuit), [circuit]);
-  const codegen = useMemo(() => generatePythonSdk(circuit), [circuit]);
+  const showPython = view === 'wiring' && rightTab === 'python' && !drawerCollapsed;
+  const codegen = useMemo(() => showPython ? generatePythonSdk(circuit) : null, [circuit, showPython]);
 
   const selectedNode = useMemo(
     () => circuit.nodes.find((n) => n.id === selectedNodeId) ?? null,
@@ -169,12 +210,6 @@ export function CircuitBuilderView({
     setViewport({ x, y, zoom: Number(zoom.toFixed(2)) });
   }, []);
 
-  // Auto-fit initial preset once mounted
-  useEffect(() => {
-    const id = window.requestAnimationFrame(() => fitGraphToCanvas(CIRCUIT_PRESETS[0].graph));
-    return () => window.cancelAnimationFrame(id);
-  }, [fitGraphToCanvas]);
-
   const handleSelectPreset = useCallback(
     (presetId: string) => {
       const preset = CIRCUIT_PRESETS.find((p) => p.id === presetId);
@@ -182,13 +217,9 @@ export function CircuitBuilderView({
       const cloned = cloneCircuitGraph(preset.graph);
       cloned.execution.mode = circuit.execution.mode;
       commitGraph(cloned);
-      setActivePresetId(preset.id);
+      setDocumentVersion(v => v + 1);
       setSelectedNodeId(cloned.nodes[0]?.id ?? null);
       setSelectedEdgeId(null);
-      setRunResult(null);
-      setNodeStatuses({});
-      setNodeTelemetry({});
-      setActiveEdgeIds(new Set());
       window.requestAnimationFrame(() => fitGraphToCanvas(cloned));
     },
     [circuit.execution.mode, commitGraph, fitGraphToCanvas],
@@ -202,12 +233,12 @@ export function CircuitBuilderView({
 
   const handleChangeEngineMode = useCallback(
     (mode: ExecutionEngineMode) => {
-      setCircuit((prev) => ({ ...prev, execution: { ...prev.execution, mode } }));
+      commitGraph({ ...circuit, execution: { ...circuit.execution, mode } });
       if (mode === 'local_python') {
         handleCheckLocalHealth();
       }
     },
-    [handleCheckLocalHealth],
+    [circuit, commitGraph, handleCheckLocalHealth],
   );
 
   // Add block (click + or drag-drop)
@@ -232,7 +263,6 @@ export function CircuitBuilderView({
         nodes: [...circuit.nodes, created],
       };
       commitGraph(next);
-      setActivePresetId(null);
       setSelectedNodeId(created.id);
       setSelectedEdgeId(null);
       setRightTab('inspector');
@@ -242,29 +272,18 @@ export function CircuitBuilderView({
   );
 
   const handleMoveNodePreview = useCallback((nodeId: string, pos: { x: number; y: number }) => {
-    setCircuit((prev) => ({
-      ...prev,
-      nodes: prev.nodes.map((n) => (n.id === nodeId ? { ...n, position: pos } : n)),
-    }));
+    setHistory(h => ({ ...h, current: {
+      ...h.current, nodes: h.current.nodes.map(n => n.id === nodeId ? { ...n, position: pos } : n),
+    } }));
   }, []);
 
   const handleCommitNodeMove = useCallback(
     (nodeId: string, startPos: { x: number; y: number }, endPos: { x: number; y: number }) => {
-      // Save pre-drag snapshot into Undo stack so dragging is a single clean undoable step
-      setPast((p) => [
-        ...p.slice(-(MAX_HISTORY - 1)),
-        {
-          ...circuit,
-          nodes: circuit.nodes.map((n) => (n.id === nodeId ? { ...n, position: startPos } : n)),
-        },
-      ]);
-      setFuture([]);
-      setCircuit((prev) => ({
-        ...prev,
-        nodes: prev.nodes.map((n) => (n.id === nodeId ? { ...n, position: endPos } : n)),
-      }));
-    },
-    [circuit],
+      const placed = (position: { x: number; y: number }) => ({
+        ...circuit, nodes: circuit.nodes.map(n => n.id === nodeId ? { ...n, position } : n),
+      });
+      commitGraph(placed(endPos), placed(startPos));
+    }, [circuit, commitGraph],
   );
 
   const handleConnectPorts = useCallback(
@@ -306,7 +325,6 @@ export function CircuitBuilderView({
         edges: [...filteredEdges, newEdge],
       };
       commitGraph(next);
-      setActivePresetId(null);
       setSelectedEdgeId(newEdge.id);
       setSelectedNodeId(null);
       if (evalRes.kind === 'feedback') {
@@ -408,11 +426,43 @@ export function CircuitBuilderView({
     [circuit.nodes],
   );
 
+  const openWiring = (nodeId?: string) => {
+    pendingCanvasFocus.current = nodeId ?? null;
+    setSelectedNodeId(nodeId ?? null);
+    setSelectedEdgeId(null);
+    if (nodeId) {
+      setRightTab('inspector');
+      setDrawerCollapsed(false);
+    }
+    setView('wiring');
+  };
+
+  // Fit only when switching workspaces, so edits and drags preserve the user's viewport.
+  const currentGraph = useRef(circuit);
+  useLayoutEffect(() => { currentGraph.current = circuit; }, [circuit]);
+  useLayoutEffect(() => {
+    if (view !== 'wiring') return;
+    const frame = requestAnimationFrame(() => {
+      const graph = currentGraph.current;
+      fitGraphToCanvas(graph);
+      const node = graph.nodes.find(n => n.id === pendingCanvasFocus.current);
+      const el = canvasContainerRef.current;
+      if (node && el) {
+        setViewport({ zoom: 1, x: (el.clientWidth - NODE_WIDTH) / 2 - node.position.x,
+          y: (el.clientHeight - getNodeHeight(node, false)) / 2 - node.position.y });
+        inspectorTabRef.current?.focus({ preventScroll: true });
+      }
+      pendingCanvasFocus.current = null;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [view, fitGraphToCanvas]);
+
   // Animated Wave Execution (Browser Sim OR Local Python Engine)
   const handleRunCircuit = useCallback(async () => {
     if (isRunning || circuit.nodes.length === 0) return;
 
     if (!validation.valid) {
+      setView('wiring');
       setRightTab('inspector');
       setDrawerCollapsed(false);
       setSelectedNodeId(null);
@@ -421,6 +471,7 @@ export function CircuitBuilderView({
       return;
     }
 
+    const version = ++runVersion.current;
     setIsRunning(true);
     setNodeStatuses({});
     setNodeTelemetry({});
@@ -432,6 +483,7 @@ export function CircuitBuilderView({
         try {
           response = await runCircuitOnLocalEngine(circuit);
         } catch {
+          if (runVersion.current !== version) return;
           showToast('Local :8765 offline — falling back to Browser Simulation');
           response = await simulateCircuitInBrowser(circuit, molecules, v4Benchmarks);
         }
@@ -440,6 +492,7 @@ export function CircuitBuilderView({
       }
 
       // Animate signal wave across topological stages!
+      if (runVersion.current !== version) return;
       const latestRound = Math.max(1, response.roundsCompleted);
       const roundSteps = response.steps.filter((s) => s.round === latestRound);
       for (const step of roundSteps) {
@@ -449,6 +502,7 @@ export function CircuitBuilderView({
           .map((e) => e.id);
         setActiveEdgeIds(new Set(outgoingIds));
         await new Promise((r) => window.setTimeout(r, 115));
+        if (runVersion.current !== version) return;
         setNodeStatuses((prev) => ({
           ...prev,
           [step.nodeId]: step.status === 'error' ? 'error' : 'ok',
@@ -462,6 +516,7 @@ export function CircuitBuilderView({
         await new Promise((r) => window.setTimeout(r, 420));
       }
 
+      if (runVersion.current !== version) return;
       setActiveEdgeIds(new Set());
       setRunResult(response);
       setRightTab('telemetry');
@@ -469,8 +524,10 @@ export function CircuitBuilderView({
       showToast(
         `Completed ${response.roundsCompleted}r in ${response.totalDurationMs} ms · SHA ${response.provenanceSha256.slice(0, 8)}`,
       );
+    } catch (error) {
+      if (runVersion.current === version) showToast(error instanceof Error ? error.message : 'Circuit run failed', 'error');
     } finally {
-      setIsRunning(false);
+      if (runVersion.current === version) setIsRunning(false);
     }
   }, [circuit, isRunning, molecules, showToast, v4Benchmarks, validation]);
 
@@ -488,7 +545,7 @@ export function CircuitBuilderView({
         return;
       }
       commitGraph(parsed.graph);
-      setActivePresetId(parsed.graph.metadata?.presetId ?? null);
+      setDocumentVersion(v => v + 1);
       setSelectedNodeId(parsed.graph.nodes[0]?.id ?? null);
       setSelectedEdgeId(null);
       window.requestAnimationFrame(() => fitGraphToCanvas(parsed.graph!));
@@ -507,7 +564,7 @@ export function CircuitBuilderView({
         target instanceof HTMLSelectElement;
       const mod = e.metaKey || e.ctrlKey;
 
-      if (mod && e.key.toLowerCase() === 'k') {
+      if (view === 'wiring' && mod && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setDockCollapsed(false);
         window.requestAnimationFrame(() => searchInputRef.current?.focus());
@@ -526,6 +583,8 @@ export function CircuitBuilderView({
       } else if ((mod && e.shiftKey && e.key.toLowerCase() === 'z') || (mod && e.key.toLowerCase() === 'y')) {
         e.preventDefault();
         handleRedo();
+      } else if (view !== 'wiring') {
+        return;
       } else if (mod && e.key.toLowerCase() === 'd' && selectedNodeId) {
         e.preventDefault();
         handleDuplicateNode(selectedNodeId);
@@ -544,6 +603,7 @@ export function CircuitBuilderView({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [
+    view,
     circuit,
     fitGraphToCanvas,
     handleAutoLayout,
@@ -558,7 +618,41 @@ export function CircuitBuilderView({
   ]);
 
   return (
-    <div className="studio-circuit-workbench w-full flex flex-col overflow-hidden">
+    <div className={view === 'stages' ? 'circuit-guided-shell' : 'studio-circuit-workbench w-full flex flex-col overflow-hidden'}>
+      <div className={'circuit-workspace-head ' + (view === 'wiring' ? 'is-compact' : '')}>
+        <h1>Circuit editor</h1>
+        <div role="group" aria-label="Editor view" className="circuit-view-switch">
+          <button type="button" aria-pressed={view === 'stages'} onClick={() => setView('stages')}><Layers size={16} />Stage view</button>
+          <button type="button" aria-pressed={view === 'wiring'} onClick={() => { if (view !== 'wiring') openWiring(); }}><Workflow size={16} />Wiring canvas</button>
+        </div>
+      </div>
+      <div hidden={view !== 'stages'}>
+        <div className="circuit-guide-toolbar">
+          <label>Preset
+            <select value={activePresetId ?? ''} onChange={e => handleSelectPreset(e.target.value)}>
+              {!activePresetId && <option value="">{circuit.name} (custom)</option>}
+              {CIRCUIT_PRESETS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </label>
+          <div className="circuit-guide-actions">
+            {runResult && !isRunning && <button type="button" onClick={() => {
+              setRightTab('telemetry');
+              setDrawerCollapsed(false);
+              openWiring();
+            }}>Run results</button>}
+            <button type="button" aria-label="Undo edit" title="Undo edit" disabled={!past.length} onClick={handleUndo}><Undo2 size={17} /></button>
+            <button type="button" aria-label="Redo edit" title="Redo edit" disabled={!future.length} onClick={handleRedo}><Redo2 size={17} /></button>
+            <button className="circuit-run-action" type="button" disabled={isRunning || !circuit.nodes.length} onClick={handleRunCircuit}>
+              <Play size={15} />{isRunning ? 'Running…' : circuit.execution.mode === 'browser_sim' ? 'Run preview' : 'Run circuit'}
+            </button>
+          </div>
+        </div>
+        <StageEditor key={documentVersion + ':' + circuit.id} circuit={circuit} onUpdateNodeParam={handleUpdateNodeParam}
+          onOpenCanvas={openWiring} result={runResult} />
+        <div role="status" className="circuit-guide-status">{toastMessage?.text}</div>
+      </div>
+      {view === 'wiring' && <>
+
       {/* Top Contextual Preset & Execution Bar */}
       <PresetBar
         presets={CIRCUIT_PRESETS}
@@ -590,7 +684,7 @@ export function CircuitBuilderView({
       />
 
       {/* Main 3-Pane macOS Sequoia / Xcode Workspace */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
+      <div className="circuit-wiring-body relative flex-1 flex min-h-0 overflow-hidden">
         {/* Left Collapsible Block Library Dock */}
         <BlockPalette
           collapsed={dockCollapsed}
@@ -627,7 +721,7 @@ export function CircuitBuilderView({
             if (selectedNodeId) handleDeleteNode(selectedNodeId);
             else if (selectedEdgeId) handleDeleteEdge(selectedEdgeId);
           }}
-          onLoadDefaultPreset={() => handleSelectPreset(CIRCUIT_PRESETS[0].id)}
+          onLoadDefaultPreset={() => handleSelectPreset(DEFAULT_PRESET.id)}
           nodeStatuses={nodeStatuses}
           nodeTelemetry={nodeTelemetry}
           activeEdgeIds={activeEdgeIds}
@@ -693,6 +787,7 @@ export function CircuitBuilderView({
                     <button
                       key={id}
                       type="button"
+                      ref={id === 'inspector' ? inspectorTabRef : undefined}
                       data-drawer-tab={id}
                       onClick={() => setRightTab(id)}
                       className={`py-1 px-1 rounded-md text-[10.5px] font-medium whitespace-nowrap flex items-center justify-center gap-1 transition-all cursor-pointer ${
@@ -744,7 +839,7 @@ export function CircuitBuilderView({
                 />
               )}
 
-              {rightTab === 'python' && (
+              {codegen && (
                 <CodeExportDrawer
                   circuitName={circuit.name}
                   codegen={codegen}
@@ -768,6 +863,7 @@ export function CircuitBuilderView({
           </aside>
         )}
       </div>
+      </>}
     </div>
   );
 }
