@@ -87,7 +87,6 @@ body {
   min-height: 100vh;
   background-color: var(--bg-page);
   color: var(--text-primary);
-  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .font-mono-num {
