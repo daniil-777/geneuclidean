@@ -127,6 +127,27 @@ test('traces the default pocket-to-SMILES path and its two parallel decoder sign
   await expect(page.locator('.stage-products li code').first()).toHaveText(/\S+/);
 });
 
+async function checkDecoderCaptions(diagram: Locator, width: number) {
+  const captions = diagram.locator('[data-diagram-node] small');
+  await expect(captions).toHaveCount(3);
+  const clipped = await captions.evaluateAll(elements => elements.filter(el => {
+    const box = el.getBoundingClientRect();
+    const card = el.closest('button')!.getBoundingClientRect();
+    return el.clientHeight === 0 || el.scrollHeight > el.clientHeight + 1 ||
+      box.top < card.top - 1 || box.bottom > card.bottom + 1;
+  }).map(el => el.closest('button')!.dataset.nodeId));
+  expect(clipped, `Clipped decoder captions at ${width}px`).toEqual([]);
+}
+
+test('fits tablet decoder captions when the web font is unavailable', async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 900 });
+  await page.route('**/*.woff2', route => route.abort());
+  await openEditor(page);
+  await page.getByRole('button', { name: 'Open Decoder', exact: true }).click();
+  await page.evaluate(() => document.fonts.ready);
+  await checkDecoderCaptions(page.locator('[data-diagram-stage]'), 768);
+});
+
 test('attaches each wire to its declared ports and separates both parallel decoder paths at each width', async ({ page }) => {
   await openEditor(page);
   for (const width of [1440, 768, 375, 320]) {
@@ -149,15 +170,7 @@ test('attaches each wire to its declared ports and separates both parallel decod
       if (width === 1440) expect(positions[1].x).toBeGreaterThan(positions[0].x + 10);
       if (width <= 375) expect(positions[1].y).toBeGreaterThan(positions[0].y + 10);
       if (stage === 'Decoder') {
-        const captions = diagram.locator('[data-diagram-node] small');
-        await expect(captions).toHaveCount(3);
-        const clipped = await captions.evaluateAll(elements => elements.filter(el => {
-          const box = el.getBoundingClientRect();
-          const card = el.closest('button')!.getBoundingClientRect();
-          return el.clientHeight === 0 || el.scrollHeight > el.clientHeight + 1 ||
-            box.top < card.top - 1 || box.bottom > card.bottom + 1;
-        }).map(el => el.closest('button')!.dataset.nodeId));
-        expect(clipped, `Clipped decoder captions at ${width}px`).toEqual([]);
+        await checkDecoderCaptions(diagram, width);
         const a = wires.find(w => w.id === 'e7')!.points;
         const b = wires.find(w => w.id === 'e8')!.points;
         expect(Math.min(...a.flatMap(p => b.map(q => Math.hypot(p.x - q.x, p.y - q.y))))).toBeGreaterThan(2);

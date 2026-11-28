@@ -32,6 +32,8 @@ export interface StageDiagram {
 const padding = 14;
 const laneGap = 18;
 const socketGap = 20;
+// Includes two title lines, three description lines, padding, gap and borders.
+const minimumCardHeight = 112;
 const crossingGap = 4;
 type Gutter = 'left' | 'right';
 
@@ -120,14 +122,14 @@ export function layoutStageDiagram(
   const leftLanes = assignLanes(sideRoutes.left);
   const rightLanes = assignLanes(sideRoutes.right);
   const maxParallel = adjacent.reduce((max, group) => Math.max(max, group.length), 0);
-  const breadth = Math.max(horizontal ? 94 : 212, (maxParallel - 1) * socketGap + 36);
+  const breadth = Math.max(horizontal ? minimumCardHeight : 212, (maxParallel - 1) * socketGap + 36);
   const cardX = padding + leftLanes * laneGap;
   const diagramBreadth = cardX + breadth + rightLanes * laneGap + padding;
   const cardGap = horizontal ? 64 : 52;
   let cursor = padding;
   const cards = nodes.map((node, i) => {
     const count = Math.max(sockets[i].left.length, sockets[i].right.length);
-    const length = Math.max(horizontal ? 210 : 84, (count - 1) * socketGap + 32);
+    const length = Math.max(horizontal ? 210 : minimumCardHeight, (count - 1) * socketGap + 32);
     const y = cursor;
     cursor += length + cardGap;
     const laidOut: DiagramNode = { id: node.id, ...point(cardX, y),
